@@ -8,9 +8,10 @@ const WIN = process.platform === "win32";
 const q = (a) => (WIN && /[\s"&|<>^]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
 
 export function start(cmd, args, { cwd, env, input } = {}) {
-  const child = spawn(cmd, WIN ? args.map(q) : args, {
-    cwd, env: { ...process.env, ...env }, shell: WIN, windowsHide: true,
-  });
+  const opts = { cwd, env: { ...process.env, ...env }, windowsHide: true };
+  const child = WIN
+    ? spawn([cmd, ...args.map(q)].join(" "), { ...opts, shell: true })
+    : spawn(cmd, args, opts);
   if (input != null) child.stdin.end(input); else child.stdin.end();
   return child;
 }

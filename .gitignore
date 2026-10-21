@@ -14,6 +14,7 @@ google-key.txt*
 *.tsv
 *.xlsx
 projects/gtm-pipeline/*.json
+!projects/gtm-pipeline/package.json
 projects/gtm-pipeline/*.txt
 projects/gtm-pipeline/*.md
 !projects/gtm-pipeline/README.md

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gtm-pipeline</title>
+<meta name="token" content="__TOKEN__">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e2572b'/><path d='M8 22l5-6 4 3 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">G</span><div><strong>gtm-pipeline</strong><small>Find companies that are hiring for what you sell to.</small></div></div>
+  <div class="status"><span id="phase" class="pill">Idle</span><button id="stop" class="btn danger" hidden>Stop</button></div>
+</header>
+
+<div class="layout">
+  <nav class="steps">
+    <a href="#setup" data-step="setup"><b>1</b><span>Setup</span><i></i></a>
+    <a href="#target" data-step="target"><b>2</b><span>Your target</span><i></i></a>
+    <a href="#run" data-step="run"><b>3</b><span>Run</span><i></i></a>
+    <a href="#results" data-step="results"><b>4</b><span>Prospect board</span><i></i></a>
+  </nav>
+  <main>
+    <section id="setup" class="panel">
+      <h1>Setup</h1>
+      <p class="lead">Runs on your computer. Your keys and results stay in <code>workspace/</code>, which is never committed.</p>
+      <div class="card">
+        <div class="card-head"><h2>Checklist</h2><button class="btn" id="recheck">Check again</button></div>
+        <ul class="checks" id="checks"><li class="muted">Checking…</li></ul>
+      </div>
+      <div class="card">
+        <h2>Adzuna API</h2>
+        <p class="muted">Job ads come from Adzuna. It's free: <a href="https://developer.adzuna.com" target="_blank" rel="noopener">register</a> and copy your app ID and key.</p>
+        <div class="grid2">
+          <label class="field"><span>App ID</span><input id="adzunaId" autocomplete="off" spellcheck="false"></label>
+          <label class="field"><span>App key</span><input id="adzunaKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
+        </div>
+        <button class="btn primary" id="saveKeys">Save &amp; test</button>
+        <p class="hint" id="keyHint"></p>
+      </div>
+      <div class="next"><a class="btn primary" href="#target">Next: describe your target →</a></div>
+    </section>
+
+    <section id="target" class="panel">
+      <h1>Your target</h1>
+      <p class="lead">Tell it what you sell and which job ads signal a good customer. The defaults are a worked example: companies with door-to-door sales teams.</p>
+      <div class="card">
+        <h2>What you sell</h2>
+        <label class="field"><span>Your product, in a sentence</span><input id="product" placeholder="e.g. a scheduling tool for home-care agencies"></label>
+        <label class="field"><span>A good customer genuinely…</span><input id="qualifier" placeholder="e.g. employs field care workers who visit clients at home"></label>
+        <p class="hint">The AI research step checks every company against this and gives a verdict.</p>
+      </div>
+      <div class="card">
+        <h2>Job ads to look for</h2>
+        <div class="field"><span>Search phrases <em id="phraseCount"></em></span><div class="chips" id="phrases"></div>
+          <div class="row"><input id="newPhrase" placeholder="Add a phrase, e.g. care assistant"><button class="btn" id="addPhrase">Add</button></div></div>
+        <div class="field"><span>Countries</span><div class="chips" id="countries"></div></div>
+        <label class="field"><span>Depth</span>
+          <select id="mode"><option value="deep">Deep: every matching ad from the last 90 days (first run)</option><option value="weekly">Weekly: just the last 14 days (repeat runs)</option></select></label>
+      </div>
+      <div class="card grid2">
+        <label class="field wide"><span>Strong-fit words in job ads <em>(comma separated, big score boost)</em></span><input id="strongKeywords"></label>
+        <label class="field wide"><span>Words that confirm a fit on a company's website <em>(comma separated)</em></span><input id="siteKeywords"></label>
+        <label class="field"><span>Minimum job ads per company</span><input id="minPostings" type="number" min="1" max="50"></label>
+        <label class="field"><span>Minimum score to research</span><input id="minScore" type="number" min="0" max="20"></label>
+        <label class="field"><span>Research at most <em>(0 = all)</em></span><input id="researchLimit" type="number" min="0" max="500"></label>
+        <label class="field"><span>Board title</span><input id="reportTitle"></label>
+      </div>
+      <div class="next"><a class="btn primary" href="#run">Next: run it →</a></div>
+    </section>
+
+    <section id="run" class="panel">
+      <h1>Run</h1>
+      <p class="lead">Run everything in order, or one step at a time. Each step reads the one before it, and you can re-run any step.</p>
+      <div class="actionbar" style="justify-content:flex-start"><button class="btn primary big" id="runAll">Run all steps</button><span class="muted">The AI research step takes a few minutes per company.</span></div>
+      <div class="pipeline" id="pipeline"></div>
+      <div class="card"><h2>Output</h2><ol class="log" id="log"></ol></div>
+    </section>
+
+    <section id="results" class="panel">
+      <h1>Prospect board</h1>
+      <div class="statsrow" id="stats"></div>
+      <div class="actionbar" style="justify-content:flex-start"><a class="btn primary" href="/report" target="_blank" rel="noopener">Open full screen</a><button class="btn" id="openFolder">Open results folder</button></div>
+      <div id="reportWrap"></div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

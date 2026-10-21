@@ -1,4 +1,4 @@
-// research-pipeline.cjs — Kríos deep research via Claude Code sessions
+// research-pipeline.cjs — deep research via Claude Code sessions
 //
 // Loops over shortlist.json and spawns one Claude Code session per company to
 // research it properly, then writes a brief per company plus a combined report.
@@ -23,20 +23,22 @@
 
 const fs = require('fs');
 const path = require('path');
+const SETTINGS = require('./lib/settings.cjs').load();
+const { file: dataFile, keywordRegex, countryNames } = require('./lib/settings.cjs');
 const { spawn } = require('child_process');
 
-const SHORTLIST = path.join(__dirname, 'shortlist.json');
-const OUTDIR    = path.join(__dirname, 'research');
-const REPORT    = path.join(__dirname, 'research_report.md');
-const FAILED    = path.join(__dirname, 'research_failed.txt');
+const SHORTLIST = dataFile('shortlist.json');
+const OUTDIR    = dataFile('research');
+const REPORT    = dataFile('research_report.md');
+const FAILED    = dataFile('research_failed.txt');
 
 const CONFIG = {
   // Only research companies at or above this triage score.
-  minScore: 4,
+  minScore: SETTINGS.minScore,
   // 0 = all. Set to e.g. 5 for a test run first.
-  limit: 0,
+  limit: SETTINGS.researchLimit,
   // Minutes before giving up on a single company.
-  timeoutMin: 6,
+  timeoutMin: SETTINGS.timeoutMin,
   // Pause between sessions.
   delaySec: 5,
   // The CLI command. Change if yours differs.
@@ -56,12 +58,12 @@ function buildPrompt(c) {
   const locations = (c.locations || []).slice(0, 6).join(', ');
   const phrases = (c.phrases || []).join(', ');
 
-  return `Research the UK company "${c.company}" as a potential customer for Kríos, an AI voice sales training platform sold to door-to-door and field sales organisations.
+  return `Research the company "${c.company}" (hiring in ${countryNames(SETTINGS.countries)}) as a potential customer for ${SETTINGS.product}.
 
 What I already know from job board data:
 - Job postings: ${c.postings}
 - Hiring locations: ${locations || 'unknown'}
-- Matched these door-to-door search phrases: ${phrases || 'none'}
+- Matched these search phrases: ${phrases || 'none'}
 - Sample job title: ${c.sample_title || 'unknown'}
 
 Search the web and answer the following. Be sceptical and prioritise recent information. If you cannot verify something, say so rather than guessing.
@@ -69,8 +71,8 @@ Search the web and answer the following. Be sceptical and prioritise recent info
 1. WHAT THEY ACTUALLY DO
    Official website URL. What they sell. Which vertical.
 
-2. DO THEY GENUINELY RUN DOOR-TO-DOOR SALES?
-   This is the key qualifier. Do they employ canvassers or field reps who knock doors, or did they just appear in job data because of generic sales wording? Are they a recruitment agency posting on behalf of someone else? Quote any evidence.
+2. DO THEY GENUINELY ${SETTINGS.qualifier.toUpperCase()}?
+   This is the key qualifier. Is there real evidence they ${SETTINGS.qualifier}, or did they just appear in job data because of generic wording? Are they a recruitment agency posting on behalf of someone else? Quote any evidence.
 
 3. SIZE OF THE FIELD FORCE
    Employee count, number of branches or depots, revenue if public, and any indication of how many canvassers or field reps they run.
@@ -82,7 +84,7 @@ Search the web and answer the following. Be sceptical and prioritise recent info
    Do job ads mention training provided, no experience needed, commission-only pay, or high turnover? Any Glassdoor or Indeed reviews mentioning training quality or sales pressure.
 
 6. THE PITCH ANGLE
-   If they are a good fit, what is the sharpest angle for Kríos? Reference something specific about how they sell or what they measure.
+   If they are a good fit, what is the sharpest angle for ${SETTINGS.product}? Reference something specific about how they sell or what they measure.
 
 7. VERDICT
    One of: STRONG FIT, WORTH CONTACTING, WEAK, or NOT A BUYER. Give one sentence of reasoning.
@@ -194,7 +196,7 @@ async function main() {
 
   // Combine everything on disk into one report.
   const files = fs.readdirSync(OUTDIR).filter((f) => f.endsWith('.md')).sort();
-  const combined = [`# Kríos deep research\n`, `Generated ${new Date().toLocaleString()} · ${files.length} companies\n`]
+  const combined = [`# Deep research\n`, `Generated ${new Date().toLocaleString()} · ${files.length} companies\n`]
     .concat(files.map((f) => fs.readFileSync(path.join(OUTDIR, f), 'utf8') + '\n\n---\n'))
     .join('\n');
   fs.writeFileSync(REPORT, combined, 'utf8');

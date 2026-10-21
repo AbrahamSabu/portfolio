@@ -2,42 +2,64 @@
 
 # GTM pipeline
 
-**Job ads → ranked shortlist → crawled briefs → one Claude research session per company → prospect board. 197 companies profiled, 90 researched in depth.**
+**Find the companies that are hiring for the roles you sell to. It ranks them, crawls their websites, has Claude research each one, and gives you a prospect board. All from a simple local app.**
 
-A go-to-market pipeline that finds companies running door-to-door and field-sales teams,
-which are Kríos's target customers. It pulls their job listings, ranks them, researches
-the best ones, and produces a prospect board.
+My own run profiled 197 companies and researched 90 in depth.
 
-The company data it produced is not included, because it describes real businesses.
-Running the pipeline creates it again locally, and `.gitignore` keeps it out of git.
+![The app: five steps, run with one click](screenshots/app-run.png)
 
-## Steps
+## Quick start
 
-| Step | Script | What it does |
-|---|---|---|
-| 1 | `collect.js` | Pulls door-to-door / field-sales job listings from the Adzuna API across several countries, dedupes by employer, and merges them into a master list that grows over time |
-| 2 | `triage.js` | Scores, dedupes and classifies that list into a ranked shortlist. No network calls |
-| 3 | `enrich.js` | Finds each shortlisted company's real website, crawls it, and writes a short brief. No API keys |
-| 4 | `research-pipeline.cjs` | Opens one Claude Code session per company for deeper research and writes a brief for each |
-| 5 | `report.js` | Combines everything into `report.html`, a prospect board driven by the research verdicts |
+You need [Node.js 18+](https://nodejs.org), free [Adzuna API keys](https://developer.adzuna.com), and
+[Claude Code](https://claude.com/claude-code) if you want the AI research step.
 
-## How to run
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/AbrahamSabu/portfolio.git gtm-pipeline
+cd gtm-pipeline
+git sparse-checkout set projects/gtm-pipeline
+cd projects/gtm-pipeline
+node server.mjs
+```
 
-Needs Node 18 or later (no `npm install`). For step 4 you also need the `claude` CLI,
-signed in.
+Your browser opens at **http://localhost:4322**. There's nothing to `npm install`.
 
-1. Get a free app ID and key at https://developer.adzuna.com.
-2. Create a `.env` file in this folder:
-   ```
-   ADZUNA_APP_ID=your_id
-   ADZUNA_APP_KEY=your_key
-   ```
-3. Run the steps in order:
-   ```bash
-   node collect.js
-   node triage.js
-   node enrich.js
-   node research-pipeline.cjs
-   node report.js
-   ```
-4. Open `report.html`.
+## How it works
+
+| Step | What happens |
+|---|---|
+| **1. Collect job ads** | Pulls every job ad matching your phrases from Adzuna, across the countries you pick, and merges them into a master list of employers that grows with each run |
+| **2. Rank** | Scores each employer by posting volume, phrase matches and your strong-fit words. It drops recruitment agencies and noise, and merges duplicate names |
+| **3. Crawl websites** | Finds each shortlisted company's real website, reads it, and checks for words that confirm a fit |
+| **4. AI research** | Opens one Claude Code web-research session per company. It covers what they do, whether they genuinely fit, size, ownership and financial health, how they train staff, your pitch angle, and a verdict |
+| **5. Build the board** | Combines everything into an interactive prospect board you can filter by verdict and vertical |
+
+You can run all five steps with one click, or re-run any single step.
+
+![Describe your target](screenshots/app-target.png)
+
+## Make it your own
+
+Everything is set in the **Your target** tab, with no code changes needed:
+
+- **What you sell, and what a good customer genuinely does.** The AI research step checks every company against this.
+- **Search phrases and countries:** the job ads that signal a buyer.
+- **Strong-fit words and website words:** these drive the score.
+- **Thresholds:** minimum job ads per company, minimum score, and how many companies to research.
+
+The defaults are a worked example: finding companies that run door-to-door sales teams. The vertical labels in
+`triage.js` and `report.js` are tuned for that example, so edit `VERTICAL_RULES` there for other industries.
+
+## Your data stays local
+
+Keys, settings, results and private notes live in `workspace/`, which is gitignored. To pin your own notes to a
+company on the board, add `workspace/notes.json`:
+
+```json
+{ "Acme Ltd": { "pin": 1, "headline": "Best target", "bullets": ["Why", "And why"] } }
+```
+
+You can also run each step on its own, for example `node collect.js`. They all read `workspace/settings.json`.
+
+## License
+
+[MIT](LICENSE)

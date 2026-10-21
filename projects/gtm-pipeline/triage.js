@@ -1,4 +1,4 @@
-// triage.js — Kríos ICP Pass 1 (v2): score, dedupe, classify, shortlist
+// triage.js — ICP Pass 1 (v2): score, dedupe, classify, shortlist
 //
 // Reads companies_master.json (from collect.js) and turns the raw employer
 // list into a ranked shortlist worth researching.
@@ -25,18 +25,20 @@
 
 const fs = require('fs');
 const path = require('path');
+const SETTINGS = require('./lib/settings.cjs').load();
+const { file: dataFile, keywordRegex, countryNames } = require('./lib/settings.cjs');
 
-const MASTER_JSON    = path.join(__dirname, 'companies_master.json');
-const SHORTLIST_TXT  = path.join(__dirname, 'shortlist.txt');
-const SHORTLIST_JSON = path.join(__dirname, 'shortlist.json');
-const EXCLUDED_TXT   = path.join(__dirname, 'excluded.txt');
-const MERGED_TXT     = path.join(__dirname, 'merged.txt');
+const MASTER_JSON    = dataFile('companies_master.json');
+const SHORTLIST_TXT  = dataFile('shortlist.txt');
+const SHORTLIST_JSON = dataFile('shortlist.json');
+const EXCLUDED_TXT   = dataFile('excluded.txt');
+const MERGED_TXT     = dataFile('merged.txt');
 
 // ----------------------------- TUNING ---------------------------------------
 
 const TUNING = {
-  minScore: 4,
-  minPostings: 2,
+  minScore: SETTINGS.minScore,
+  minPostings: SETTINGS.minPostings,
 
   // RECRUITMENT agencies: they fill roles at other companies and do not employ
   // the reps. Not your buyer. Excluded.
@@ -213,9 +215,9 @@ function scoreCompany(r) {
   else if (ph >= 2) { score += 2; reasons.push(`matched ${ph} D2D phrases`); }
 
   const hay = [(r.phrases || []).join(' '), r.sample_title || ''].join(' ').toLowerCase();
-  if (/door to door|canvass/.test(hay)) {
+  if (keywordRegex(SETTINGS.strongKeywords).test(hay)) {
     score += 3;
-    reasons.push('explicitly door-to-door / canvassing');
+    reasons.push('job ads use your strong-fit keywords');
   }
 
   if (r.first_seen && r.last_seen && r.first_seen !== r.last_seen) {

@@ -1,4 +1,4 @@
-// collect.js — Kríos ICP discovery collector (Tier 2, v2)
+// collect.js — ICP discovery collector (Tier 2, v2)
 //
 // Pulls door-to-door / field-sales job listings from the Adzuna API across
 // multiple countries, dedupes by employer, and MERGES into a persistent
@@ -27,33 +27,20 @@
 //   Then weekly: MODE = 'weekly'  (catches new entrants, ~60-120 calls)
 //   Free tier is ~1000 calls/month, so budget accordingly.
 
-// ----------------------------- CREDENTIALS ----------------------------------
-// Paste between the quotes. Keep the quotes.
-const ADZUNA_APP_ID  = 'PASTE_YOUR_APP_ID_HERE';
-const ADZUNA_APP_KEY = 'PASTE_YOUR_APP_KEY_HERE';
+// Credentials, countries and phrases come from the app (workspace/settings.json).
 
 // ----------------------------- CONFIG ---------------------------------------
 
 // 'deep'   = exhaust the current pool. Use for your first run.
 // 'weekly' = shallow sweep for new postings. Use on a schedule after that.
-const MODE = 'deep';
+const SETTINGS = require('./lib/settings.cjs').load();
+const { file: dataFile, keywordRegex, countryNames } = require('./lib/settings.cjs');
+
+const MODE = SETTINGS.mode;
 
 const CONFIG = {
-  countries: ['gb'],
-
-  // These phrases ARE your ICP definition. Tune freely.
-  phrases: [
-    'door to door sales',
-    'field sales representative',
-    'canvasser',
-    'direct sales',
-    'door to door canvasser',
-    'field sales agent',
-    'solar sales',
-    'broadband field sales',
-    'energy field sales',
-    'face to face fundraiser',
-  ],
+  countries: SETTINGS.countries,
+  phrases: SETTINGS.phrases,
 
   resultsPerPage: 50,        // Adzuna max
   delayMs: 1200,             // politeness pause between calls
@@ -67,9 +54,9 @@ const CONFIG = {
 const fs = require('fs');
 const path = require('path');
 
-const MASTER_JSON = path.join(__dirname, 'companies_master.json');
-const MASTER_TXT  = path.join(__dirname, 'companies_master.txt');
-const MASTER_CSV  = path.join(__dirname, 'companies_master.csv');
+const MASTER_JSON = dataFile('companies_master.json');
+const MASTER_TXT  = dataFile('companies_master.txt');
+const MASTER_CSV  = dataFile('companies_master.csv');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const today = () => new Date().toISOString().slice(0, 10);
@@ -78,7 +65,7 @@ let CREDS = { id: '', key: '' };
 
 // Optional .env support, if you prefer keys out of the code.
 function loadEnv() {
-  const p = path.join(__dirname, '.env');
+  const p = dataFile('.env');
   if (!fs.existsSync(p)) return;
   for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -150,13 +137,13 @@ async function fetchPage(country, phrase, page, settings) {
 async function run() {
   loadEnv();
 
-  CREDS.id  = ADZUNA_APP_ID  !== 'PASTE_YOUR_APP_ID_HERE'  ? ADZUNA_APP_ID  : (process.env.ADZUNA_APP_ID  || '');
-  CREDS.key = ADZUNA_APP_KEY !== 'PASTE_YOUR_APP_KEY_HERE' ? ADZUNA_APP_KEY : (process.env.ADZUNA_APP_KEY || '');
+  CREDS.id  = SETTINGS.adzunaId || process.env.ADZUNA_APP_ID || '';
+  CREDS.key = SETTINGS.adzunaKey || process.env.ADZUNA_APP_KEY || '';
   CREDS.id = CREDS.id.trim();
   CREDS.key = CREDS.key.trim();
 
   if (!CREDS.id || !CREDS.key) {
-    console.error('No credentials. Paste them into the CREDENTIALS block at the top of this file.');
+    console.error('No Adzuna credentials. Add your app ID and key in the app (Setup), or set ADZUNA_APP_ID / ADZUNA_APP_KEY.');
     process.exit(1);
   }
 

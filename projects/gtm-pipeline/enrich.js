@@ -1,4 +1,4 @@
-// enrich.js — Kríos ICP Pass 2: resolve, crawl, brief
+// enrich.js — ICP Pass 2: resolve, crawl, brief
 //
 // Reads shortlist.json (from triage.js), finds each company's real website,
 // crawls it, and writes a tight brief per company.
@@ -29,13 +29,15 @@
 
 const fs = require('fs');
 const path = require('path');
+const SETTINGS = require('./lib/settings.cjs').load();
+const { file: dataFile, keywordRegex, countryNames } = require('./lib/settings.cjs');
 
-const SHORTLIST_JSON = path.join(__dirname, 'shortlist.json');
-const MANUAL_URLS    = path.join(__dirname, 'manual_urls.json');
-const CACHE_JSON     = path.join(__dirname, 'enrich_cache.json');
-const BRIEFS_TXT     = path.join(__dirname, 'briefs.txt');
-const BRIEFS_JSON    = path.join(__dirname, 'briefs.json');
-const NEEDS_LOOKUP   = path.join(__dirname, 'needs_lookup.txt');
+const SHORTLIST_JSON = dataFile('shortlist.json');
+const MANUAL_URLS    = dataFile('manual_urls.json');
+const CACHE_JSON     = dataFile('enrich_cache.json');
+const BRIEFS_TXT     = dataFile('briefs.txt');
+const BRIEFS_JSON    = dataFile('briefs.json');
+const NEEDS_LOOKUP   = dataFile('needs_lookup.txt');
 
 // ----------------------------- CONFIG ---------------------------------------
 
@@ -57,7 +59,7 @@ const CONFIG = {
   // Domain suffixes to try when guessing (UK-first since the list is UK).
   tlds: ['.co.uk', '.com', '.uk', '.ie'],
 
-  userAgent: 'Mozilla/5.0 (compatible; KriosResearch/1.0)',
+  userAgent: 'Mozilla/5.0 (compatible; GTMPipeline/1.0)',
 };
 
 // ----------------------------- HELPERS --------------------------------------
@@ -221,11 +223,7 @@ function findScaleSignals(text) {
 // Does the site itself confirm they sell door to door?
 function findD2DEvidence(text) {
   const hay = text.toLowerCase();
-  const terms = [
-    'door to door', 'door-to-door', 'canvasser', 'canvassing',
-    'field sales', 'in-home', 'home visit', 'doorstep',
-    'direct sales', 'face to face',
-  ];
+  const terms = SETTINGS.siteKeywords.map((t) => t.toLowerCase());
   const found = terms.filter((t) => hay.includes(t));
   return found;
 }

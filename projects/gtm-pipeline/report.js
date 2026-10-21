@@ -1,4 +1,4 @@
-// report.js — Kríos prospect board generator (v3)
+// report.js — prospect board generator (v3)
 //
 // Reads the full company list, layers on enrichment, and now parses the deep
 // research briefs in research/*.md so verdicts drive the board.
@@ -8,17 +8,21 @@
 
 const fs = require('fs');
 const path = require('path');
+const SETTINGS = require('./lib/settings.cjs').load();
+const { file: dataFile, keywordRegex, countryNames } = require('./lib/settings.cjs');
 
-const MASTER    = path.join(__dirname, 'companies_master.json');
-const BRIEFS    = path.join(__dirname, 'briefs.json');
-const SHORTLIST = path.join(__dirname, 'shortlist.json');
-const RESEARCH  = path.join(__dirname, 'research');
-const OUT       = path.join(__dirname, 'report.html');
+const MASTER    = dataFile('companies_master.json');
+const BRIEFS    = dataFile('briefs.json');
+const SHORTLIST = dataFile('shortlist.json');
+const RESEARCH  = dataFile('research');
+const OUT       = dataFile('report.html');
 
 // ---------------------------------------------------------------------------
-// MANUAL NOTES — your own findings. Keys match company names.
+// MANUAL NOTES — your own findings, kept private in workspace/notes.json.
+// Format: { "Company name": { "pin": 1, "headline": "...", "bullets": ["..."] } }
 // ---------------------------------------------------------------------------
-const NOTES = {};
+let NOTES = {};
+try { NOTES = JSON.parse(fs.readFileSync(dataFile('notes.json'), 'utf8')); } catch (_) {}
 
 // ---------------------------------------------------------------------------
 
@@ -235,7 +239,7 @@ function scoreCompany(r) {
   else if (ph >= 2) { score += 2; reasons.push(`matched ${ph} D2D phrases`); }
 
   const hay = [(r.phrases || []).join(' '), r.sample_title || ''].join(' ').toLowerCase();
-  if (/door to door|canvass/.test(hay)) { score += 3; reasons.push('job ads explicitly door-to-door'); }
+  if (keywordRegex(SETTINGS.strongKeywords).test(hay)) { score += 3; reasons.push('job ads use your strong-fit keywords'); }
   return { score, reasons };
 }
 
@@ -258,7 +262,7 @@ function assignTier(r, brief, research, score) {
   if (hits(name, NOISE_PATTERNS)) return { tier: 5, label: 'Not D2D', extra: ['Matched on generic sales wording'] };
 
   const d2dSite = brief && (brief.d2d_evidence || []).some((t) => /door|canvass|doorstep/.test(t));
-  const adsD2D = /door to door|canvass/.test([(r.phrases || []).join(' '), r.sample_title || ''].join(' ').toLowerCase());
+  const adsD2D = keywordRegex(SETTINGS.strongKeywords).test([(r.phrases || []).join(' '), r.sample_title || ''].join(' ').toLowerCase());
   const classified = brief && brief.vertical_from_site && brief.vertical_from_site !== 'Unclassified';
   const extra = [];
   if (d2dSite) extra.push('Their own website uses door-to-door language');
@@ -354,7 +358,7 @@ function template(d) {
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kríos — UK prospect board</title>
+<title>${SETTINGS.reportTitle}</title>
 <style>
   :root{--ink:#10131f;--ink-2:#1a1f33;--ink-3:#262d47;--lamp:#f0a836;--lamp-dim:#8a6224;
     --paper:#eceef5;--paper-dim:#9aa1b8;--edge:#2c3350;--good:#5fc9a0;--bad:#c9605a;}
@@ -425,8 +429,8 @@ function template(d) {
 </style></head><body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Kríos · UK discovery</div>
-    <h1>Prospect board</h1>
+    <div class="eyebrow">${countryNames(SETTINGS.countries)} · discovery</div>
+    <h1>${SETTINGS.reportTitle}</h1>
     <p class="sub">${d.rows.length} companies · ${d.counts.researched} deep researched · ${esc(d.generated)}</p>
     <div class="summary">
       <div class="stat hi"><b>${d.counts.worth}</b><span>Worth contacting</span></div>
