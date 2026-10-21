@@ -1,0 +1,3 @@
+# Your settings (API key), leads and built sites stay on your machine
+workspace/
+node_modules/

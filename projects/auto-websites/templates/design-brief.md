@@ -26,15 +26,15 @@ Enhancers (always include): hover lift on gallery images, responsive hover state
 
 Restraint still applies: not everything moving at once, and respect prefers-reduced-motion. The bar is "clearly animated and alive," not "everything twitches."
 
-## Images (Playwright MCP)
-Use Playwright to open the business's Google listing and public socials and capture their real photos as placeholders. Their own photos in their own mockup is fine to pitch; replace anything unlicensed before a live paid site.
+## Images
+Use only the business's real photos, already downloaded into the site's photos folder. Their own photos in their own mockup is fine to pitch; replace anything unlicensed before a live paid site.
 
 ## Never draw real-world objects
-Do not draw fences, plants, tools, buildings, scenery or any real-world object in SVG or CSS. AI-drawn objects look fake and cheapen the site. Every real-world image must be an actual photo pulled via Playwright from the business's Google listing or socials. If no real photo is available for a spot, use a clean solid colour, a subtle gradient, or a simple geometric shape — never an attempted drawing of the object.
+Do not draw fences, plants, tools, buildings, scenery or any real-world object in SVG or CSS. AI-drawn objects look fake and cheapen the site. Every real-world image must be one of the business's real photos. If no real photo is available for a spot, use a clean solid colour, a subtle gradient, or a simple geometric shape — never an attempted drawing of the object.
 
 ## Self-review loop (required before done)
 1. Run the dev server.
-2. With Playwright, screenshot the site at 1440px (desktop) and 390px (mobile).
+2. If Playwright is available, screenshot the site at 1440px (desktop) and 390px (mobile).
 3. Actually look at both. Critique: is the hero distinctive, type deliberate, spacing clean, does the signature moment land, anything broken or generic?
 4. Fix, re-screenshot, repeat until it clears.
 5. Quality floor: responsive, visible keyboard focus, reduced-motion respected, no console errors, fast load.

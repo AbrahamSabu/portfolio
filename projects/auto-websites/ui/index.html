@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>auto-websites</title>
+<meta name="token" content="__TOKEN__">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e2572b'/><path d='M9 21l7-11 7 11' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">A</span><div><strong>auto-websites</strong><small>Find businesses with no website. Build them one.</small></div></div>
+  <div class="status"><span id="phase" class="pill">Idle</span><button id="stop" class="btn danger" hidden>Stop</button></div>
+</header>
+
+<div class="layout">
+  <nav class="steps" id="steps">
+    <a href="#setup" data-step="setup"><b>1</b><span>Setup</span><i></i></a>
+    <a href="#find" data-step="find"><b>2</b><span>Find businesses</span><i></i></a>
+    <a href="#design" data-step="design"><b>3</b><span>Design</span><i></i></a>
+    <a href="#build" data-step="build"><b>4</b><span>Build</span><i></i></a>
+    <a href="#sites" data-step="sites"><b>5</b><span>Your sites</span><i></i></a>
+  </nav>
+
+  <main>
+    <!-- 1. SETUP -->
+    <section id="setup" class="panel">
+      <h1>Setup</h1>
+      <p class="lead">Everything runs on your computer. Your keys stay in <code>workspace/settings.json</code> and are only sent to Google.</p>
+      <div class="card">
+        <div class="card-head"><h2>Checklist</h2><button class="btn" id="recheck">Check again</button></div>
+        <ul class="checks" id="checks"><li class="muted">Checking…</li></ul>
+      </div>
+      <div class="card">
+        <h2>Google Places API key</h2>
+        <p class="muted">Used to find businesses and download their photos. <a href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noopener">Get a key</a>, and make sure <b>Places API (New)</b> is enabled.</p>
+        <div class="row">
+          <input id="googleKey" type="password" placeholder="Paste your key" autocomplete="off" spellcheck="false">
+          <button class="btn primary" id="saveKey">Save &amp; test</button>
+        </div>
+        <p class="hint" id="keyHint"></p>
+      </div>
+      <div class="card">
+        <h2>Claude</h2>
+        <p class="muted">Sites are built by Claude Code on your own account. Each one takes about 20–40 minutes.</p>
+        <label class="field"><span>Model</span>
+          <select id="model"><option value="">Claude Code default</option><option value="opus">Opus</option><option value="sonnet">Sonnet</option><option value="haiku">Haiku (fastest, simplest)</option></select>
+        </label>
+      </div>
+      <div class="card">
+        <h2>Deploy (optional)</h2>
+        <p class="muted">Publish finished sites to GitHub Pages. Clone a repo that has Pages turned on, then paste its folder path here.</p>
+        <label class="switch"><input type="checkbox" id="deployEnabled"><span>Deploy each site automatically when it's built</span></label>
+        <label class="field"><span>Pages repo folder</span><input id="repoPath" placeholder="e.g. C:\Users\you\client-sites" spellcheck="false"></label>
+        <button class="btn" id="saveDeploy">Save deploy settings</button>
+      </div>
+      <div class="next"><a class="btn primary" href="#find">Next: find businesses →</a></div>
+    </section>
+
+    <!-- 2. FIND -->
+    <section id="find" class="panel">
+      <h1>Find businesses</h1>
+      <p class="lead">Search Google Maps for local businesses. By default it only keeps the ones with no website.</p>
+      <div class="card grid2">
+        <label class="field"><span>Location</span><input id="location" placeholder="City, Country"></label>
+        <label class="field"><span>Radius: <b id="radiusVal"></b> km</span><input id="radiusKm" type="range" min="1" max="50"></label>
+        <label class="field wide"><span>Neighbourhoods <em>(optional, one per line — more areas find more businesses)</em></span><textarea id="areas" rows="3" placeholder="Leave empty to search the whole location"></textarea></label>
+        <div class="field wide">
+          <span>Business types <em id="typeCount"></em></span>
+          <div class="chips" id="types"></div>
+          <div class="row"><input id="newType" placeholder="Add a type, e.g. yoga studio"><button class="btn" id="addType">Add</button></div>
+        </div>
+        <label class="switch"><input type="checkbox" id="onlyNoWebsite"><span>Only businesses with no website</span></label>
+        <label class="switch"><input type="checkbox" id="skipBuilt"><span>Skip businesses I've already built</span></label>
+      </div>
+      <div class="actionbar">
+        <span class="muted" id="searchEstimate"></span>
+        <button class="btn primary big" id="searchBtn">Search</button>
+      </div>
+      <div class="progress" id="searchProgress" hidden><div></div><span></span></div>
+
+      <div class="card" id="leadsCard" hidden>
+        <div class="card-head">
+          <h2 id="leadsTitle">Results</h2>
+          <div class="row tight"><input id="leadFilter" placeholder="Filter…"><button class="btn" id="selectTop"></button><button class="btn" id="selectNone">Clear</button></div>
+        </div>
+        <div class="table-wrap"><table class="leads"><thead><tr><th></th><th>Business</th><th>Type</th><th>Photos</th><th>Rating</th><th>Distance</th><th>Address</th></tr></thead><tbody id="leads"></tbody></table></div>
+      </div>
+      <div class="actionbar sticky" id="buildBar" hidden>
+        <span id="selectedCount"></span>
+        <a class="btn" href="#design">Adjust the design first</a>
+        <button class="btn primary big" id="buildBtn">Build selected</button>
+      </div>
+    </section>
+
+    <!-- 3. DESIGN -->
+    <section id="design" class="panel">
+      <h1>Design</h1>
+      <p class="lead">These instructions are what Claude follows for every site. Change them to make the sites your own.</p>
+      <div class="card">
+        <h2>Extra instructions <em class="muted">(quickest way to steer)</em></h2>
+        <textarea id="extra" rows="3" placeholder="e.g. Always include a booking button. Use British English. Keep it to one page."></textarea>
+        <button class="btn" id="saveExtra">Save</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Design brief <code>CLAUDE.md</code></h2><div class="row tight"><button class="btn" data-reset="CLAUDE.md">Reset to default</button><button class="btn primary" data-save="CLAUDE.md">Save</button></div></div>
+        <p class="muted">The studio's standards: stack, design process, looks to avoid, motion and image rules.</p>
+        <textarea class="code" id="text-CLAUDE.md" rows="16" spellcheck="false"></textarea>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Per-site instructions</h2><div class="row tight"><button class="btn" data-reset="build-instructions.md">Reset to default</button><button class="btn primary" data-save="build-instructions.md">Save</button></div></div>
+        <p class="muted">Filled in for each business. Placeholders: <code>{{name}}</code> <code>{{slug}}</code> <code>{{type}}</code> <code>{{address}}</code> <code>{{phone}}</code> <code>{{hours}}</code> <code>{{mapsUrl}}</code> <code>{{extra}}</code></p>
+        <textarea class="code" id="text-build-instructions.md" rows="16" spellcheck="false"></textarea>
+      </div>
+    </section>
+
+    <!-- 4. BUILD -->
+    <section id="build" class="panel">
+      <h1>Build</h1>
+      <p class="lead">Sites build one at a time. You can leave this running; each finished site appears in <a href="#sites">Your sites</a>.</p>
+      <div id="queue" class="queue"><div class="empty">Nothing building. Pick businesses in <a href="#find">Find businesses</a>.</div></div>
+      <div class="card">
+        <h2>Activity</h2>
+        <ol class="log" id="log"></ol>
+      </div>
+    </section>
+
+    <!-- 5. SITES -->
+    <section id="sites" class="panel">
+      <h1>Your sites</h1>
+      <p class="lead">Everything you've built. Previews run locally; deploy when you're happy.</p>
+      <div id="siteGrid" class="sites"><div class="empty">No sites yet.</div></div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

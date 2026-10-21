@@ -1,0 +1,14 @@
+{
+  "name": "auto-websites",
+  "version": "1.0.0",
+  "description": "Find local businesses with no website and have Claude Code design and build one for each.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
