@@ -1,0 +1,1563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UCAT Prep</title>
+<meta name="description" content="A free UCAT study planner and practice app: a day-by-day plan to your test date, AI-written practice questions, timed sections, mocks and an error log.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:#E6E8EC}
+:root{--paper:#E6E8EC;--card:#fff;--ink:#131E33;--ink2:#38425A;--muted:#6B7488;--rule:#CBD1DC;
+--done:#0D6E5C;--doneBg:#E1EFEB;--alert:#A8372A;--alertBg:#FBEDEA;--warn:#8A6410}
+#u{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--paper);font-size:15px;
+line-height:1.5;padding:22px 16px 70px;max-width:860px;margin:0 auto;-webkit-font-smoothing:antialiased}
+#u h1,#u h2,#u h3,#u h4{font-family:'Archivo',sans-serif;margin:0;font-weight:600;letter-spacing:-.015em}
+#u p{margin:0}#u button{font-family:inherit;font-size:inherit;color:inherit}
+#u :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.count{font-family:'Archivo',sans-serif;font-weight:700;font-size:52px;line-height:.9;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.count span{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:8px;font-size:13.5px}
+.strip{display:flex;gap:4px;align-items:flex-end;height:38px;margin-top:18px}
+.cell{flex:1;background:#D5D9E1;display:flex;align-items:flex-end;height:22px}
+.cell i{display:block;width:100%;background:var(--done)}
+.cell.today{height:38px;box-shadow:inset 0 0 0 2px var(--ink)}
+.cell.past{background:#C2C7D2}.cell.exam{flex:0 0 16px;height:38px;background:var(--alert)}
+.striplab{display:flex;justify-content:space-between;color:var(--muted);font-size:11.5px;margin-top:7px;gap:8px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin:24px 0 20px;overflow-x:auto}
+.tab{background:none;border:0;padding:10px 13px;cursor:pointer;color:var(--muted);font-weight:500;
+border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+.phase{margin:24px 0 10px}.phase h2{font-size:16px}
+.phase p{color:var(--muted);font-size:13.5px;margin-top:3px}
+.day{background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--rule);margin-bottom:6px}
+.day.complete{border-left-color:var(--done)}.day.now{border-left-color:var(--ink);border-left-width:5px}
+.dhead{width:100%;display:flex;align-items:baseline;gap:10px;padding:13px 14px;background:none;border:0;cursor:pointer;text-align:left}
+.dnum{font-family:'Archivo',sans-serif;font-weight:700;font-size:15px;flex:0 0 auto}
+.ddate{color:var(--muted);font-size:13px;flex:0 0 auto}
+.dtitle{font-weight:500;font-size:14px;flex:1 1 auto;min-width:0}
+.dmeta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.dmeta.ok{color:var(--done);font-weight:600}
+.dbody{padding:0 14px 14px;display:none}.day.open .dbody{display:block}
+.task{display:flex;gap:11px;padding:9px 0;border-top:1px solid #EDEFF3;cursor:pointer;align-items:flex-start}
+.box{flex:0 0 17px;height:17px;margin-top:2px;border:1.5px solid var(--muted);background:#fff;position:relative}
+.task.done .box{background:var(--done);border-color:var(--done)}
+.task.done .box::after{content:"";position:absolute;left:5px;top:1.5px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(43deg)}
+.task span{font-size:14.2px;color:var(--ink2)}
+.task.done span{color:var(--muted);text-decoration:line-through}
+.drills{margin-top:12px;padding-top:12px;border-top:1px solid #EDEFF3}
+.drills h4{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:8px}
+.drill{display:flex;align-items:center;gap:10px;padding:7px 0}
+.drill .bar{flex:1;height:5px;background:#E4E7ED;min-width:50px}
+.drill .bar i{display:block;height:100%;background:var(--done)}
+.drill b{font-family:'Archivo',sans-serif;font-size:13px;flex:0 0 104px}
+.drill em{font-style:normal;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.drill button{border:1px solid var(--rule);background:#fff;padding:4px 10px;cursor:pointer;font-size:12.5px}
+.drill button:hover{border-color:var(--ink)}
+.panel{background:var(--card);border:1px solid var(--rule);padding:16px;margin-bottom:12px}
+.panel h3{font-size:15.5px;margin-bottom:10px}
+.figs{display:flex;gap:24px;flex-wrap:wrap}
+.figs div b{display:block;font-family:'Archivo',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.figs div small{color:var(--muted);font-size:12.5px}
+.modebar{display:flex;border:1px solid var(--rule);background:var(--card);margin-bottom:12px}
+.modebar button{flex:1;background:none;border:0;padding:10px;cursor:pointer;color:var(--muted);text-align:left}
+.modebar button[aria-pressed=true]{background:var(--ink);color:#fff}
+.modebar b{display:block;font-family:'Archivo',sans-serif;font-size:13.5px}
+.modebar small{font-size:11.5px;opacity:.75}
+.sec{width:100%;text-align:left;background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--rule);
+padding:14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.sec:hover{border-left-color:var(--ink)}
+.sec:disabled{opacity:.5;cursor:default}
+.sec .g{flex:1;min-width:0}.sec h3{font-size:15.5px}
+.sec p{color:var(--muted);font-size:12.8px;margin-top:2px}
+.stat{text-align:right;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.stat b{font-family:'Archivo',sans-serif;font-size:17px;display:block}
+.stat small{color:var(--muted);font-size:11.5px}
+.qbar{display:flex;align-items:center;gap:11px;background:var(--ink);color:#fff;padding:11px 14px;flex-wrap:wrap}
+.qbar .n{font-family:'Archivo',sans-serif;font-weight:600;font-size:14px}
+.qbar .sp{flex:1}
+.clock{font-family:'Archivo',sans-serif;font-weight:700;font-variant-numeric:tabular-nums;font-size:17px}
+.clock.warn{color:#FFD466}.clock.over{color:#FF9C8C}
+.qbar small{opacity:.75;font-size:11.5px}
+.qbar .fl{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;padding:4px 9px;cursor:pointer;font-size:12px}
+.qbar .fl[aria-pressed=true]{background:#FFD466;color:var(--ink);border-color:#FFD466}
+.pace{height:3px;background:rgba(255,255,255,.25);width:100%;margin-top:9px}
+.pace i{display:block;height:100%;background:#fff}.pace i.warn{background:#FFD466}.pace i.over{background:#FF9C8C}
+.qbox{background:var(--card);border:1px solid var(--rule);border-top:0;padding:18px 16px}
+.ctx{background:#F7F8FA;border-left:2px solid var(--rule);padding:13px 14px;margin-bottom:16px;font-size:14.3px;line-height:1.62;color:var(--ink2)}
+.ctx p+p{margin-top:9px}
+table{width:100%;border-collapse:collapse;font-size:13.4px;background:#fff}
+th,td{border:1px solid var(--rule);padding:6px 8px;text-align:left;font-variant-numeric:tabular-nums}
+th{background:#EEF0F4;font-weight:600}
+.stem{font-weight:500;margin-bottom:14px;font-size:15.2px}
+.budgetnote{background:#F2F4F8;border-left:2px solid var(--ink);padding:9px 12px;margin-bottom:14px;font-size:13.3px;color:var(--ink2)}
+.splits{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);margin-top:12px;padding-top:11px;border-top:1px solid #EDEFF3}
+.splits b{font-family:'Archivo',sans-serif;color:var(--ink);font-weight:600}
+.opt{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;background:#fff;border:1px solid var(--rule);padding:11px 12px;margin-bottom:6px;cursor:pointer}
+.opt:hover{border-color:var(--ink)}
+.opt .k{flex:0 0 20px;height:20px;border:1.5px solid var(--muted);font-size:11.5px;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--muted)}
+.opt[aria-pressed=true]{border-color:var(--ink);background:#F2F4F8}
+.opt[aria-pressed=true] .k{background:var(--ink);border-color:var(--ink);color:#fff}
+.opt.right{border-color:var(--done);background:var(--doneBg)}
+.opt.right .k{background:var(--done);border-color:var(--done);color:#fff}
+.opt.wrong{border-color:var(--alert);background:var(--alertBg)}
+.opt.wrong .k{background:var(--alert);border-color:var(--alert);color:#fff}
+.opt span{font-size:14.3px}
+.row{display:flex;align-items:center;gap:10px;border:1px solid var(--rule);padding:9px 11px;margin-bottom:6px;background:#fff}
+.row span{flex:1;font-size:14.2px}
+.row button{border:1px solid var(--rule);background:#fff;padding:5px 13px;cursor:pointer;font-size:13px}
+.row button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.row button.right{background:var(--done);border-color:var(--done);color:#fff}
+.row button.wrong{background:var(--alert);border-color:var(--alert);color:#fff}
+.exp{margin-top:14px;padding:12px 13px;font-size:14px;line-height:1.55;background:var(--doneBg);border-left:2px solid var(--done);color:#1F3A34}
+.exp.bad{background:var(--alertBg);border-left-color:var(--alert);color:#5F2A21}
+.exp b{display:block;font-family:'Archivo',sans-serif;margin-bottom:4px}
+.tagline{font-size:12px;color:var(--muted);margin-top:8px}
+.acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{background:var(--ink);color:#fff;border:0;padding:11px 20px;cursor:pointer;font-weight:500}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule)}
+.btn:disabled{opacity:.4;cursor:default}
+.calc{position:fixed;right:14px;bottom:14px;background:#fff;border:1px solid var(--ink);padding:9px;width:190px;z-index:9}
+.calc input{width:100%;text-align:right;font-family:'Archivo',sans-serif;font-size:19px;padding:6px;border:1px solid var(--rule);margin-bottom:6px;font-variant-numeric:tabular-nums}
+.calc div{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.calc button{padding:8px 0;border:1px solid var(--rule);background:#F7F8FA;cursor:pointer;font-size:13.5px}
+.calctog{position:fixed;right:14px;bottom:14px;background:var(--ink);color:#fff;border:0;padding:9px 13px;cursor:pointer;z-index:9}
+.rev{background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--done);padding:13px 14px;margin-bottom:6px}
+.rev.bad{border-left-color:var(--alert)}
+.rev h4{margin:0 0 6px;font-size:13.5px;display:flex;gap:9px;flex-wrap:wrap}
+.rev h4 em{font-style:normal;color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.rev p{font-size:13.8px;color:var(--ink2)}
+.rev .ans{font-size:13.2px;color:var(--muted);margin:5px 0 7px}
+.ref{background:var(--card);border:1px solid var(--rule);padding:16px;margin-bottom:10px}
+.ref h3{font-size:15.5px}
+.nums{display:flex;flex-wrap:wrap;gap:14px;margin:9px 0 12px;padding-bottom:12px;border-bottom:1px solid #EDEFF3}
+.nums div{font-size:12.5px;color:var(--muted)}
+.nums b{display:block;font-family:'Archivo',sans-serif;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.ref ul{margin:0;padding-left:17px}.ref li{margin-bottom:7px;font-size:14.2px;color:var(--ink2)}
+.trap{margin-top:11px;padding:9px 11px;background:var(--alertBg);border-left:2px solid var(--alert);font-size:13.5px;color:#6E2C22}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:14px;align-items:baseline}
+.keys kbd{font-family:'Archivo',sans-serif;font-weight:600;background:#F2F4F8;border:1px solid var(--rule);padding:2px 7px;font-size:12.5px;white-space:nowrap}
+.keys span{color:var(--ink2)}
+.tt{width:100%;border-collapse:collapse;background:var(--card);font-size:13.6px}
+.tt th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:600;border:0;border-bottom:1px solid var(--rule);background:none;padding:8px 6px}
+.tt td{border:0;border-bottom:1px solid #EDEFF3;padding:9px 6px}
+.tt td.b{font-family:'Archivo',sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
+.tt .mini{height:6px;background:#E4E7ED;width:100%;min-width:56px;display:block}
+.tt .mini i{display:block;height:100%}
+.msg{background:var(--card);border:1px solid var(--rule);padding:26px 18px;text-align:center;color:var(--muted)}
+.msg b{display:block;font-family:'Archivo',sans-serif;color:var(--ink);font-size:16px;margin-bottom:5px}
+.prog{height:5px;background:#E4E7ED;margin:14px auto 0;max-width:280px}
+.prog i{display:block;height:100%;background:var(--ink)}
+.dots::after{content:"";animation:d 1.2s steps(4,end) infinite}
+@keyframes d{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.note{color:var(--muted);font-size:12.8px;margin-top:14px;line-height:1.55}
+.navgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:5px;margin:12px 0}
+.navgrid button{padding:8px 0;border:1px solid var(--rule);background:#fff;cursor:pointer;font-size:12.5px;font-variant-numeric:tabular-nums}
+.navgrid button.ansd{background:var(--doneBg);border-color:var(--done)}
+.navgrid button.flg{background:#FBF2DC;border-color:#D8B54A}
+.navgrid button.cur{box-shadow:inset 0 0 0 2px var(--ink)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -2px}
+.spark{display:block}
+.qwrap{display:grid;gap:16px;grid-template-columns:1fr;grid-template-areas:"text" "ans"}
+.qwrap.hascalc{grid-template-columns:1fr 194px;grid-template-areas:"text calc" "ans calc"}
+.qtext{grid-area:text;min-width:0}.qtext:empty{display:none}
+.qans{grid-area:ans;min-width:0}
+.qcalc{grid-area:calc;position:sticky;top:76px;min-width:0}
+.swap{display:none}
+.cbox{border:1px solid var(--ink);background:#fff;padding:10px}
+.cbox h5{font-family:'Archivo',sans-serif;font-size:11px;color:var(--muted);margin:0 0 7px;font-weight:600}
+.cbox input{width:100%;text-align:right;font-family:'Archivo',sans-serif;font-size:19px;padding:7px 8px;
+border:1px solid var(--rule);margin-bottom:7px;font-variant-numeric:tabular-nums;background:#fff}
+.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.cgrid button{padding:11px 0;border:1px solid var(--rule);background:#F7F8FA;cursor:pointer;
+font-family:'Archivo',sans-serif;font-size:14px;font-variant-numeric:tabular-nums}
+.cgrid button:hover{border-color:var(--ink)}
+.cgrid button.wide{grid-column:span 2}
+.cnote{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4}
+.librow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #EDEFF3;flex-wrap:wrap}
+.librow b{font-family:'Archivo',sans-serif;flex:0 0 36px;font-size:13.5px}
+.librow small{color:var(--muted);font-size:11.5px;margin-left:auto;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--rule);background:#fff;padding:7px 10px;font-size:12.5px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip.ready{border-color:var(--ink);font-weight:600}
+.chip.ready:hover{background:var(--ink);color:#fff}
+.chip.done{background:var(--doneBg);border-color:var(--done);color:#1F3A34}
+.chip.done em{font-style:normal;opacity:.65;margin-left:6px}
+.chip.building{border-style:dashed;color:var(--muted);cursor:default}
+.chip.empty{color:var(--muted);cursor:default;opacity:.55}
+.pill{display:inline-block;background:var(--doneBg);color:var(--done);font-family:'Inter';font-size:11.5px;
+font-weight:600;padding:2px 7px;margin-left:6px;vertical-align:middle;letter-spacing:0}
+.stockbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);
+border:1px solid var(--rule);padding:10px 13px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.lnk{background:none;border:0;padding:0;margin-top:9px;cursor:pointer;color:var(--muted);
+font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+.ctpad{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-width:250px;margin-top:10px}
+.ctpad button{padding:13px 0;border:1px solid var(--rule);background:#F7F8FA;cursor:pointer;
+font-family:'Archivo',sans-serif;font-size:15px;font-variant-numeric:tabular-nums}
+.ctpad button:disabled{opacity:.32;cursor:not-allowed}
+.ctdisp{max-width:250px;border:1px solid var(--rule);background:#fff;padding:9px 11px;text-align:right;
+font-family:'Archivo',sans-serif;font-size:21px;font-variant-numeric:tabular-nums;min-height:44px;word-break:break-all}
+.cttarget{font-family:'Archivo',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.02em;
+font-variant-numeric:tabular-nums;margin:4px 0 2px}
+.ctmeta{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.ctbad{color:var(--alert);font-size:13px;margin-top:8px}
+.ctrow{display:flex;gap:24px;flex-wrap:wrap;margin-top:6px}
+@media(max-width:560px){
+  #u{padding:16px 12px 90px;font-size:15.5px}
+  .count{font-size:40px}.count span{font-size:17px}
+  .dhead{flex-wrap:wrap}.dtitle{flex-basis:100%;order:5}
+  .figs{gap:16px}.figs div b{font-size:24px}
+  .drill b{flex-basis:84px;font-size:12.5px}
+  .keys{grid-template-columns:1fr;gap:3px 0}
+  .keys kbd{justify-self:start;margin-top:8px}
+  .tabs{gap:0}.tab{padding:10px 10px;font-size:14px}
+  /* keep the timer on screen while you scroll a passage */
+  .qbar{position:sticky;top:0;z-index:6;padding:10px 12px;gap:8px}
+  .qbar small{flex-basis:100%;order:9;margin-top:-4px}
+  .qbox{padding:14px 12px}
+  .ctx{padding:12px;font-size:14.6px;line-height:1.66}
+  .opt{padding:13px 12px}.opt span{font-size:14.6px}
+  .row{padding:11px}.row button{padding:8px 16px}
+  .acts{gap:6px}.acts .btn{flex:1 1 44%;padding:13px 10px;text-align:center}
+  .navgrid{grid-template-columns:repeat(auto-fill,minmax(40px,1fr))}
+  .navgrid button{padding:11px 0}
+  /* calculator becomes a bottom sheet rather than a floating box */
+  .calc{left:12px;right:12px;bottom:12px;width:auto;padding:12px}
+  .calc div{gap:6px}.calc button{padding:14px 0;font-size:16px}
+  .calctog{left:12px;right:12px;bottom:12px;padding:13px}
+  .ctpad{max-width:none}.ctdisp{max-width:none}
+  .qwrap,.qwrap.hascalc{grid-template-columns:1fr;grid-template-areas:"text" "ans" "calc";gap:12px}
+  .qcalc{position:sticky;bottom:0;background:var(--card);padding-top:8px;z-index:5;
+    box-shadow:0 -8px 12px -8px rgba(19,30,51,.25)}
+  .cgrid button{padding:13px 0;font-size:15px}
+  /* reclaim the screen while a question is open */
+  #u.running .count,#u.running .sub,#u.running .strip,#u.running .striplab{display:none}
+  #u.running{padding-top:12px}
+  .tt{font-size:13px}.tt th,.tt td{padding:8px 4px}
+}
+/* phone held sideways: calculator, answers, then the passage or table */
+@media (orientation:landscape) and (max-height:560px){
+  #u{max-width:none;padding:8px 10px 12px;font-size:14.5px}
+  #u.running .count,#u.running .sub,#u.running .strip,#u.running .striplab,#u.running .tabs{display:none}
+  .swap{display:inline-block}
+  .qbar{padding:7px 10px;gap:8px}
+  .qbar small{flex-basis:auto;order:0;margin-top:0}
+  .qbox{padding:10px}
+  .qwrap{grid-template-columns:1fr 1.15fr;grid-template-areas:"ans text";gap:10px}
+  .qwrap.hascalc{grid-template-columns:140px 1fr 1.05fr;grid-template-areas:"calc ans text"}
+  .qwrap.flip{grid-template-areas:"text ans"}
+  .qwrap.hascalc.flip{grid-template-areas:"text ans calc"}
+  .qtext,.qans{max-height:calc(100vh - 96px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .qcalc{position:static;box-shadow:none;padding-top:0}
+  .cbox{padding:7px}.cbox h5{display:none}
+  .cbox input{font-size:16px;padding:5px 6px;margin-bottom:5px}
+  .cgrid{gap:3px}.cgrid button{padding:8px 0;font-size:13px}.cnote{display:none}
+  .ctx{padding:9px 10px;font-size:13.6px;line-height:1.55;margin-bottom:10px}
+  .stem{font-size:14.2px;margin-bottom:9px}
+  .opt{padding:8px 9px;margin-bottom:4px}.opt span{font-size:13.6px}
+  .opt .k{flex-basis:18px;height:18px}
+  .row{padding:7px 9px;margin-bottom:4px}.row span{font-size:13.4px}
+  .acts{margin-top:10px;gap:5px}.acts .btn{padding:9px 12px;font-size:13.5px;flex:1 1 auto}
+  .qbox .note{display:none}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+.setup{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.setup label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink2);font-weight:500}
+.setup input,.setup select{font:inherit;font-size:15px;padding:9px 10px;border:1px solid var(--rule);background:#fff;color:var(--ink);width:100%}
+.setup .wide{grid-column:1/-1}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+.banner{background:#FBF2DC;border-left:3px solid #D8B54A;padding:11px 13px;font-size:13.5px;color:#5C4510;margin-bottom:12px}
+.banner button{margin-left:6px}
+@media(max-width:560px){.setup{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="u" class="">
+  <div class="count" id="count">—</div>
+  <p class="sub" id="sub"></p>
+  <div class="strip" id="strip"></div>
+  <div class="striplab"><span id="startLab"></span><span id="pct"></span><span>Test</span></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-t="plan" aria-selected="true">Plan</button>
+    <button class="tab" role="tab" data-t="practice" aria-selected="false">Practise</button>
+    <button class="tab" role="tab" data-t="diag" aria-selected="false">Diagnosis</button>
+    <button class="tab" role="tab" data-t="know" aria-selected="false">Know this</button>
+    <button class="tab" role="tab" data-t="mocks" aria-selected="false">Mocks</button>
+    <button class="tab" role="tab" data-t="settings" aria-selected="false">Settings</button>
+  </div>
+  <div id="view"></div>
+</div>
+<div id="calcMount"></div>
+
+<script>
+/* ---- storage: claude.ai artifact storage when present, otherwise this browser ---- */
+const IN_CLAUDE=!!(window.storage&&window.storage.get);
+const store=IN_CLAUDE?window.storage:{
+  get:async k=>{try{const v=localStorage.getItem(k);return v==null?null:{value:v};}catch(e){return null;}},
+  set:async(k,v)=>{localStorage.setItem(k,v);}};
+
+/* ---- your settings: test date, plan start, API key, model ---- */
+const MODELS=[["claude-opus-5-5","Claude Opus 5.5 (best questions)"],["claude-sonnet-5-5","Claude Sonnet 5.5 (faster, cheaper)"],["claude-haiku-5-5","Claude Haiku 5.5 (fastest, cheapest)"]];
+let CFG={exam:"",start:"",model:"claude-opus-5-5"};
+let KEY="";
+const DAY_MS=86400000;
+const parseISO=s=>{const p=String(s||"").split("-").map(Number);return p.length===3&&p[0]?new Date(p[0],p[1]-1,p[2]):null;};
+const toISO=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const shortDate=d=>d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}).replace(",","");
+const longDate=d=>d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+let EXAM=null;
+async function loadCfg(){
+  try{const r=await store.get("ucat:cfg");if(r&&r.value)CFG=Object.assign(CFG,JSON.parse(r.value));}catch(e){}
+  try{KEY=localStorage.getItem("ucat:key")||"";}catch(e){}
+  applyCfg();
+}
+async function saveCfg(){try{await store.set("ucat:cfg",JSON.stringify(CFG));}catch(e){}}
+function applyCfg(){EXAM=parseISO(CFG.exam);PHASES=EXAM?buildPlan(CFG.start||isoToday(),CFG.exam):[];}
+const canGenerate=()=>IN_CLAUDE||!!KEY;
+
+/* ---- the plan: built from your dates, same three phases for any length ---- */
+const TPL={
+ orient:{title:"Interface and orientation",mins:45,pm:25,sets:[["VR",1],["DM",1],["QR",1],["SJT",1]],tasks:[
+  `Do the official Tour Tutorial on ucat.ac.uk. The interface costs you marks if you meet it cold on the day.`,
+  `Read the Know this tab end to end. Learn Alt+N, Alt+P, Alt+F, Alt+C and the A–D answer keys.`,
+  `Run one drill set in each section here, in Learn mode. That gives you a rough ranking to work from.`,
+  `Check your booking email: centre address, start time, and which ID you're bringing. The name must match exactly.`]},
+ vrdm:{title:"VR and DM",mins:45,pm:35,sets:[["VR",3],["DM",3]],tasks:[
+  `Official Question Tutorials for Verbal Reasoning and Decision Making.`,
+  `Drill sets in both, Learn mode. Read every explanation rather than skimming to the next question.`]},
+ qrsjt:{title:"QR and SJT",mins:45,pm:35,sets:[["QR",3],["SJT",3]],tasks:[
+  `Official Question Tutorials for Quantitative Reasoning and Situational Judgement.`,
+  `Read the GMC's Good Medical Practice duties of a doctor summary. Ten minutes, free online.`,
+  `Drill sets in both, Learn mode.`]},
+ drillAB:{title:"Drill: VR and QR",mins:45,pm:35,sets:[["VR",2],["QR",2],["REDO",1]],tasks:[
+  `Two drill sets in each, Learn mode. Note which question types keep catching you.`,
+  `Redo your error log.`]},
+ drillCD:{title:"Drill: DM and SJT",mins:45,pm:35,sets:[["DM",2],["SJT",2],["REDO",1]],tasks:[
+  `Two drill sets in each, Learn mode.`,
+  `Redo your error log.`]},
+ firstSection:{title:"First full section",mins:45,pm:40,sets:[["SECTION",1]],tasks:[
+  `Run one full timed section here, in whichever area looks weakest. This is the first time you'll feel the real stamina demand.`,
+  `Keyboard only: Alt+N, Alt+F, A–D. Mouse for the calculator and nothing else.`,
+  `Review it afterwards and let the errors build your log.`]},
+ section:{title:"Full section and error redo",mins:45,pm:40,sets:[["REDO",1],["SECTION",1]],tasks:[
+  `Redo your error log.`,
+  `One full timed section in your weakest area. Check the Diagnosis tab to pick it.`,
+  `Review it afterwards and let the errors build your log.`]},
+ mixed:{title:"Timed drills, all four sections",mins:45,pm:40,sets:[["VR",1],["DM",1],["QR",1],["SJT",1],["REDO",1]],tasks:[
+  `One drill set in each section, Timed mode, to keep every format warm.`,
+  `Redo your error log.`]},
+ official:L=>({title:`Official Practice Test ${L}`,mins:240,pm:150,sets:[["REDO",1],["SECTION",1]],tasks:[
+  `Sit Official Practice Test ${L} on ucat.ac.uk, fully timed, ideally at the same time of day as your booking. Use the real thing rather than this app, so you get the actual Pearson interface.`,
+  `Full review with Explain Answer. Enter your scores in the Mocks tab.`,
+  `Redo your error log here until it clears.`,
+  `One full section in whichever area Test ${L} exposed. Skip it if you're tired — rest is the better investment.`]}),
+ clear:{title:"Clear the log",mins:45,pm:35,sets:[["REDO",1],["SECTION",1]],tasks:[
+  `Redo your error log until it's empty.`,
+  `One full SJT section. It's the cheapest section to improve this late, and the one people neglect.`,
+  `Confirm your route and travel time. Plan to arrive 20 minutes early.`,
+  `Lay out your ID and check the name matches your booking exactly.`]},
+ taper:{title:"Taper",mins:30,pm:20,sets:[["SJT",2]],tasks:[
+  `Two SJT drill sets. Nothing else — no mock, no new material.`,
+  `Re-read the Know this tab: shortcuts, the calculator's quirks, and what the timer does when a section expires.`,
+  `Pack: ID, booking confirmation, water for the locker.`,
+  `Screens off by 10pm. A night's sleep is worth more than another hour of practice.`]}};
+function buildPlan(startISO,examISO){
+  const start=parseISO(startISO)||new Date(),exam=parseISO(examISO);
+  start.setHours(0,0,0,0);
+  let n=Math.round((exam-start)/DAY_MS);
+  if(!(n>=1))return [];
+  n=Math.min(n,120);
+  const dates=Array.from({length:n},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d;});
+  const taperN=n>=3?2:n,learnN=n>=3?Math.max(1,Math.min(6,Math.round((n-2)/2))):0,buildN=n-taperN-learnN;
+  const learn=[TPL.orient,TPL.vrdm,TPL.qrsjt];while(learn.length<learnN)learn.push(learn.length%2?TPL.drillAB:TPL.drillCD);
+  const build=[];let tests=["A","B","C","D"],alt=0;
+  for(let i=0;i<buildN;i++){
+    const d=dates[learnN+i],weekend=d.getDay()===0||d.getDay()===6;
+    if(i===0&&buildN>1){build.push(TPL.firstSection);continue;}
+    if(weekend&&tests.length){build.push(TPL.official(tests.shift()));continue;}
+    build.push((alt++)%2?TPL.mixed:TPL.section);
+  }
+  if(tests.length===4&&buildN>=2)build[buildN-1]=TPL.official(tests.shift());
+  const taper=(taperN===2?[TPL.clear,TPL.taper]:[TPL.taper]).slice(0,taperN);
+  let k=0;const mk=t=>{const d=dates[k++];return Object.assign({n:k,date:shortDate(d),iso:toISO(d)},JSON.parse(JSON.stringify(t)));};
+  const span=(a,b)=>a===b?`Day ${a}`:`Days ${a}–${b}`;
+  const out=[];
+  if(learnN){const a=k+1,ds=learn.slice(0,learnN).map(mk);
+    out.push({t:"Learn the machine",d:`${span(a,k)}. Learn the interface and the four question formats before anything else.`,days:ds});}
+  if(buildN){const a=k+1,ds=build.map(mk);
+    out.push({t:"Run it at full length",d:`${span(a,k)}. Sets of four questions don't test stamina. From here you sit whole sections, and the official practice tests land on weekends.`,days:ds});}
+  {const a=k+1,ds=taper.map(mk);
+    out.push({t:"Sharpen and taper",d:`${span(a,k)}. No new material. Clear the error log, protect the SJT, arrive rested.`,days:ds});}
+  return out;
+}
+const SECTIONS={
+ VR:{name:"Verbal Reasoning",short:"VR",per:30,n:4,realQ:44,realT:1320,calc:false,
+   blurb:"A 200–300 word passage and four questions on it."},
+ DM:{name:"Decision Making",short:"DM",per:63,n:2,realQ:35,realT:2220,calc:true,
+   blurb:"Syllogisms, Venn logic, probability and argument strength."},
+ QR:{name:"Quantitative Reasoning",short:"QR",per:43,n:4,realQ:36,realT:1560,calc:true,
+   blurb:"One data set, four questions, five options each."},
+ SJT:{name:"Situational Judgement",short:"SJT",per:23,n:4,realQ:69,realT:1560,calc:false,
+   blurb:"Clinical scenarios judged for appropriateness or importance."}};
+const ORDER=["VR","DM","QR","SJT"];
+const SJT_APPROP=["A very appropriate thing to do","Appropriate, but not ideal","Inappropriate, but not awful","A very inappropriate thing to do"];
+const SJT_IMPORT=["Very important","Important","Of minor importance","Not important at all"];
+const TYPE_NAMES={tfct:"True / false / can't tell",inference:"Inference",detail:"Detail retrieval",
+ "main-idea":"Main idea",except:"Except / least questions",incomplete:"Incomplete statements",syllogism:"Syllogisms",venn:"Venn and set logic",
+ probability:"Probability",argument:"Strength of argument",conclusion:"Valid conclusions",rules:"Rule puzzles",
+ "percent-change":"Percentage change","reverse-percent":"Reverse percentages",ratio:"Ratios",
+ rate:"Rates and per-unit",average:"Averages","unit-conversion":"Unit conversion","area-volume":"Area and volume",lookup:"Table reading",
+ "patient-safety":"Patient safety",honesty:"Honesty and probity",competence:"Acting within competence",
+ escalation:"Escalating correctly","colleague-wellbeing":"Colleague wellbeing"};
+
+let PHASES=[];
+
+const INTERFACE=[["Alt + N","Next question"],["Alt + P","Previous question"],
+ ["Alt + F","Flag the current question for review"],
+ ["Alt + C","Open and close the calculator (Decision Making and Quantitative Reasoning only)"],
+ ["A / B / C / D / E","Select that answer option directly"],
+ ["Alt + S","Open the review screen for the section"],
+ ["Alt + V","Review only the questions you flagged"],
+ ["Alt + I","Review only the questions you left incomplete"],
+ ["Ctrl + / Ctrl −","Zoom in or out. Ctrl + 0 resets to 100%"],
+ ["Num Lock","Must be on before the number pad will type into the calculator"]];
+const QUIRKS=[
+ `The calculator opens in a separate window. If you click off it, or press any keyboard shortcut, it stops responding until you click back on it. That catches people mid-question.`,
+ `Backspace clears the whole calculator, not one digit. There is no single-digit delete, so a mistyped number means starting the calculation again — which is an argument for doing simple arithmetic in your head.`,
+ `It is a basic four-function calculator with no scientific functions, and it only exists in Decision Making and Quantitative Reasoning.`,
+ `Each subtest and each instruction screen is timed separately. The countdown and progress indicator sit in the top right.`,
+ `The timer turns yellow when under 5 minutes remain in a section.`,
+ `If a section's time expires, a pop-up asks you to continue. Press OK immediately — any delay comes out of the next section's time.`,
+ `You get an A4 laminated notebook and a pen. Check the pen works before you begin. If you need a replacement, raise it in the air for the invigilator.`,
+ `Drag-and-drop questions can only be answered with the mouse, so you'll be switching between keyboard and mouse.`,
+ `Wherever a letter is underlined on a button, Alt plus that letter does it. That's the general rule behind all the shortcuts.`,
+ `The Help button is available during the test, but the countdown keeps running while you read it.`,
+ `In the official online practice materials, Alt+F won't flag if you're using Chrome, because Chrome claims that shortcut. It works on the test centre machines.`,
+ `Test centre machines are standard Windows PCs with a full keyboard and number pad, usually on a 24-inch monitor. If you've only practised on a laptop, the number pad won't be where your fingers expect it.`,
+ `You can change the colour scheme, e.g. white on black, if that's easier to read for two hours.`];
+const TECH=[
+{n:"Verbal Reasoning",nums:[["44","questions"],["22 min","section"],["~30s","per question"],["11","passage sets"]],
+pts:[`Read the question first, then scan the passage for the keyword. You're searching, not reading for comprehension.`,
+`"Can't tell" means the passage doesn't give you enough to decide — not that the statement seems unlikely. Never bring outside knowledge.`,
+`For "True", every part of the statement must be supported. If one clause isn't in the text, it isn't true.`,
+`Watch absolutes: always, never, all, only. One counter-example in the passage makes them false.`,
+`Passages run 200–300 words and vary a lot: a plain popular-science piece reads in 25 seconds, a dense policy text takes twice that. Adapt rather than using one fixed reading routine.`,
+`Not every VR question is true/false/can't-tell. Those have three options; the rest have four — inference, main idea, detail, "which is NOT supported", and incomplete statements you finish with the best-supported ending.`,
+`Checkpoints: 3 passage sets by 6 min, 6 by 12 min, 9 by 18 min.`],
+trap:`Reading the whole passage before looking at the questions, then sinking 90 seconds arguing with a can't-tell.`},
+{n:"Decision Making",nums:[["35","questions"],["37 min","section"],["~63s","per question"],["Yes","calculator"]],
+pts:[`The most generous timing in the exam and the cheapest marks available. Protect this time.`,
+`Five-row yes/no questions are worth 2 marks as a block: all five right earns 2, four right earns 1, three or fewer earns nothing. Single-answer questions are worth 1. A blank row can drop you from 1 mark to 0, so fill all five every time.`,
+`Syllogisms: use only the stated premises, even when they're nonsense.`,
+`Venn questions: draw it on the laminated sheet. Faster than holding it in your head.`,
+`Probability: convert to a common denominator or to decimals before comparing.`,
+`The strongest argument directly addresses the question asked, not the one that sounds most sensible.`],
+trap:`Importing real-world knowledge into syllogisms, and leaving statement rows blank when time is short.`},
+{n:"Quantitative Reasoning",nums:[["36","questions"],["9","data sets"],["~43s","per question"],["5","options"]],
+pts:[`Nine data sets, four questions each. Read the data once properly — the set is where the time is won.`,
+`Five answer options here, not four. Everywhere else in the test has four or three.`,
+`Rates and per-unit questions are the biggest family, then percentages, then averages, then ratios. Drill them in that order.`,
+`Read the axis labels and units before you touch a number.`,
+`Estimate first. If the options are far apart, approximate and move.`,
+`Number pad, not mouse clicks. Num Lock on before you start.`,
+`Know cold: percentage change, reverse percentages, ratio sharing, speed/distance/time, area and volume, stacked bar charts.`,
+`More than two steps and past 50 seconds: best guess, flag, move.`],
+trap:`Calculating something the question didn't ask for, and reaching for the calculator on arithmetic you'd do faster in your head.`},
+{n:"Situational Judgement",nums:[["69","questions"],["26 min","section"],["~23s","per question"],["1–4","band"]],
+pts:[`The fastest section and the one people neglect. Your first instinct is usually right.`,
+`Priority order: patient safety, then honesty, then the wellbeing of colleagues.`,
+`You are a student. Gather information, act within your competence, escalate to the appropriate person — not straight to the consultant, and not to nobody.`,
+`Two question types: how appropriate a response is, and how important a consideration is. They use different four-point scales.`,
+`Judge each option on its own. Two options in one scenario can both be appropriate.`],
+trap:`Overthinking. Assuming the worst about a colleague, or jumping to a formal complaint, are the two commonest wrong instincts.`},
+{n:"Rules for the whole test",nums:[["184","questions"],["~2 hrs","total"],["0","negative marking"],["No","going back"]],
+pts:[`Fixed order: Verbal Reasoning, Decision Making, Quantitative Reasoning, Situational Judgement.`,
+`No breaks — only a timed instruction screen before each section.`,
+`Nothing is negatively marked. A blank scores the same as a wrong answer, so everything gets an answer.`,
+`Flag and revisit freely inside a section, but you never return to a section once it's finished.`,
+`900–2700 across the three cognitive sections, plus an SJT band from 1 (highest) to 4.`],
+trap:`Carrying a bad section into the next one. Once it ends it cannot be changed — use the instruction screen to reset, not to replay it.`}];
+const TESTDAY=[`Eat something with protein. Don't sit a two-hour timed test on an empty stomach.`,
+`Bring the exact ID you registered with. The name must match your booking.`,
+`Arrive at least 15 minutes early. Phone, watch and notes go in a locker.`,
+`Check your pen works before you start, and that Num Lock is on.`,
+`Use the instruction screen before each section to breathe and recall that section's pacing number.`,
+`Nothing is negatively marked. Every question gets an answer, even a blind guess.`,
+`Thirty seconds left and five questions to go? Select answers for all five rather than solving one properly.`,
+`If a section goes badly, it is over and cannot be changed. Do not carry it into the next one.`];
+const MOCKS=["Practice Test A","Practice Test B","Practice Test C","Practice Test D"];
+const VR_TOPICS=["canal building","lichens and air quality","the Bronze Age tin trade","sleep in migratory birds","the thermos flask","peat bog preservation","Icelandic turf houses","railway time standardisation","seed banks","medieval guilds","volcanic soil fertility","the Roman postal service","coral bleaching","the development of anaesthesia","Antarctic ice cores","horse domestication","tidal mills","printing in Venice","urban beekeeping","shipping containers","lighthouse engineering","the tea trade","saltmarsh restoration","cartography before satellites"];
+const QR_TOPICS=["leisure centre memberships","rainfall across four counties","delivery fleet fuel costs","bakery costs and margins","hospital waiting times","household electricity use","cinema ticket sales","recycling tonnages","farm crop yields","train punctuality","school exam entries","café supplier prices"];
+const VR_REGISTERS=["a popular-science article","a history report","a news report","an opinion column","an extract from a novel","a policy or regulatory document","nature writing","a biography","a museum or exhibition text"];
+const DM_TYPES=["syllogism","venn","probability","argument","conclusion","rules"];
+const SJT_SET=["a ward placement","a GP practice placement","group coursework","a clerking shift","an anatomy teaching session","a community pharmacy placement","a student society committee","a night handover","a clinical skills session","a home visit with a GP"];
+
+
+/* ---- seed sets, so the very first drill in each section is instant ---- */
+const SEED=[
+{sec:"VR",variant:"tfct",raw:{
+ context:`<p>The first lighthouse built on the Eddystone Rocks, some fourteen miles south-west of Plymouth, was the work of Henry Winstanley, a merchant and engraver with no formal training in engineering. Completed in 1698 and substantially rebuilt two years later, it was an ornate timber structure that Winstanley is said to have considered strong enough to withstand any weather. He was on the rocks supervising repairs when the Great Storm of November 1703 swept the tower away; neither he nor the building survived the night.</p><p>A second tower, designed by the silk merchant John Rudyerd, was lit in 1709. Built largely of oak around a core of granite ballast, it stood for forty-six years before catching fire in December 1755, reportedly when a candle in the lantern room ignited the timber above it. The keepers escaped, though one is alleged to have swallowed molten lead and died some days afterwards, a claim that later writers have treated with scepticism.</p><p>John Smeaton's replacement, first lit in 1759, is generally regarded as the more significant achievement. Smeaton modelled its profile on the trunk of an oak tree and cut the granite blocks so that each dovetailed into its neighbours, a technique intended to make the structure behave as a single mass. He also developed a hydraulic lime that would set in wet conditions. The tower served until 1877, when erosion of the rock beneath it, rather than any failure of the tower, forced its replacement.</p>`,
+ items:[
+  {statement:"Winstanley died in the same storm that destroyed his lighthouse.",answer:"True",explanation:"The passage says he was on the rocks when the storm swept the tower away, and that neither he nor the building survived."},
+  {statement:"Rudyerd's tower stood for longer than Smeaton's.",answer:"False",explanation:"Rudyerd's stood forty-six years (1709-1755); Smeaton's served from 1759 to 1877."},
+  {statement:"The keeper who swallowed molten lead did in fact die from it.",answer:"Can't tell",explanation:"The passage reports the claim as alleged and notes later writers doubted it, so it is not settled."},
+  {statement:"Smeaton's tower was replaced because the structure itself had begun to fail.",answer:"False",explanation:"The passage states erosion of the rock beneath it, rather than any failure of the tower, forced the replacement."}]}},
+{sec:"DM",variant:null,raw:{items:[
+ {format:"yesno",type:"syllogism",
+  context:`All qualified paramedics in the region have completed the advanced driving course. Some staff who completed the advanced driving course work night shifts. No one who works night shifts is rostered on Sundays. Riya has completed the advanced driving course.`,
+  stem:"Does each conclusion follow?",
+  rows:["Riya is a qualified paramedic.",
+        "Some qualified paramedics work night shifts.",
+        "No qualified paramedic who works night shifts is rostered on Sundays.",
+        "Everyone rostered on Sundays has completed the advanced driving course.",
+        "If Riya works night shifts, she is not rostered on Sundays."],
+  correct:[false,false,true,false,true],
+  explanation:"Completing the course does not make someone a paramedic, and the staff who work nights need not be the paramedics. Rows 3 and 5 follow because the night-shift rule applies to everyone without exception."},
+ {format:"mcq",type:"probability",
+  stem:"A raffle has 200 tickets and one winning ticket. Priya buys 8 tickets and Tom buys 12. Which statement is correct?",
+  options:["Tom is twice as likely as Priya to win","Tom is 1.5 times as likely as Priya to win","Priya has a 1 in 8 chance of winning","Together they have a 1 in 5 chance of winning"],
+  correct:1,answer:"Tom is 1.5 times as likely as Priya to win",
+  explanation:"12/8 = 1.5, so Tom's chance is 1.5 times Priya's; together they hold 20 of 200 tickets, which is 1 in 10."}]}},
+{sec:"QR",variant:null,raw:{
+ intro:"A courier firm recorded one week's running figures for its four vans.",
+ headers:["Van","Distance (km)","Fuel used (litres)","Fuel cost (EUR)"],
+ rows:[["A","840","70","112.00"],["B","1,260","90","144.00"],["C","560","56","89.60"],["D","1,050","70","112.00"]],
+ items:[
+  {stem:"How many kilometres per litre did Van B achieve?",type:"rate",
+   options:["12","13","14","15","16"],correct:2,answer:"14",
+   explanation:"1260 / 90 = 14 km per litre."},
+  {stem:"Van C's weekly distance is to rise from 560 km to 700 km. What is the percentage increase?",type:"percent-change",
+   options:["20%","22.5%","25%","28%","30%"],correct:2,answer:"25%",
+   explanation:"140 / 560 = 0.25, a 25% increase."},
+  {stem:"What was the mean fuel cost per van for the week?",type:"average",
+   options:["EUR 110.40","EUR 112.00","EUR 114.40","EUR 116.80","EUR 120.00"],correct:2,answer:"EUR 114.40",
+   explanation:"457.60 / 4 = 114.40."},
+  {stem:"Van B's driver is paid EUR 0.24 per kilometre. What was the week's mileage pay?",type:"rate",
+   options:["EUR 252.00","EUR 277.20","EUR 302.40","EUR 315.00","EUR 340.20"],correct:2,answer:"EUR 302.40",
+   explanation:"1260 x 0.24 = 302.40."}]}},
+{sec:"SJT",variant:null,raw:{kind:"appropriateness",
+ context:`You are a medical student on a ward placement. A junior doctor is called to an emergency and asks you to take a blood sample from a patient whose results are needed before the afternoon ward round. You have been signed off for venepuncture, but you have only done it twice, both times with someone watching.`,
+ items:[
+  {response:"Tell the doctor you have only done this twice under supervision, and ask whether someone can watch you.",correct:0,type:"competence",
+   explanation:"Being signed off is not the same as being confident; saying so honestly and asking for supervision protects the patient without refusing the task."},
+  {response:"Ask the ward nurse whether she could supervise you or take the sample herself.",correct:1,type:"escalation",
+   explanation:"Reasonable and safe, but it leaves the doctor believing the task is handled without knowing your level of experience."},
+  {response:"Take the blood on your own, on the basis that you have been signed off.",correct:2,type:"competence",
+   explanation:"Not dangerous in itself, but acting at the edge of your competence when supervision is available is the wrong call."},
+  {response:"Reassure the patient that you have done this many times so they do not worry.",correct:3,type:"honesty",
+   explanation:"This is a lie to a patient about your experience, which undermines consent regardless of how the procedure goes."}]}}
+];
+
+const STOCK_TARGET=8;
+let S={done:{},mocks:{},stats:{},types:{},sessions:[],bank:[],ctBest:{},ready:{}};
+let warming=false;
+const LIB_TARGET=3;
+let LIB={VR:[],DM:[],QR:[],SJT:[]},libJob=null,libFailed=false,mockLibIds={};
+async function loadLib(){try{const r=await store.get("ucat:lib");
+  if(r&&r.value)LIB=Object.assign({VR:[],DM:[],QR:[],SJT:[]},JSON.parse(r.value));}catch(e){}}
+async function saveLib(){try{await store.set("ucat:lib",JSON.stringify(LIB));}
+  catch(e){lastErr="couldn't save the mock library: "+(e&&e.message||e);}}
+const libCount=()=>ORDER.reduce((a,k)=>a+(LIB[k]||[]).length,0);
+function libRefresh(){if(tab==="practice"&&pview==="home")render();}
+let CT=null;
+const CT_SUMS=["1847 / 2300","12480 * 0.35","8630 - 4975","56.4 / 1.8","3275 + 8940","9500 * 0.12",
+ "746 / 0.85","23800 / 175","4275 * 1.8","18.75 * 640","90400 / 226","5820 - 3947"];
+function ctStart(mode){
+  const list=CT_SUMS.slice().sort(()=>Math.random()-0.5).slice(0,5);
+  CT={mode,list,idx:0,buf:"",t0:Date.now(),times:[],errs:0,bad:false,done:false};
+  render();
+}
+function ctInput(ch){
+  if(!CT||CT.done)return;
+  if(ch==="C"){CT.buf="";CT.bad=false;render();return;}
+  if(ch==="="){
+    let v;try{v=Function("return ("+CT.buf+")")();}catch(e){v=NaN;}
+    const want=Function("return ("+CT.list[CT.idx]+")")();
+    if(isFinite(v)&&Math.abs(v-want)<1e-6){
+      CT.times.push((Date.now()-CT.t0)/1000);
+      CT.idx++;CT.buf="";CT.bad=false;
+      if(CT.idx>=CT.list.length){
+        CT.done=true;
+        const avg=CT.times.reduce((a,b)=>a+b,0)/CT.times.length;
+        S.ctBest[CT.mode]={avg,errs:CT.errs,when:Date.now()};save();
+      }else CT.t0=Date.now();
+    }else{CT.errs++;CT.bad=true;CT.buf="";}
+    render();return;
+  }
+  CT.buf+=ch;CT.bad=false;render();
+}
+function ctView(){
+  if(!CT){
+    const m=S.ctBest.mouse,k=S.ctBest.keys;
+    let verdict="";
+    if(m&&k){
+      const diff=m.avg-k.avg,pct=Math.round(Math.abs(diff)/Math.max(m.avg,k.avg)*100);
+      const fast=diff>0?"numpad":"mouse",slow=diff>0?"mouse":"numpad";
+      const errDiff=k.errs-m.errs;
+      verdict=`<p class="note" style="margin-top:12px">The ${fast} came out ${Math.abs(diff).toFixed(1)}s faster per calculation, about ${pct}%. Over 36 QR questions that's roughly ${Math.round(Math.abs(diff)*20/60*10)/10} minutes of difference if you calculate on most of them.${
+        errDiff>0?` But you made ${errDiff} more ${errDiff===1?"mistake":"mistakes"} on the numpad — a mistyped number means clearing the whole thing and starting again, so if that gap stays after a few runs, the ${slow} may still be the better call for you.`
+        :errDiff<0?` And you made ${-errDiff} fewer ${-errDiff===1?"mistake":"mistakes"} on the numpad, which settles it.`
+        :` Error counts were level.`}</p>`;
+    }
+    return `<div class="ref"><h3>Calculator speed test</h3>
+      <p class="note" style="margin:0 0 4px">Five calculations, entered exactly as shown. Run it once each way and compare. Backspace clears everything in keyboard mode, the same as the real one.</p>
+      <div class="ctrow" style="margin-top:12px">
+        <div><b style="font-family:'Archivo';font-size:26px;display:block;line-height:1">${m?m.avg.toFixed(1)+"s":"—"}</b>
+          <small class="ctmeta">mouse${m?` · ${m.errs} ${m.errs===1?"error":"errors"}`:" · not run"}</small></div>
+        <div><b style="font-family:'Archivo';font-size:26px;display:block;line-height:1">${k?k.avg.toFixed(1)+"s":"—"}</b>
+          <small class="ctmeta">numpad${k?` · ${k.errs} ${k.errs===1?"error":"errors"}`:" · not run"}</small></div>
+      </div>${verdict}
+      <div class="acts"><button class="btn" data-ct="mouse">Run with the mouse</button>
+      <button class="btn ghost" data-ct="keys">Run with the numpad</button></div></div>`;
+  }
+  if(CT.done){
+    const avg=CT.times.reduce((a,b)=>a+b,0)/CT.times.length;
+    return `<div class="ref"><h3>${CT.mode==="mouse"?"Mouse":"Numpad"} run finished</h3>
+      <div class="ctrow"><div><b style="font-family:'Archivo';font-size:28px;display:block;line-height:1">${avg.toFixed(1)}s</b>
+      <small class="ctmeta">average per calculation</small></div>
+      <div><b style="font-family:'Archivo';font-size:28px;display:block;line-height:1">${CT.errs}</b>
+      <small class="ctmeta">mistyped entries</small></div></div>
+      <p class="splits" style="max-width:none">Splits <b>${CT.times.map(t=>t.toFixed(1)+"s").join(" · ")}</b></p>
+      <div class="acts"><button class="btn ghost" data-ct="done">Back</button>
+      <button class="btn" data-ct="${CT.mode==="mouse"?"keys":"mouse"}">Now try the ${CT.mode==="mouse"?"numpad":"mouse"}</button></div></div>`;
+  }
+  const keys=["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+"];
+  const mouseMode=CT.mode==="mouse";
+  return `<div class="ref"><h3>${mouseMode?"Mouse only":"Numpad only"} — ${CT.idx+1} of ${CT.list.length}</h3>
+    <p class="ctmeta">Enter this exactly, then ${mouseMode?"click":"press Enter or"} =</p>
+    <p class="cttarget">${CT.list[CT.idx]}</p>
+    <div class="ctdisp">${esc(CT.buf)||"&nbsp;"}</div>
+    <div class="ctpad">${keys.map(k=>`<button data-ck="${k}" ${mouseMode?"":"disabled"}>${k}</button>`).join("")}
+      <button data-ck="C" ${mouseMode?"":"disabled"} style="grid-column:span 4">ON / C</button></div>
+    ${CT.bad?`<p class="ctbad">That didn't match. Cleared — enter it again.</p>`:""}
+    <p class="note">${mouseMode?"Keyboard is disabled for this run.":"The buttons are disabled. Num Lock on, and Backspace clears the lot."}</p>
+    <div class="acts"><button class="btn ghost" data-ct="done">Stop</button></div></div>`;
+}
+let tab="plan",mode="practice",open=null,pview="home";
+let R=null,tick=null,next=null,genProg=null,mockCache={},lastSec=null,lastKind="drill";
+
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const $=id=>document.getElementById(id);
+const ALLDAYS=()=>PHASES.flatMap(p=>p.days);
+const budget=s=>SECTIONS[s].per*SECTIONS[s].n;
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
+const isoToday=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+async function load(){try{const r=await store.get("ucat:v3");if(r&&r.value)S=Object.assign(S,JSON.parse(r.value));}catch(e){}}
+async function save(){try{await store.set("ucat:v3",JSON.stringify(S));}catch(e){}}
+
+function promptFor(sec,variant){
+  const seed=Math.floor(Math.random()*1e6);
+  if(sec==="VR"&&variant==="mcq")return `Write one original UCAT-style Verbal Reasoning comprehension set. Seed ${seed}. Topic: ${pick(VR_TOPICS)}.
+Passage 130-160 words, factual, dense, neutral, no medical knowledge needed.
+Then THREE four-option questions. Mix these types and tag each with "type": "inference" (what follows from the text), "detail" (specific retrieval), "main-idea" (the overall point), "except" (which of these is NOT supported).
+Distractors must be true-sounding but unsupported, or supported but not answering the question asked. Each explanation ONE short sentence naming the deciding wording.
+Return ONLY JSON: {"context":"<p>..</p><p>..</p>","items":[{"stem":"..","options":["a","b","c","d"],"correct":0,"type":"inference","explanation":".."}]}`;
+  if(sec==="VR")return `Write one original UCAT-style Verbal Reasoning item. Seed ${seed}. Topic: ${pick(VR_TOPICS)}.
+Passage 130-160 words, factual, dense, neutral, no medical knowledge needed, with at least one qualified claim.
+Then FOUR statements judged only on the passage: "True" (fully supported), "False" (contradicted), "Can't tell" (not enough information).
+Use at least two different answer values. Include one distractor using an absolute (always/never/only/all), one plausible from general knowledge but absent from the passage, and one with a subtle scope shift. Each explanation ONE short sentence.
+Return ONLY JSON: {"context":"<p>..</p><p>..</p>","items":[{"statement":"..","answer":"True|False|Can't tell","explanation":".."}]}`;
+  if(sec==="DM"){const a=pick(DM_TYPES);let b=pick(DM_TYPES);if(b===a)b=DM_TYPES[(DM_TYPES.indexOf(a)+1)%DM_TYPES.length];
+   return `Write TWO original UCAT-style Decision Making questions. Seed ${seed}. Question 1 type: ${a}. Question 2 type: ${b}.
+For "syllogism" use format "yesno": premises in "context", five conclusions as rows judged yes/no using only the premises even if they contradict the real world. Everything else uses "mcq" with exactly four options.
+Tag each with "type" exactly as given. Distractors must reflect real reasoning errors: reversing a conditional, confusing some with all, ignoring a stated exception, comparing probabilities on different denominators. Each explanation ONE short sentence.
+Return ONLY JSON: {"items":[{"format":"mcq","context":null,"stem":"..","options":["a","b","c","d"],"correct":0,"answer":"exact text of the correct option","type":"${a}","explanation":".."},{"format":"yesno","context":"premises","stem":"Does each conclusion follow?","rows":["..","..","..","..",".."],"correct":[true,false,false,true,false],"type":"${b}","explanation":".."}]}`;}
+  if(sec==="QR"){
+   const shape=Math.random()<0.25?"a short written scenario with the figures embedded in the prose (no table)":"a table of exactly 4 data rows and 3 columns with explicit units in the headers";
+   return `Write one original UCAT-style Quantitative Reasoning data set. Seed ${seed}. Subject: ${pick(QR_TOPICS)}. Present the data as ${shape}.
+Then FOUR questions on that same data set, each with FIVE options. Weight them the way the real test does: rates and per-unit work are the commonest family, then percentages, then averages, then ratios. Tag each with "type" from: "rate", "percent-change", "reverse-percent", "average", "ratio", "unit-conversion", "area-volume", "lookup". At least two must be "rate" or "average". Maths must not exceed GCSE level.
+Distractors must be the answers common errors produce: wrong base for a percentage, ignored unit conversion, mean instead of median, answering a related but different question. Each explanation is ONE line of working, e.g. "840/1200 = 0.7, a 30% fall".
+Before writing the options, do the calculation. Put the result in the options EXACTLY as you calculated it, and state the rounding in the stem if you round ("to the nearest whole number", "to 1 decimal place"). No two options may round to the same value, and no option may be within 1% of another. "answer" must be an exact character-for-character copy of the correct option, and the final number in your explanation must equal it.
+Return ONLY JSON: {"intro":"one sentence introducing the data","headers":["..",".."],"rows":[["..",".."]],"items":[{"stem":"..","options":["a","b","c","d","e"],"correct":0,"answer":"exact text of the correct option","type":"rate","explanation":".."}]}
+If you used a written scenario instead of a table, put the scenario in "intro" and set "headers" and "rows" to empty arrays.`;}
+  const imp=Math.random()<0.3;
+  return `Write one original UCAT-style Situational Judgement item. Seed ${seed}. Setting: ${pick(SJT_SET)}. You are a medical student unless the scenario needs otherwise.
+Scenario 40-60 words: a real dilemma with competing pulls. Avoid cartoonish wrongdoing.
+Then FOUR items rated independently. ${imp
+ ?`Scale: 0 = very important, 1 = important, 2 = of minor importance, 3 = not important at all. Each item is a CONSIDERATION the student might weigh, phrased as a noun phrase.`
+ :`Scale: 0 = a very appropriate thing to do, 1 = appropriate but not ideal, 2 = inappropriate but not awful, 3 = a very inappropriate thing to do. Each item is an ACTION the student might take.`}
+Spread ratings across at least three values. Tag each with "type" from: "patient-safety", "honesty", "competence", "escalation", "colleague-wellbeing". Each explanation ONE short sentence.
+Return ONLY JSON: {"kind":"${imp?"importance":"appropriateness"}","context":"scenario","items":[{"response":"..","correct":0,"type":"patient-safety","explanation":".."}]}`;
+}
+let lastErr="";
+function parseLoose(txt){
+  let t=String(txt||"").replace(/```json|```/g,"").trim();
+  const a=t.indexOf("{");if(a>0)t=t.slice(a);
+  try{return JSON.parse(t);}catch(e){}
+  // response was cut off mid-JSON: keep the items that did complete
+  for(let i=t.length;i>0;i--){
+    if(t[i-1]!=="}")continue;
+    for(const tail of ["]}","}]}","}"]){
+      try{const o=JSON.parse(t.slice(0,i)+tail);
+        if(o&&Array.isArray(o.items)&&o.items.length)return o;}catch(e){}
+    }
+  }
+  throw new Error("could not parse the model's JSON");
+}
+async function callText(prompt,tries){
+  tries=tries||0;
+  try{
+    let headers={"Content-Type":"application/json"},body;
+    if(IN_CLAUDE){
+      // inside claude.ai the artifact runtime handles auth
+      body={model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]};
+    }else{
+      if(!KEY)throw new Error("no API key yet");
+      const model=CFG.model||"claude-opus-5-5";
+      headers=Object.assign(headers,{"x-api-key":KEY,"anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"});
+      // thinking is on by default for these models, so leave room for it plus the JSON
+      body={model,max_tokens:16000,output_config:{effort:"medium"},messages:[{role:"user",content:prompt}]};
+      if(!/haiku/.test(model)){headers["anthropic-beta"]="server-side-fallback-2026-07-01";body.fallbacks="default";}
+    }
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers,body:JSON.stringify(body)});
+    if(!r.ok){let m="http "+r.status;try{const e=await r.json();if(e&&e.error&&e.error.message)m+=": "+e.error.message;}catch(_){}
+      if(r.status===401){tries=9;m="your API key was rejected. Check it in Settings";}
+      throw new Error(m);}
+    const d=await r.json();
+    if(d.stop_reason==="refusal")throw new Error("the model declined to write this one");
+    return (d.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("").trim();
+  }catch(e){lastErr=String(e&&e.message||e);if(tries<1&&canGenerate())return callText(prompt,tries+1);throw e;}
+}
+async function callJSON(prompt,tries){
+  tries=tries||0;
+  try{return parseLoose(await callText(prompt));}
+  catch(e){lastErr=String(e&&e.message||e);if(tries<1)return callJSON(prompt,tries+1);throw e;}
+}
+function vrPassagePrompt(){
+  return `Write the passage for a UCAT Verbal Reasoning question set, in the style of ${pick(VR_REGISTERS)}, about ${pick(VR_TOPICS)}.
+220-280 words in two or three paragraphs. Dense with specific detail: names, dates, figures, places. Include at least two carefully qualified claims ("some researchers argue", "in most cases", "it is thought that") and at least one pair of details that could easily be confused with each other. Neutral register, no medical knowledge required, do not address the reader, do not explain or summarise at the end.
+Return ONLY the passage prose. No title, no preamble, no JSON, no markdown.`;
+}
+function vrQuestionPrompt(passage,variant){
+  return variant==="mcq"
+   ? `Passage:\n\n${passage}\n\nWrite FOUR four-option questions answerable only from this passage. Tag each with "type": use "inference", "detail", "main-idea", "except" (which of these is NOT supported) and "incomplete" (a sentence stub the candidate completes). Include at least one "incomplete".
+Distractors must be true-sounding but unsupported, or supported by the passage but not answering the question asked. Each explanation ONE short sentence naming the deciding wording.
+Every option must be clearly distinct. "answer" must be an exact character-for-character copy of the correct option string.\nReturn ONLY JSON: {"items":[{"stem":"..","options":["a","b","c","d"],"correct":0,"answer":"exact text of the correct option","type":"inference","explanation":".."}]}`
+   : `Passage:\n\n${passage}\n\nWrite FOUR statements to be judged True / False / Can't tell strictly on this passage. "True" = fully supported, "False" = contradicted, "Can't tell" = the passage does not settle it.
+Use at least two different answer values. Include one statement using an absolute (always/never/only/all), one that is plausible from general knowledge but absent from the passage, and one that shifts the scope or quantity of something the passage does say. Each explanation ONE short sentence naming the deciding wording.
+Return ONLY JSON: {"items":[{"statement":"..","answer":"True|False|Can't tell","explanation":".."}]}`;
+}
+const TRUEY=["true","yes","y","1","t"];
+function toBools(v){
+  if(!Array.isArray(v))return v;
+  return v.map(x=>typeof x==="boolean"?x:TRUEY.indexOf(String(x).trim().toLowerCase())>=0);
+}
+const numsIn=s=>(String(s).match(/-?\d[\d,]*\.?\d*/g)||[]).map(x=>parseFloat(x.replace(/,/g,"")));
+const normTxt=x=>String(x==null?"":x).toLowerCase().replace(/[\s,£$%()]/g,"");
+function resolveCorrect(it,options){
+  if(typeof it.answer==="string"&&it.answer.trim()){
+    const i=options.findIndex(o=>normTxt(o)===normTxt(it.answer));
+    if(i>=0)return i;
+  }
+  return typeof it.correct==="number"?it.correct:-1;
+}
+// the explanation's own numbers must point at the option marked correct
+function optVal(o){
+  const t=String(o).replace(/,/g,"");
+  const f=t.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);   // 1/3, 2/5
+  if(f&&parseFloat(f[2]))return parseFloat(f[1])/parseFloat(f[2]);
+  const n=t.match(/-?\d+(?:\.\d+)?/);
+  return n?parseFloat(n[0]):NaN;
+}
+function arithmeticAgrees(q){
+  const opt=q.options.map(optVal);
+  if(opt.some(v=>!isFinite(v)))return true;          // wordy options, nothing to check
+  if(new Set(opt).size!==opt.length)return false;     // duplicate values = ambiguous
+  const ex=numsIn(q.explanation);
+  if(!ex.length)return true;
+  // only the concluding figures count - intermediate working can sit near a distractor by chance
+  return ex.slice(-2).some(v=>{
+    let best=0,bd=Infinity;
+    opt.forEach((ov,i)=>{const d=Math.abs(ov-v);if(d<bd){bd=d;best=i;}});
+    return best===q.correct;
+  });
+}
+let uidN=0;
+function normalise(sec,raw,variant){
+  const out=[],uid=()=>sec+"-"+(Date.now().toString(36))+(uidN++).toString(36);
+  if(sec==="VR"&&variant==="mcq"){
+    (raw.items||[]).forEach(it=>out.push({id:uid(),sec,format:"mcq",context:raw.context,ctxHtml:true,
+      stem:it.stem,options:it.options,correct:resolveCorrect(it,it.options||[]),qtype:it.type||"inference",explanation:it.explanation}));
+  }else if(sec==="VR"){
+    (raw.items||[]).forEach(it=>out.push({id:uid(),sec,format:"mcq",context:raw.context,ctxHtml:true,
+      stem:it.statement,options:["True","False","Can't tell"],
+      correct:["true","false","can't tell"].indexOf(String(it.answer).toLowerCase().replace("cant","can't")),
+      qtype:"tfct",explanation:it.explanation}));
+  }else if(sec==="DM"){
+    (raw.items||[]).forEach(it=>out.push({id:uid(),sec,format:it.format==="yesno"?"yesno":"mcq",
+      context:it.context||null,stem:it.stem,options:it.options,rows:it.rows,
+      correct:it.format==="yesno"?toBools(it.correct):resolveCorrect(it,it.options||[]),
+      qtype:it.type||"conclusion",explanation:it.explanation}));
+  }else if(sec==="QR"){
+    let t=`<p>${esc(raw.intro||"")}</p>`;
+    if((raw.headers||[]).length&&(raw.rows||[]).length){
+      t+=`<div class="tw"><table><tr>${raw.headers.map(h=>`<th>${esc(h)}</th>`).join("")}</tr>`;
+      raw.rows.forEach(r=>{t+=`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`;});t+="</table></div>";}
+    (raw.items||[]).forEach(it=>out.push({id:uid(),sec,format:"mcq",context:t,ctxHtml:true,stem:it.stem,
+      options:it.options,correct:resolveCorrect(it,it.options||[]),qtype:it.type||"lookup",explanation:it.explanation}));
+  }else{
+    const imp=raw.kind==="importance";
+    (raw.items||[]).forEach(it=>out.push({id:uid(),sec,format:"mcq",context:raw.context,scale:true,
+      stem:(imp?"How important is this consideration? — ":"How appropriate is this response? — ")+it.response,
+      options:imp?SJT_IMPORT:SJT_APPROP,correct:typeof it.correct==="number"?it.correct:-1,qtype:it.type||"patient-safety",explanation:it.explanation}));
+  }
+  return out.filter(q=>{
+    if(!q.stem)return false;
+    if(q.format==="yesno")return Array.isArray(q.rows)&&Array.isArray(q.correct)&&q.rows.length===q.correct.length;
+    if(!Array.isArray(q.options)||!(q.correct>=0)||q.correct>=q.options.length)return false;
+    if(new Set(q.options.map(normTxt)).size!==q.options.length)return false;
+    if(q.sec==="QR"&&!q.scale&&!arithmeticAgrees(q))return false;
+    return true;
+  });
+}
+const vrVariant=()=>Math.random()<0.45?"mcq":"tfct";
+async function oneSet(sec){
+  if(sec==="VR"){
+    const v=vrVariant();
+    let prose="";
+    for(let a=0;a<2&&prose.split(/\s+/).length<120;a++)prose=await callText(vrPassagePrompt());
+    if(prose.split(/\s+/).length<120)throw new Error("passage came back too short");
+    const html=prose.split(/\n\s*\n/).map(p=>`<p>${esc(p.trim())}</p>`).join("");
+    const raw=await callJSON(vrQuestionPrompt(prose,v));
+    raw.context=html;
+    return normalise(sec,raw,v);
+  }
+  return normalise(sec,await callJSON(promptFor(sec,null)),null);
+}
+async function pool(n,fn,limit,onProg){
+  const out=[];let i=0,done=0;
+  async function worker(){while(i<n){i++;try{out.push(...await fn());}catch(e){}done++;if(onProg)onProg(done,n);}}
+  await Promise.all(Array.from({length:Math.min(limit,n)},worker));
+  return out;
+}
+
+function scoreOf(q,a){
+  if(a==null)return 0;
+  if(q.format==="yesno"){const n=q.correct.filter((c,i)=>c===a[i]).length;return n===q.correct.length?1:(n>=q.correct.length-1?.5:0);}
+  if(q.scale){const d=Math.abs(a-q.correct);return d===0?1:(d===1?.5:0);}
+  return a===q.correct?1:0;
+}
+const maxOf=q=>q.format==="yesno"?2:1;
+const marksOf=(q,a)=>scoreOf(q,a)*maxOf(q);
+function recordQ(q,a,secs){
+  const sc=scoreOf(q,a);
+  const st=S.stats[q.sec]=S.stats[q.sec]||{n:0,pts:0,secs:0};
+  st.n++;st.pts+=sc;st.secs+=secs||0;
+  const tk=q.sec+"|"+q.qtype;const t=S.types[tk]=S.types[tk]||{n:0,pts:0};t.n++;t.pts+=sc;
+  const idx=S.bank.findIndex(b=>b.q.id===q.id);
+  if(sc<1){
+    if(idx<0)S.bank.push({q:q,miss:1,streak:0,when:Date.now()});
+    else{S.bank[idx].miss++;S.bank[idx].streak=0;S.bank[idx].when=Date.now();}
+  }else if(idx>=0){
+    S.bank[idx].streak++;
+    if(S.bank[idx].streak>=2)S.bank.splice(idx,1);
+  }
+  if(S.bank.length>60){S.bank.sort((a,b)=>b.miss-a.miss||b.when-a.when);S.bank=S.bank.slice(0,60);}
+  return sc;
+}
+function undoQ(q,a,secs){
+  const sc=scoreOf(q,a);
+  const st=S.stats[q.sec];if(st){st.n=Math.max(0,st.n-1);st.pts=Math.max(0,st.pts-sc);st.secs=Math.max(0,st.secs-(secs||0));}
+  const t=S.types[q.sec+"|"+q.qtype];if(t){t.n=Math.max(0,t.n-1);t.pts=Math.max(0,t.pts-sc);}
+  const i=S.bank.findIndex(b=>b.q.id===q.id);if(i>=0)S.bank.splice(i,1);
+  q.voided=true;save();
+}
+function logSession(kind,sec,pts,n,secs,qn){
+  S.sessions.push({d:isoToday(),kind,sec,pts,n,secs,q:qn||n,when:Date.now()});save();
+}
+const sessionsOn=(iso,f)=>S.sessions.filter(x=>x.d===iso&&(!f||f(x)));
+function targetDone(d,t){const k=t[0];
+  if(k==="SECTION")return sessionsOn(d.iso,x=>x.kind==="section").length;
+  if(k==="MOCK")return sessionsOn(d.iso,x=>x.kind==="mock").length;
+  if(k==="REDO")return sessionsOn(d.iso,x=>x.kind==="redo").length;
+  return sessionsOn(d.iso,x=>x.kind==="drill"&&x.sec===k).length;}
+const dayTarget=d=>d.sets.reduce((a,t)=>a+t[1],0);
+const dayDoneSets=d=>d.sets.reduce((a,t)=>a+Math.min(t[1],targetDone(d,t)),0);
+const dayTasksDone=d=>d.tasks.filter((_,i)=>S.done[d.n+"-"+i]).length;
+const todayDay=()=>ALLDAYS().find(d=>d.iso===isoToday())||null;
+const tName=k=>k==="SECTION"?"Full section":k==="MOCK"?"Full mock":k==="REDO"?"Error redo":SECTIONS[k].name;
+function avgSetSecs(sec){const r=S.sessions.filter(x=>x.sec===sec&&x.kind==="drill");
+  if(r.length<2)return budget(sec);return r.slice(-6).reduce((a,x)=>a+x.secs,0)/Math.min(6,r.length);}
+function setMinutes(sec){return (avgSetSecs(sec)+(mode==="practice"?55:22)*SECTIONS[sec].n)/60;}
+const avgSetMinutes=()=>ORDER.reduce((a,k)=>a+setMinutes(k),0)/4;
+function totals(){const all=ALLDAYS(),t=isoToday(),td=todayDay();
+  return{planned:all.reduce((a,d)=>a+dayTarget(d),0),done:all.reduce((a,d)=>a+dayDoneSets(d),0),
+    remaining:Math.max(0,all.filter(d=>d.iso>=t).reduce((a,d)=>a+dayTarget(d),0)-(td?dayDoneSets(td):0))};}
+
+const stock=sec=>(S.ready[sec]||[]).length;
+const stockTotal=()=>ORDER.reduce((a,k)=>a+stock(k),0);
+function seedStock(){
+  let added=0;
+  SEED.forEach(sd=>{
+    S.ready[sd.sec]=S.ready[sd.sec]||[];
+    if(S.ready[sd.sec].some(x=>x.seeded))return;
+    const qs=normalise(sd.sec,JSON.parse(JSON.stringify(sd.raw)),sd.variant);
+    if(qs.length){S.ready[sd.sec].push({seeded:true,qs});added++;}
+  });
+  if(added)save();
+}
+async function topUp(force){
+  if(warming||!canGenerate())return;
+  const need=ORDER.filter(k=>stock(k)<STOCK_TARGET);
+  if(!need.length)return;
+  warming=true;if(tab==="practice"&&pview==="home")render();
+  try{
+    for(const k of need){
+      while(stock(k)<STOCK_TARGET){
+        let batch=[];
+        try{batch=await Promise.all([oneSet(k),oneSet(k)]);}catch(e){break;}
+        batch.filter(q=>q&&q.length).forEach(qs=>{(S.ready[k]=S.ready[k]||[]).push({qs});});
+        save();
+        if(tab==="practice"&&pview==="home")render();
+        if(!batch.some(q=>q&&q.length))break;
+      }
+    }
+  }finally{warming=false;if(tab==="practice"&&pview==="home")render();}
+}
+function takeStock(sec){
+  const list=S.ready[sec]||[];
+  if(!list.length)return null;
+  const i=list.findIndex(x=>!x.seeded);
+  const item=list.splice(i>=0?i:0,1)[0];
+  save();
+  return item.qs;
+}
+async function buildLibrary(){
+  if(libJob||!canGenerate())return;
+  libFailed=false;libJob={sec:null,n:0,done:0,total:0};libRefresh();
+  try{
+    // round-robin, so one full mock of every section exists before any section gets a second
+    for(let round=1;round<=LIB_TARGET;round++){
+      for(const sec of ORDER){
+        if((LIB[sec]||[]).length>=round)continue;
+        const calls=Math.ceil(SECTIONS[sec].realQ/SECTIONS[sec].n);
+        Object.assign(libJob,{sec,n:(LIB[sec]||[]).length+1,done:0,total:calls});libRefresh();
+        const qs=await pool(calls,()=>oneSet(sec),3,d=>{libJob.done=d;libRefresh();});
+        if(qs.length<Math.ceil(SECTIONS[sec].realQ*0.75)){libFailed=true;return;}
+        (LIB[sec]=LIB[sec]||[]).push({id:sec+"-"+Date.now().toString(36),n:LIB[sec].length+1,
+          qs:qs.slice(0,SECTIONS[sec].realQ),built:Date.now(),result:null});
+        await saveLib();libRefresh();
+      }
+    }
+  }finally{libJob=null;libRefresh();}
+}
+function startLib(sec,id){
+  const m=(LIB[sec]||[]).find(x=>x.id===id);if(!m)return;
+  lastSec=sec;lastKind="section";tab="practice";syncTabs();
+  launchSection(sec,JSON.parse(JSON.stringify(m.qs)),null,id);
+}
+async function startDrill(sec){
+  lastSec=sec;lastKind="drill";pview="loading";genProg=null;tab="practice";syncTabs();render();
+  try{
+    let qs=takeStock(sec);
+    if(!qs){qs=(next&&next.sec===sec)?next.qs:await oneSet(sec);next=null;}
+    if(!qs||!qs.length)throw 0;
+    setTimeout(()=>topUp(),400);
+    R={kind:"drill",sec,qs,i:0,ans:[],times:[],flags:[],t0:Date.now(),setT0:Date.now(),revealed:false,pending:null};
+    pview="run";render();clock();
+  }catch(e){pview="error";render();}
+}
+function startRedo(){
+  const due=S.bank.slice().sort((a,b)=>b.miss-a.miss||a.when-b.when).slice(0,6).map(b=>b.q);
+  if(!due.length)return;
+  tab="practice";syncTabs();
+  R={kind:"redo",sec:due[0].sec,qs:due,i:0,ans:[],times:[],flags:[],t0:Date.now(),setT0:Date.now(),revealed:false,pending:null};
+  pview="run";render();clock();
+}
+async function startSection(sec,mockCtx){
+  lastSec=sec;lastKind="section";pview="loading";tab="practice";syncTabs();
+  const calls=Math.ceil(SECTIONS[sec].realQ/SECTIONS[sec].n);
+  genProg={done:0,total:calls,label:SECTIONS[sec].name};render();
+  try{
+    const qs=await pool(calls,()=>oneSet(sec),4,(d,t)=>{
+      const p=$("progBar");if(p)p.style.width=(d/t*100)+"%";
+      const c=$("progTxt");if(c)c.textContent=d+" of "+t+" blocks built";});
+    if(qs.length<4)throw 0;
+    launchSection(sec,qs,mockCtx);
+  }catch(e){pview="error";render();}
+}
+function launchSection(sec,qs,mockCtx,libId){
+  const n=Math.min(qs.length,SECTIONS[sec].realQ);
+  calcVal="";
+  R={kind:mockCtx?"mock":"section",sec,qs:qs.slice(0,n),i:0,ans:new Array(n).fill(null),flags:[],
+     t0:Date.now(),limit:Math.round(SECTIONS[sec].realT*n/SECTIONS[sec].realQ),
+     scaled:n<SECTIONS[sec].realQ,review:false,mock:mockCtx||null,libId:libId||null};
+  pview="run";render();clock();
+}
+async function startMock(){
+  mockCache={};mockLibIds={};
+  // use unsat library sections where they exist, so the mock starts instantly
+  ORDER.forEach(k=>{const m=(LIB[k]||[]).find(x=>!x.result);
+    if(m){mockCache[k]=JSON.parse(JSON.stringify(m.qs));mockLibIds[k]=m.id;}});
+  const ctx={idx:0,results:[]};
+  if(mockCache.VR){const qs=mockCache.VR;delete mockCache.VR;tab="practice";syncTabs();launchSection("VR",qs,ctx,mockLibIds.VR);}
+  else await startSection(ORDER[0],ctx);
+  if(R&&R.mock)prefetchMock(1);
+}
+function prefetchMock(i){
+  if(i>=ORDER.length)return;
+  const sec=ORDER[i];
+  if(mockCache[sec]){prefetchMock(i+1);return;}
+  pool(Math.ceil(SECTIONS[sec].realQ/SECTIONS[sec].n),()=>oneSet(sec),3)
+    .then(qs=>{mockCache[sec]=qs;prefetchMock(i+1);}).catch(()=>prefetchMock(i+1));
+}
+function clock(){
+  clearInterval(tick);
+  tick=setInterval(()=>{
+    if(!R||pview!=="run")return clearInterval(tick);
+    const el=$("clock"),bar=$("paceBar"),lf=$("left");if(!el)return;
+    if(R.kind==="section"||R.kind==="mock"){
+      const left=R.limit-Math.floor((Date.now()-R.t0)/1000);
+      el.textContent=fmt(left);
+      el.className="clock"+(left<=0?" over":left<300?" warn":"");
+      if(bar){bar.style.width=Math.max(0,left)/R.limit*100+"%";bar.className=left<300?"warn":"";}
+      if(left<=0){clearInterval(tick);endSection();}
+    }else{
+      const s=Math.floor((Date.now()-R.setT0)/1000),b=budget(R.sec);
+      el.textContent=fmt(s)+" / "+fmt(b);el.className="clock"+(s>b?" over":"");
+      if(bar){bar.style.width=Math.min(100,s/b*100)+"%";bar.className=s>b?"over":"";}
+      if(lf){const r=b-s,q=R.qs.length-R.i;
+        lf.textContent=r>=0?`${fmt(r)} left for ${q} ${q===1?"question":"questions"}`:`${fmt(-r)} over budget`;}
+    }
+  },400);
+}
+function choose(v){
+  const q=R.qs[R.i];
+  if(R.kind==="drill"||R.kind==="redo"){
+    if(R.revealed)return;
+    if(q.format==="yesno"){if(!Array.isArray(R.pending))R.pending=new Array(q.rows.length).fill(null);R.pending[v.r]=v.val;}
+    else R.pending=v;
+    render();return;
+  }
+  if(q.format==="yesno"){const a=Array.isArray(R.ans[R.i])?R.ans[R.i].slice():new Array(q.rows.length).fill(null);
+    a[v.r]=v.val;R.ans[R.i]=a;}
+  else R.ans[R.i]=v;
+  render();
+}
+function submitDrill(){
+  const q=R.qs[R.i];
+  if(R.pending==null)return;
+  if(q.format==="yesno"&&R.pending.some(x=>x===null))return;
+  R.ans[R.i]=R.pending;R.times[R.i]=Math.round((Date.now()-R.t0)/1000);
+  clearInterval(tick);recordQ(q,R.pending,R.times[R.i]);save();
+  if(mode==="practice"){R.revealed=true;R.pauseAt=Date.now();render();}else nextDrill();
+}
+function nextDrill(){
+  if(R.pauseAt){R.setT0+=Date.now()-R.pauseAt;R.pauseAt=null;}
+  R.pending=null;R.revealed=false;R.i++;
+  if(R.i>=R.qs.length){clearInterval(tick);
+    R.setSecs=Math.round((Date.now()-R.setT0)/1000);
+    const live=R.qs.map((q,i)=>[q,i]).filter(x=>!x[0].voided);
+    if(live.length)logSession(R.kind==="redo"?"redo":"drill",R.sec,
+      live.reduce((a,x)=>a+marksOf(x[0],R.ans[x[1]]),0),live.reduce((a,x)=>a+maxOf(x[0]),0),R.setSecs,live.length);
+    pview="result";render();return;}
+  calcVal="";R.t0=Date.now();render();clock();
+}
+function go(d){const n=R.i+d;if(n<0||n>=R.qs.length)return;R.i=n;render();}
+function endSection(){
+  clearInterval(tick);
+  const used=Math.min(R.limit,Math.round((Date.now()-R.t0)/1000));
+  let pts=0,max=0;R.qs.forEach((q,i)=>{pts+=recordQ(q,R.ans[i],Math.round(used/R.qs.length))*maxOf(q);max+=maxOf(q);});
+  R.pts=pts;R.max=max;R.used=used;save();
+  if(R.libId){const m=(LIB[R.sec]||[]).find(x=>x.id===R.libId);
+    if(m){m.result={pts,max,used,q:R.qs.length,when:Date.now()};saveLib();}}
+  if(R.mock){
+    R.mock.results.push({sec:R.sec,pts,n:max,q:R.qs.length,used});
+    if(R.mock.idx+1<ORDER.length){pview="between";render();return;}
+    const all=R.mock.results;
+    logSession("mock",null,all.reduce((a,r)=>a+r.pts,0),all.reduce((a,r)=>a+r.n,0),all.reduce((a,r)=>a+r.used,0),all.reduce((a,r)=>a+r.q,0));
+    R.allResults=all;pview="mockdone";render();return;
+  }
+  logSession("section",R.sec,pts,max,used,R.qs.length);pview="result";render();
+}
+async function nextMockSection(){
+  const idx=R.mock.idx+1,sec=ORDER[idx],results=R.mock.results;
+  if(mockCache[sec]&&mockCache[sec].length>=4){
+    const qs=mockCache[sec];delete mockCache[sec];
+    launchSection(sec,qs,{idx,results},mockLibIds[sec]);
+  }else await startSection(sec,{idx,results});
+}
+
+function hero(){
+  const t=new Date();t.setHours(0,0,0,0);
+  if(!EXAM){$("count").innerHTML=`UCAT Prep<span></span>`;$("sub").textContent="Add your test date in Settings to build your plan.";
+    $("strip").innerHTML="";$("pct").textContent="";$("startLab").textContent="";return;}
+  const left=Math.max(0,Math.round((EXAM-t)/86400000));
+  const first=ALLDAYS()[0];$("startLab").textContent=first?first.date:"";
+  $("count").innerHTML=left===0?`Today<span></span>`:`${left} <span>${left===1?"day":"days"} to go</span>`;
+  const T=totals();
+  $("sub").textContent=`UCAT on ${longDate(EXAM)}. ${T.done} of ${T.planned} scheduled sessions done${S.bank.length?`, ${S.bank.length} ${S.bank.length===1?"question":"questions"} waiting in your error log`:""}.`;
+  const td=todayDay();
+  $("strip").innerHTML=ALLDAYS().map(d=>{const tt=dayTarget(d),ds=dayDoneSets(d);
+    const f=tt?Math.min(100,Math.round(ds/tt*100)):(dayTasksDone(d)===d.tasks.length?100:0);
+    return `<div class="cell${td&&d.n===td.n?" today":""}${d.iso<isoToday()?" past":""}" title="Day ${d.n} — ${d.date}: ${ds}/${tt}"><i style="height:${f}%"></i></div>`;
+  }).join("")+`<div class="cell exam" title="Test day"></div>`;
+  $("pct").textContent=`${T.remaining} left to run`;
+}
+function planView(){
+  const td=todayDay();
+  return PHASES.map(p=>`<div class="phase"><h2>${p.t}</h2><p>${p.d}</p></div>
+  ${p.days.map(d=>{const done=dayTasksDone(d),n=d.tasks.length,tt=dayTarget(d),ds=dayDoneSets(d);
+    const full=done===n&&ds>=tt,isOpen=open===d.n||(open===null&&td&&d.n===td.n);
+    const drills=tt?`<div class="drills"><h4>Sessions — ${ds} of ${tt} done, about ${d.pm} minutes of practice</h4>
+      ${d.sets.map(t=>{const got=Math.min(t[1],targetDone(d,t));
+        return `<div class="drill"><b>${tName(t[0])}</b><span class="bar"><i style="width:${got/t[1]*100}%"></i></span>
+        <em>${got}/${t[1]}</em><button data-go="${t[0]}">Start</button></div>`;}).join("")}</div>`:"";
+    return `<div class="day ${full?"complete":""} ${td&&d.n===td.n?"now":""} ${isOpen?"open":""}">
+      <button class="dhead" data-day="${d.n}"><span class="dnum">Day ${d.n}</span><span class="ddate">${d.date}</span>
+      <span class="dtitle">${d.title}</span>
+      <span class="dmeta ${full?"ok":""}">${done}/${n} tasks${tt?` · ${ds}/${tt}`:""}</span></button>
+      <div class="dbody">${d.tasks.map((tk,i)=>{const k=d.n+"-"+i;
+        return `<div class="task ${S.done[k]?"done":""}" data-k="${k}"><span class="box"></span><span>${esc(tk)}</span></div>`;}).join("")}
+      ${drills}</div></div>`;}).join("")}`).join("");
+}
+function libPanel(){
+  const total=LIB_TARGET*ORDER.length,built=libCount();
+  const rows=ORDER.map(k=>{
+    const list=LIB[k]||[];
+    const chips=Array.from({length:LIB_TARGET},(_,i)=>{
+      const m=list[i];
+      if(m&&m.result){const pc=Math.round(m.result.pts/m.result.max*100);
+        return `<button class="chip done" data-lib="${k}|${m.id}">Mock ${i+1} · ${pc}%<em>retake</em></button>`;}
+      if(m)return `<button class="chip ready" data-lib="${k}|${m.id}">Mock ${i+1} · start</button>`;
+      if(libJob&&libJob.sec===k&&libJob.n===i+1)return `<span class="chip building">Mock ${i+1} · ${libJob.done}/${libJob.total}</span>`;
+      return `<span class="chip empty">Mock ${i+1}</span>`;
+    }).join("");
+    return `<div class="librow"><b>${SECTIONS[k].short}</b><div class="chips">${chips}</div>
+      <small>${SECTIONS[k].realQ}q · ${Math.round(SECTIONS[k].realT/60)}m</small></div>`;
+  }).join("");
+  return `<div class="panel"><h3>Mock library</h3>
+    <p class="note" style="margin:0 0 10px">Full-length sections at real size and timing, built once and saved so they start the moment you tap them. ${built} of ${total} built.${
+      libJob&&libJob.sec?` Building ${SECTIONS[libJob.sec].short} mock ${libJob.n} now — keep this page open while it works.`:""}${
+      libFailed?` <span style="color:var(--alert)">The last build stalled${lastErr?": "+esc(lastErr):""}. Tap to carry on from where it stopped.</span>`:""}</p>
+    ${rows}
+    ${built<total?`<div class="acts"><button class="btn" data-buildlib="1" ${libJob?"disabled":""}>${
+      libJob?"Building…":built?"Carry on building":"Build all "+total+" mocks"}</button></div>`:""}</div>`;
+}
+function practiceHome(){
+  const td=todayDay(),avg=avgSetMinutes();
+  let today="";
+  if(td){const tt=dayTarget(td),ds=dayDoneSets(td),leftS=Math.max(0,tt-ds);
+    const minsLeft=Math.max(0,td.pm-ds*avg),fits=Math.floor(minsLeft/avg);
+    today=`<div class="panel"><h3>Day ${td.n} — ${td.date} · ${td.title}</h3><div class="figs">
+      <div><b>${ds}</b><small>done today</small></div><div><b>${leftS}</b><small>still scheduled</small></div>
+      <div><b>~${Math.round(avg)} min</b><small>per drill at your pace</small></div>
+      <div><b>${fits}</b><small>drills fit in your ${td.pm} min</small></div></div>
+      <p class="note">${leftS===0?`Today's schedule is clear. Anything more is a bonus — stopping on time is a legitimate choice.`:`${leftS} ${leftS===1?"session":"sessions"} left today.`}</p></div>`;}
+  const cards=ORDER.map(k=>{const s=SECTIONS[k],st=S.stats[k];
+    const acc=st&&st.n?Math.round(st.pts/st.n*100)+"%":"—";
+    const runs=S.sessions.filter(x=>x.sec===k&&x.kind==="drill").length;
+    const rdy=stock(k);
+    return `<button class="sec" data-go="${k}"><div class="g"><h3>${s.name} ${rdy?`<span class="pill">${rdy} ready</span>`:``}</h3>
+      <p>${s.n} questions in ${fmt(budget(k))} — ${s.blurb}</p></div>
+      <div class="stat"><b>${acc}</b><small>${runs>=2?fmt(avgSetSecs(k))+" avg":"no pace data"} · ${runs} ${runs===1?"drill":"drills"}</small></div></button>`;}).join("");
+  const redo=`<button class="sec" data-go="REDO" ${S.bank.length?"":"disabled"}><div class="g"><h3>Redo your errors</h3>
+    <p>${S.bank.length?`Questions you've got wrong, hardest first. Get one right twice and it retires from the log.`:`Nothing waiting. Questions you get wrong land here automatically.`}</p></div>
+    <div class="stat"><b>${S.bank.length}</b><small>in the log</small></div></button>`;
+  const secs=ORDER.map(k=>`<button class="sec" data-sect="${k}"><div class="g"><h3>Full ${SECTIONS[k].short} section</h3>
+    <p>${SECTIONS[k].realQ} questions in ${Math.round(SECTIONS[k].realT/60)} minutes. Navigate freely, flag, review screen, no explanations until the end.</p></div>
+    <div class="stat"><b>${Math.round(SECTIONS[k].realT/60)}m</b><small>takes a minute to build</small></div></button>`).join("");
+  const keyBanner=canGenerate()?"":`<div class="banner">You have the built-in sample sets. Add your Anthropic API key to generate unlimited fresh questions, full sections and mocks.<button class="btn ghost" data-gosettings="1">Open Settings</button></div>`;
+  return keyBanner+today+`<div class="modebar">
+    <button data-m="practice" aria-pressed="${mode==="practice"}"><b>Learn</b><small>Explained as you go</small></button>
+    <button data-m="timed" aria-pressed="${mode==="timed"}"><b>Timed</b><small>Answers held to the end</small></button></div>
+  <div class="stockbar"><span>${stockTotal()} drill ${stockTotal()===1?"set":"sets"} ready to go${warming?" · writing more in the background":""}</span>
+    <button class="lnk" data-top="1" ${warming?"disabled":""}>${warming?"Stocking…":"Top up now"}</button></div>
+  <h3 style="margin:18px 0 9px;font-size:15px">Drill sets</h3>${cards}${redo}
+  <h3 style="margin:22px 0 9px;font-size:15px">Full length</h3>${libPanel()}
+  <p class="note" style="margin:4px 0 9px">Or build a fresh one on the spot, which takes a minute or two:</p>${secs}
+  <button class="sec" data-mock="1"><div class="g"><h3>Full mock</h3>
+    <p>All four sections in the real order with a break screen between each. About two hours. Uses unsat library mocks where they exist, so it starts instantly once the library is built.</p></div>
+    <div class="stat"><b>2h</b><small>start when you have the time</small></div></button>
+  <p class="note">These are freshly written questions in the real formats, not past UCAT papers. Use them for volume, stamina and technique — keep the four official practice tests on ucat.ac.uk for your real mocks, because those are the calibrated ones.</p>`;
+}
+function calcPanel(){
+  const keys=["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+"];
+  return `<aside class="qcalc"><div class="cbox"><h5>Calculator</h5>
+    <input id="cval" value="${esc(calcVal)}" readonly aria-label="Calculator display">
+    <div class="cgrid">${keys.map(k=>`<button data-c="${k}">${k==="*"?"×":k==="/"?"÷":k}</button>`).join("")}
+      <button data-c="C" class="wide">ON / C</button><button data-c="%" class="wide">%</button></div>
+    <p class="cnote">Number pad works. Backspace clears everything, as on the day.</p></div></aside>`;
+}
+function qParts(q,ansVal,revealed){
+  const ctx=q.context?`<div class="ctx">${q.ctxHtml?q.context:"<p>"+esc(q.context).replace(/\n+/g,"</p><p>")+"</p>"}</div>`:"";
+  let body=`<p class="stem">${esc(q.stem)}</p>`;
+  if(q.format==="yesno"){
+    const p=Array.isArray(ansVal)?ansVal:[];
+    body+=q.rows.map((r,i)=>{const cor=q.correct[i];
+      const cls=v=>revealed?(v===cor?"right":(p[i]===v?"wrong":"")):"";
+      return `<div class="row"><span>${esc(r)}</span>
+      <button class="${cls(true)}" data-r="${i}" data-v="1" aria-pressed="${p[i]===true}">Yes</button>
+      <button class="${cls(false)}" data-r="${i}" data-v="0" aria-pressed="${p[i]===false}">No</button></div>`;}).join("");
+  }else{
+    body+=q.options.map((o,i)=>{let c="opt";
+      if(revealed){if(i===q.correct)c+=" right";else if(ansVal===i)c+=" wrong";}
+      return `<button class="${c}" data-o="${i}" aria-pressed="${ansVal===i}">
+      <span class="k">${String.fromCharCode(65+i)}</span><span>${esc(o)}</span></button>`;}).join("");
+  }
+  return {ctx:ctx,ans:body};
+}
+function layout(sec,textHtml,ansHtml){
+  const hasCalc=SECTIONS[sec].calc;
+  return `<div class="qwrap${hasCalc?" hascalc":""}${S.flip?" flip":""}">
+    <div class="qtext">${textHtml||""}</div>
+    <div class="qans">${ansHtml}</div>
+    ${hasCalc?calcPanel():""}</div>`;
+}
+function drillView(){
+  const q=R.qs[R.i],s=SECTIONS[R.sec],rev=R.revealed;
+  const P=qParts(q,R.pending,rev);
+  let body=P.ans;
+  const shared=R.kind==="drill"&&R.qs.length>1&&q.context&&R.qs.every(x=>x.context===q.context);
+  const note=(shared&&R.i===0)?`<p class="budgetnote">You have ${fmt(budget(R.sec))} for all ${R.qs.length} questions on this ${R.sec==="QR"?"table":R.sec==="SJT"?"scenario":"passage"}. Reading it properly now is the right use of that time.</p>`:"";
+  if(rev){const sc=scoreOf(q,R.ans[R.i]);
+    body+=`<div class="exp ${sc===1?"":"bad"}"><b>${sc===1?"Correct":(sc===.5?"Partly right":"Not right")}${q.scale&&sc===.5?" — one band out, which still earns partial marks":""}${q.format==="yesno"?` — ${marksOf(q,R.ans[R.i])} of 2 marks${sc===.5?", for four rows of five":sc===0?". Three or fewer rows right scores nothing":""}`:""}</b>${esc(q.explanation)}
+    <p class="tagline">Type: ${TYPE_NAMES[q.qtype]||q.qtype}</p>
+    ${q.voided?`<p class="tagline">Discarded — it won't count towards your stats.</p>`:`<button class="lnk" id="bad">This answer looks wrong — discard it</button>`}</div>`;}
+  const last=R.i===R.qs.length-1;
+  body+=`<div class="acts">${rev?`<button class="btn" id="nx">${last?"See results":"Next question"}</button>`:
+    `<button class="btn" id="sb" ${R.pending==null?"disabled":""}>${mode==="practice"?"Check answer":(last?"Finish":"Next")}</button>`}
+    <button class="btn ghost" id="quit">End</button></div>`;
+  return `<div class="qbar"><span class="n">${R.kind==="redo"?"Error redo":s.name}</span><span class="sp"></span>
+    <button class="fl swap" id="swap">Swap sides</button>
+    <span class="clock" id="clock">0:00</span>
+    <small>Question ${R.i+1} of ${R.qs.length} · <span id="left"></span></small>
+    <div class="pace"><i id="paceBar" style="width:0"></i></div></div><div class="qbox">${layout(R.sec,note+P.ctx,body)}</div>`;
+}
+function sectionView(){
+  const s=SECTIONS[R.sec];
+  if(R.review){
+    const left=R.limit-Math.floor((Date.now()-R.t0)/1000);
+    return `<div class="qbar"><span class="n">${s.name} — review screen</span><span class="sp"></span>
+      <span class="clock" id="clock">${fmt(left)}</span><div class="pace"><i id="paceBar" style="width:${Math.max(0,left)/R.limit*100}%"></i></div></div>
+      <div class="qbox"><p class="stem">${R.ans.filter(a=>a!=null).length} of ${R.qs.length} answered · ${R.flags.filter(Boolean).length} flagged</p>
+      <div class="navgrid">${R.qs.map((q,i)=>`<button data-jump="${i}" class="${R.ans[i]!=null?"ansd":""} ${R.flags[i]?"flg":""} ${i===R.i?"cur":""}">${i+1}</button>`).join("")}</div>
+      <p class="note">Green is answered, yellow is flagged. Nothing is negatively marked, so fill every blank before you end.</p>
+      <div class="acts"><button class="btn ghost" id="backq">Back to questions</button>
+      <button class="btn" id="endsec">End section</button></div></div>`;
+  }
+  const q=R.qs[R.i];
+  const P=qParts(q,R.ans[R.i],false);
+  let body=P.ans;
+  body+=`<div class="acts">
+    <button class="btn ghost" id="prevq" ${R.i===0?"disabled":""}>Previous</button>
+    <button class="btn" id="nextq" ${R.i===R.qs.length-1?"disabled":""}>Next</button>
+    <button class="btn ghost" id="revscr">Review screen</button>
+    <button class="btn ghost" id="endsec">End section</button></div>
+    <p class="note">Alt+N next · Alt+P previous · Alt+F flag${s.calc?" · Alt+C calculator":""} · A–D to answer · Alt+S review screen</p>`;
+  return `<div class="qbar"><span class="n">${s.name}${R.mock?` — section ${R.mock.idx+1} of 4`:""}</span><span class="sp"></span>
+    <button class="fl swap" id="swap">Swap sides</button>
+    <button class="fl" id="flag" aria-pressed="${!!R.flags[R.i]}">${R.flags[R.i]?"Flagged":"Flag"}</button>
+    <span class="clock" id="clock">${fmt(R.limit)}</span>
+    <small>Question ${R.i+1} of ${R.qs.length}</small>
+    <div class="pace"><i id="paceBar" style="width:100%"></i></div></div><div class="qbox">${layout(R.sec,P.ctx,body)}</div>`;
+}
+function resultView(){
+  const tot=R.qs.reduce((a,q)=>a+(q.voided?0:maxOf(q)),0)||1;
+  const pts=R.qs.reduce((a,q,i)=>a+(q.voided?0:marksOf(q,R.ans[i])),0);
+  const isSec=R.kind==="section";
+  const time=isSec?R.used:(R.setSecs||0),tgt=isSec?R.limit:budget(R.sec);
+  const items=R.qs.map((q,i)=>{const sc=scoreOf(q,R.ans[i]);let your,right;
+    if(q.format==="yesno"){your=(Array.isArray(R.ans[i])?R.ans[i]:[]).map(v=>v==null?"—":v?"Yes":"No").join(", ")||"Not answered";
+      right=q.correct.map(v=>v?"Yes":"No").join(", ");}
+    else{your=R.ans[i]==null?"Not answered":q.options[R.ans[i]];right=q.options[q.correct];}
+    return `<div class="rev ${sc===1?"":"bad"}"><h4>Question ${i+1}<em>${q.format==="yesno"?marksOf(q,R.ans[i])+" of 2 marks · ":""}${TYPE_NAMES[q.qtype]||q.qtype}${R.times&&R.times[i]!=null?` · ${R.times[i]}s`:""}${R.flags[i]?" · flagged":""}</em></h4>
+    <p>${esc(q.stem)}</p><p class="ans">You: ${esc(your)} — Correct: ${esc(right)}</p><p>${esc(q.explanation)}</p></div>`;}).join("");
+  let verdict="";
+  if(isSec){const un=R.ans.filter(a=>a==null).length;
+    verdict=un?`You left ${un} unanswered. Nothing is negatively marked, so those were free guesses you didn't take — on the day, blanket-answer the last stretch rather than running out.`
+      :`Every question answered inside the time. That's the thing most people can't do on their first full section.`;}
+  else if(R.times&&R.times.length>1){
+    const first=R.times[0],rest=R.times.slice(1);
+    const ra=Math.round(rest.reduce((a,b)=>a+b,0)/rest.length);
+    verdict=time<=tgt?`${first}s on the first question including reading, then ${ra}s on average after. That's the shape you want.`
+      :first>time*0.55?`Most of the time went on question one (${first}s, including reading). Read faster rather than answering faster.`
+      :`Reading was fine at ${first}s, but the rest averaged ${ra}s — those should be quick lookups once you know the material.`;}
+  return `<div class="panel"><div class="figs">
+    <div><b>${Math.round(pts/tot*100)}%</b><small>${pts} of ${tot} marks</small></div>
+    <div><b>${fmt(time)}</b><small>of ${fmt(tgt)}</small></div>
+    ${R.scaled?`<div><b>${R.qs.length}</b><small>of ${SECTIONS[R.sec].realQ} questions built, time scaled to match</small></div>`:""}</div>
+    ${R.times&&R.times.length?`<p class="splits">Splits <b>${R.times.map(t=>t+"s").join(" · ")}</b></p>`:""}
+    ${verdict?`<p class="note" style="margin-top:10px">${verdict}</p>`:""}</div>${items}
+    <div class="acts">${R.kind==="drill"?`<button class="btn" data-go="${R.sec}">Another ${SECTIONS[R.sec].short} drill</button>`:""}
+    ${S.bank.length?`<button class="btn ghost" data-go="REDO">Redo errors (${S.bank.length})</button>`:""}
+    <button class="btn ghost" id="phome">Back to sections</button>
+    <button class="btn ghost" id="todiag">See the diagnosis</button></div>`;
+}
+function betweenView(){
+  const nx=ORDER[R.mock.idx+1],last=R.mock.results[R.mock.results.length-1];
+  return `<div class="panel"><h3>${SECTIONS[last.sec].name} finished</h3><div class="figs">
+    <div><b>${Math.round(last.pts/last.n*100)}%</b><small>raw marks</small></div>
+    <div><b>${fmt(last.used)}</b><small>time used</small></div></div>
+    <p class="note">In the real test this is a timed instruction screen with no way back. Same rule here: that section is done. Next is ${SECTIONS[nx].name} — ${SECTIONS[nx].realQ} questions in ${Math.round(SECTIONS[nx].realT/60)} minutes, about ${SECTIONS[nx].per}s each.</p>
+    <div class="acts"><button class="btn" id="nextsec">Start ${SECTIONS[nx].short}</button>
+    <button class="btn ghost" id="abandon">Stop the mock here</button></div></div>`;
+}
+function mockDoneView(){
+  const rows=R.allResults.map(r=>`<tr><td>${SECTIONS[r.sec].name}</td><td class="b">${Math.round(r.pts/r.n*100)}%</td>
+    <td>${r.pts} / ${r.n}</td><td>${fmt(r.used)}</td></tr>`).join("");
+  const tot=R.allResults.reduce((a,r)=>a+r.pts,0),n=R.allResults.reduce((a,r)=>a+r.n,0);
+  const nq=R.allResults.reduce((a,r)=>a+(r.q||r.n),0);
+  return `<div class="panel"><h3>Mock complete</h3><div class="figs">
+    <div><b>${Math.round(tot/n*100)}%</b><small>across all four sections</small></div>
+    <div><b>${nq}</b><small>questions</small></div></div>
+    <div class="tw"><table class="tt" style="margin-top:14px"><tr><th>Section</th><th>Raw</th><th>Marks</th><th>Time</th></tr>${rows}</table></div>
+    <p class="note">These are raw percentages, not UCAT scaled scores — the 900–2700 scaling belongs to the Consortium and can't be reproduced honestly. Read the shape across sections rather than the number. Everything you missed is now in your error log.</p>
+    <div class="acts"><button class="btn ghost" id="phome">Back to sections</button>
+    <button class="btn ghost" id="todiag">See the diagnosis</button></div></div>`;
+}
+function spark(sec){
+  const r=S.sessions.filter(x=>x.sec===sec&&x.n).slice(-10);
+  if(r.length<3)return `<span style="color:var(--muted);font-size:12px">3+ sessions needed</span>`;
+  const v=r.map(x=>x.pts/x.n),w=110,h=24,mx=Math.max(...v,1),mn=Math.min(...v,0);
+  const pts=v.map((y,i)=>`${(i/(v.length-1)*w).toFixed(1)},${(h-((y-mn)/((mx-mn)||1))*h).toFixed(1)}`).join(" ");
+  const up=v[v.length-1]>=v[0];
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${up?"#0D6E5C":"#A8372A"}" stroke-width="2"/></svg>`;
+}
+function diagView(){
+  if(!ORDER.some(k=>S.stats[k]&&S.stats[k].n))
+    return `<div class="msg"><b>Nothing to diagnose yet</b>Run a few drill sets and this fills in: accuracy by section, accuracy by question type, and whether you're improving.</div>`;
+  const secRows=ORDER.map(k=>{const st=S.stats[k];
+    if(!st||!st.n)return `<tr><td>${SECTIONS[k].name}</td><td colspan="4" style="color:var(--muted)">not attempted</td></tr>`;
+    const a=st.pts/st.n;
+    return `<tr><td>${SECTIONS[k].name}</td><td class="b">${Math.round(a*100)}%</td>
+    <td><span class="mini"><i style="width:${Math.round(a*100)}%;background:${a>=.7?"#0D6E5C":a>=.5?"#8A6410":"#A8372A"}"></i></span></td>
+    <td>${st.n} q</td><td>${spark(k)}</td></tr>`;}).join("");
+  const ranked=ORDER.filter(k=>S.stats[k]&&S.stats[k].n>=8).sort((a,b)=>(S.stats[a].pts/S.stats[a].n)-(S.stats[b].pts/S.stats[b].n));
+  const weakest=ranked[0],strongest=ranked[ranked.length-1];
+  const tRows=Object.keys(S.types).map(k=>{const p=k.split("|"),t=S.types[k];
+    return{sec:p[0],ty:p[1],n:t.n,a:t.pts/t.n};}).filter(x=>x.n>=3).sort((a,b)=>a.a-b.a);
+  const weak=tRows.filter(x=>x.a<.6),mid=tRows.filter(x=>x.a>=.6&&x.a<.75),strong=tRows.filter(x=>x.a>=.75);
+  const tt=l=>l.map(x=>`<tr><td>${TYPE_NAMES[x.ty]||x.ty}</td><td style="color:var(--muted)">${SECTIONS[x.sec].short}</td>
+    <td class="b">${Math.round(x.a*100)}%</td>
+    <td><span class="mini"><i style="width:${Math.round(x.a*100)}%;background:${x.a>=.75?"#0D6E5C":x.a>=.6?"#8A6410":"#A8372A"}"></i></span></td>
+    <td>${x.n} q</td></tr>`).join("");
+  let advice;
+  if(weak.length)advice=`Your weakest type is ${TYPE_NAMES[weak[0].ty]||weak[0].ty} in ${SECTIONS[weak[0].sec].short}, at ${Math.round(weak[0].a*100)}%. That's more actionable than "do more ${SECTIONS[weak[0].sec].short}" — go back through those questions in your error log and work out whether it's the method or the reading that's failing.`;
+  else if(tRows.length)advice=`Nothing is below 60% yet. Keep the volume up and check back after your next full section, which is where weaknesses usually surface.`;
+  else advice=`Not enough data by type yet. A type needs three questions before it appears here.`;
+  return `<div class="panel"><h3>By section</h3><div class="tw"><table class="tt">
+    <tr><th>Section</th><th>Accuracy</th><th></th><th>Volume</th><th>Trend</th></tr>${secRows}</table></div>
+    ${weakest&&strongest&&weakest!==strongest?`<p class="note">Strongest: ${SECTIONS[strongest].name}. Weakest: ${SECTIONS[weakest].name} — that's where the full-section sessions on the plan should go.</p>`:""}</div>
+    ${weak.length?`<div class="panel"><h3>Needs work</h3><div class="tw"><table class="tt"><tr><th>Question type</th><th></th><th>Accuracy</th><th></th><th>Seen</th></tr>${tt(weak)}</table></div></div>`:""}
+    ${mid.length?`<div class="panel"><h3>Inconsistent</h3><div class="tw"><table class="tt"><tr><th>Question type</th><th></th><th>Accuracy</th><th></th><th>Seen</th></tr>${tt(mid)}</table></div></div>`:""}
+    ${strong.length?`<div class="panel"><h3>Solid</h3><div class="tw"><table class="tt"><tr><th>Question type</th><th></th><th>Accuracy</th><th></th><th>Seen</th></tr>${tt(strong)}</table></div></div>`:""}
+    <div class="panel"><h3>What to do with this</h3><p style="font-size:14.2px;color:var(--ink2)">${advice}</p>
+    ${S.bank.length?`<div class="acts"><button class="btn" data-go="REDO">Redo your ${S.bank.length} logged errors</button></div>`:""}</div>`;
+}
+function knowView(){
+  return ctView()+`<div class="ref"><h3>Keyboard shortcuts</h3>
+    <p class="note" style="margin:0 0 12px">These work in the full sections and mocks here too, so they're reflex by test day.</p>
+    <div class="keys">${INTERFACE.map(k=>`<kbd>${k[0]}</kbd><span>${esc(k[1])}</span>`).join("")}</div></div>
+  <div class="ref"><h3>Things that catch people out</h3><ul>${QUIRKS.map(q=>`<li>${esc(q)}</li>`).join("")}</ul></div>
+  ${TECH.map(s=>`<div class="ref"><h3>${s.n}</h3>
+    <div class="nums">${s.nums.map(x=>`<div><b>${x[0]}</b>${x[1]}</div>`).join("")}</div>
+    <ul>${s.pts.map(p=>`<li>${esc(p)}</li>`).join("")}</ul><div class="trap">${esc(s.trap)}</div></div>`).join("")}
+  <div class="ref"><h3>Test day${EXAM?" · "+longDate(EXAM):""}</h3><ul>${TESTDAY.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`;
+}
+function mocksView(){
+  const rows=MOCKS.map((m,i)=>{const v=S.mocks[i]||{};
+    const tot=["vr","dm","qr"].reduce((a,k)=>a+(parseInt(v[k])||0),0);
+    const c=k=>`<td><input type="number" min="300" max="900" step="10" data-mk="${i}" data-f="${k}" value="${v[k]||""}" placeholder="—"></td>`;
+    return `<tr><td>${m}</td>${c("vr")}${c("dm")}${c("qr")}<td class="b">${tot||"—"}</td>
+    <td><select data-mk="${i}" data-f="sjt"><option value="">—</option>${[1,2,3,4].map(b=>`<option value="${b}" ${v.sjt==b?"selected":""}>${b}</option>`).join("")}</select></td></tr>`;}).join("");
+  const app=S.sessions.filter(x=>x.kind==="mock");
+  return `<div class="panel"><h3>Official practice tests</h3>
+    <div class="tw"><table class="tt" style="margin-top:8px"><tr><th>Test</th><th>VR</th><th>DM</th><th>QR</th><th>Total</th><th>Band</th></tr>${rows}</table></div>
+    <p class="note">Cognitive sections scale 300–900 each for a total of 900–2700; the SJT reports a band where 1 is highest. Your plan puts the official practice tests on weekends. Any it doesn't schedule are spare if you find the time.</p></div>
+    ${app.length?`<div class="panel"><h3>Mocks run here</h3><table class="tt"><tr><th>When</th><th>Raw</th><th>Questions</th></tr>
+    ${app.map(m=>`<tr><td>${new Date(m.when).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})}</td>
+    <td class="b">${Math.round(m.pts/m.n*100)}%</td><td>${m.q||m.n}</td></tr>`).join("")}</table>
+    <p class="note">Raw percentages only — not scaled scores, so don't compare them to the official ones.</p></div>`:""}`;
+}
+function settingsView(){
+  const first=!CFG.exam;
+  return `${first?`<div class="panel"><h3>Welcome</h3><p style="font-size:14.2px;color:var(--ink2)">Enter your UCAT date and this builds you a day-by-day plan, then tracks every session, error and mock against it. Everything is saved in this browser.</p></div>`:""}
+  <div class="panel"><h3>Your test</h3><div class="setup">
+    <label>UCAT test date<input type="date" id="cfgExam" value="${esc(CFG.exam)}"></label>
+    <label>Start the plan on<input type="date" id="cfgStart" value="${esc(CFG.start||isoToday())}"></label>
+  </div><p class="hint">The plan runs from the start date to the day before your test: learn the formats, then full-length practice with the official tests on weekends, then a two-day taper.${CFG.exam?" Changing the dates rebuilds the plan and clears your ticked tasks (your practice history is kept).":""}</p>
+  <div class="acts"><button class="btn" id="cfgSave">${first?"Build my plan":"Save and rebuild plan"}</button></div></div>
+  ${IN_CLAUDE?"":`<div class="panel"><h3>AI practice questions</h3><div class="setup">
+    <label class="wide">Anthropic API key<input type="password" id="cfgKey" autocomplete="off" spellcheck="false" placeholder="${KEY?"Saved — paste a new key to replace it":"sk-ant-…"}"></label>
+    <label class="wide">Model<select id="cfgModel">${MODELS.map(m=>`<option value="${m[0]}" ${CFG.model===m[0]?"selected":""}>${m[1]}</option>`).join("")}</select></label>
+  </div><p class="hint">Questions are written fresh by Claude using your own key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>. The key is stored only in this browser and sent only to Anthropic. Set a monthly spend limit on it, and don't save it on a shared computer. Without a key you still get the sample sets and everything else.</p>
+  <div class="acts"><button class="btn" id="keySave">Save key</button>${KEY?`<button class="btn ghost" id="keyClear">Remove key</button>`:""}</div></div>`}
+  <div class="panel"><h3>Your data</h3><p class="hint" style="margin-top:0">Move your progress to another device, or keep a backup. Your API key is never included.</p>
+  <div class="acts"><button class="btn ghost" id="dataExport">Export progress</button>
+  <label class="btn ghost" style="display:inline-block">Import progress<input type="file" id="dataImport" accept="application/json" hidden></label>
+  <button class="btn ghost" id="dataReset" style="color:var(--alert)">Reset everything</button></div></div>`;
+}
+function render(){
+  hero();const v=$("view");
+  const root=$("u");if(root)root.className=(tab==="practice"&&pview==="run")?"running":"";
+  if(tab==="plan"){v.innerHTML=planView();mountCalc(false);}
+  else if(tab==="practice"){
+    if(pview==="loading"){
+      v.innerHTML=`<div class="msg"><b class="dots">${genProg?"Building your "+genProg.label+" section":"Writing your questions"}</b>
+      ${genProg?`<span id="progTxt">0 of ${genProg.total} blocks built</span><div class="prog"><i id="progBar" style="width:0"></i></div>
+      <p class="note">Each block is a fresh passage or scenario, so a full section takes a minute or two. Leave it running.</p>`:"Takes a few seconds."}</div>`;
+      mountCalc(false);return;}
+    if(pview==="error"){v.innerHTML=`<div class="msg"><b>That didn't come through</b>
+      The question generator failed${lastErr?`: <span style="color:var(--alert)">${esc(lastErr)}</span>`:"."}
+      <p class="note">${canGenerate()?"If this keeps happening, check your API key and model in Settings.":"Add your Anthropic API key in Settings to generate questions."}</p>
+      <div class="acts" style="justify-content:center">${lastSec?`<button class="btn" data-retry="1">Try again</button>`:""}
+      <button class="btn ghost" id="phome">Back</button></div></div>`;mountCalc(false);}
+    else if(pview==="run"){const sectionish=R.kind==="section"||R.kind==="mock";
+      v.innerHTML=sectionish?sectionView():drillView();
+      mountCalc(false);}
+    else if(pview==="result"){v.innerHTML=resultView();mountCalc(false);}
+    else if(pview==="between"){v.innerHTML=betweenView();mountCalc(false);}
+    else if(pview==="mockdone"){v.innerHTML=mockDoneView();mountCalc(false);}
+    else{v.innerHTML=practiceHome();mountCalc(false);}
+  }
+  else if(tab==="diag"){v.innerHTML=diagView();mountCalc(false);}
+  else if(tab==="know"){v.innerHTML=knowView();mountCalc(false);}
+  else if(tab==="settings"){v.innerHTML=settingsView();mountCalc(false);}
+  else{v.innerHTML=mocksView();mountCalc(false);}
+  wire();
+}
+let calcOpen=false,calcVal="";
+function mountCalc(on){
+  const m=$("calcMount");
+  if(!on){m.innerHTML="";return;}
+  if(!calcOpen)m.innerHTML=`<button class="calctog" id="ctog">Calculator (Alt+C)</button>`;
+  else{const keys=["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+","C","(",")","%"];
+    m.innerHTML=`<div class="calc"><input id="cval" value="${esc(calcVal)}" readonly>
+    <div>${keys.map(k=>`<button data-c="${k}">${k}</button>`).join("")}</div>
+    <button data-c="close" style="width:100%;margin-top:5px">Hide</button></div>`;}
+  m.onclick=e=>{if(e.target.id==="ctog"){calcOpen=true;mountCalc(true);return;}
+    const k=e.target.dataset.c;if(!k)return;
+    if(k==="close"){calcOpen=false;mountCalc(true);return;}
+    calcKey(k);};
+}
+function calcKey(k){
+  if(k==="C")calcVal="";
+  else if(k==="="){try{const r=Function("return ("+calcVal.replace(/%/g,"/100")+")")();
+    calcVal=isFinite(r)?String(Math.round(r*1e10)/1e10):"Error";}catch(_){calcVal="Error";}}
+  else{if(calcVal==="Error")calcVal="";calcVal+=k;}
+  const el=$("cval");
+  if(el)el.value=calcVal; else mountCalc(true);
+}
+document.addEventListener("keydown",e=>{
+  if(CT&&!CT.done&&tab==="know"){
+    if(CT.mode!=="keys")return;
+    if(/^[0-9.+\-*/]$/.test(e.key)){e.preventDefault();ctInput(e.key);return;}
+    if(e.key==="Enter"||e.key==="="){e.preventDefault();ctInput("=");return;}
+    if(e.key==="Backspace"){e.preventDefault();ctInput("C");return;}
+    return;
+  }
+  if(pview!=="run"||!R)return;
+  const sectionish=R.kind==="section"||R.kind==="mock",k=e.key.toLowerCase();
+  if(e.altKey){
+    if(k==="n"){e.preventDefault();if(sectionish)go(1);else if($("sb")&&!$("sb").disabled)submitDrill();else if($("nx"))nextDrill();}
+    else if(k==="p"&&sectionish){e.preventDefault();go(-1);}
+    else if(k==="f"&&sectionish){e.preventDefault();R.flags[R.i]=!R.flags[R.i];render();}
+    else if(k==="s"&&sectionish){e.preventDefault();R.review=!R.review;render();}
+    else if(k==="c"&&SECTIONS[R.sec].calc){e.preventDefault();const el=$("cval");if(el){el.focus();el.blur();}}
+    return;
+  }
+  if(SECTIONS[R.sec].calc){
+    if(/^[0-9.+\-*/]$/.test(e.key)){e.preventDefault();calcKey(e.key);return;}
+    if(e.key==="Enter"||e.key==="="){e.preventDefault();calcKey("=");return;}
+    if(e.key==="Backspace"){e.preventDefault();calcKey("C");return;}
+  }
+  if(R.review)return;
+  const q=R.qs[R.i];
+  if(q.format!=="yesno"&&/^[a-e]$/.test(k)){const i="abcde".indexOf(k);if(i<q.options.length)choose(i);}
+});
+function syncTabs(){document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===tab));}
+function wire(){
+  const v=$("view"),g=id=>$(id);
+  v.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const n=+b.dataset.day;open=(open===n?-1:n);render();});
+  v.querySelectorAll(".task").forEach(t=>t.onclick=()=>{const k=t.dataset.k;S.done[k]=!S.done[k];if(!S.done[k])delete S.done[k];save();render();});
+  v.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const x=b.dataset.go;
+    if(x==="REDO")startRedo();
+    else if(x==="SECTION"||x==="MOCK"){tab="practice";pview="home";R=null;syncTabs();render();}
+    else startDrill(x);});
+  v.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>calcKey(b.dataset.c));
+  v.querySelectorAll("[data-buildlib]").forEach(b=>b.onclick=()=>buildLibrary());
+  v.querySelectorAll("[data-lib]").forEach(b=>b.onclick=()=>{const p=b.dataset.lib.split("|");startLib(p[0],p[1]);});
+  v.querySelectorAll("[data-top]").forEach(b=>b.onclick=()=>topUp(true));
+  v.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=>{lastKind==="section"?startSection(lastSec,null):startDrill(lastSec);});
+  v.querySelectorAll("[data-sect]").forEach(b=>b.onclick=()=>startSection(b.dataset.sect,null));
+  v.querySelectorAll("[data-mock]").forEach(b=>b.onclick=()=>startMock());
+  v.querySelectorAll("[data-m]").forEach(b=>{if(b.tagName==="BUTTON")b.onclick=()=>{mode=b.dataset.m;render();};});
+  v.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>choose(+b.dataset.o));
+  v.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>choose({r:+b.dataset.r,val:b.dataset.v==="1"}));
+  v.querySelectorAll("[data-jump]").forEach(b=>b.onclick=()=>{R.i=+b.dataset.jump;R.review=false;render();});
+  v.querySelectorAll("input[data-mk],select[data-mk]").forEach(el=>el.onchange=()=>{
+    const i=el.dataset.mk;S.mocks[i]=S.mocks[i]||{};S.mocks[i][el.dataset.f]=el.value;save();render();});
+  v.querySelectorAll("[data-ct]").forEach(b=>b.onclick=()=>{
+    const x=b.dataset.ct;if(x==="done"){CT=null;render();}else ctStart(x);});
+  v.querySelectorAll("[data-ck]").forEach(b=>b.onclick=()=>ctInput(b.dataset.ck));
+  if(g("swap"))g("swap").onclick=()=>{S.flip=!S.flip;save();render();};
+  if(g("flag"))g("flag").onclick=()=>{R.flags[R.i]=!R.flags[R.i];render();};
+  if(g("bad"))g("bad").onclick=()=>{undoQ(R.qs[R.i],R.ans[R.i],R.times[R.i]);render();};
+  if(g("sb"))g("sb").onclick=submitDrill;
+  if(g("nx"))g("nx").onclick=nextDrill;
+  if(g("prevq"))g("prevq").onclick=()=>go(-1);
+  if(g("nextq"))g("nextq").onclick=()=>go(1);
+  if(g("revscr"))g("revscr").onclick=()=>{R.review=true;render();};
+  if(g("backq"))g("backq").onclick=()=>{R.review=false;render();};
+  if(g("endsec"))g("endsec").onclick=()=>{if(confirm("End this section? You can't come back to it."))endSection();};
+  if(g("nextsec"))g("nextsec").onclick=()=>nextMockSection();
+  if(g("abandon"))g("abandon").onclick=()=>{mockCache={};R=null;pview="home";render();};
+  if(g("quit"))g("quit").onclick=()=>{clearInterval(tick);
+    const answered=R.ans.filter(x=>x!=null).length;
+    if(answered){R.qs=R.qs.slice(0,answered);R.setSecs=Math.round((Date.now()-R.setT0)/1000);
+      logSession(R.kind==="redo"?"redo":"drill",R.sec,R.qs.reduce((a,q,i)=>a+marksOf(q,R.ans[i]),0),
+        R.qs.reduce((a,q)=>a+maxOf(q),0),R.setSecs,R.qs.length);
+      pview="result";}else{R=null;pview="home";}
+    render();};
+  if(g("phome"))g("phome").onclick=()=>{R=null;pview="home";render();};
+  if(g("todiag"))g("todiag").onclick=()=>{R=null;pview="home";tab="diag";syncTabs();render();};
+  v.querySelectorAll("[data-gosettings]").forEach(b=>b.onclick=()=>{tab="settings";syncTabs();render();});
+  if(g("cfgSave"))g("cfgSave").onclick=()=>{
+    const ex=g("cfgExam").value,st=g("cfgStart").value||isoToday();
+    if(!ex){alert("Pick your test date first.");return;}
+    if(ex<=st){alert("The test date needs to be after the start date.");return;}
+    const changed=CFG.exam&&(ex!==CFG.exam||st!==CFG.start);
+    if(changed&&!confirm("Rebuild the plan for these dates? Your ticked tasks will be cleared; practice history stays."))return;
+    const firstTime=!CFG.exam;
+    CFG.exam=ex;CFG.start=st;if(changed){S.done={};save();}
+    saveCfg();applyCfg();open=null;
+    if(firstTime){tab="plan";syncTabs();}render();};
+  if(g("cfgModel"))g("cfgModel").onchange=()=>{CFG.model=g("cfgModel").value;saveCfg();};
+  if(g("keySave"))g("keySave").onclick=()=>{const k=g("cfgKey").value.trim();
+    if(!k){alert("Paste your API key first.");return;}
+    if(!/^sk-ant-/.test(k)&&!confirm("That doesn't look like an Anthropic key (they start with sk-ant-). Save it anyway?"))return;
+    KEY=k;try{localStorage.setItem("ucat:key",k);}catch(e){}
+    lastErr="";render();setTimeout(()=>topUp(),300);};
+  if(g("keyClear"))g("keyClear").onclick=()=>{KEY="";try{localStorage.removeItem("ucat:key");}catch(e){}render();};
+  if(g("dataExport"))g("dataExport").onclick=()=>{
+    const blob=new Blob([JSON.stringify({app:"ucat-prep",version:1,cfg:{exam:CFG.exam,start:CFG.start,model:CFG.model},state:S,lib:LIB},null,1)],{type:"application/json"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ucat-progress-"+isoToday()+".json";a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
+  if(g("dataImport"))g("dataImport").onchange=e=>{const f=e.target.files[0];if(!f)return;
+    f.text().then(t=>{const d=JSON.parse(t);if(!d||d.app!=="ucat-prep")throw new Error("not a UCAT Prep export");
+      if(!confirm("Replace your progress on this device with the imported file?"))return;
+      CFG=Object.assign(CFG,d.cfg||{});S=Object.assign(S,d.state||{});LIB=Object.assign({VR:[],DM:[],QR:[],SJT:[]},d.lib||{});
+      saveCfg();save();saveLib();applyCfg();render();alert("Progress imported.");})
+     .catch(err=>alert("Couldn't import that file: "+err.message));};
+  if(g("dataReset"))g("dataReset").onclick=()=>{
+    if(!confirm("Delete your plan, practice history, error log and saved mocks on this device? Export first if you want a backup."))return;
+    S={done:{},mocks:{},stats:{},types:{},sessions:[],bank:[],ctBest:{},ready:{}};LIB={VR:[],DM:[],QR:[],SJT:[]};CFG={exam:"",start:"",model:CFG.model};
+    save();saveLib();saveCfg();applyCfg();seedStock();tab="settings";syncTabs();render();};
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  if(pview==="run"&&R&&b.dataset.t!==tab){
+    const isSec=R.kind==="section"||R.kind==="mock";
+    if(!confirm(isSec?"Leave the section? It will be abandoned.":"Leave this set? Your answers so far won't be saved."))return;}
+  tab=b.dataset.t;syncTabs();
+  if(tab!=="practice"){clearInterval(tick);if(pview==="run"){R=null;pview="home";}}
+  render();});
+Promise.all([load(),loadLib(),loadCfg()]).then(()=>{seedStock();if(!CFG.exam){tab="settings";syncTabs();}render();setTimeout(()=>topUp(),600);});
+</script>
+</body>
+</html>
