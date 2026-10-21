@@ -1,3 +1,5 @@
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Live site](https://heloria-labs.vercel.app)
+
 > **Portfolio note:** the earlier static build of the Heloria Labs site, set aside in favour of [heloria-next](../heloria-next).
 > Preview: https://heloria-labs.vercel.app · Run: `python -m http.server 4321` in this folder, then open http://localhost:4321.
 

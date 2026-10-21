@@ -1,29 +1,31 @@
-# Portfolio — Abraham Sabu Kurian
+# Abraham Sabu Kurian — Portfolio
 
-Things I've built. Each project has its own folder with a README, screenshots, and how to run it.
+I build AI pipelines, tools and websites. **[Open the portfolio site →](https://abrahamsabu.github.io/portfolio/)**
 
-**Site:** https://abrahamsabu.github.io/portfolio/ · **Website gallery:** https://abrahamsabu.github.io/portfolio/gallery/
+**Best first:**
 
-| Project | What it is | See it |
-|---|---|---|
-| [heloria-next](projects/heloria-next) | Heloria Labs website rebuilt in Next.js around a WebGL machine that assembles as you scroll | [Live](https://heloria-next.vercel.app) |
-| [helorialabs-site](projects/helorialabs-site) | Earlier static HTML/CSS/anime.js build of the Heloria Labs site | [Preview](https://heloria-labs.vercel.app) |
-| [krios-research](projects/krios-research) | Market and competitive research for Kríos | [Report](https://abrahamsabu.github.io/portfolio/projects/krios-research/report.html) |
-| [krios-blog-agent](projects/krios-blog-agent) | Instructions for an agent that writes a weekly Kríos blog post and opens a PR | — |
-| [gtm-pipeline](projects/gtm-pipeline) | Job listings → ranked shortlist → crawled briefs → Claude research → prospect board | — |
-| [clipping](projects/clipping) | Local tool that turns long videos into short vertical captioned clips | — |
-| [auto-websites](projects/auto-websites) | Finds local businesses with no website and builds each a bespoke site, hands-off | [39 sites](https://abrahamsabu.github.io/portfolio/gallery/#client-sites) |
+| # | Project | What it is | See it |
+|---|---|---|---|
+| 1 | [**auto-websites**](projects/auto-websites) | Finds local businesses with no website and has Claude Code design, build and deploy a bespoke site for each. 39 are live. | [The 39 sites](https://abrahamsabu.github.io/portfolio/gallery/#auto-built) |
+| 2 | [**Heloria Labs website**](projects/heloria-next) | Next.js site built around a WebGL machine that assembles as you scroll | [Live](https://heloria-next.vercel.app) |
+| 3 | [**GTM pipeline**](projects/gtm-pipeline) | Job ads → ranked shortlist → crawled briefs → one Claude research session per company → prospect board | [How it works](projects/gtm-pipeline) |
+| 4 | [**Clipping**](projects/clipping) | Local Opus Clip-style tool that turns long videos into vertical captioned clips, with no API keys | [How it works](projects/clipping) |
+| 5 | [**Kríos market research**](projects/krios-research) | Sourced competitive analysis, rendered by a renderer with no dependencies | [Report](https://abrahamsabu.github.io/portfolio/projects/krios-research/report.html) |
+| 6 | [**Heloria Labs site, first version**](projects/helorialabs-site) | Static HTML/CSS/JS with anime.js motion | [Live](https://heloria-labs.vercel.app) |
+| 7 | [**Kríos blog agent**](projects/krios-blog-agent) | Instructions for an agent that writes a weekly post and opens a PR | [Instructions](projects/krios-blog-agent/AGENT.md) |
 
 ## Websites
 
-[gallery/](gallery) holds every site, ready to view in a browser. That includes Ammo's, Coffee Brothers, Gate Lodge Coffee,
-O'Reilly's Food Court, Thrive Coffee, Jet Executive Travel, and the 39 sites built by auto-websites.
+The **[gallery](https://abrahamsabu.github.io/portfolio/gallery/)** has 45 sites, best first. Six were hand-built, and 39 were
+built hands-off by auto-websites.
 
-## Layout
+![Websites](assets/thumbs/jet-executive.jpg)
+
+## Repo layout
 
 ```
-index.html       landing page (GitHub Pages)
-projects/        one folder per project
-gallery/         every website, viewable as-is
-assets/thumbs/   screenshots used by the pages
+index.html       portfolio site (GitHub Pages)
+projects/        one folder per project: README, screenshots, code
+gallery/         every website, viewable in the browser
+assets/          shared styles and site screenshots
 ```

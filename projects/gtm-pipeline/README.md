@@ -1,4 +1,8 @@
-# gtm-pipeline
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md)
+
+# GTM pipeline
+
+**Job ads → ranked shortlist → crawled briefs → one Claude research session per company → prospect board. 197 companies profiled, 90 researched in depth.**
 
 A go-to-market pipeline that finds companies running door-to-door and field-sales teams,
 which are Kríos's target customers. It pulls their job listings, ranks them, researches

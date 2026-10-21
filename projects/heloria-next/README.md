@@ -1,16 +1,24 @@
-# heloria-next
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Live site](https://heloria-next.vercel.app)
 
-The Heloria Labs website, rebuilt in Next.js around a single WebGL machine. One fixed
-canvas sits beside the page and assembles itself as you scroll, finishing and running
-by the time you reach the bottom.
+# Heloria Labs website
 
-**Live:** https://heloria-next.vercel.app
+**The company site, built around one WebGL machine that assembles itself across seven stages as you scroll. It's finished and running by the time you reach the bottom.**
 
-![Finished machine](renders/finished.png)
+![Home page](screenshots/home.jpg)
+
+| The finished machine | The Geneva drive stage |
+|---|---|
+| ![](screenshots/machine-finished.png) | ![](screenshots/machine-geneva.png) |
+
+## Highlights
+
+- One fixed 3D canvas sits beside the whole page while the content scrolls past it.
+- Each stage adds a real mechanism, including gears, a Geneva drive and a freewheel.
+- 16 test suites check the mechanisms and the motion (`npm run test:*`).
 
 ## Stack
 
-Next.js 16, React 19, three.js with @react-three/fiber, Tailwind CSS 4, TypeScript.
+Next.js 16 · React 19 · three.js · React Three Fiber · Tailwind CSS 4 · TypeScript
 
 ## How to run
 
@@ -19,10 +27,4 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000. The mechanism tests run with the `npm run test:*`
-scripts in `package.json`.
-
-## More
-
-- [ARCHITECTURE.md](ARCHITECTURE.md): how the page and the machine are put together.
-- [renders/](renders/): stills of the machine at each stage.
+Then open http://localhost:3000. [ARCHITECTURE.md](ARCHITECTURE.md) explains how the page and the machine fit together.

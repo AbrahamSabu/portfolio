@@ -4,29 +4,153 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Abraham Sabu Kurian — Portfolio</title>
-<style>
-body{font-family:system-ui,sans-serif;margin:0 auto;max-width:900px;padding:24px 16px;background:#fff;color:#111;line-height:1.5}
-table{border-collapse:collapse;width:100%} td,th{text-align:left;padding:8px;border-bottom:1px solid #ddd;vertical-align:top}
-a{color:#0645ad}
-</style>
+<meta name="description" content="AI pipelines, tools and websites built by Abraham Sabu Kurian.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-<h1>Abraham Sabu Kurian</h1>
-<p>Things I've built. The code for each project is in its folder on <a href="https://github.com/AbrahamSabu/portfolio">GitHub</a>.</p>
+<nav class="nav"><div class="wrap">
+  <a class="brand" href="#top">Abraham Sabu Kurian</a>
+  <a class="link" href="#projects">Projects</a>
+  <a class="link" href="#websites">Websites</a>
+  <a class="link hide-sm" href="https://github.com/AbrahamSabu">GitHub</a>
+</div></nav>
 
-<h2>Projects</h2>
-<table>
-<tr><th>Project</th><th>What it is</th><th>See it</th></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/heloria-next">heloria-next</a></td><td>Heloria Labs website rebuilt in Next.js around a WebGL machine that assembles as you scroll</td><td><a href="https://heloria-next.vercel.app">Live</a></td></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/helorialabs-site">helorialabs-site</a></td><td>Earlier static HTML/CSS/anime.js build of the Heloria Labs site</td><td><a href="https://heloria-labs.vercel.app">Preview</a></td></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/krios-research">krios-research</a></td><td>Market and competitive research for Kríos, rendered from Markdown by a dependency-free script</td><td><a href="projects/krios-research/report.html">Report</a></td></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/krios-blog-agent">krios-blog-agent</a></td><td>Instructions for an agent that writes a weekly Kríos blog post and opens a pull request</td><td>—</td></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/gtm-pipeline">gtm-pipeline</a></td><td>Job listings → ranked shortlist → crawled briefs → Claude research → prospect board</td><td>—</td></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/clipping">clipping</a></td><td>Local tool that turns long videos into short vertical captioned clips</td><td>—</td></tr>
-<tr><td><a href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/auto-websites">auto-websites</a></td><td>Finds local businesses with no website and builds each one a bespoke site, hands-off</td><td><a href="gallery/#client-sites">39 sites</a></td></tr>
-</table>
+<header class="hero" id="top"><div class="wrap">
+  <p class="eyebrow">Portfolio</p>
+  <h1>I build AI pipelines, tools and websites.</h1>
+  <p class="lede">One of the founders of Heloria Labs, an independent software company in Cork, Ireland. Everything below is something I've made, best first.</p>
+  <a class="btn primary" href="#projects">See the projects ↓</a>
+  <a class="btn" href="gallery/">Browse 45 websites</a>
+  <ul class="stats">
+    <li><b>7</b><span>projects</span></li>
+    <li><b>45</b><span>websites in the gallery</span></li>
+    <li><b>39</b><span>sites built and deployed by AI, hands-off</span></li>
+    <li><b>197</b><span>companies profiled by my GTM pipeline</span></li>
+  </ul>
+</div></header>
 
-<h2>Websites</h2>
-<p>Every site in one place: <a href="gallery/">open the gallery</a>.</p>
+<section id="projects"><div class="wrap">
+  <div class="section-head"><h2>Projects</h2><p>Ranked, strongest first.</p></div>
+
+  <article class="card feature">
+    <a class="media" href="gallery/#auto-built" aria-label="See the sites auto-websites built">
+      <div class="collage">
+        <img src="assets/thumbs/client-franco-barbeari.jpg" alt="Franco Barbeari site">
+        <img src="assets/thumbs/client-kian-fitz-painting-decorating.jpg" alt="Kian Fitz Painting site">
+        <img src="assets/thumbs/client-musa-s-barbers.jpg" alt="Musa's Barbers site">
+        <img src="assets/thumbs/client-nectar-coffee.jpg" alt="Nectar Coffee site">
+      </div>
+    </a>
+    <div class="body">
+      <span class="rank">01 · AI automation</span>
+      <h3>auto-websites</h3>
+      <p>One command finds local businesses with no website, pulls their real photos, and has Claude Code design and build a bespoke site for each one. Then it deploys them.</p>
+      <ul class="points">
+        <li>44 sites built, 39 live on GitHub Pages</li>
+        <li>Google Places search → filter → photos → headless build → deploy</li>
+        <li>Every site follows a strict design brief: no templates, no stock art</li>
+      </ul>
+      <ul class="tags"><li>Node.js</li><li>Claude Code</li><li>Google Places API</li><li>React + Vite</li><li>GitHub Pages</li></ul>
+      <div class="actions">
+        <a class="btn primary" href="gallery/#auto-built">See the 39 sites</a>
+        <a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/auto-websites">How it works</a>
+      </div>
+    </div>
+  </article>
+
+  <article class="card feature">
+    <a class="media" href="https://heloria-next.vercel.app" aria-label="Open heloria-next live"><img src="assets/thumbs/heloria-next.jpg" alt="Heloria Labs site with the 3D machine"></a>
+    <div class="body">
+      <span class="rank">02 · Web / 3D</span>
+      <h3>Heloria Labs website</h3>
+      <p>The company site, built around one WebGL machine. It assembles itself across seven stages as you scroll and is running by the time you reach the bottom.</p>
+      <ul class="points">
+        <li>A single fixed 3D canvas that stays beside the scrolling page</li>
+        <li>Gears, a Geneva drive and a freewheel, each covered by its own tests</li>
+      </ul>
+      <ul class="tags"><li>Next.js 16</li><li>React 19</li><li>three.js</li><li>React Three Fiber</li><li>Tailwind</li></ul>
+      <div class="actions">
+        <a class="btn primary" href="https://heloria-next.vercel.app">View live</a>
+        <a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/heloria-next">Code</a>
+      </div>
+    </div>
+  </article>
+
+  <div class="grid">
+    <article class="card">
+      <div class="media"><div class="flow"><span>Job listings</span><i>→</i><span>Rank</span><i>→</i><span>Crawl</span><i>→</i><span>AI research</span><i>→</i><span>Prospect board</span></div></div>
+      <div class="body">
+        <span class="rank">03 · Data + AI</span>
+        <h3>GTM pipeline</h3>
+        <p>Finds companies with door-to-door sales teams from their job ads, ranks them, crawls their sites, and runs one Claude research session per company. The output is a ranked prospect board.</p>
+        <ul class="tags"><li>Node.js</li><li>Adzuna API</li><li>Claude Code</li></ul>
+        <div class="actions"><a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/gtm-pipeline">How it works</a></div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="media"><div class="flow"><span>Long video</span><i>→</i><span>Transcribe</span><i>→</i><span>Pick clips</span><i>→</i><span>Reframe 9:16</span><i>→</i><span>Captions</span></div></div>
+      <div class="body">
+        <span class="rank">04 · Tool</span>
+        <h3>Clipping</h3>
+        <p>An Opus Clip-style tool that runs locally. You drop in a long video and get short, vertical, captioned clips back. It uses no API keys: Whisper runs on the machine, and Claude Code picks the moments.</p>
+        <ul class="tags"><li>Python</li><li>faster-whisper</li><li>OpenCV</li><li>Claude Code</li></ul>
+        <div class="actions"><a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/clipping">How it works</a></div>
+      </div>
+    </article>
+
+    <article class="card">
+      <a class="media" href="projects/krios-research/report.html"><img src="assets/thumbs/krios-research.jpg" alt="Kríos research report"></a>
+      <div class="body">
+        <span class="rank">05 · Research</span>
+        <h3>Kríos market research</h3>
+        <p>A sourced competitive analysis of AI sales-roleplay and field-sales coaching tools. A renderer I wrote with no dependencies turns the Markdown into one readable page.</p>
+        <ul class="tags"><li>Market research</li><li>Node.js</li></ul>
+        <div class="actions"><a class="btn primary" href="projects/krios-research/report.html">Read the report</a><a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/krios-research">Source</a></div>
+      </div>
+    </article>
+
+    <article class="card">
+      <a class="media" href="https://heloria-labs.vercel.app"><img src="assets/thumbs/helorialabs-site.jpg" alt="Earlier Heloria Labs site"></a>
+      <div class="body">
+        <span class="rank">06 · Web</span>
+        <h3>Heloria Labs site, first version</h3>
+        <p>An earlier build of the company site in plain HTML, CSS and JS, with anime.js motion and no build step.</p>
+        <ul class="tags"><li>HTML/CSS/JS</li><li>anime.js</li></ul>
+        <div class="actions"><a class="btn primary" href="https://heloria-labs.vercel.app">View live</a><a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/helorialabs-site">Code</a></div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="media"><div class="flow"><span>Pick topic</span><i>→</i><span>Write post</span><i>→</i><span>Open PR</span><i>→</i><span>Human merges</span></div></div>
+      <div class="body">
+        <span class="rank">07 · AI agent</span>
+        <h3>Kríos blog agent</h3>
+        <p>Operating instructions for an agent that writes a weekly blog post for the Kríos site and opens a pull request. A person always makes the final call.</p>
+        <ul class="tags"><li>Claude Code</li><li>Agent design</li></ul>
+        <div class="actions"><a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/krios-blog-agent">Read the instructions</a></div>
+      </div>
+    </article>
+  </div>
+</div></section>
+
+<section id="websites"><div class="wrap">
+  <div class="section-head"><h2>Websites</h2><a class="btn" href="gallery/">See all 45 →</a></div>
+  <div class="tiles">
+    <a class="tile" href="gallery/jet-executive/" target="_blank" rel="noopener"><img src="assets/thumbs/jet-executive.jpg" alt=""><strong>Jet Executive Travel</strong><span>11-page chauffeur site rebuild</span></a>
+    <a class="tile" href="gallery/ammos/" target="_blank" rel="noopener"><img src="assets/thumbs/ammos.jpg" alt=""><strong>Ammo's</strong><span>Greek food truck · Cork</span></a>
+    <a class="tile" href="gallery/coffee-brothers/" target="_blank" rel="noopener"><img src="assets/thumbs/coffee-brothers.jpg" alt=""><strong>Coffee Brothers</strong><span>Coffee stand · Cork</span></a>
+    <a class="tile" href="gallery/client-sites/franco-barbeari/" target="_blank" rel="noopener"><img src="assets/thumbs/client-franco-barbeari.jpg" alt=""><strong>Franco Barbeari</strong><span>Built by auto-websites</span></a>
+    <a class="tile" href="gallery/client-sites/kian-fitz-painting-decorating/" target="_blank" rel="noopener"><img src="assets/thumbs/client-kian-fitz-painting-decorating.jpg" alt=""><strong>Kian Fitz Painting</strong><span>Built by auto-websites</span></a>
+    <a class="tile" href="gallery/client-sites/musa-s-barbers/" target="_blank" rel="noopener"><img src="assets/thumbs/client-musa-s-barbers.jpg" alt=""><strong>Musa's Barbers</strong><span>Built by auto-websites</span></a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span>Abraham Sabu Kurian</span>
+  <span><a href="https://github.com/AbrahamSabu/portfolio">Source on GitHub</a></span>
+</div></footer>
 </body>
 </html>

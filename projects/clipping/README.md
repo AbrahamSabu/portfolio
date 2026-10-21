@@ -1,4 +1,8 @@
-# clipping
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md)
+
+# Clipping
+
+**Long video in, short vertical captioned clips out. Runs on your own machine, with no API keys.**
 
 A local tool in the style of Opus Clip: you put a long video in and get short, vertical,
 captioned clips out. It runs on your own computer with no AI API keys. Transcription

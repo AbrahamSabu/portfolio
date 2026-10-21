@@ -1,4 +1,6 @@
-# krios-research
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Read the report](https://abrahamsabu.github.io/portfolio/projects/krios-research/report.html)
+
+# Kríos market research
 
 Market and competitive research for Kríos, an AI sales-practice product for
 door-to-door field sales teams. Covers the AI sales-roleplay and field-sales coaching

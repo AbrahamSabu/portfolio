@@ -1,4 +1,6 @@
-# krios-blog-agent
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md)
+
+# Kríos blog agent
 
 Operating instructions for an AI agent that writes one blog post a week for the Kríos
 marketing site and opens a pull request for it. The agent never publishes: a human
