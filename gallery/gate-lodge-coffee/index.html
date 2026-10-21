@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gate Lodge Coffee Shop — Coffee &amp; Brunch, Model Farm Road, Cork</title>
+<meta name="description" content="Gate Lodge Coffee Shop is a small coffee and brunch spot built inside a shipping container on Model Farm Road, Cork. Walk-ins welcome, open 7 days.">
+
+<meta property="og:title" content="Gate Lodge Coffee Shop — Model Farm Road, Cork">
+<meta property="og:description" content="Coffee and brunch, built inside a shipping container on Model Farm Road, Cork. Walk-ins welcome, no booking needed.">
+<meta property="og:image" content="images/og-image.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="images/favicon.png">
+<link rel="apple-touch-icon" href="images/favicon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CafeOrCoffeeShop",
+  "name": "Gate Lodge Coffee Shop",
+  "servesCuisine": "Coffee, Brunch",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Model Farm Road",
+    "addressLocality": "Cork",
+    "addressCountry": "IE"
+  },
+  "hasMap": "https://www.google.com/maps/place/Gate+Lodge+Coffee+Shop/@51.8888347,-8.5257988,14z",
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "07:00", "closes": "17:00" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday","Sunday"], "opens": "09:00", "closes": "16:30" }
+  ]
+}
+</script>
+
+<style>
+  :root{
+    --ink:#121210;
+    --ink-2:#1d1c19;
+    --paper:#faf9f6;
+    --paper-2:#f1efe9;
+    --line:#dedad2;
+    --gray:#66645c;
+    --gray-light:#9a988e;
+    --white:#ffffff;
+
+    --serif: "Instrument Serif", Georgia, serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-fast: 0.3s;
+    --dur-med: 0.7s;
+    --dur-slow: 1.1s;
+
+    --container: 1180px;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  img{ max-width:100%; display:block; }
+  a{ color:inherit; text-decoration:none; }
+  h1,h2,h3,h4{ font-family:var(--serif); font-weight:400; margin:0; letter-spacing:-0.01em; }
+  p{ margin:0; }
+  ul{ margin:0; padding:0; list-style:none; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  /* ---------- grain texture (adds a little tactile richness) ---------- */
+  .grain{
+    position:fixed; inset:0; z-index:900; pointer-events:none;
+    opacity:0.05; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .skip-link{
+    position:absolute; left:-999px; top:0; background:var(--ink); color:var(--paper);
+    padding:12px 20px; z-index:1000; border-radius:0 0 8px 0;
+  }
+  .skip-link:focus{ left:0; }
+
+  .container{ max-width:var(--container); margin:0 auto; padding:0 32px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:0.68rem; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--gray); font-weight:500;
+  }
+  .eyebrow::before{ content:""; width:16px; height:1px; background:var(--ink); display:inline-block; }
+
+  section{ position:relative; }
+
+  /* ---------- reveal / scroll fade ---------- */
+  .reveal{
+    opacity:0; transform:translateY(28px);
+    transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease);
+    transition-delay:var(--reveal-delay, 0s);
+  }
+  .reveal.is-visible{ opacity:1; transform:translateY(0); }
+
+  /* ---------- photo slots (graceful placeholder until real photos are added) ---------- */
+  .photo{
+    position:relative; overflow:hidden; background:var(--paper-2);
+    border:1px solid var(--line);
+  }
+  .photo__bg{
+    position:absolute; inset:-2%; background-size:cover; background-position:center;
+    opacity:0; transform:translateY(var(--py, 0px));
+    transition:opacity .7s var(--ease), transform .6s var(--ease);
+  }
+  .photo.has-photo .photo__bg{ opacity:1; }
+  .photo__fallback{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    background:repeating-linear-gradient(135deg, var(--paper-2) 0 2px, var(--paper) 2px 26px);
+    text-align:center; padding:22px;
+  }
+  .photo.has-photo .photo__fallback{ display:none; }
+  .photo__fallback svg{ width:22px; height:22px; stroke:var(--gray-light); opacity:.8; }
+  .photo__fallback .tag{
+    font-family:var(--mono); font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--gray); border:1px dashed var(--line); padding:6px 12px; border-radius:8px; background:var(--paper);
+    max-width:100%; white-space:normal;
+  }
+  .photo__fallback .hint{ font-size:0.7rem; color:var(--gray-light); max-width:22ch; line-height:1.5; }
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:fixed; top:0; left:0; right:0; z-index:500;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 32px;
+    background:rgba(250,249,246,0);
+    transition:background var(--dur-fast) ease, box-shadow var(--dur-fast) ease, padding var(--dur-fast) ease, transform var(--dur-med) var(--ease);
+  }
+  .nav.scrolled{
+    background:rgba(250,249,246,0.92);
+    backdrop-filter:blur(10px);
+    box-shadow:0 1px 0 rgba(18,18,16,0.08);
+    padding:15px 32px;
+  }
+  .nav.nav--hidden{ transform:translateY(-100%); }
+  .nav__brand{ display:flex; align-items:center; gap:10px; font-family:var(--sans); font-size:0.92rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink); }
+  .nav__brand .dot{ width:7px; height:7px; background:var(--ink); }
+  .nav__links{ display:flex; align-items:center; gap:34px; }
+  .nav__links a{
+    font-size:0.85rem; font-weight:500; color:var(--ink);
+    position:relative; padding:4px 0;
+  }
+  .nav__links a::after{
+    content:""; position:absolute; left:0; bottom:0; height:1px; width:0;
+    background:var(--ink); transition:width var(--dur-fast) var(--ease);
+  }
+  .nav__links a:not(.nav__cta):hover::after{ width:100%; }
+  .nav__links a.is-active:not(.nav__cta){ color:var(--ink); }
+  .nav__links a.is-active:not(.nav__cta)::after{ width:100%; }
+  .nav__cta{
+    padding:10px 20px; border-radius:100px; background:var(--ink); color:var(--paper)!important;
+    font-size:0.82rem; font-weight:600;
+  }
+  .nav__toggle{ display:none; background:none; border:none; padding:6px; }
+  .nav__toggle span{ display:block; width:22px; height:2px; background:var(--ink); margin:5px 0; transition:transform .3s ease, opacity .3s ease; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100svh;
+    display:flex; align-items:flex-end;
+    padding:120px 32px 80px;
+    position:relative;
+    color:var(--paper);
+    isolation:isolate;
+  }
+  .hero__photo{ position:absolute; inset:0; z-index:0; background:linear-gradient(160deg, var(--ink-2), var(--ink)); overflow:hidden; }
+  .hero__photo .photo__bg{ position:absolute; inset:-2%; background-size:cover; background-position:center; opacity:0; transition:opacity 1s var(--ease); }
+  .hero__photo.has-photo .photo__bg{ opacity:1; }
+  .hero__photo-tag{
+    position:absolute; left:32px; bottom:24px; right:32px; z-index:1;
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:0.64rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:rgba(250,249,246,0.55); border:1px dashed rgba(250,249,246,0.3);
+    padding:7px 12px; border-radius:8px; max-width:fit-content; white-space:normal; line-height:1.5;
+  }
+  .hero__photo.has-photo ~ .hero__photo-tag{ display:none; }
+  .hero::after{
+    content:""; position:absolute; inset:0; z-index:1;
+    background:linear-gradient(180deg, rgba(18,18,16,0.35) 0%, rgba(18,18,16,0.55) 55%, rgba(18,18,16,0.88) 100%);
+    pointer-events:none;
+  }
+  .hero__inner{ max-width:var(--container); margin:0 auto; width:100%; position:relative; z-index:2; }
+  .hero__eyebrow{ color:rgba(250,249,246,0.75); }
+  .hero__eyebrow::before{ background:rgba(250,249,246,0.75); }
+
+  /* ---------- live open/closed status badge ---------- */
+  .status-badge{
+    display:inline-flex; align-items:center; gap:7px; margin-left:14px;
+    font-family:var(--mono); font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:rgba(250,249,246,0.85); border:1px solid rgba(250,249,246,0.3);
+    padding:5px 12px 5px 10px; border-radius:100px; vertical-align:middle;
+  }
+  .status-badge__dot{ width:6px; height:6px; border-radius:50%; background:var(--gray-light); flex:none; }
+  .status-badge.is-open .status-badge__dot{ background:#6fae7f; box-shadow:0 0 0 3px rgba(111,174,127,0.25); }
+  .status-badge.is-closed .status-badge__dot{ background:rgba(250,249,246,0.4); }
+  .status-badge.is-closing-soon .status-badge__dot{ background:#d9a441; box-shadow:0 0 0 3px rgba(217,164,65,0.25); }
+  .hours-card .status-badge{
+    margin:0 0 20px; color:rgba(250,249,246,0.85); border-color:rgba(250,249,246,0.25);
+  }
+  .hero h1{
+    font-size:clamp(2.8rem, 7vw, 5.6rem);
+    line-height:1.0;
+    margin:18px 0 22px;
+    max-width:15ch;
+  }
+  .hero h1 .line{ display:block; overflow:hidden; }
+  .hero h1 .line span{
+    display:block;
+    opacity:0; transform:translateY(110%);
+    transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease);
+  }
+  .hero.loaded h1 .line span{ opacity:1; transform:translateY(0); }
+  .hero h1 .line:nth-child(1) span{ transition-delay:.15s; }
+  .hero h1 .line:nth-child(2) span{ transition-delay:.28s; }
+  .hero h1 .line:nth-child(3) span{ transition-delay:.41s; }
+  .hero h1 em{ font-style:italic; }
+
+  .hero__sub{
+    font-size:clamp(1rem, 1.6vw, 1.2rem);
+    max-width:44ch; color:rgba(250,249,246,0.82); font-weight:300;
+    opacity:0; transform:translateY(18px);
+    transition:opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+    transition-delay:.56s;
+  }
+  .hero.loaded .hero__sub{ opacity:1; transform:translateY(0); }
+
+  .hero__actions{
+    display:flex; flex-wrap:wrap; gap:16px; margin-top:36px;
+    opacity:0; transform:translateY(18px);
+    transition:opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+    transition-delay:.7s;
+  }
+  .hero.loaded .hero__actions{ opacity:1; transform:translateY(0); }
+
+  /* shimmer button */
+  .btn{
+    position:relative; overflow:hidden;
+    display:inline-flex; align-items:center; gap:10px;
+    padding:16px 28px; border-radius:100px; border:none;
+    font-size:0.86rem; font-weight:600; letter-spacing:0.01em;
+    transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
+  .btn-primary{
+    background:var(--ink); color:var(--paper);
+  }
+  .btn-primary::before{
+    content:""; position:absolute; top:0; left:-150%; width:60%; height:100%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
+    transform:skewX(-20deg);
+    animation:shimmer 3.4s ease-in-out infinite;
+  }
+  @keyframes shimmer{
+    0%{ left:-150%; }
+    45%{ left:150%; }
+    100%{ left:150%; }
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 14px 28px -10px rgba(18,18,16,0.45); }
+  .btn-ghost{
+    background:transparent; color:var(--paper); border:1px solid rgba(250,249,246,0.4)!important;
+  }
+  .btn-ghost:hover{ background:rgba(250,249,246,0.1); transform:translateY(-2px); }
+
+  .hero__scroll{
+    position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    color:rgba(250,249,246,0.8); font-family:var(--mono); font-size:0.66rem; letter-spacing:0.15em; text-transform:uppercase;
+    opacity:0; z-index:2;
+  }
+  .hero.loaded .hero__scroll{ opacity:.85; transition:opacity 1s ease; transition-delay:1.1s; }
+  .hero__scroll .stem{ width:1px; height:34px; background:linear-gradient(rgba(250,249,246,0.6), transparent); position:relative; overflow:hidden; }
+  .hero__scroll .stem::after{
+    content:""; position:absolute; left:0; top:-100%; width:100%; height:100%;
+    background:var(--paper);
+    animation:scrollDrip 2.2s ease-in-out infinite;
+  }
+  @keyframes scrollDrip{ 0%{ top:-100%; } 60%{ top:100%; } 100%{ top:100%; } }
+
+  /* ---------- corrugated divider (shipping-container nod) ---------- */
+  .corrugate{
+    height:7px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 2px, var(--paper) 2px 14px);
+  }
+
+  /* ---------- MARQUEE ---------- */
+  .marquee-band{
+    background:var(--ink); color:var(--paper);
+    overflow:hidden; position:relative;
+  }
+  .marquee-band__track{
+    display:flex; align-items:center; width:max-content;
+    animation:marquee 28s linear infinite;
+  }
+  .marquee-band.paused .marquee-band__track{ animation-play-state:paused; }
+  .marquee-band__track span{
+    display:inline-flex; align-items:center;
+    font-family:var(--mono); font-weight:500;
+    font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase; color:rgba(250,249,246,0.85);
+    padding:16px 32px; white-space:nowrap;
+  }
+  .marquee-band__track span::after{
+    content:"■"; color:rgba(250,249,246,0.4); font-size:0.45rem; margin-left:32px;
+  }
+  @keyframes marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+  .marquee-toggle{
+    position:absolute; right:16px; top:50%; transform:translateY(-50%);
+    z-index:3; background:rgba(250,249,246,0.1); border:1px solid rgba(250,249,246,0.25);
+    color:var(--paper); border-radius:50%; width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center; font-size:0.75rem;
+    transition:background var(--dur-fast) ease;
+  }
+  .marquee-toggle:hover{ background:rgba(250,249,246,0.2); }
+
+  /* ---------- STORY ---------- */
+  .story{ padding:130px 0 110px; background:var(--paper); }
+  .story__grid{ display:grid; grid-template-columns:1.05fr 0.95fr; gap:72px; align-items:center; }
+  .story__media{ aspect-ratio:4/5; border-radius:2px; position:relative; }
+  .story__media .badge{
+    position:absolute; bottom:20px; left:20px; right:20px; z-index:2;
+    background:rgba(250,249,246,0.94); backdrop-filter:blur(6px);
+    padding:16px 18px;
+    display:flex; align-items:center; gap:14px;
+    border:1px solid var(--line);
+  }
+  .story__media .badge .num{ font-family:var(--serif); font-size:1.7rem; color:var(--ink); }
+  .story__media .badge .lbl{ font-size:0.75rem; color:var(--gray); line-height:1.3; }
+
+  .story h2{ font-size:clamp(2.1rem, 3.6vw, 2.9rem); margin:16px 0 22px; line-height:1.1; }
+  .story p{ color:#3f3d37; line-height:1.75; font-size:1.02rem; font-weight:300; margin-bottom:16px; }
+  .story p strong{ color:var(--ink); font-weight:600; }
+
+  /* ---------- STATS ---------- */
+  .stats{ background:var(--ink); color:var(--paper); padding:90px 0; }
+  .stats__grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:40px; text-align:center; }
+  .stat .num{ font-family:var(--serif); font-size:clamp(2.6rem,4.8vw,3.6rem); color:var(--paper); display:flex; align-items:baseline; justify-content:center; gap:2px; }
+  .stat .lbl{ margin-top:10px; font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(250,249,246,0.6); }
+
+  /* ---------- MENU / SPOTLIGHT ---------- */
+  .menu{ padding:130px 0 110px; background:var(--paper-2); }
+  .menu__head{ max-width:640px; margin-bottom:56px; }
+  .menu__head h2{ font-size:clamp(2.1rem,3.6vw,2.9rem); margin:16px 0; }
+  .menu__head p{ color:#3f3d37; font-weight:300; line-height:1.7; }
+
+  .menu__grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:22px; }
+  .spotlight-card{
+    position:relative; border-radius:2px; overflow:hidden;
+    background:var(--ink); aspect-ratio:3/4;
+    isolation:isolate; border:1px solid var(--line);
+  }
+  .spotlight-card .photo__bg{ transition:opacity .7s var(--ease), transform .7s var(--ease); }
+  .spotlight-card:hover .photo__bg{ transform:scale(1.07); }
+  .spotlight-card::before{
+    content:""; position:absolute; inset:0; z-index:2; opacity:0;
+    background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%), rgba(250,249,246,0.22), transparent 60%);
+    transition:opacity .35s ease; pointer-events:none;
+  }
+  .spotlight-card:hover::before{ opacity:1; }
+  .spotlight-card__shade{
+    position:absolute; inset:0; z-index:1;
+    background:linear-gradient(0deg, rgba(18,18,16,0.9) 0%, rgba(18,18,16,0.15) 55%, transparent 75%);
+  }
+  .spotlight-card__info{ position:absolute; left:0; right:0; bottom:0; z-index:3; padding:18px; color:var(--paper); }
+  .spotlight-card__info .name{ font-family:var(--serif); font-size:1.2rem; }
+  .spotlight-card__info .note{ font-size:0.76rem; color:rgba(250,249,246,0.75); margin-top:4px; }
+  .spotlight-card .photo__fallback{ background:repeating-linear-gradient(135deg, var(--ink-2) 0 2px, var(--ink) 2px 26px); }
+  .spotlight-card .photo__fallback .tag{ background:var(--ink); color:rgba(250,249,246,0.7); border-color:rgba(250,249,246,0.25); }
+  .spotlight-card .photo__fallback .hint{ color:rgba(250,249,246,0.4); }
+  .spotlight-card .photo__fallback svg{ stroke:rgba(250,249,246,0.4); }
+
+  /* ---------- VISIT (location + hours) ---------- */
+  .visit{ padding:130px 0 110px; background:var(--paper); }
+  .visit__head{ max-width:640px; margin-bottom:56px; }
+  .visit__head h2{ font-size:clamp(2.1rem,3.6vw,2.9rem); margin:16px 0; }
+  .visit__head p{ color:#3f3d37; font-weight:300; line-height:1.7; }
+
+  .visit__grid{ display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:stretch; }
+  .loc-card{
+    background:var(--white); border:1px solid var(--line);
+    overflow:hidden; display:flex; flex-direction:column;
+    transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
+  .loc-card:hover{ transform:translateY(-6px); box-shadow:0 30px 50px -30px rgba(18,18,16,0.3); }
+  .loc-card__img{ aspect-ratio:16/10; }
+  .loc-card__body{ padding:28px 30px 30px; }
+  .loc-card__body h3{ font-size:1.5rem; color:var(--ink); }
+  .loc-card__body .tag{ font-family:var(--mono); font-size:0.68rem; color:var(--gray); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; margin-top:8px; display:block; }
+  .loc-card__body p{ margin-top:14px; color:#3f3d37; font-size:0.94rem; line-height:1.65; font-weight:300; }
+  .loc-card__body .btn{ margin-top:20px; padding:13px 22px; font-size:0.8rem; }
+
+  .hours-card{ background:var(--ink); padding:38px 40px; color:var(--paper); display:flex; flex-direction:column; justify-content:center; }
+  .hours-card h3{ font-size:1.35rem; color:var(--paper); margin-bottom:22px; }
+  .hours-card .row{ display:flex; justify-content:space-between; align-items:baseline; padding:14px 0; border-top:1px solid rgba(250,249,246,0.14); }
+  .hours-card .day{ font-weight:500; color:rgba(250,249,246,0.75); font-size:0.9rem; }
+  .hours-card .time{ font-family:var(--serif); font-size:1.15rem; color:var(--paper); }
+  .hours-card .note{ margin-top:20px; font-family:var(--mono); font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; color:rgba(250,249,246,0.5); }
+
+  /* ---------- REVIEW ---------- */
+  .review{ padding:120px 0; background:var(--paper-2); }
+  .review__card{
+    max-width:760px; margin:0 auto; text-align:center; background:var(--white);
+    padding:56px 48px; border:1px solid var(--line);
+  }
+  .review__stars{ color:var(--ink); font-size:1.1rem; letter-spacing:5px; margin-bottom:22px; }
+  .review__quote{ font-family:var(--serif); font-size:clamp(1.25rem,2.1vw,1.65rem); line-height:1.5; color:var(--ink); font-style:italic; }
+  .review__author{ margin-top:28px; display:flex; align-items:center; justify-content:center; gap:12px; }
+  .review__avatar{ width:42px; height:42px; background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:1.15rem; }
+  .review__meta{ text-align:left; }
+  .review__meta .name{ font-weight:600; color:var(--ink); font-size:0.92rem; }
+  .review__meta .sub{ font-family:var(--mono); font-size:0.7rem; color:var(--gray); letter-spacing:0.02em; }
+
+  /* ---------- CTA ---------- */
+  .cta{
+    padding:130px 32px; text-align:center; position:relative; overflow:hidden;
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .cta__inner{ position:relative; z-index:2; max-width:620px; margin:0 auto; }
+  .cta .eyebrow{ color:rgba(250,249,246,0.6); justify-content:center; }
+  .cta .eyebrow::before{ background:rgba(250,249,246,0.6); }
+  .cta h2{ font-size:clamp(2.2rem,4.2vw,3.2rem); margin:18px 0 20px; }
+  .cta p{ color:rgba(250,249,246,0.75); font-weight:300; font-size:1.05rem; line-height:1.7; margin-bottom:36px; }
+  .cta__actions{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+
+  /* ---------- FOOTER ---------- */
+  footer{ background:var(--paper); color:var(--ink); padding:70px 0 30px; border-top:1px solid var(--line); }
+  .footer__grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:40px; padding-bottom:50px; border-bottom:1px solid var(--line); }
+  .footer__brand{ font-family:var(--sans); font-weight:700; letter-spacing:0.05em; text-transform:uppercase; font-size:1rem; color:var(--ink); margin-bottom:14px; }
+  .footer__grid p{ font-size:0.88rem; color:var(--gray); line-height:1.7; font-weight:300; }
+  .footer__col h4{ font-family:var(--mono); font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); margin-bottom:16px; }
+  .footer__col a, .footer__col span{ display:block; font-size:0.88rem; color:#4a4842; margin-bottom:10px; font-weight:300; }
+  .footer__col a:hover{ color:var(--ink); }
+  .footer__bottom{ padding-top:26px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-family:var(--mono); font-size:0.7rem; color:var(--gray-light); }
+
+  /* ---------- back to top ---------- */
+  .to-top{
+    position:fixed; right:24px; bottom:24px; z-index:400;
+    width:46px; height:46px; border-radius:50%;
+    background:var(--ink); color:var(--paper); border:none;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transform:translateY(12px); pointer-events:none;
+    transition:opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
+  .to-top.is-shown{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .to-top:hover{ box-shadow:0 10px 24px -8px rgba(18,18,16,0.45); }
+  .to-top svg{ width:16px; height:16px; stroke:currentColor; }
+
+  /* ---------- gallery + lightbox ---------- */
+  .gallery{ padding:0 0 110px; background:var(--paper); }
+  .gallery__head{ max-width:640px; margin-bottom:40px; }
+  .gallery__head h2{ font-size:clamp(2.1rem,3.6vw,2.9rem); margin:16px 0; }
+  .gallery__head p{ color:#3f3d37; font-weight:300; line-height:1.7; }
+  .gallery__grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+  .gallery__item{
+    aspect-ratio:3/4; border-radius:2px; border:none; padding:0; background:var(--paper-2);
+  }
+  .gallery__item .photo{ width:100%; height:100%; border-radius:2px; }
+  .gallery__item .photo__bg{ transition:opacity .7s var(--ease), transform .5s var(--ease); }
+  .gallery__item:hover .photo__bg{ transform:scale(1.06); }
+
+  .lightbox{
+    position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center;
+    padding:40px; background:rgba(18,18,16,0.92);
+    opacity:0; pointer-events:none; transition:opacity var(--dur-fast) ease;
+  }
+  .lightbox.is-open{ opacity:1; pointer-events:auto; }
+  .lightbox__frame{ position:relative; max-width:min(90vw,720px); max-height:85vh; }
+  .lightbox__frame img{ max-width:100%; max-height:85vh; border-radius:2px; }
+  .lightbox__close{
+    position:absolute; top:-44px; right:0; width:36px; height:36px; border-radius:50%;
+    background:rgba(250,249,246,0.12); border:1px solid rgba(250,249,246,0.3); color:var(--paper);
+    display:flex; align-items:center; justify-content:center; font-size:1rem;
+  }
+  .lightbox__close:hover{ background:rgba(250,249,246,0.22); }
+  .lightbox__nav{
+    position:absolute; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:50%;
+    background:rgba(250,249,246,0.12); border:1px solid rgba(250,249,246,0.3); color:var(--paper);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox__nav:hover{ background:rgba(250,249,246,0.22); }
+  .lightbox__prev{ left:-56px; }
+  .lightbox__next{ right:-56px; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:980px){
+    .story__grid{ grid-template-columns:1fr; gap:44px; }
+    .stats__grid{ grid-template-columns:repeat(2,1fr); gap:34px; }
+    .menu__grid{ grid-template-columns:repeat(2,1fr); }
+    .visit__grid{ grid-template-columns:1fr; }
+    .footer__grid{ grid-template-columns:1fr; gap:32px; }
+    .gallery__grid{ grid-template-columns:repeat(3,1fr); }
+  }
+  @media (max-width:720px){
+    .nav__links{
+      position:fixed; inset:0 0 0 26%; top:0; height:100svh;
+      background:var(--ink); flex-direction:column; justify-content:center; align-items:flex-start;
+      padding:40px; gap:26px;
+      transform:translateX(100%); transition:transform .4s var(--ease);
+    }
+    .nav__links.open{ transform:translateX(0); }
+    .nav__links a{ color:var(--paper); font-size:1.1rem; }
+    .nav__links .nav__cta{ color:var(--ink)!important; background:var(--paper); }
+    .nav__toggle{ display:block; }
+    .hero{ padding:110px 20px 60px; align-items:flex-end; }
+    .hero__photo-tag{ left:20px; right:20px; }
+    .lightbox{ padding:20px; }
+    .lightbox__prev{ left:8px; }
+    .lightbox__next{ right:8px; }
+    .to-top{ right:16px; bottom:16px; }
+  }
+  @media (max-width:520px){
+    .stats__grid{ grid-template-columns:1fr 1fr; }
+    .menu__grid{ grid-template-columns:1fr 1fr; }
+    .gallery__grid{ grid-template-columns:1fr 1fr; }
+    .review__card{ padding:36px 24px; }
+    .cta{ padding:90px 22px; }
+    .hours-card{ padding:30px 26px; }
+  }
+
+  /* ---------- REDUCED MOTION ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
+    .reveal{ opacity:1; transform:none; }
+    .hero h1 .line span{ opacity:1; transform:none; }
+    .hero__sub, .hero__actions{ opacity:1; transform:none; }
+    .btn-primary::before{ display:none; }
+    .marquee-band__track{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="siteNav">
+  <a href="#hero" class="nav__brand"><span class="dot"></span>Gate Lodge</a>
+  <nav class="nav__links" id="navLinks">
+    <a href="#story">Story</a>
+    <a href="#menu">Menu</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#visit">Hours</a>
+    <a href="#reviews">Reviews</a>
+    <a class="nav__cta" href="https://www.google.com/maps/place/Gate+Lodge+Coffee+Shop/@51.8888347,-8.5257988,14z/data=!4m15!1m8!3m7!1s0x484491eb9dfbacd3:0x8588d62a44f87f34!2sChill'd+Ice+Cream+Dennehy's+Cross!8m2!3d51.8891722!4d-8.5059482!10e5!16s%2Fg%2F11fsw1lvt9!3m5!1s0x484491e9395dbe85:0x689b0f0963567655!8m2!3d51.8889847!4d-8.525799!16s%2Fg%2F11x37ky1r_!5m1!1e1" target="_blank" rel="noopener">Get Directions</a>
+  </nav>
+  <button class="nav__toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<main id="main">
+
+  <section class="hero" id="hero">
+    <div class="hero__photo" data-bg="images/hero.jpg" aria-hidden="true"><div class="photo__bg"></div></div>
+    <div class="hero__photo-tag">
+      <span>Add images/hero.jpg — wide shot of the container, golden hour</span>
+    </div>
+    <div class="hero__inner">
+      <span class="eyebrow hero__eyebrow">Model Farm Road · Cork</span><span class="status-badge" data-open-badge><span class="status-badge__dot"></span><span data-open-text>Checking hours…</span></span>
+      <h1>
+        <span class="line"><span>Coffee &amp; brunch,</span></span>
+        <span class="line"><span>built inside</span></span>
+        <span class="line"><span><em>a container.</em></span></span>
+      </h1>
+      <p class="hero__sub">A small, spotless spot on Model Farm Road — proper coffee, a short brunch menu, and nowhere to rush you along. Walk-ins welcome, seven days a week.</p>
+      <div class="hero__actions">
+        <a href="https://www.google.com/maps/place/Gate+Lodge+Coffee+Shop/@51.8888347,-8.5257988,14z/data=!4m15!1m8!3m7!1s0x484491eb9dfbacd3:0x8588d62a44f87f34!2sChill'd+Ice+Cream+Dennehy's+Cross!8m2!3d51.8891722!4d-8.5059482!10e5!16s%2Fg%2F11fsw1lvt9!3m5!1s0x484491e9395dbe85:0x689b0f0963567655!8m2!3d51.8889847!4d-8.525799!16s%2Fg%2F11x37ky1r_!5m1!1e1" target="_blank" rel="noopener" class="btn btn-primary" data-magnetic>Get Directions</a>
+        <a href="#menu" class="btn btn-ghost">See the Menu</a>
+      </div>
+    </div>
+    <div class="hero__scroll"><span>Scroll</span><span class="stem"></span></div>
+  </section>
+
+  <div class="corrugate"></div>
+
+  <div class="marquee-band" id="marqueeBand">
+    <button class="marquee-toggle" id="marqueeToggle" aria-label="Pause marquee" aria-pressed="false">❚❚</button>
+    <div class="marquee-band__track">
+      <span>Gate Lodge Coffee Shop</span><span>Model Farm Road, Cork</span><span>Walk-Ins Welcome</span><span>Open 7 Days</span><span>No Booking Needed</span>
+      <span>Gate Lodge Coffee Shop</span><span>Model Farm Road, Cork</span><span>Walk-Ins Welcome</span><span>Open 7 Days</span><span>No Booking Needed</span>
+    </div>
+  </div>
+
+  <section class="story" id="story">
+    <div class="container story__grid">
+      <div class="photo story__media reveal" data-bg="images/container.jpg" data-parallax="0.08" role="img" aria-label="Exterior of the Gate Lodge shipping container">
+        <div class="photo__bg"></div>
+        <div class="photo__fallback">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="12" rx="1"></rect><path d="M2 11h20M8 7v12M16 7v12"></path></svg>
+          <span class="tag">images/container.jpg</span>
+          <span class="hint">Exterior of the container, straight-on or three-quarter angle</span>
+        </div>
+        <div class="badge">
+          <span class="num">1</span>
+          <span class="lbl">Container. One space, kept spotless.</span>
+        </div>
+      </div>
+      <div>
+        <span class="eyebrow reveal">The Space</span>
+        <h2 class="reveal" style="--reveal-delay:.08s">Small by design, not by accident.</h2>
+        <p class="reveal" style="--reveal-delay:.14s">Gate Lodge started as a shipping container on Model Farm Road — and stayed one, on purpose. No knockthrough, no extension, just a tight, spotless space fitted out to do a handful of things properly: good coffee, a short brunch menu, and service that doesn't feel rushed.</p>
+        <p class="reveal" style="--reveal-delay:.2s"><strong>Minimal, on purpose.</strong> Fewer seats, fewer distractions, more attention on what's in the cup and on the plate. Walk in any day of the week — there's no queue system and no booking, just a window and a welcome.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="container stats__grid">
+      <div class="stat reveal">
+        <div class="num"><span class="count" data-target="1">0</span></div>
+        <div class="lbl">Purpose-Built Container</div>
+      </div>
+      <div class="stat reveal" style="--reveal-delay:.08s">
+        <div class="num"><span class="count" data-target="7">0</span></div>
+        <div class="lbl">Days Open a Week</div>
+      </div>
+      <div class="stat reveal" style="--reveal-delay:.16s">
+        <div class="num"><span class="count" data-target="700" data-format="time">0</span></div>
+        <div class="lbl">Weekday Opening</div>
+      </div>
+      <div class="stat reveal" style="--reveal-delay:.24s">
+        <div class="num"><span class="count" data-target="0">0</span></div>
+        <div class="lbl">Bookings Required</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="menu" id="menu">
+    <div class="container">
+      <div class="menu__head">
+        <span class="eyebrow reveal">On the Menu</span>
+        <h2 class="reveal" style="--reveal-delay:.06s">A short list, done properly.</h2>
+        <p class="reveal" style="--reveal-delay:.12s">A tight menu of coffee and brunch staples — the kind of food and drink that's made to order, not stacked under a heat lamp.</p>
+      </div>
+      <div class="menu__grid">
+        <div class="spotlight-card reveal">
+          <div class="photo" data-bg="images/dish-1.jpg" role="img" aria-label="The Spice sandwich">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">images/dish-1.jpg</span></div>
+          </div>
+          <div class="spotlight-card__shade"></div>
+          <div class="spotlight-card__info"><div class="name">The Spice Sandwich</div><div class="note">The one everyone asks about</div></div>
+        </div>
+        <div class="spotlight-card reveal" style="--reveal-delay:.06s">
+          <div class="photo" data-bg="images/dish-2.jpg" role="img" aria-label="Flat white coffee">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">images/dish-2.jpg</span></div>
+          </div>
+          <div class="spotlight-card__shade"></div>
+          <div class="spotlight-card__info"><div class="name">Flat White</div><div class="note">Tight, balanced, no bitterness</div></div>
+        </div>
+        <div class="spotlight-card reveal" style="--reveal-delay:.12s">
+          <div class="photo" data-bg="images/dish-3.jpg" role="img" aria-label="Strawberry matcha latte">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">images/dish-3.jpg</span></div>
+          </div>
+          <div class="spotlight-card__shade"></div>
+          <div class="spotlight-card__info"><div class="name">Strawberry Matcha Latte</div><div class="note">A quiet favourite, hot or iced</div></div>
+        </div>
+        <div class="spotlight-card reveal" style="--reveal-delay:.18s">
+          <div class="photo" data-bg="images/dish-4.jpg" role="img" aria-label="Daily bake, drizzled with caramel">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">images/dish-4.jpg</span></div>
+          </div>
+          <div class="spotlight-card__shade"></div>
+          <div class="spotlight-card__info"><div class="name">Daily Bake</div><div class="note">Baked fresh, drizzled and ready to go</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gallery" id="gallery">
+    <div class="container">
+      <div class="gallery__head">
+        <span class="eyebrow reveal">A Closer Look</span>
+        <h2 class="reveal" style="--reveal-delay:.06s">A few more shots from the counter.</h2>
+        <p class="reveal" style="--reveal-delay:.12s">No filter needed — just what's actually going out the window on a normal day.</p>
+      </div>
+      <div class="gallery__grid">
+        <button type="button" class="gallery__item reveal" data-lightbox data-full="images/gallery-1.jpg" data-caption="A weekday lunch order">
+          <div class="photo" data-bg="images/gallery-1.jpg" role="img" aria-label="Grilled sandwich and iced coffee">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">gallery-1.jpg</span></div>
+          </div>
+        </button>
+        <button type="button" class="gallery__item reveal" style="--reveal-delay:.05s" data-lightbox data-full="images/gallery-2.jpg" data-caption="Fresh off the grill">
+          <div class="photo" data-bg="images/gallery-2.jpg" role="img" aria-label="Toasted wrap sandwich">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">gallery-2.jpg</span></div>
+          </div>
+        </button>
+        <button type="button" class="gallery__item reveal" style="--reveal-delay:.1s" data-lightbox data-full="images/gallery-3.jpg" data-caption="Latte art, every cup">
+          <div class="photo" data-bg="images/gallery-3.jpg" role="img" aria-label="Close-up of heart latte art">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">gallery-3.jpg</span></div>
+          </div>
+        </button>
+        <button type="button" class="gallery__item reveal" style="--reveal-delay:.15s" data-lightbox data-full="images/gallery-4.jpg" data-caption="To go, or to stay">
+          <div class="photo" data-bg="images/gallery-4.jpg" role="img" aria-label="Branded Gate Lodge cup on a table">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">gallery-4.jpg</span></div>
+          </div>
+        </button>
+        <button type="button" class="gallery__item reveal" style="--reveal-delay:.2s" data-lightbox data-full="images/gallery-5.jpg" data-caption="Hot matcha, whenever">
+          <div class="photo" data-bg="images/gallery-5.jpg" role="img" aria-label="Hot matcha latte with heart latte art">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg><span class="tag">gallery-5.jpg</span></div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="visit" id="visit">
+    <div class="container">
+      <div class="visit__head">
+        <span class="eyebrow reveal">Find Us</span>
+        <h2 class="reveal" style="--reveal-delay:.06s">One window, no booking.</h2>
+        <p class="reveal" style="--reveal-delay:.12s">Walk-ins only — pull in on Model Farm Road any day of the week and find a seat, or take it with you.</p>
+      </div>
+
+      <div class="visit__grid">
+        <div class="loc-card reveal">
+          <div class="photo loc-card__img" data-bg="images/container.jpg" data-parallax="0.06" role="img" aria-label="Gate Lodge Coffee Shop exterior">
+            <div class="photo__bg"></div>
+            <div class="photo__fallback">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="12" rx="1"></rect><path d="M2 11h20M8 7v12M16 7v12"></path></svg>
+              <span class="tag">images/container.jpg</span>
+            </div>
+          </div>
+          <div class="loc-card__body">
+            <span class="tag">Model Farm Road</span>
+            <h3>Gate Lodge Coffee Shop</h3>
+            <p>Cork, on Model Farm Road. No reservations — just drive up, park, and walk in.</p>
+            <a class="btn btn-primary" href="https://www.google.com/maps/place/Gate+Lodge+Coffee+Shop/@51.8888347,-8.5257988,14z/data=!4m15!1m8!3m7!1s0x484491eb9dfbacd3:0x8588d62a44f87f34!2sChill'd+Ice+Cream+Dennehy's+Cross!8m2!3d51.8891722!4d-8.5059482!10e5!16s%2Fg%2F11fsw1lvt9!3m5!1s0x484491e9395dbe85:0x689b0f0963567655!8m2!3d51.8889847!4d-8.525799!16s%2Fg%2F11x37ky1r_!5m1!1e1" target="_blank" rel="noopener">Get Directions</a>
+          </div>
+        </div>
+
+        <div class="hours-card reveal" style="--reveal-delay:.08s">
+          <span class="status-badge" data-open-badge><span class="status-badge__dot"></span><span data-open-text>Checking hours…</span></span>
+          <h3>Opening Hours</h3>
+          <div class="row"><span class="day">Monday – Friday</span><span class="time">7:00am – 5:00pm</span></div>
+          <div class="row"><span class="day">Saturday – Sunday</span><span class="time">9:00am – 4:30pm</span></div>
+          <div class="note">Walk-ins only · No booking needed</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="review" id="reviews">
+    <div class="container">
+      <div class="review__card reveal">
+        <div class="review__stars">★★★★★</div>
+        <p class="review__quote">"Popped in today whilst I waited for someone at an appointment. The Spice sandwich was generous and delicious. The premises were spotless! What a great coffee shop. Highly recommend."</p>
+        <div class="review__author">
+          <div class="review__avatar">L</div>
+          <div class="review__meta">
+            <div class="name">Lesley Simpson</div>
+            <div class="sub">Local Guide · 28 reviews · 29 photos · Google</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta__inner">
+      <span class="eyebrow">No Booking Needed</span>
+      <h2>Just walk in.</h2>
+      <p>That's the whole system. Pull in on Model Farm Road any day of the week, order at the counter, and find a seat — or take it with you. No app, no queue number, no fuss.</p>
+      <div class="cta__actions">
+        <a href="https://www.google.com/maps/place/Gate+Lodge+Coffee+Shop/@51.8888347,-8.5257988,14z/data=!4m15!1m8!3m7!1s0x484491eb9dfbacd3:0x8588d62a44f87f34!2sChill'd+Ice+Cream+Dennehy's+Cross!8m2!3d51.8891722!4d-8.5059482!10e5!16s%2Fg%2F11fsw1lvt9!3m5!1s0x484491e9395dbe85:0x689b0f0963567655!8m2!3d51.8889847!4d-8.525799!16s%2Fg%2F11x37ky1r_!5m1!1e1" target="_blank" rel="noopener" class="btn btn-primary" data-magnetic>Get Directions</a>
+        <a href="#menu" class="btn btn-ghost">See the Menu</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand">Gate Lodge Coffee Shop</div>
+        <p>A small coffee and brunch spot built inside a shipping container on Model Farm Road, Cork. Minimal by design, spotless by habit. Walk-ins welcome.</p>
+      </div>
+      <div class="footer__col">
+        <h4>Hours</h4>
+        <span>Mon–Fri · 7am–5pm</span>
+        <span>Sat–Sun · 9am–4:30pm</span>
+      </div>
+      <div class="footer__col">
+        <h4>Find Us</h4>
+        <span>Model Farm Road, Cork</span>
+        <a href="https://www.google.com/maps/place/Gate+Lodge+Coffee+Shop/@51.8888347,-8.5257988,14z/data=!4m15!1m8!3m7!1s0x484491eb9dfbacd3:0x8588d62a44f87f34!2sChill'd+Ice+Cream+Dennehy's+Cross!8m2!3d51.8891722!4d-8.5059482!10e5!16s%2Fg%2F11fsw1lvt9!3m5!1s0x484491e9395dbe85:0x689b0f0963567655!8m2!3d51.8889847!4d-8.525799!16s%2Fg%2F11x37ky1r_!5m1!1e1" target="_blank" rel="noopener">Get Directions</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© <span id="year"></span> Gate Lodge Coffee Shop</span>
+      <span>Walk in. No booking needed.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <div class="lightbox__frame">
+    <button type="button" class="lightbox__close" data-lightbox-close aria-label="Close">✕</button>
+    <button type="button" class="lightbox__nav lightbox__prev" data-lightbox-prev aria-label="Previous photo">‹</button>
+    <img src="" alt="" data-lightbox-img>
+    <button type="button" class="lightbox__nav lightbox__next" data-lightbox-next aria-label="Next photo">›</button>
+  </div>
+</div>
+
+<button type="button" class="to-top" id="toTop" hidden aria-label="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+</button>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer = window.matchMedia('(pointer: fine)').matches;
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  /* nav: shadow on scroll, hide on scroll-down / show on scroll-up */
+  var nav = document.getElementById('siteNav');
+  var lastY = window.scrollY;
+  var onScroll = function(){
+    var y = window.scrollY;
+    nav.classList.toggle('scrolled', y > 40);
+    if(y > lastY && y > 360){ nav.classList.add('nav--hidden'); }
+    else { nav.classList.remove('nav--hidden'); }
+    lastY = y;
+  };
+  document.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+
+  /* mobile nav toggle */
+  var navToggle = document.getElementById('navToggle');
+  var navLinks = document.getElementById('navLinks');
+  navToggle.addEventListener('click', function(){
+    var open = navLinks.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  navLinks.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click', function(){ navLinks.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); });
+  });
+
+  /* hero staggered reveal */
+  var hero = document.getElementById('hero');
+  requestAnimationFrame(function(){
+    setTimeout(function(){ hero.classList.add('loaded'); }, reduceMotion ? 0 : 80);
+  });
+
+  /* scroll-triggered reveal */
+  var revealEls = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window && !reduceMotion){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold:0.15, rootMargin:'0px 0px -60px 0px' });
+    revealEls.forEach(function(el){ io.observe(el); });
+  } else {
+    revealEls.forEach(function(el){ el.classList.add('is-visible'); });
+  }
+
+  /* cursor-follow spotlight cards */
+  document.querySelectorAll('.spotlight-card').forEach(function(card){
+    card.addEventListener('mousemove', function(e){
+      var rect = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - rect.top) + 'px');
+    });
+  });
+
+  /* animated counters */
+  function animateCount(el){
+    var target = parseFloat(el.dataset.target);
+    var format = el.dataset.format;
+    if(reduceMotion){
+      el.textContent = format === 'time' ? '7:00am' : target;
+      return;
+    }
+    var start = null;
+    var duration = 1600;
+    function step(ts){
+      if(start === null) start = ts;
+      var progress = Math.min((ts - start) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 4);
+      var value = Math.floor(target * eased);
+      if(format === 'time'){
+        var hours = Math.floor(value / 100);
+        var mins = value % 100;
+        el.textContent = hours + ':' + String(mins).padStart(2,'0') + (progress >= 1 ? 'am' : '');
+      } else {
+        el.textContent = value;
+      }
+      if(progress < 1){ requestAnimationFrame(step); }
+    }
+    requestAnimationFrame(step);
+  }
+  var counters = document.querySelectorAll('.count');
+  if('IntersectionObserver' in window){
+    var cio = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          animateCount(entry.target);
+          cio.unobserve(entry.target);
+        }
+      });
+    }, { threshold:0.5 });
+    counters.forEach(function(el){ cio.observe(el); });
+  } else {
+    counters.forEach(animateCount);
+  }
+
+  /* pausable marquee */
+  var marqueeBand = document.getElementById('marqueeBand');
+  var marqueeToggle = document.getElementById('marqueeToggle');
+  var setPaused = function(paused){
+    marqueeBand.classList.toggle('paused', paused);
+    marqueeToggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
+    marqueeToggle.textContent = paused ? '▶' : '❚❚';
+    marqueeToggle.setAttribute('aria-label', paused ? 'Play marquee' : 'Pause marquee');
+  };
+  if(reduceMotion){ setPaused(true); }
+  marqueeToggle.addEventListener('click', function(){
+    setPaused(!marqueeBand.classList.contains('paused'));
+  });
+
+  /* photo slots: probe each image, fall back gracefully if missing */
+  document.querySelectorAll('[data-bg]').forEach(function(el){
+    var src = el.getAttribute('data-bg');
+    var probe = new Image();
+    probe.onload = function(){
+      var bg = el.querySelector('.photo__bg');
+      if(bg){ bg.style.backgroundImage = 'url("' + src + '")'; }
+      el.classList.add('has-photo');
+    };
+    probe.src = src;
+  });
+
+  /* scroll-spy: highlight the nav link for the section in view */
+  (function scrollSpy(){
+    var links = Array.prototype.slice.call(document.querySelectorAll('.nav__links a:not(.nav__cta)'));
+    if(!links.length || !('IntersectionObserver' in window)) return;
+    var map = {};
+    links.forEach(function(l){ map[l.getAttribute('href').slice(1)] = l; });
+    var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]')).filter(function(s){ return map[s.id]; });
+    var spy = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          links.forEach(function(l){ l.classList.remove('is-active'); });
+          map[entry.target.id].classList.add('is-active');
+        }
+      });
+    }, { rootMargin:'-45% 0px -50% 0px' });
+    sections.forEach(function(s){ spy.observe(s); });
+  })();
+
+  /* live open/closed status, computed in Cork's local time */
+  (function openStatus(){
+    var badges = document.querySelectorAll('[data-open-badge]');
+    if(!badges.length) return;
+    var HOURS = {
+      0: [540, 990],  // Sun 09:00-16:30
+      1: [420, 1020], // Mon 07:00-17:00
+      2: [420, 1020],
+      3: [420, 1020],
+      4: [420, 1020],
+      5: [420, 1020],
+      6: [540, 990]   // Sat 09:00-16:30
+    };
+    function fmt(mins){
+      var h = Math.floor(mins / 60), m = mins % 60;
+      var suffix = h >= 12 ? 'pm' : 'am';
+      var h12 = h % 12 === 0 ? 12 : h % 12;
+      return m === 0 ? (h12 + suffix) : (h12 + ':' + String(m).padStart(2,'0') + suffix);
+    }
+    function corkNow(){
+      try{
+        var parts = new Intl.DateTimeFormat('en-GB', {
+          timeZone:'Europe/Dublin', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false
+        }).formatToParts(new Date());
+        var map = {}; parts.forEach(function(p){ map[p.type] = p.value; });
+        var days = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+        return { day:days[map.weekday], mins:(parseInt(map.hour,10) % 24) * 60 + parseInt(map.minute,10) };
+      } catch(e){
+        var d = new Date();
+        return { day:d.getDay(), mins:d.getHours() * 60 + d.getMinutes() };
+      }
+    }
+    var names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var now = corkNow();
+    var today = HOURS[now.day];
+    var isOpen = now.mins >= today[0] && now.mins < today[1];
+    var text, closingSoon = false;
+    if(isOpen){
+      text = 'Open now · til ' + fmt(today[1]);
+      closingSoon = (today[1] - now.mins) <= 30;
+    } else if(now.mins < today[0]){
+      text = 'Closed · opens ' + fmt(today[0]);
+    } else {
+      var nextDay = (now.day + 1) % 7;
+      text = 'Closed · opens ' + names[nextDay] + ' ' + fmt(HOURS[nextDay][0]);
+    }
+    badges.forEach(function(b){
+      b.classList.toggle('is-open', isOpen);
+      b.classList.toggle('is-closed', !isOpen);
+      b.classList.toggle('is-closing-soon', closingSoon);
+      var t = b.querySelector('[data-open-text]');
+      if(t) t.textContent = text;
+    });
+  })();
+
+  /* magnetic buttons: lean gently toward the cursor */
+  if(!reduceMotion && finePointer){
+    document.querySelectorAll('[data-magnetic]').forEach(function(el){
+      var strength = 0.28;
+      el.addEventListener('pointermove', function(e){
+        var r = el.getBoundingClientRect();
+        var x = (e.clientX - r.left - r.width / 2) * strength;
+        var y = (e.clientY - r.top - r.height / 2) * strength;
+        el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+      });
+      el.addEventListener('pointerleave', function(){ el.style.transform = ''; });
+    });
+  }
+
+  /* subtle parallax drift on a couple of photos */
+  if(!reduceMotion && finePointer){
+    var parallaxEls = Array.prototype.slice.call(document.querySelectorAll('[data-parallax]'));
+    if(parallaxEls.length){
+      var pTicking = false;
+      var updateParallax = function(){
+        var vh = window.innerHeight;
+        parallaxEls.forEach(function(el){
+          var r = el.getBoundingClientRect();
+          if(r.bottom < -200 || r.top > vh + 200) return;
+          var center = r.top + r.height / 2;
+          var delta = (vh / 2 - center) * parseFloat(el.getAttribute('data-parallax'));
+          el.style.setProperty('--py', Math.max(-14, Math.min(14, delta)).toFixed(1) + 'px');
+        });
+        pTicking = false;
+      };
+      document.addEventListener('scroll', function(){
+        if(!pTicking){ requestAnimationFrame(updateParallax); pTicking = true; }
+      }, { passive:true });
+      updateParallax();
+    }
+  }
+
+  /* back to top */
+  (function backToTop(){
+    var btn = document.getElementById('toTop');
+    if(!btn) return;
+    btn.hidden = false;
+    var ticking = false;
+    var update = function(){
+      btn.classList.toggle('is-shown', window.scrollY > window.innerHeight * 0.9);
+      ticking = false;
+    };
+    document.addEventListener('scroll', function(){
+      if(!ticking){ requestAnimationFrame(update); ticking = true; }
+    }, { passive:true });
+    btn.addEventListener('click', function(){
+      window.scrollTo({ top:0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+    update();
+  })();
+
+  /* lightbox gallery */
+  (function lightbox(){
+    var box = document.getElementById('lightbox');
+    var triggers = Array.prototype.slice.call(document.querySelectorAll('[data-lightbox]'));
+    if(!box || !triggers.length) return;
+    var imgEl = box.querySelector('[data-lightbox-img]');
+    var index = 0, lastFocus = null;
+    var slides = triggers.map(function(t){
+      return { full:t.getAttribute('data-full'), caption:t.getAttribute('data-caption') || '' };
+    });
+    function show(i){
+      index = (i + slides.length) % slides.length;
+      imgEl.src = slides[index].full;
+      imgEl.alt = slides[index].caption;
+    }
+    function open(i){
+      lastFocus = document.activeElement;
+      show(i);
+      box.classList.add('is-open');
+      box.setAttribute('aria-hidden', 'false');
+      box.querySelector('[data-lightbox-close]').focus();
+    }
+    function close(){
+      box.classList.remove('is-open');
+      box.setAttribute('aria-hidden', 'true');
+      if(lastFocus) lastFocus.focus();
+    }
+    triggers.forEach(function(t, i){ t.addEventListener('click', function(){ open(i); }); });
+    box.querySelector('[data-lightbox-close]').addEventListener('click', close);
+    box.querySelector('[data-lightbox-next]').addEventListener('click', function(){ show(index + 1); });
+    box.querySelector('[data-lightbox-prev]').addEventListener('click', function(){ show(index - 1); });
+    box.addEventListener('click', function(e){ if(e.target === box) close(); });
+    document.addEventListener('keydown', function(e){
+      if(!box.classList.contains('is-open')) return;
+      if(e.key === 'Escape') close();
+      else if(e.key === 'ArrowRight') show(index + 1);
+      else if(e.key === 'ArrowLeft') show(index - 1);
+    });
+  })();
+})();
+</script>
+
+</body>
+</html>

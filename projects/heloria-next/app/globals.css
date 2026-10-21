@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-mono: var(--font-mono);
+  --font-dala: var(--font-dala);
+  --font-tight: var(--font-tight);
+
+  /* The site's palette, and it is the machine's.
+
+     Not a coincidence and not a theme: the machine is rendered full-bleed
+     behind the whole document, so the page and the canvas have to agree about
+     what the background is or there is a visible seam where one ends. `void`
+     is therefore exactly `BACKDROP` from lib/finish.ts, and every other value
+     is named after a material that is actually in frame.
+
+     Cool rather than warm, for the same reason the machine's environment is:
+     a warm ground under grey steel turns the steel bronze. The one exception
+     is the ember, which is the colour of the freewheel rollers — the single
+     saturated thing in the machine, and already the company's colour on the
+     botanical build. One accent, and it is earned. */
+  --color-void: #101315; /* the page, and the canvas clear colour */
+  --color-well: #14181a; /* recessed band */
+  --color-kelp: #1b2023; /* raised card */
+  --color-ivory: #191d1f; /* quiet wash */
+  --color-bone: #eef0f1; /* headings — near white, faintly cool */
+  --color-steel: #a6abae; /* body, and the colour of the plates */
+  --color-slate: #8d9498; /* muted / tertiary — 5.9:1 on void, AA at any size */
+  --color-ember: #ff682c; /* the rollers: the one accent */
+  --color-brass: #c9a765; /* labels and rules, the right-angle drives */
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Except for anyone who has asked not to be moved around. A page whose whole
+   structure is scroll position has no business animating the scroll itself. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-void);
+  color: var(--color-steel);
+  font-family: var(--font-dala), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-ember);
+  color: #0b0d0e;
+}
+
+/* Keyboard focus, stated once. The page is mostly links over a dark canvas and
+   the default ring is nearly invisible against it. */
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* No machine — reduced motion, or no WebGL — means no band on a phone and no
+   room left for one. An opaque band with nothing in it is a black box across
+   the top of the page, and the space held open for it is a gap above the
+   headline. `data-machine` is set by StageMachine once it has decided. */
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  [data-well],
+  [data-band-spacer] {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  html[data-machine="off"] [data-well],
+  html[data-machine="off"] [data-band-spacer] {
+    display: none;
+  }
+}
+/* From 768 up the well stays, and holds a still of the finished machine
+   instead — see StageMachine. Beside a column of text an empty half-screen
+   reads as a page that failed to load; a finished machine reads as one. */
+
+/* Words arrive the way the parts do: a short rise as they enter, tied to
+   scroll position rather than a timer, so a fast reader is never waiting on an
+   animation. Scroll-driven, so it costs no JavaScript; where the browser has
+   no view timelines the text is simply there. Never under reduced motion.
+
+   Not on the machine notes. Their position IS the build's clock — see
+   readingFrom — and a transform moves the box it measures. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}

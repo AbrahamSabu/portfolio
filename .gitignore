@@ -1,0 +1,57 @@
+# ── Secrets ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+google-key.txt*
+*credentials*
+.vercel/
+.mcp.json
+
+# ── Data on real people and companies ───────────────────
+*.csv
+*.tsv
+*.xlsx
+projects/gtm-pipeline/*.json
+projects/gtm-pipeline/*.txt
+projects/gtm-pipeline/*.md
+!projects/gtm-pipeline/README.md
+projects/gtm-pipeline/research/
+projects/gtm-pipeline/report.html
+leads.txt
+results.md
+built.txt
+all-links.md
+
+# ── Third-party video (Clipping inputs and outputs) ─────
+projects/clipping/1 Drop videos here/
+projects/clipping/2 Clips/
+projects/clipping/_system/processed videos/
+projects/clipping/_system/failed/
+projects/clipping/_system/temp/
+*.mp4
+*.mov
+*.mkv
+*.webm
+
+# ── Build output and dependencies ───────────────────────
+node_modules/
+.next/
+projects/**/dist/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+.impeccable/
+
+# ── Local tooling ───────────────────────────────────────
+.claude/
+.DS_Store
+Thumbs.db
+*.log
+
+# ── Working notes (not for publishing) ─────────────────
+PORTFOLIO-PLAN.md
+FILE-LIST.txt

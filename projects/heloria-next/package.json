@@ -1,0 +1,44 @@
+{
+  "name": "heloria-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test:geneva": "node lib/geneva.test.mts",
+    "test:train": "node lib/train.test.mts",
+    "test:gears": "node lib/gears.test.mts",
+    "test:crown": "node lib/crown.test.mts",
+    "test:crownmount": "node lib/crownMounted.test.mts",
+    "test:assembly": "node lib/assembly.test.mts",
+    "test:mounted": "node lib/mounted.test.mts",
+    "test:finish": "node lib/finish.test.mts",
+    "test:drive": "node lib/drive.test.mts",
+    "test:motion": "node lib/motion.test.mts",
+    "test:orbit": "node lib/orbit.test.mts",
+    "test": "node lib/geneva.test.mts && node lib/train.test.mts && node lib/gears.test.mts && node lib/crown.test.mts && node lib/crownMounted.test.mts && node lib/assembly.test.mts && node lib/mounted.test.mts && node lib/finish.test.mts && node lib/drive.test.mts && node lib/motion.test.mts && node lib/orbit.test.mts && node lib/freewheel.test.mts && node lib/build.test.mts && node lib/director.test.mts && node lib/rest.test.mts && node lib/approach.test.mts",
+    "test:freewheel": "node lib/freewheel.test.mts",
+    "test:build": "node lib/build.test.mts",
+    "test:director": "node lib/director.test.mts",
+    "test:rest": "node lib/rest.test.mts",
+    "test:approach": "node lib/approach.test.mts"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.7.0",
+    "motion": "^13.4.0",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.182.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

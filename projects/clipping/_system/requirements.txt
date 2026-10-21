@@ -1,0 +1,3 @@
+faster-whisper
+opencv-python<5
+yt-dlp

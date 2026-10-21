@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Heloria Labs — Software that blooms</title>
+  <meta name="description" content="Heloria Labs is an Irish software company. We build our own products and hold them to a long horizon. Our first bloom is Kríos.">
+  <meta name="theme-color" content="#fdf8f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#140a03" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://www.helorialabs.com/">
+
+  <meta property="og:title" content="Heloria Labs">
+  <meta property="og:description" content="Software that blooms. An Irish software company building its own products for the long term.">
+  <!-- Points at the deployment, not the canonical host, and deliberately.
+       og:image must be absolute, and www.helorialabs.com currently serves the
+       OLD site — so every share of this link (WhatsApp included) was fetching
+       the previous site's preview card. Verified: that host returns the
+       51,069-byte image kept here as assets/og-previous.png, not the 52,154-byte
+       one this site ships. Change this back to the canonical host on the day the
+       domain is pointed at this site. -->
+  <meta property="og:image" content="https://heloria-labs.vercel.app/assets/og.png">
+  <meta property="og:url" content="https://www.helorialabs.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Heloria Labs">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preload" href="/assets/fonts/bricolage-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Heloria Labs",
+    "url": "https://www.helorialabs.com/",
+    "logo": "https://www.helorialabs.com/favicon.svg",
+    "description": "Heloria Labs is an Irish software company. We build our own products and hold them to a long horizon.",
+    "email": "contact@helorialabs.com",
+    "address": { "@type": "PostalAddress", "addressCountry": "IE" },
+    "sameAs": "https://www.linkedin.com/company/heloria-labs/",
+    "founder": [
+      {
+        "@type": "Person",
+        "name": "Michael Sweeney Heffernan",
+        "jobTitle": "Director",
+        "sameAs": "https://www.linkedin.com/in/michael-sweeney-heffernan-589155354"
+      },
+      { "@type": "Person", "name": "Abraham Sabu Kurian",
+        "sameAs": "https://www.linkedin.com/in/abraham-sabu-kurian/" },
+      { "@type": "Person", "name": "Ahroon Cyriac Santhosh",
+        "sameAs": "https://www.linkedin.com/in/ahroon-santhosh/" }
+    ],
+    "owns": { "@type": "Product", "name": "Kríos", "url": "https://krios.ie" }
+  }
+  </script>
+
+  <!-- No-flash guard. Adds .js before first paint so animated elements can start
+       hidden. If the module never boots (import fails, JS off, slow net), the
+       class is stripped after 2.5s and every element falls back to visible. -->
+  <script>
+    (function () {
+      var r = document.documentElement;
+      r.className += " js";
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) r.className += " reduce";
+      window.__heloriaFallback = setTimeout(function () {
+        r.className = r.className.replace(/\bjs\b/, "");
+      }, 2500);
+    })();
+  </script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- fixed, so it lives outside <main> and is not clipped by it -->
+<canvas id="pollen" aria-hidden="true"></canvas>
+
+<!-- ============================================================= defs -->
+<svg class="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <path id="petal" fill="currentColor" d="M0 0 C -11 8, -13 28, 0 38 C 13 28, 11 8, 0 0 Z"/>
+    <path id="leafShape" fill="currentColor" d="M0 0 C -6 7, -7 20, 0 30 C 7 20, 6 7, 0 0 Z"/>
+
+    <!-- A lily tepal: narrow, widest around a third of the way down, and drawn
+         to a point. Nothing like #petal, which is a rounded oval — the pointed
+         tip and the slim waist are what read as "lily" at any size. -->
+    <path id="lilyTepal" fill="currentColor"
+          d="M0 0 C -6.5 9, -9 22, -4 32 C -2.5 36, -1 38.5, 0 40
+             C 1 38.5, 2.5 36, 4 32 C 9 22, 6.5 9, 0 0 Z"/>
+    <!-- A single delphinium floret: five rounded sepals round a pale eye. On
+         its own this is just a small flower — what makes it a delphinium is
+         stacking them up a stem, below. A <use> of a <g> does not create a
+         viewport, so these need no width/height the way a <symbol> does. -->
+    <g id="delphFloret">
+      <g transform="rotate(0) scale(0.3)"><use href="#petal"/></g>
+      <g transform="rotate(72) scale(0.3)"><use href="#petal"/></g>
+      <g transform="rotate(144) scale(0.3)"><use href="#petal"/></g>
+      <g transform="rotate(216) scale(0.3)"><use href="#petal"/></g>
+      <g transform="rotate(288) scale(0.3)"><use href="#petal"/></g>
+      <circle r="2.9" fill="var(--peach)"/>
+    </g>
+
+    <!-- A rose petal: broad, short and cupped, with a soft dip at the tip.
+         Where the lily is all points, a rose is all overlap — which is why this
+         is wide enough to sit under its neighbours. -->
+    <!-- Stroked in the ground colour. Without it 20-odd petals in one flat fill
+         merge into a scalloped disc: a rose is read through the edges between
+         its petals, so the layers have to be separated to exist at all. -->
+    <path id="rosePetal" fill="currentColor"
+          stroke="var(--cream)" stroke-width="1.7" stroke-linejoin="round"
+          d="M0 0 C -18 4, -23 17, -16 28 C -12 34, -6 36, -3 32
+             C -1.5 30, 1.5 30, 3 32 C 6 36, 12 34, 16 28
+             C 23 17, 18 4, 0 0 Z"/>
+
+    <!-- the crease down the middle of a tepal -->
+    <path id="lilyVein" fill="none" stroke="currentColor" stroke-width="1.1"
+          stroke-linecap="round" d="M0 4 C 0.6 14, 0.6 26, 0 36"/>
+
+    <!-- vine body gradient: JS repositions the bright stops over the dark section -->
+    <linearGradient id="vineGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#CC4E00"/>
+      <stop offset="0.40" stop-color="#CC4E00"/>
+      <stop offset="0.48" stop-color="#FF8A3D"/>
+      <stop offset="0.62" stop-color="#FFB877"/>
+      <stop offset="0.70" stop-color="#CC4E00"/>
+      <stop offset="1"    stop-color="#CC4E00"/>
+    </linearGradient>
+
+    <radialGradient id="bloomGlow">
+      <stop offset="0"   stop-color="#FF9A44" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#FF9A44" stop-opacity="0"/>
+    </radialGradient>
+
+
+  </defs>
+
+  <!-- One flower per founder. Same petal, different arrangement, so the three
+       marks are clearly distinct without any of them looking like a different
+       species from the rest of the page. -->
+  <symbol id="flower" viewBox="-44 -44 88 88">
+    <g transform="rotate(0)"><use href="#petal"/></g>
+    <g transform="rotate(72)"><use href="#petal"/></g>
+    <g transform="rotate(144)"><use href="#petal"/></g>
+    <g transform="rotate(216)"><use href="#petal"/></g>
+    <g transform="rotate(288)"><use href="#petal"/></g>
+  </symbol>
+
+  <symbol id="flower-six" viewBox="-44 -44 88 88">
+    <g transform="rotate(30) scale(0.9)"><use href="#petal"/></g>
+    <g transform="rotate(90) scale(0.9)"><use href="#petal"/></g>
+    <g transform="rotate(150) scale(0.9)"><use href="#petal"/></g>
+    <g transform="rotate(210) scale(0.9)"><use href="#petal"/></g>
+    <g transform="rotate(270) scale(0.9)"><use href="#petal"/></g>
+    <g transform="rotate(330) scale(0.9)"><use href="#petal"/></g>
+  </symbol>
+
+  <!-- A delphinium. A single floret would read as just another small daisy;
+       it is the spike that names the plant — florets open and wide at the
+       bottom, tapering to unopened buds at the tip, up a slightly wandering
+       stem. -->
+  <symbol id="delphinium" viewBox="-44 -44 88 88">
+    <path d="M0 41 C -2 26, 2 10, -1 -8 C -3 -20, 0 -28, 0 -37"
+          fill="none" stroke="var(--ember-deep)" stroke-width="2.2"
+          stroke-linecap="round" opacity="0.7"/>
+      <g transform="translate(0 -32) scale(0.3)"><use href="#delphFloret"/></g>
+      <g transform="translate(5 -24) scale(0.45)"><use href="#delphFloret"/></g>
+      <g transform="translate(-6.5 -15) scale(0.6)"><use href="#delphFloret"/></g>
+      <g transform="translate(8 -4) scale(0.73)"><use href="#delphFloret"/></g>
+      <g transform="translate(-9 7) scale(0.85)"><use href="#delphFloret"/></g>
+      <g transform="translate(9 18) scale(0.92)"><use href="#delphFloret"/></g>
+      <g transform="translate(-8.5 29) scale(1.0)"><use href="#delphFloret"/></g>
+  </symbol>
+
+  <!-- A rose. Three rings of broad petals, each turned against the one below
+       so the edges break up rather than line up, tightening to a coil at the
+       centre. Layering is what reads as "rose" at this size — a single ring of
+       petals reads as a daisy no matter how they are shaped. -->
+  <symbol id="rose" viewBox="-44 -44 88 88">
+    <g class="rose-r1">
+      <g transform="rotate(0) scale(1)"><use href="#rosePetal"/></g>
+      <g transform="rotate(72) scale(1)"><use href="#rosePetal"/></g>
+      <g transform="rotate(144) scale(1)"><use href="#rosePetal"/></g>
+      <g transform="rotate(216) scale(1)"><use href="#rosePetal"/></g>
+      <g transform="rotate(288) scale(1)"><use href="#rosePetal"/></g>
+    </g>
+    <g class="rose-r2">
+      <g transform="rotate(40) scale(0.72)"><use href="#rosePetal"/></g>
+      <g transform="rotate(112) scale(0.72)"><use href="#rosePetal"/></g>
+      <g transform="rotate(184) scale(0.72)"><use href="#rosePetal"/></g>
+      <g transform="rotate(256) scale(0.72)"><use href="#rosePetal"/></g>
+      <g transform="rotate(328) scale(0.72)"><use href="#rosePetal"/></g>
+    </g>
+    <g class="rose-r3">
+      <g transform="rotate(70) scale(0.47)"><use href="#rosePetal"/></g>
+      <g transform="rotate(160) scale(0.47)"><use href="#rosePetal"/></g>
+      <g transform="rotate(250) scale(0.47)"><use href="#rosePetal"/></g>
+      <g transform="rotate(340) scale(0.47)"><use href="#rosePetal"/></g>
+    </g>
+    <!-- the furl at the centre: two petals wrapped round each other, which is
+         what the eye actually reads as a rose -->
+    <g class="rose-heart">
+      <g transform="rotate(25) scale(0.26)"><use href="#rosePetal"/></g>
+      <g transform="rotate(205) scale(0.21)"><use href="#rosePetal"/></g>
+    </g>
+  </symbol>
+
+  <!-- A lily. Three outer tepals with three more set between them, and the
+       stamens a lily is really known for: six filaments, each carrying an
+       anther, reaching out about half the length of the tepals. -->
+  <symbol id="lily" viewBox="-44 -44 88 88">
+    <g class="lily-outer">
+      <g transform="rotate(0) scale(1)"><use href="#lilyTepal"/><use href="#lilyVein" opacity="0.28"/></g>
+      <g transform="rotate(120) scale(1)"><use href="#lilyTepal"/><use href="#lilyVein" opacity="0.28"/></g>
+      <g transform="rotate(240) scale(1)"><use href="#lilyTepal"/><use href="#lilyVein" opacity="0.28"/></g>
+    </g>
+    <g class="lily-inner">
+      <g transform="rotate(60) scale(0.84)"><use href="#lilyTepal"/><use href="#lilyVein" opacity="0.28"/></g>
+      <g transform="rotate(180) scale(0.84)"><use href="#lilyTepal"/><use href="#lilyVein" opacity="0.28"/></g>
+      <g transform="rotate(300) scale(0.84)"><use href="#lilyTepal"/><use href="#lilyVein" opacity="0.28"/></g>
+    </g>
+    <g class="lily-stamens">
+      <g transform="rotate(30)">
+        <path d="M0 0 C 2 6, 3.5 12, 5 18" fill="none" stroke="var(--peach)"
+              stroke-width="1.7" stroke-linecap="round" opacity="0.85"/>
+        <ellipse cx="5" cy="18.6" rx="2.3" ry="4" transform="rotate(20 5 18.6)"
+                 fill="var(--ember-deep)"/>
+      </g>
+      <g transform="rotate(90)">
+        <path d="M0 0 C 2 6, 3.5 12, 5 18" fill="none" stroke="var(--peach)"
+              stroke-width="1.7" stroke-linecap="round" opacity="0.85"/>
+        <ellipse cx="5" cy="18.6" rx="2.3" ry="4" transform="rotate(20 5 18.6)"
+                 fill="var(--ember-deep)"/>
+      </g>
+      <g transform="rotate(150)">
+        <path d="M0 0 C 2 6, 3.5 12, 5 18" fill="none" stroke="var(--peach)"
+              stroke-width="1.7" stroke-linecap="round" opacity="0.85"/>
+        <ellipse cx="5" cy="18.6" rx="2.3" ry="4" transform="rotate(20 5 18.6)"
+                 fill="var(--ember-deep)"/>
+      </g>
+      <g transform="rotate(210)">
+        <path d="M0 0 C 2 6, 3.5 12, 5 18" fill="none" stroke="var(--peach)"
+              stroke-width="1.7" stroke-linecap="round" opacity="0.85"/>
+        <ellipse cx="5" cy="18.6" rx="2.3" ry="4" transform="rotate(20 5 18.6)"
+                 fill="var(--ember-deep)"/>
+      </g>
+      <g transform="rotate(270)">
+        <path d="M0 0 C 2 6, 3.5 12, 5 18" fill="none" stroke="var(--peach)"
+              stroke-width="1.7" stroke-linecap="round" opacity="0.85"/>
+        <ellipse cx="5" cy="18.6" rx="2.3" ry="4" transform="rotate(20 5 18.6)"
+                 fill="var(--ember-deep)"/>
+      </g>
+      <g transform="rotate(330)">
+        <path d="M0 0 C 2 6, 3.5 12, 5 18" fill="none" stroke="var(--peach)"
+              stroke-width="1.7" stroke-linecap="round" opacity="0.85"/>
+        <ellipse cx="5" cy="18.6" rx="2.3" ry="4" transform="rotate(20 5 18.6)"
+                 fill="var(--ember-deep)"/>
+      </g>
+    </g>
+    <circle r="3.4" fill="var(--ember-deep)"/>
+  </symbol>
+
+  <symbol id="flower-eight" viewBox="-44 -44 88 88">
+    <g transform="rotate(0) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(45) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(90) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(135) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(180) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(225) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(270) scale(0.76)"><use href="#petal"/></g>
+    <g transform="rotate(315) scale(0.76)"><use href="#petal"/></g>
+  </symbol>
+</svg>
+
+<!-- ============================================================= nav -->
+<header class="nav" id="nav">
+  <a class="nav-brand" href="#top" aria-label="Heloria Labs, back to top">
+    <svg class="nav-mark" viewBox="-44 -44 88 88" aria-hidden="true"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+    <span>Heloria&nbsp;Labs</span>
+  </a>
+
+  <nav class="nav-links" aria-label="Main">
+    <a href="#what-we-do"><span>What we do</span></a>
+    <a href="#krios"><span>Kríos</span></a>
+    <a href="#company"><span>Company</span></a>
+  </nav>
+
+  <a class="nav-cta" href="#contact" data-magnetic>
+    <span>Get in touch</span>
+  </a>
+
+  <div class="nav-progress" aria-hidden="true"><i id="navProgress"></i></div>
+</header>
+
+<main id="main">
+
+  <!-- the procedural vine is injected here -->
+  <svg id="vine" aria-hidden="true" focusable="false"></svg>
+  <!-- warm pool of light carried by the growing tip -->
+  <div id="vineLight" aria-hidden="true"></div>
+
+  <!-- ========================================================== hero -->
+  <section class="hero" id="top">
+    <div class="aurora" aria-hidden="true">
+      <span class="blob b1"></span>
+      <span class="blob b2"></span>
+      <span class="blob b3"></span>
+    </div>
+
+    <div class="hero-inner">
+      <div class="hero-copy" data-band>
+        <p class="kicker" data-kicker>
+          <span class="kicker-dot" aria-hidden="true"></span>
+          Independent · Built in Ireland
+        </p>
+
+        <h1 class="hero-title">
+          <span class="line" data-split>Software that</span>
+          <span class="line">
+            <span class="grad" data-split>blooms.</span>
+            <svg class="swash" viewBox="0 0 300 24" aria-hidden="true" preserveAspectRatio="none">
+              <path d="M4 16 C 60 4, 120 4, 160 12 C 210 22, 258 20, 296 8"/>
+            </svg>
+          </span>
+        </h1>
+
+        <p class="hero-lede" data-split-words>
+          Heloria Labs is an Irish software company. We build our own products
+          and hold them to a long horizon.
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn" href="#krios" data-magnetic>
+            <span class="btn-label">See our first bloom</span>
+            <span class="btn-fill" aria-hidden="true"></span>
+          </a>
+          <a class="ghost" href="#what-we-do">
+            <span>How we work</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-stage" id="heroStage">
+          <svg class="hero-flower" id="heroFlower" viewBox="-100 -100 200 200" aria-hidden="true">
+            <g class="hf-glow"><circle r="72" fill="url(#bloomGlow)"/></g>
+            <g class="hf-outer"></g>
+            <g class="hf-inner"></g>
+            <circle class="hf-core" r="9"/>
+          </svg>
+          <span id="vine-origin" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
+
+    <a class="scroll-cue" href="#what-we-do" aria-label="Scroll to content">
+      <span class="cue-track" aria-hidden="true"><i></i></span>
+      <span class="cue-label">Scroll</span>
+    </a>
+  </section>
+
+  <!-- ======================================================= marquee -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-row" id="marqueeRow">
+      <span class="mq">Patience</span><svg class="mq-sep" viewBox="-44 -44 88 88"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+      <span class="mq">Precision</span><svg class="mq-sep" viewBox="-44 -44 88 88"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+      <span class="mq">Independence</span><svg class="mq-sep" viewBox="-44 -44 88 88"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+      <span class="mq">A long horizon</span><svg class="mq-sep" viewBox="-44 -44 88 88"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+      <span class="mq">Grown in Ireland</span><svg class="mq-sep" viewBox="-44 -44 88 88"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+    </div>
+  </div>
+
+  <!-- ==================================================== what we do -->
+  <section class="section" id="what-we-do">
+    <span class="vine-node" data-node="stage" aria-hidden="true"></span>
+
+    <div class="container" data-band>
+      <header class="sec-head">
+        <p class="eyebrow" data-reveal>What we do</p>
+        <h2 class="sec-title" data-split>We build software.</h2>
+        <p class="sec-lede" data-reveal>
+          Heloria Labs designs, builds and operates its own products. Each one is
+          made to stand on its own, and to last.
+        </p>
+      </header>
+
+      <ol class="stages">
+        <li class="stage" data-stage="plant" data-spotlight>
+          <span class="stage-num" aria-hidden="true">01</span>
+          <div class="stage-icon" data-push aria-hidden="true">
+            <svg viewBox="0 0 96 96">
+              <path class="soil" d="M14 78 H82"/>
+              <g class="seed-g"><ellipse class="seed" cx="48" cy="66" rx="9" ry="12"/></g>
+              <path class="ripple r1" d="M32 78 Q48 70 64 78"/>
+              <path class="ripple r2" d="M24 78 Q48 66 72 78"/>
+            </svg>
+          </div>
+          <h3>Plant</h3>
+          <p>Every product begins as a small idea, close to a problem we understand well.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+
+        <li class="stage" data-stage="grow" data-spotlight>
+          <span class="stage-num" aria-hidden="true">02</span>
+          <div class="stage-icon" data-push aria-hidden="true">
+            <svg viewBox="0 0 96 96">
+              <path class="soil" d="M14 78 H82"/>
+              <path class="sprout" d="M48 78 C 44 64, 52 48, 48 30"/>
+              <!-- The outer <g> holds the anchor point; the inner one is what anime
+                   scales. An inline style `transform` overrides an SVG transform
+                   *attribute*, so animating the anchor group directly would throw
+                   the leaf to the icon's top-left corner. -->
+              <g class="lf lf-l" transform="translate(47 64)">
+                <g class="lf-in"><use href="#leafShape" transform="rotate(125) scale(0.85)"/></g>
+              </g>
+              <g class="lf lf-r" transform="translate(49 48)">
+                <g class="lf-in"><use href="#leafShape" transform="rotate(-125) scale(0.85)"/></g>
+              </g>
+            </svg>
+          </div>
+          <h3>Grow</h3>
+          <p>We build with patience and precision, releasing only what earns its place.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+
+        <li class="stage" data-stage="bloom" data-spotlight>
+          <span class="stage-num" aria-hidden="true">03</span>
+          <div class="stage-icon" data-push aria-hidden="true">
+            <svg viewBox="0 0 96 96">
+              <path class="soil" d="M14 78 H82"/>
+              <path class="sprout" d="M48 78 C 46 70, 50 62, 48 54"/>
+              <!-- 36 degrees of fan offset puts a notch, not a petal, where the stem enters -->
+              <g class="mini-bloom" transform="translate(48 46) rotate(36)"></g>
+            </svg>
+          </div>
+          <h3>Bloom</h3>
+          <p>When a product matures, it is given the room and the structure to stand as its own company.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ==================================================== principles -->
+  <section class="section principles" id="principles">
+    <span class="vine-node" data-nobloom aria-hidden="true"></span>
+
+    <div class="container" data-band>
+      <header class="sec-head">
+        <p class="eyebrow" data-reveal>How we build</p>
+        <h2 class="sec-title" data-split>Four things we hold to.</h2>
+      </header>
+
+      <ul class="tenets">
+        <li data-spotlight>
+          <span class="tenet-glyph" data-push aria-hidden="true"><svg viewBox="0 0 64 64" data-glyph="close"></svg></span>
+          <h3>Close to the work</h3>
+          <p>Heloria Labs is built and led by its founders. Every decision is made within reach of the thing it affects.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+        <li data-spotlight>
+          <span class="tenet-glyph" data-push aria-hidden="true"><svg viewBox="0 0 64 64" data-glyph="earn"></svg></span>
+          <h3>It has to earn the release</h3>
+          <p>We build with patience and precision. A release has to justify itself before it ships.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+        <li data-spotlight>
+          <span class="tenet-glyph" data-push aria-hidden="true"><svg viewBox="0 0 64 64" data-glyph="own"></svg></span>
+          <h3>Owned end to end</h3>
+          <p>We design, build and operate what we make. Nothing is handed to someone who did not build it.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+        <li data-spotlight>
+          <span class="tenet-glyph" data-push aria-hidden="true"><svg viewBox="0 0 64 64" data-glyph="horizon"></svg></span>
+          <h3>A long horizon</h3>
+          <p>We answer to the work, not to a quarter. A product is held long enough to become itself.</p>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========================================================= Kríos -->
+  <section class="section feature" id="krios">
+    <span class="vine-node" data-node="krios" aria-hidden="true"></span>
+    <canvas class="embers" id="embers" aria-hidden="true"></canvas>
+
+    <div class="container feature-inner" data-band>
+      <p class="eyebrow ember" data-reveal>Our first bloom</p>
+
+      <div class="feature-head">
+        <span class="k-badge" data-reveal>
+          <!-- The Kríos K as paths rather than the 500px white PNG it was. The
+               PNG could only be coloured by a six-function CSS filter chain, was
+               soft at any size, and could not be lit by the vine. Geometry traced
+               from the original mark: a 45-degree cut through the stem, a diamond
+               in the counter, and two arms with matching diagonal tips. -->
+          <svg class="k-mark" viewBox="0 0 251 273" role="img" aria-label="Kríos logo">
+            <path d="M0 0 H68 V62 L0 130 Z"/>
+            <path d="M0 135 L68 203 V272 H0 Z"/>
+            <path d="M69 98 L102 132.5 L69 167 L36 132.5 Z"/>
+            <path d="M163 0 H242 L137 129 L93 85 Z"/>
+            <path d="M170 272 H250 L137 137 L94 183 Z"/>
+          </svg>
+          <i class="k-halo" aria-hidden="true"></i>
+        </span>
+        <h2 data-split>Kríos</h2>
+      </div>
+
+      <p class="feature-copy" data-reveal-words>
+        Kríos prepares door-to-door sales teams with lifelike AI conversation
+        practice. Reps meet every objection in training before they meet it in
+        the field.
+      </p>
+
+      <!-- the list is the reveal target; main.js flips its children in -->
+      <ul class="chips" data-reveal>
+        <li>Lifelike AI roleplay</li>
+        <li>Every objection, rehearsed</li>
+        <li>Built for the doors</li>
+      </ul>
+
+      <p class="feature-aside" data-reveal>
+        A rep who has already met an objection in practice does not meet it cold
+        at a door.
+      </p>
+
+      <figure class="riff" data-reveal>
+        <svg id="riffSvg" viewBox="0 0 900 190" aria-hidden="true" focusable="false"></svg>
+        <figcaption>A practice round: the AI plays the prospect and pushes back, the rep answers, and it runs again until it lands — so the first time an objection is heard is not at a real door.</figcaption>
+      </figure>
+
+      <a class="btn ember-btn" href="https://krios.ie" target="_blank" rel="noopener" data-magnetic>
+        <span class="btn-label">Visit krios.ie</span>
+        <svg class="btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        <span class="btn-fill" aria-hidden="true"></span>
+      </a>
+    </div>
+  </section>
+
+  <!-- =================================================== the long game -->
+  <section class="section peach-band" id="horizon">
+    <span class="vine-node" aria-hidden="true"></span>
+
+    <div class="container" data-band>
+      <header class="sec-head">
+        <p class="eyebrow" data-reveal>The long game</p>
+        <h2 class="sec-title" data-split>A product is finished when it can leave.</h2>
+        <p class="sec-lede" data-reveal>
+          Everything here follows the same arc. It starts as a small idea close
+          to a problem we understand, and it ends as something that no longer
+          needs us.
+        </p>
+      </header>
+
+      <div class="arc" id="arc">
+        <svg id="arcSvg" viewBox="0 0 1160 260" aria-hidden="true" focusable="false"></svg>
+        <ol class="arc-steps">
+          <li><span class="arc-n" aria-hidden="true">01</span><h3>Seed</h3><p>One problem, understood at first hand.</p></li>
+          <li><span class="arc-n" aria-hidden="true">02</span><h3>Root</h3><p>Structure before surface.</p></li>
+          <li><span class="arc-n" aria-hidden="true">03</span><h3>Bloom</h3><p>Released when it earns its place, then grown in the open.</p></li>
+          <li><span class="arc-n" aria-hidden="true">04</span><h3>Stands alone</h3><p>Held until it no longer needs us.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= company -->
+  <section class="section" id="company">
+    <span class="vine-node" data-node="company" aria-hidden="true"></span>
+
+    <div class="container narrow" data-band>
+      <p class="eyebrow" data-reveal>Company</p>
+      <h2 class="sec-title" data-split>Built and led by its founders.</h2>
+      <p class="sec-lede" data-reveal>
+        Heloria Labs is an independent company based in Ireland. We answer to the
+        work, not to a quarter.
+      </p>
+
+      <div class="person" data-reveal data-spotlight>
+        <span class="person-mark" aria-hidden="true">
+          <svg viewBox="-44 -44 88 88" class="mark-rose"><use href="#rose" x="-44" y="-44" width="88" height="88"/></svg>
+        </span>
+        <div class="person-meta">
+          <strong>Michael Sweeney Heffernan</strong>
+          <span class="role">Director</span>
+        </div>
+        <a class="arrow-link" href="https://www.linkedin.com/in/michael-sweeney-heffernan-589155354" target="_blank" rel="noopener">
+          LinkedIn
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+        <span class="stage-glow" aria-hidden="true"></span>
+      </div>
+
+      <div class="person" data-reveal data-spotlight>
+        <span class="person-mark" aria-hidden="true">
+          <svg viewBox="-44 -44 88 88" class="mark-lily"><use href="#lily" x="-44" y="-44" width="88" height="88"/></svg>
+        </span>
+        <div class="person-meta">
+          <strong>Abraham Sabu Kurian</strong>
+          <span class="role">Founder</span>
+        </div>
+        <a class="arrow-link" href="https://www.linkedin.com/in/abraham-sabu-kurian/" target="_blank" rel="noopener">
+          LinkedIn
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+        <span class="stage-glow" aria-hidden="true"></span>
+      </div>
+
+      <div class="person" data-reveal data-spotlight>
+        <span class="person-mark" aria-hidden="true">
+          <svg viewBox="-44 -44 88 88" class="mark-delphinium"><use href="#delphinium" x="-44" y="-44" width="88" height="88"/></svg>
+        </span>
+        <div class="person-meta">
+          <strong>Ahroon Cyriac Santhosh</strong>
+          <span class="role">Founder</span>
+        </div>
+        <a class="arrow-link" href="https://www.linkedin.com/in/ahroon-santhosh/" target="_blank" rel="noopener">
+          LinkedIn
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+        <span class="stage-glow" aria-hidden="true"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= contact -->
+  <section class="section contact" id="contact">
+    <span class="vine-node" data-node="contact" data-final aria-hidden="true"></span>
+
+    <div class="container center" data-band>
+      <h2 class="sec-title" data-split>Get in touch.</h2>
+      <a class="contact-mail" href="mailto:contact@helorialabs.com" data-chars>contact@helorialabs.com</a>
+      <p class="contact-note" data-reveal>We read everything.</p>
+
+      <ul class="reach">
+        <li data-spotlight>
+          <h3>About Kríos</h3>
+          <p>The product itself, or bringing it to a team on the doors.</p>
+          <a class="arrow-link small" href="https://krios.ie" target="_blank" rel="noopener">
+            krios.ie
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          </a>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+        <li data-spotlight>
+          <h3>About the company</h3>
+          <p>Anything to do with Heloria Labs itself.</p>
+          <a class="arrow-link small" href="mailto:contact@helorialabs.com">contact@helorialabs.com</a>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+        <li data-spotlight>
+          <h3>Elsewhere</h3>
+          <p>The company page, if you would rather follow along there.</p>
+          <a class="arrow-link small" href="https://www.linkedin.com/company/heloria-labs/" target="_blank" rel="noopener">
+            LinkedIn
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          </a>
+          <span class="stage-glow" aria-hidden="true"></span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<!-- ========================================================== footer -->
+<footer class="footer">
+  <!-- the vine's roots, reaching down into the soil the footer is coloured as -->
+  <svg class="roots" id="roots" aria-hidden="true" focusable="false"></svg>
+
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <svg class="nav-mark" viewBox="-44 -44 88 88" aria-hidden="true"><use href="#flower" x="-44" y="-44" width="88" height="88"/></svg>
+      <span>Heloria&nbsp;Labs</span>
+    </div>
+
+    <nav class="footer-links" aria-label="Footer">
+      <a href="https://krios.ie" target="_blank" rel="noopener">Kríos</a>
+      <a href="https://www.linkedin.com/company/heloria-labs/" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="mailto:contact@helorialabs.com">contact@helorialabs.com</a>
+    </nav>
+
+    <p class="footer-note">© <span id="year">2026</span> Heloria Labs. Grown in Ireland.</p>
+  </div>
+</footer>
+
+<script type="module" src="/main.js"></script>
+</body>
+</html>

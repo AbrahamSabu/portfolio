@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#FFCBA4"/>
+  <g transform="translate(32 29) scale(0.56)" fill="#CC4E00">
+    <g transform="rotate(0)"><path d="M0 0 C -11 8, -13 28, 0 38 C 13 28, 11 8, 0 0 Z"/></g>
+    <g transform="rotate(72)"><path d="M0 0 C -11 8, -13 28, 0 38 C 13 28, 11 8, 0 0 Z"/></g>
+    <g transform="rotate(144)"><path d="M0 0 C -11 8, -13 28, 0 38 C 13 28, 11 8, 0 0 Z"/></g>
+    <g transform="rotate(216)"><path d="M0 0 C -11 8, -13 28, 0 38 C 13 28, 11 8, 0 0 Z"/></g>
+    <g transform="rotate(288)"><path d="M0 0 C -11 8, -13 28, 0 38 C 13 28, 11 8, 0 0 Z"/></g>
+  </g>
+</svg>

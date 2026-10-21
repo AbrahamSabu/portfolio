@@ -1,0 +1,20 @@
+# Files that live in this folder but must not be served from the site.
+# Nothing here is secret — there are no keys or credentials anywhere in this
+# project — but none of it belongs on the public domain either.
+
+# 46KB of internal engineering notes. Would be readable at /README.md
+README.md
+
+# the local preview server; also hard-codes a path off this machine
+dev-server.py
+
+# self-contained copies of the whole site, for sending to people directly.
+# Serving them would mean a second, silently stale copy of the site living at
+# a guessable URL.
+Heloria Labs*.html
+
+# superseded share image
+assets/og-previous.png
+
+# local dev-server launch config
+.claude

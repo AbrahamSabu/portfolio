@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ammo's — Greek Food Truck · Cork</title>
+<meta name="description" content="Ammo's is a Greek food truck serving gyros, souvlaki and pita around Wilton and Bishopstown, Cork. Rated 4.3 on Google." />
+<style>
+  :root{
+    --navy:#0a2540;
+    --navy-deep:#061a2e;
+    --blue:#0d5eaf;
+    --blue-bright:#1e88e5;
+    --sky:#7dd3fc;
+    --ice:#eaf4fb;
+    --white:#ffffff;
+    --sand:#f4ede1;
+    --gold:#f5b544;
+    --gold-deep:#e09b2d;
+    --ink:#0b1c2c;
+    --muted:#5b7185;
+    --line:rgba(13,94,175,.14);
+    --card:#ffffff;
+    --shadow-sm:0 1px 2px rgba(10,37,64,.06), 0 4px 14px rgba(10,37,64,.06);
+    --shadow-lg:0 10px 30px rgba(10,37,64,.10), 0 30px 60px rgba(10,37,64,.10);
+    --radius:20px;
+    --radius-sm:14px;
+    --maxw:1180px;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --display:'Fraunces','Playfair Display',Georgia,serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--white);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.08;letter-spacing:-.02em}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  section{position:relative}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--blue);
+  }
+  .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--blue);display:inline-block;opacity:.6}
+
+  /* photo placeholder pattern: fallback layer sits behind, <img> covers it and
+     hides itself on error via inline onerror, so missing files degrade gracefully */
+  .ph-fallback{position:absolute;inset:0;display:grid;place-items:center;opacity:.45}
+  .ph-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+
+  /* clickable photos open a lightbox */
+  [data-lightbox]{cursor:zoom-in}
+  [data-lightbox] .zoom-hint{
+    position:absolute;bottom:10px;right:10px;z-index:3;width:32px;height:32px;border-radius:50%;
+    background:rgba(6,26,46,.55);color:#fff;display:grid;place-items:center;font-size:15px;
+    opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;backdrop-filter:blur(3px);
+  }
+  [data-lightbox]:hover .zoom-hint{opacity:1;transform:none}
+
+  /* ---------- Preloader ---------- */
+  .preloader{
+    position:fixed;inset:0;z-index:300;
+    background:linear-gradient(160deg,var(--navy-deep),var(--navy));
+    display:flex;align-items:center;justify-content:center;
+    transition:opacity .6s ease,visibility .6s ease;
+  }
+  .preloader .mark{
+    width:54px;height:54px;border-radius:16px;
+    background:linear-gradient(135deg,var(--blue-bright),var(--navy));
+    display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:25px;
+    box-shadow:0 10px 30px rgba(13,94,175,.5);
+    animation:preloaderPulse 1.1s ease-in-out infinite;
+  }
+  @keyframes preloaderPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.86);opacity:.7}}
+  .preloader.is-done{opacity:0;visibility:hidden;pointer-events:none}
+
+  /* ---------- Back to top ---------- */
+  .to-top{
+    position:fixed;right:22px;bottom:22px;z-index:90;
+    width:46px;height:46px;border-radius:50%;
+    background:var(--navy);color:#fff;border:1px solid rgba(255,255,255,.15);
+    display:grid;place-items:center;cursor:pointer;font-size:18px;
+    box-shadow:var(--shadow-lg);
+    opacity:0;visibility:hidden;transform:translateY(12px);
+    transition:opacity .3s,transform .3s,visibility .3s,background .3s;
+  }
+  .to-top.is-shown{opacity:1;visibility:visible;transform:none}
+  .to-top:hover{background:var(--blue-bright)}
+
+  /* ---------- Lightbox ---------- */
+  .lightbox{
+    position:fixed;inset:0;z-index:250;background:rgba(6,20,34,.92);
+    display:flex;align-items:center;justify-content:center;padding:60px 24px;
+    opacity:0;visibility:hidden;transition:opacity .3s ease,visibility .3s ease;
+  }
+  .lightbox.is-open{opacity:1;visibility:visible}
+  .lightbox-inner{position:relative;max-width:min(90vw,700px);width:100%;text-align:center}
+  .lightbox-inner img{width:100%;max-height:76vh;object-fit:contain;border-radius:16px;box-shadow:var(--shadow-lg);background:var(--navy-deep)}
+  .lightbox-caption{color:rgba(234,244,251,.85);margin-top:16px;font-size:14.5px}
+  .lightbox-close,.lightbox-nav{
+    position:absolute;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;
+    border-radius:50%;width:44px;height:44px;display:grid;place-items:center;cursor:pointer;font-size:18px;
+    transition:background .2s;
+  }
+  .lightbox-close:hover,.lightbox-nav:hover{background:rgba(255,255,255,.22)}
+  .lightbox-close{top:-58px;right:0}
+  .lightbox-prev{left:-58px;top:38%;transform:translateY(-50%)}
+  .lightbox-next{right:-58px;top:38%;transform:translateY(-50%)}
+  @media (max-width:760px){
+    .lightbox-close{top:8px;right:8px;background:rgba(6,20,34,.65)}
+    .lightbox-prev{left:8px;background:rgba(6,20,34,.65)}
+    .lightbox-next{right:8px;background:rgba(6,20,34,.65)}
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-weight:600;font-size:15.5px;
+    padding:15px 28px;border-radius:999px;
+    cursor:pointer;border:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;
+    position:relative;overflow:hidden;white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn-primary{
+    color:#06263f;
+    background:linear-gradient(135deg,var(--gold) 0%,var(--gold-deep) 100%);
+    box-shadow:0 10px 24px rgba(224,155,45,.35);
+  }
+  .btn-primary:hover{box-shadow:0 16px 34px rgba(224,155,45,.45)}
+  /* shimmer sweep */
+  .btn-primary::after{
+    content:"";position:absolute;top:0;left:-140%;width:70%;height:100%;
+    background:linear-gradient(120deg,transparent,rgba(255,255,255,.65),transparent);
+    transform:skewX(-20deg);
+    animation:shimmer 3.4s ease-in-out infinite;
+  }
+  @keyframes shimmer{
+    0%{left:-140%}
+    45%{left:160%}
+    100%{left:160%}
+  }
+  .btn-ghost{
+    background:rgba(255,255,255,.08);color:#fff;
+    border:1.5px solid rgba(255,255,255,.28);
+    backdrop-filter:blur(6px);
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,.16)}
+
+  /* ---------- Nav ---------- */
+  header.nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    transition:background .35s,box-shadow .35s,padding .35s,transform .4s cubic-bezier(.2,.8,.2,1);
+    padding:20px 0;
+  }
+  header.nav.scrolled{
+    background:rgba(255,255,255,.82);
+    backdrop-filter:saturate(180%) blur(14px);
+    box-shadow:0 1px 0 rgba(10,37,64,.06);
+    padding:12px 0;
+  }
+  header.nav.hide-nav{transform:translateY(-110%)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--display);font-weight:600;font-size:21px;color:#fff;transition:color .35s}
+  header.nav.scrolled .brand{color:var(--navy)}
+  .brand .mark{
+    width:38px;height:38px;border-radius:11px;flex:none;
+    background:linear-gradient(135deg,var(--blue-bright),var(--navy));
+    display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--font);font-size:18px;
+    box-shadow:0 6px 16px rgba(13,94,175,.4);
+  }
+  .brand small{display:block;font-family:var(--font);font-weight:500;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--sky);opacity:.9}
+  header.nav.scrolled .brand small{color:var(--blue)}
+  .nav-links{display:flex;align-items:center;gap:34px}
+  .nav-links a{font-size:14.5px;font-weight:500;color:rgba(255,255,255,.86);transition:color .25s}
+  .nav-links a:hover{color:#fff}
+  header.nav.scrolled .nav-links a{color:var(--muted)}
+  header.nav.scrolled .nav-links a:hover{color:var(--navy)}
+  .nav-cta{padding:11px 20px;font-size:14px}
+  .nav-links a.link:not(.btn){position:relative}
+  .nav-links a.link:not(.btn)::after{content:"";position:absolute;left:0;bottom:-5px;width:0;height:2px;background:var(--gold);transition:width .3s}
+  .nav-links a.link:not(.btn):hover::after,.nav-links a.link:not(.btn).is-active::after{width:100%}
+  .nav-links a.link.is-active{color:#fff}
+  header.nav.scrolled .nav-links a.link.is-active{color:var(--navy)}
+  .menu-toggle{display:none}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    min-height:100vh;
+    background:linear-gradient(160deg,var(--navy-deep) 0%,var(--navy) 55%,#0c3157 100%);
+    color:#fff;
+    display:flex;align-items:center;
+    padding:150px 0 90px;
+    position:relative;overflow:hidden;
+  }
+  /* meander (greek key) top border */
+  .meander{
+    position:absolute;top:0;left:0;right:0;height:16px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='16' viewBox='0 0 48 16'%3E%3Cpath d='M0 13h6V5h8v8h6V5h8v8h6V5h8v8h6' fill='none' stroke='%2338bdf8' stroke-width='2' opacity='.5'/%3E%3C/svg%3E");
+    background-repeat:repeat-x;opacity:.7;
+  }
+
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;position:relative;z-index:2}
+  .hero-kicker{display:block;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--sky);opacity:.85;margin-bottom:18px}
+  .hero h1{font-size:clamp(40px,5.6vw,68px);margin-bottom:22px}
+  .hero h1 .accent{
+    background:linear-gradient(120deg,var(--sky),var(--gold));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .hero p.lead{font-size:clamp(16.5px,1.8vw,18.5px);color:rgba(234,244,251,.82);max-width:500px;margin-bottom:34px}
+  .hero-actions{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .hero-rating{display:flex;align-items:center;gap:12px;margin-top:32px;color:rgba(234,244,251,.75);font-size:13.5px}
+  .stars{display:inline-flex;gap:2px}
+  .stars svg{width:16px;height:16px}
+  .hero-rating strong{color:#fff;font-weight:700}
+
+  /* hero card / visual */
+  .hero-visual-in{perspective:1200px}
+  .hero-card{
+    background:linear-gradient(155deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:26px;padding:8px;
+    box-shadow:var(--shadow-lg);
+    transition:transform .5s cubic-bezier(.2,.8,.2,1);
+    transform-style:preserve-3d;
+    will-change:transform;
+  }
+  .hero-photo{
+    border-radius:20px;overflow:hidden;position:relative;
+    aspect-ratio:4/4.3;
+    background:linear-gradient(160deg,#0d3560,#0a2540);
+    display:flex;align-items:flex-end;
+  }
+  .hero-photo .ph-fallback{font-size:130px}
+  .hero-photo .plate{
+    position:relative;z-index:2;width:100%;
+    background:linear-gradient(to top,rgba(6,26,46,.92),transparent);
+    padding:26px 24px 22px;
+  }
+  .hero-photo .plate h3{font-size:21px;color:#fff;margin-bottom:4px}
+  .hero-photo .plate span{font-size:13px;color:var(--sky)}
+
+  /* ---------- Marquee ---------- */
+  .marquee-band{
+    background:var(--navy-deep);color:#fff;padding:18px 0;overflow:hidden;position:relative;
+    border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .marquee{display:flex;gap:0;width:max-content;animation:scroll 26s linear infinite}
+  .marquee-band:hover .marquee{animation-play-state:paused}
+  .marquee .item{
+    display:flex;align-items:center;gap:14px;padding:0 30px;
+    font-size:14.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    color:rgba(255,255,255,.5);white-space:nowrap;
+  }
+  .marquee .item .sep{color:var(--gold);font-size:10px}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* ---------- Section shells ---------- */
+  .section{padding:110px 0}
+  .section-head{max-width:600px;margin-bottom:56px}
+  .section-head.center{margin-left:auto;margin-right:auto;text-align:center}
+  .section-head h2{font-size:clamp(30px,4vw,44px);margin:16px 0 14px;color:var(--navy)}
+  .section-head p{font-size:17px;color:var(--muted)}
+
+  /* ---------- Stats ---------- */
+  .stats{background:var(--sand);}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .stat{
+    background:#fff;border-radius:var(--radius);padding:32px 26px;text-align:center;
+    box-shadow:var(--shadow-sm);border:1px solid var(--line);
+  }
+  .stat .num{font-family:var(--display);font-size:clamp(36px,4.2vw,48px);font-weight:600;color:var(--blue);line-height:1;letter-spacing:-.02em}
+  .stat .num.text{font-size:clamp(26px,3vw,32px);color:var(--navy)}
+  .stat .num .suffix{color:var(--gold-deep)}
+  .stat .label{margin-top:12px;font-size:14px;font-weight:600;color:var(--navy)}
+  .stat .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+  /* ---------- Menu / services (spotlight cards) ---------- */
+  .menu-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:24px}
+  .menu-grid .spot{flex:1 1 calc(33.333% - 16px);max-width:calc(33.333% - 16px)}
+  .spot{
+    position:relative;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px 24px 26px;overflow:hidden;
+    box-shadow:var(--shadow-sm);transition:transform .4s cubic-bezier(.2,.8,.2,1),box-shadow .4s,border-color .4s;
+  }
+  .spot:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg);border-color:rgba(13,94,175,.3)}
+  .spot::before{
+    content:"";position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none;z-index:2;
+    background:radial-gradient(340px circle at var(--mx,50%) var(--my,50%),rgba(30,136,229,.14),transparent 60%);
+  }
+  .spot:hover::before{opacity:1}
+  .spot-photo{
+    aspect-ratio:3/4;border-radius:14px;overflow:hidden;position:relative;margin-bottom:18px;
+    background:linear-gradient(135deg,var(--ice),#dcecfa);
+  }
+  .spot-photo .ph-fallback{font-size:40px}
+  .spot h3{font-size:21px;color:var(--navy);margin-bottom:8px}
+  .spot p{font-size:14.5px;color:var(--muted)}
+  .spot .tag{position:absolute;top:32px;right:32px;z-index:3;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(10,37,64,.55);padding:5px 10px;border-radius:999px;backdrop-filter:blur(4px)}
+
+  /* ---------- Process ---------- */
+  .process{background:linear-gradient(180deg,#fff, var(--ice))}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;position:relative}
+  .step{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:34px 30px;position:relative;box-shadow:var(--shadow-sm)}
+  .step .n{
+    width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+    font-family:var(--display);font-weight:600;font-size:20px;color:#fff;
+    background:linear-gradient(135deg,var(--blue-bright),var(--navy));margin-bottom:20px;
+    box-shadow:0 8px 18px rgba(13,94,175,.3);
+  }
+  .step h3{font-size:19px;color:var(--navy);margin-bottom:8px}
+  .step p{font-size:14.5px;color:var(--muted)}
+
+  /* ---------- Why us ---------- */
+  .why{background:var(--navy);color:#fff;overflow:hidden}
+  .why-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+  .why h2{color:#fff;font-size:clamp(30px,4vw,42px);margin:16px 0 18px}
+  .why p.lead{color:rgba(234,244,251,.8);font-size:16.5px;margin-bottom:26px}
+  .why .eyebrow{color:var(--sky)}
+  .why .eyebrow::before{background:var(--sky)}
+  .why-list{display:flex;flex-direction:column;gap:14px}
+  .why-item{display:flex;gap:15px;align-items:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-sm);padding:16px 18px}
+  .why-item .tick{width:24px;height:24px;border-radius:8px;background:var(--gold);color:#06263f;display:grid;place-items:center;flex:none;font-weight:800;font-size:13px;margin-top:1px}
+  .why-item h4{font-size:15.5px;margin-bottom:3px}
+  .why-item p{font-size:13.5px;color:rgba(234,244,251,.72)}
+
+  .truck-photo{
+    aspect-ratio:4/3;border-radius:20px;overflow:hidden;position:relative;
+    background:linear-gradient(155deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.14);
+    transform:translateY(var(--py,0px));will-change:transform;
+  }
+  .truck-photo .ph-fallback{font-size:64px}
+  .find-caption{margin-top:18px}
+  .find-caption strong{display:block;font-size:16px;color:#fff;margin-bottom:4px}
+  .find-caption span{font-size:13.5px;color:rgba(234,244,251,.7)}
+
+  /* ---------- Testimonial ---------- */
+  .testi{background:var(--sand)}
+  .quote-card{
+    max-width:780px;margin:0 auto;background:#fff;border:1px solid var(--line);
+    border-radius:24px;padding:50px 48px;text-align:center;box-shadow:var(--shadow-lg);position:relative;
+  }
+  .quote-card .mark{font-family:var(--display);font-size:100px;line-height:.6;color:var(--sky);opacity:.5;height:40px}
+  .quote-card blockquote{font-family:var(--display);font-size:clamp(20px,2.6vw,26px);font-weight:500;color:var(--navy);line-height:1.4;margin:8px 0 28px}
+  .quote-stars{display:inline-flex;gap:3px;margin-bottom:20px}
+  .quote-stars svg{width:20px;height:20px}
+  .quote-author{display:flex;align-items:center;justify-content:center;gap:14px}
+  .quote-author .av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--blue-bright),var(--navy));display:grid;place-items:center;color:#fff;font-weight:700;font-size:18px;font-family:var(--display)}
+  .quote-author .who{text-align:left}
+  .quote-author .who strong{display:block;font-size:15.5px;color:var(--navy)}
+  .quote-author .who span{font-size:12.5px;color:var(--muted)}
+
+  /* ---------- CTA ---------- */
+  .cta-band{
+    background:
+      linear-gradient(160deg,rgba(6,26,46,.92),rgba(10,37,64,.90)),
+      url('images/truck-side.png') center 30%/cover no-repeat;
+    color:#fff;text-align:center;padding:96px 0;position:relative;overflow:hidden;
+  }
+  .cta-band .meander{opacity:.5}
+  .cta-band h2{font-size:clamp(32px,4.6vw,50px);margin-bottom:16px}
+  .cta-band p{font-size:17px;color:rgba(234,244,251,.82);max-width:520px;margin:0 auto 20px}
+  .cta-loc{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);padding:10px 18px;border-radius:999px;font-size:14px;color:var(--sky);margin-bottom:30px}
+  .cta-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  /* ---------- Footer ---------- */
+  footer{background:var(--navy-deep);color:rgba(234,244,251,.7);padding:56px 0 30px}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px;padding-bottom:36px;border-bottom:1px solid rgba(255,255,255,.08)}
+  footer .brand{color:#fff;margin-bottom:14px}
+  footer p.desc{font-size:14px;max-width:300px}
+  footer h5{color:#fff;font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;font-weight:600}
+  footer ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  footer ul a{font-size:14px;transition:color .2s}
+  footer ul a:hover{color:var(--sky)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;font-size:13px;flex-wrap:wrap;gap:10px}
+
+  /* ---------- Reveal animation ---------- */
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  [data-delay="1"]{transition-delay:.08s}
+  [data-delay="2"]{transition-delay:.16s}
+  [data-delay="3"]{transition-delay:.24s}
+  [data-delay="4"]{transition-delay:.32s}
+  [data-delay="5"]{transition-delay:.40s}
+
+  /* hero staggered entrance */
+  .hero-stagger>*{opacity:0;transform:translateY(26px);animation:heroIn .9s cubic-bezier(.2,.8,.2,1) forwards}
+  .hero-stagger>*:nth-child(1){animation-delay:.15s}
+  .hero-stagger>*:nth-child(2){animation-delay:.30s}
+  .hero-stagger>*:nth-child(3){animation-delay:.45s}
+  .hero-stagger>*:nth-child(4){animation-delay:.60s}
+  .hero-stagger>*:nth-child(5){animation-delay:.75s}
+  .hero-visual-in{opacity:0;transform:translateY(30px) scale(.97);animation:heroIn 1s cubic-bezier(.2,.8,.2,1) .5s forwards}
+  @keyframes heroIn{to{opacity:1;transform:none}}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:960px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero{padding:130px 0 70px}
+    .hero-card{max-width:440px;margin:0 auto}
+    .why-inner{display:flex;flex-direction:column-reverse;gap:40px}
+    .menu-grid{gap:20px}
+    .menu-grid .spot{flex-basis:calc(50% - 10px);max-width:calc(50% - 10px)}
+    .steps{grid-template-columns:1fr;gap:20px}
+    .foot-grid{grid-template-columns:1fr;gap:30px}
+    .nav-links{
+      position:fixed;top:0;right:0;bottom:0;width:min(78vw,320px);
+      background:var(--navy);flex-direction:column;justify-content:center;gap:26px;
+      padding:40px;transform:translateX(100%);transition:transform .4s cubic-bezier(.2,.8,.2,1);
+      box-shadow:-20px 0 60px rgba(0,0,0,.3);
+    }
+    .nav-links.open{transform:none}
+    .nav-links a{color:#fff !important;font-size:18px}
+    .menu-toggle{
+      display:flex;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;
+      width:42px;height:42px;align-items:center;justify-content:center;z-index:120;
+    }
+    .menu-toggle span{width:24px;height:2px;background:#fff;transition:.3s;border-radius:2px}
+    header.nav.scrolled .menu-toggle span{background:var(--navy)}
+    .menu-toggle.open span{background:#fff}
+    .menu-toggle.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+    .menu-toggle.open span:nth-child(2){opacity:0}
+    .menu-toggle.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+  }
+  @media (max-width:640px){
+    .stats-grid{grid-template-columns:1fr}
+    .menu-grid .spot{flex-basis:100%;max-width:100%}
+  }
+  @media (max-width:520px){
+    .wrap{padding:0 18px}
+    .quote-card{padding:40px 26px}
+    .section{padding:76px 0}
+    .hero h1{font-size:clamp(36px,9vw,50px)}
+  }
+
+  /* ---------- Reduced motion ---------- */
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+    .reveal{opacity:1 !important;transform:none !important}
+    .hero-stagger>*,.hero-visual-in{opacity:1 !important;transform:none !important}
+  }
+</style>
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="mark">Α</div>
+</div>
+
+<!-- NAV -->
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand">
+      <span class="mark">Α</span>
+      <span>Ammo's<small>Greek Food Truck</small></span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a class="link" href="#menu">Menu</a>
+      <a class="link" href="#how">How it works</a>
+      <a class="link" href="#why">Why us</a>
+      <a class="link" href="#visit">Find us</a>
+      <a class="btn btn-primary nav-cta" href="#visit">Visit the truck</a>
+    </nav>
+    <button class="menu-toggle" id="menuToggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="meander"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-stagger">
+      <span class="hero-kicker">Wilton &amp; Bishopstown · Cork</span>
+      <h1>Real Greek food, off the back of a <span class="accent">truck</span>.</h1>
+      <p class="lead">Ammo's serves proper Greek cooking around Cork city — gyros, souvlaki and pita made the way it's done at home, not a fast-food version of it.</p>
+      <div class="hero-actions">
+        <a href="#visit" class="btn btn-primary" data-magnetic>Come visit the food truck →</a>
+        <a href="#menu" class="btn btn-ghost">See the menu</a>
+      </div>
+      <div class="hero-rating">
+        <span class="stars" aria-hidden="true"></span>
+        <span><strong>4.3</strong> on Google, mostly from Wilton and Bishopstown regulars</span>
+      </div>
+    </div>
+
+    <div class="hero-visual-in">
+      <div class="hero-card">
+        <div class="hero-photo" data-lightbox data-full="images/hero.png" data-caption="The Ammo's Gyros — warm pita, slow-cooked meat, house sauces">
+          <div class="ph-fallback">🥙</div>
+          <img class="ph-img" src="images/hero.png" alt="Ammo's gyros box" onerror="this.style.display='none'">
+          <div class="plate">
+            <h3>The Ammo's Gyros</h3>
+            <span>Warm pita · slow-cooked meat · house sauces</span>
+          </div>
+          <span class="zoom-hint" aria-hidden="true">⤢</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-band" aria-hidden="true">
+  <div class="marquee" id="marquee">
+    <!-- filled by JS (duplicated for seamless loop) -->
+  </div>
+</div>
+
+<!-- STATS -->
+<section class="section stats">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Where we stand</span>
+      <h2>What Cork's telling us so far</h2>
+      <p>No chain, no franchise — just a truck, a grill, and Greek recipes done the right way.</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat reveal" data-delay="1">
+        <div class="num"><span data-count="4.3" data-decimals="1">0</span><span class="suffix">★</span></div>
+        <div class="label">Google rating</div>
+        <div class="sub">From Cork regulars</div>
+      </div>
+      <div class="stat reveal" data-delay="2">
+        <div class="num text">Rare</div>
+        <div class="label">Greek food in Cork</div>
+        <div class="sub">There aren't many of us about</div>
+      </div>
+      <div class="stat reveal" data-delay="3">
+        <div class="num text">Fresh</div>
+        <div class="label">Cooked to order</div>
+        <div class="sub">Nothing pre-made, nothing reheated</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MENU / SERVICES -->
+<section class="section" id="menu">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">On the menu</span>
+      <h2>Greek classics, done properly</h2>
+      <p>Everything's cooked fresh once you order it — nothing sits around waiting.</p>
+    </div>
+    <div class="menu-grid">
+      <article class="spot reveal" data-delay="1">
+        <span class="tag">Signature</span>
+        <div class="spot-photo" data-lightbox data-full="images/gyros.png" data-caption="Pita Gyros — warm pita loaded with slow-cooked meat, salad and house tzatziki">
+          <div class="ph-fallback">🥙</div>
+          <img class="ph-img" src="images/gyros.png" alt="Pita gyros boxes" onerror="this.style.display='none'">
+          <span class="zoom-hint" aria-hidden="true">⤢</span>
+        </div>
+        <h3>Pita Gyros</h3>
+        <p>Warm pita loaded with slow-cooked meat, salad, tomato, onion and house tzatziki. The one most people order twice.</p>
+      </article>
+      <article class="spot reveal" data-delay="2">
+        <div class="spot-photo" data-lightbox data-full="images/souvlaki.png" data-caption="Souvlaki Skewers — char-grilled and marinated in Greek herbs and olive oil">
+          <div class="ph-fallback">🍢</div>
+          <img class="ph-img" src="images/souvlaki.png" alt="Souvlaki skewer wrap with fries" onerror="this.style.display='none'">
+          <span class="zoom-hint" aria-hidden="true">⤢</span>
+        </div>
+        <h3>Souvlaki Skewers</h3>
+        <p>Char-grilled and marinated in Greek herbs and olive oil, served with pita and dips.</p>
+      </article>
+      <article class="spot reveal" data-delay="3">
+        <div class="spot-photo" data-lightbox data-full="images/onion-rings.png" data-caption="Crispy Onion Rings — golden and crunchy, served with our own dip">
+          <div class="ph-fallback">🧅</div>
+          <img class="ph-img" src="images/onion-rings.png" alt="Crispy onion rings with dip" onerror="this.style.display='none'">
+          <span class="zoom-hint" aria-hidden="true">⤢</span>
+        </div>
+        <h3>Crispy Onion Rings</h3>
+        <p>Golden and crunchy, served with our own dip. Good as a side, fine as a meal on its own.</p>
+      </article>
+      <article class="spot reveal" data-delay="1">
+        <div class="spot-photo" data-lightbox data-full="images/salad.png" data-caption="Fresh Greek Salad — tomato, cucumber, olives, red onion and a proper block of feta">
+          <div class="ph-fallback">🥗</div>
+          <img class="ph-img" src="images/salad.png" alt="Greek salad box, eaten at our outside tables" onerror="this.style.display='none'">
+          <span class="zoom-hint" aria-hidden="true">⤢</span>
+        </div>
+        <h3>Fresh Greek Salad</h3>
+        <p>Tomato, cucumber, olives, red onion and a proper block of feta, dressed in olive oil. Grab a seat outside and enjoy it there.</p>
+      </article>
+      <article class="spot reveal" data-delay="2">
+        <div class="spot-photo" data-lightbox data-full="images/hero.png" data-caption="Wraps &amp; Boxes — pick your fillings, sauces and sides">
+          <div class="ph-fallback">🧆</div>
+          <img class="ph-img" src="images/hero.png" alt="Wraps and boxes" onerror="this.style.display='none'">
+          <span class="zoom-hint" aria-hidden="true">⤢</span>
+        </div>
+        <h3>Wraps &amp; Boxes</h3>
+        <p>Pick your fillings, sauces and sides. Handy for eating on the move.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section process" id="how">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow">How it works</span>
+      <h2>Order, buzz, collect</h2>
+      <p>No app, no counter queue — just order, wait for the buzz, and grab your food hot.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal" data-delay="1">
+        <div class="n">1</div>
+        <h3>Order at the truck</h3>
+        <p>Walk up, have a look at what's on, and place your order with whoever's on the grill.</p>
+      </div>
+      <div class="step reveal" data-delay="2">
+        <div class="n">2</div>
+        <h3>Take a buzzer</h3>
+        <p>You'll be handed a buzzer. Grab a seat at the outside tables while we get cooking.</p>
+      </div>
+      <div class="step reveal" data-delay="3">
+        <div class="n">3</div>
+        <h3>Buzz, then collect</h3>
+        <p>When it goes off, that's your food ready — come back up and collect it hot.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY US -->
+<section class="section why" id="why">
+  <div class="wrap why-inner">
+    <div class="reveal">
+      <span class="eyebrow">Why Ammos</span>
+      <h2>There aren't many of us about.</h2>
+      <p class="lead">Greek food isn't exactly common in Cork, and even where you find it, it's rarely made the way it should be. That's really the whole pitch: proper recipes, cooked fresh, by people who actually know the food.</p>
+      <div class="why-list">
+        <div class="why-item"><span class="tick">✓</span><div><h4>Genuinely authentic</h4><p>Real Greek recipes — not a Cork interpretation of one.</p></div></div>
+        <div class="why-item"><span class="tick">✓</span><div><h4>Hard to find elsewhere</h4><p>One of the few places in the city actually doing Greek food.</p></div></div>
+        <div class="why-item"><span class="tick">✓</span><div><h4>Made when you order it</h4><p>Nothing's sitting under a heat lamp waiting for you.</p></div></div>
+      </div>
+    </div>
+    <div class="reveal" data-delay="2">
+      <div class="truck-photo" data-lightbox data-full="images/truck.png" data-caption="Ammo's — parked up and ready to serve">
+        <div class="ph-fallback">🚚</div>
+        <img class="ph-img" src="images/truck.png" alt="Ammo's food truck" onerror="this.style.display='none'">
+        <span class="zoom-hint" aria-hidden="true">⤢</span>
+      </div>
+      <div class="find-caption">
+        <strong>Find us around Wilton &amp; Bishopstown</strong>
+        <span>Hours shift a bit day to day — check our socials before you head down.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIAL -->
+<section class="section testi">
+  <div class="wrap">
+    <div class="quote-card reveal">
+      <div class="mark">"</div>
+      <span class="quote-stars" aria-hidden="true"></span>
+      <blockquote>Great pita gyros 😮‍💨 nice tables outside and top service! Will definitely be going back. So far the best gyros place in Cork.</blockquote>
+      <div class="quote-author">
+        <div class="av">O</div>
+        <div class="who">
+          <strong>Olivia</strong>
+          <span>Local Guide · 45 reviews · 80 photos</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-band" id="visit">
+  <div class="meander"></div>
+  <div class="wrap">
+    <div class="reveal">
+      <span class="cta-loc">📍 Cork City · Wilton &amp; Bishopstown</span>
+      <h2>Come visit the food truck</h2>
+      <p>Pop down and try it for yourself — we'll have the pita warm and the tzatziki ready.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-primary" data-magnetic>Come visit the food truck →</a>
+        <a href="#menu" class="btn btn-ghost">Browse the menu</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a href="#top" class="brand"><span class="mark">Α</span><span>Ammo's<small>Greek Food Truck</small></span></a>
+        <p class="desc">Greek street food made fresh from our truck in Cork city — Wilton &amp; Bishopstown.</p>
+      </div>
+      <div>
+        <h5>Explore</h5>
+        <ul>
+          <li><a href="#menu">Menu</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#why">Why us</a></li>
+          <li><a href="#visit">Find the truck</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Find us</h5>
+        <ul>
+          <li><a href="#visit">Wilton, Cork</a></li>
+          <li><a href="#visit">Bishopstown, Cork</a></li>
+          <li><a href="#">★ 4.3 on Google</a></li>
+          <li><a href="https://instagram.com/ammosgreekcork" target="_blank" rel="noopener">@ammosgreekcork</a></li>
+          <li><a href="https://facebook.com/AmmosGreekCork" target="_blank" rel="noopener">facebook.com/AmmosGreekCork</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="year"></span> Ammo's.</span>
+      <span>Cork city</span>
+    </div>
+  </div>
+</footer>
+
+<!-- BACK TO TOP -->
+<button class="to-top" id="toTop" aria-label="Back to top">↑</button>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+    <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Previous photo">‹</button>
+    <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Next photo">›</button>
+    <img id="lightboxImg" src="" alt="">
+    <p class="lightbox-caption" id="lightboxCaption"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer = window.matchMedia('(pointer: fine)').matches;
+
+  /* ---- Preloader ---- */
+  (function preloader(){
+    var el = document.getElementById('preloader');
+    if (!el) return;
+    var done = false;
+    function hide(){
+      if (done) return; done = true;
+      el.classList.add('is-done');
+      setTimeout(function(){ el.parentNode && el.parentNode.removeChild(el); }, 700);
+    }
+    window.addEventListener('load', function(){ setTimeout(hide, reduce ? 0 : 350); });
+    setTimeout(hide, 2500);
+  })();
+
+  /* ---- Star svg helper ---- */
+  var starSVG = '<svg viewBox="0 0 24 24" fill="#f5b544"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.6 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z"/></svg>';
+  document.querySelectorAll('.stars, .quote-stars').forEach(function(el){
+    el.innerHTML = starSVG.repeat(5);
+  });
+
+  /* ---- Year ---- */
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  /* ---- Nav scroll state: shadow + hide-on-scroll-down / reveal-on-scroll-up ---- */
+  var nav = document.getElementById('nav');
+  var lastY = window.scrollY;
+  function onScroll(){
+    var y = window.scrollY;
+    nav.classList.toggle('scrolled', y > 30);
+    if (!document.body.classList.contains('menu-open')){
+      if (y > lastY && y > 360) nav.classList.add('hide-nav');
+      else nav.classList.remove('hide-nav');
+    }
+    lastY = y;
+  }
+  onScroll();
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  /* ---- Scroll-spy: highlight the nav link for the section in view ---- */
+  (function scrollSpy(){
+    var navLinkEls = document.querySelectorAll('.nav-links a.link');
+    if (!navLinkEls.length || !('IntersectionObserver' in window)) return;
+    var map = {};
+    navLinkEls.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+    var sections = Array.prototype.filter.call(document.querySelectorAll('section[id]'), function(s){ return map[s.id]; });
+    var spy = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){
+          navLinkEls.forEach(function(a){ a.classList.remove('is-active'); });
+          map[e.target.id].classList.add('is-active');
+        }
+      });
+    }, {rootMargin:'-45% 0px -50% 0px'});
+    sections.forEach(function(s){ spy.observe(s); });
+  })();
+
+  /* ---- Mobile menu ---- */
+  var toggle = document.getElementById('menuToggle');
+  var links = document.getElementById('navLinks');
+  toggle.addEventListener('click', function(){
+    toggle.classList.toggle('open');
+    links.classList.toggle('open');
+    document.body.classList.toggle('menu-open', links.classList.contains('open'));
+  });
+  links.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click', function(){
+      toggle.classList.remove('open'); links.classList.remove('open');
+      document.body.classList.remove('menu-open');
+    });
+  });
+
+  /* ---- Marquee build ---- */
+  var items = ['Pita Gyros','Souvlaki','Tzatziki','Greek Salad','Loaded Fries','Fresh Pita','Feta','Wilton','Bishopstown','Baklava'];
+  var mq = document.getElementById('marquee');
+  var html = '';
+  for (var d=0; d<2; d++){
+    items.forEach(function(t){
+      html += '<span class="item">'+t+'<span class="sep">◆</span></span>';
+    });
+  }
+  mq.innerHTML = html;
+
+  /* ---- Reveal on scroll ---- */
+  var reveals = document.querySelectorAll('.reveal');
+  if (reduce){
+    reveals.forEach(function(r){ r.classList.add('in'); });
+  } else if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {threshold:.15, rootMargin:'0px 0px -60px 0px'});
+    reveals.forEach(function(r){ io.observe(r); });
+  } else {
+    reveals.forEach(function(r){ r.classList.add('in'); });
+  }
+
+  /* ---- Animated counters ---- */
+  var counters = document.querySelectorAll('[data-count]');
+  function animateCount(el){
+    var target = parseFloat(el.getAttribute('data-count'));
+    var decimals = parseInt(el.getAttribute('data-decimals')||'0',10);
+    if (reduce){ el.textContent = target.toFixed(decimals); return; }
+    var dur = 1400, start = null;
+    function tick(ts){
+      if (!start) start = ts;
+      var p = Math.min((ts-start)/dur, 1);
+      var eased = 1 - Math.pow(1-p, 3);
+      el.textContent = (target*eased).toFixed(decimals);
+      if (p<1) requestAnimationFrame(tick);
+      else el.textContent = target.toFixed(decimals);
+    }
+    requestAnimationFrame(tick);
+  }
+  if ('IntersectionObserver' in window){
+    var co = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ animateCount(e.target); co.unobserve(e.target); }
+      });
+    }, {threshold:.6});
+    counters.forEach(function(c){ co.observe(c); });
+  } else {
+    counters.forEach(animateCount);
+  }
+
+  /* ---- Cursor-follow spotlight cards ---- */
+  if (!reduce && window.matchMedia('(hover:hover)').matches){
+    document.querySelectorAll('.spot').forEach(function(card){
+      card.addEventListener('mousemove', function(e){
+        var r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', (e.clientX - r.left)+'px');
+        card.style.setProperty('--my', (e.clientY - r.top)+'px');
+      });
+    });
+  }
+
+  /* ---- Magnetic buttons: nudge toward the cursor, spring back on leave ---- */
+  if (!reduce && finePointer){
+    document.querySelectorAll('[data-magnetic]').forEach(function(btn){
+      var strength = 0.35;
+      btn.addEventListener('pointermove', function(e){
+        btn.style.transition = 'none';
+        var r = btn.getBoundingClientRect();
+        var x = (e.clientX - r.left - r.width/2) * strength;
+        var y = (e.clientY - r.top - r.height/2) * strength;
+        btn.style.transform = 'translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
+      });
+      btn.addEventListener('pointerleave', function(){
+        btn.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+        btn.style.transform = '';
+      });
+    });
+  }
+
+  /* ---- Hero photo tilt ---- */
+  if (!reduce && finePointer){
+    var heroCard = document.querySelector('.hero-card');
+    var heroWrap = document.querySelector('.hero-visual-in');
+    if (heroCard && heroWrap){
+      heroWrap.addEventListener('mousemove', function(e){
+        var r = heroWrap.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5;
+        var py = (e.clientY - r.top) / r.height - 0.5;
+        heroCard.style.transform = 'rotateX('+(-py*7).toFixed(2)+'deg) rotateY('+(px*9).toFixed(2)+'deg)';
+      });
+      heroWrap.addEventListener('mouseleave', function(){ heroCard.style.transform = ''; });
+    }
+  }
+
+  /* ---- Subtle scroll parallax on the truck photo ---- */
+  if (!reduce && finePointer){
+    var pEl = document.querySelector('.truck-photo');
+    if (pEl){
+      var pTicking = false;
+      function updateParallax(){
+        var vh = window.innerHeight;
+        var r = pEl.getBoundingClientRect();
+        if (r.bottom > -200 && r.top < vh + 200){
+          var center = r.top + r.height/2;
+          var delta = (vh/2 - center) * 0.06;
+          pEl.style.setProperty('--py', Math.max(-24, Math.min(24, delta)).toFixed(1)+'px');
+        }
+        pTicking = false;
+      }
+      window.addEventListener('scroll', function(){
+        if (!pTicking){ requestAnimationFrame(updateParallax); pTicking = true; }
+      }, {passive:true});
+      updateParallax();
+    }
+  }
+
+  /* ---- Lightbox gallery ---- */
+  (function lightbox(){
+    var box = document.getElementById('lightbox');
+    var triggers = Array.prototype.slice.call(document.querySelectorAll('[data-lightbox]'));
+    if (!box || !triggers.length) return;
+    var imgEl = document.getElementById('lightboxImg');
+    var capEl = document.getElementById('lightboxCaption');
+    var index = 0, lastFocus = null;
+    var slides = triggers.map(function(t){
+      return { full: t.getAttribute('data-full'), caption: t.getAttribute('data-caption') || '' };
+    });
+    function show(i){
+      index = (i + slides.length) % slides.length;
+      var s = slides[index];
+      imgEl.src = s.full; imgEl.alt = s.caption; capEl.textContent = s.caption;
+    }
+    function open(i){
+      lastFocus = document.activeElement;
+      show(i);
+      box.classList.add('is-open');
+      box.setAttribute('aria-hidden', 'false');
+      document.getElementById('lightboxClose').focus();
+    }
+    function close(){
+      box.classList.remove('is-open');
+      box.setAttribute('aria-hidden', 'true');
+      if (lastFocus) lastFocus.focus();
+    }
+    triggers.forEach(function(t, i){
+      t.addEventListener('click', function(){ open(i); });
+      t.setAttribute('tabindex', '0');
+      t.setAttribute('role', 'button');
+      t.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(i); }
+      });
+    });
+    document.getElementById('lightboxClose').addEventListener('click', close);
+    document.getElementById('lightboxNext').addEventListener('click', function(){ show(index+1); });
+    document.getElementById('lightboxPrev').addEventListener('click', function(){ show(index-1); });
+    box.addEventListener('click', function(e){ if (e.target === box) close(); });
+    document.addEventListener('keydown', function(e){
+      if (!box.classList.contains('is-open')) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowRight') show(index+1);
+      else if (e.key === 'ArrowLeft') show(index-1);
+    });
+  })();
+
+  /* ---- Back to top ---- */
+  (function backToTop(){
+    var btn = document.getElementById('toTop');
+    if (!btn) return;
+    var ticking = false;
+    function update(){
+      btn.classList.toggle('is-shown', window.scrollY > window.innerHeight * 0.9);
+      ticking = false;
+    }
+    window.addEventListener('scroll', function(){
+      if (!ticking){ requestAnimationFrame(update); ticking = true; }
+    }, {passive:true});
+    btn.addEventListener('click', function(){
+      window.scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'});
+    });
+    update();
+  })();
+})();
+</script>
+</body>
+</html>
