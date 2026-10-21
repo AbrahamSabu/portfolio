@@ -1,0 +1,12 @@
+# Your videos, clips, settings and Python environment stay on your machine
+_system/.venv/
+_system/settings.json
+_system/temp/
+_system/processed videos/
+_system/failed/
+_system/removed/
+_system/__pycache__/
+1 Drop videos here/*
+!1 Drop videos here/.gitkeep
+2 Clips/*
+!2 Clips/.gitkeep

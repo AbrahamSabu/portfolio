@@ -31,6 +31,7 @@ def render_clip(video_path, clip, crop, ass_path, out_path):
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
         "-c:a", "aac", "-b:a", "128k",
         "-avoid_negative_ts", "make_zero",
+        "-movflags", "+faststart",
         out_path,
     ])
     return out_path
@@ -80,6 +81,7 @@ def render_clip_path(video_path, clip, crop_path, ass_path, out_path):
             "-vf", "ass='" + _escape_for_filter(ass_path) + "'",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
             "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
             out_path,
         ])
         return out_path

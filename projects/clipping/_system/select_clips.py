@@ -5,6 +5,8 @@ import re
 import shutil
 import subprocess
 
+import settings
+
 FILLER_STARTS = (
     "and", "so", "but", "yeah", "well", "i mean", "you know", "like",
     "um", "uh", "okay", "ok", "right", "anyway", "also", "then", "because",
@@ -43,7 +45,7 @@ score: 0-100 overall.
 reason: under 12 words.
 
 RULES
-20-60 seconds each. 30-45s is the sweet spot. Never under 15s, never over 60s.
+{RULES}
 Clips must not overlap each other.
 
 HOW MANY
@@ -168,6 +170,10 @@ def _filter_hooks(clips):
 
 
 def select_clips(work_dir, timeout=900):
+    cfg = settings.load()
+    lo, hi = cfg["min_secs"], cfg["max_secs"]
+    sweet_lo, sweet_hi = lo + (hi - lo) // 4, hi - (hi - lo) // 4
+    head = HEAD.replace("{RULES}", f"{lo}-{hi} seconds each. {sweet_lo}-{sweet_hi}s is the sweet spot. Never under {lo}s, never over {hi}s.")
     exe = _find_claude()
     if exe is None:
         raise RuntimeError(
@@ -206,7 +212,7 @@ def select_clips(work_dir, timeout=900):
 
     for idx, ch in enumerate(chunks):
         ch_text = "\n".join(l[1] for l in ch)
-        payload = HEAD + TAIL + "\n" + ch_text + "\n" + REMINDER
+        payload = head + TAIL + "\n" + ch_text + "\n" + REMINDER
 
         if len(chunks) > 1:
             print("        part " + str(idx + 1) + "/" + str(len(chunks)) + "...")
@@ -232,6 +238,9 @@ def select_clips(work_dir, timeout=900):
         raise RuntimeError("Claude returned no clips. See raw_response.txt")
 
     clips = _filter_hooks(_dedupe(all_clips))
+    clips = [c for c in clips if lo <= float(c.get("end", 0)) - float(c.get("start", 0)) <= hi + 2]
+    if cfg["max_clips"]:
+        clips = sorted(clips, key=lambda c: c.get("score", 0), reverse=True)[: cfg["max_clips"]]
     print("      " + str(len(clips)) + " clips from " +
           str(int(duration / 60)) + " min of video")
 

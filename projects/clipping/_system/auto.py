@@ -14,6 +14,7 @@ import clips_schema
 import captions
 import reframe
 import render
+import settings
 
 _SYS = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.dirname(_SYS)
@@ -137,14 +138,50 @@ def scan_once(model_size="base"):
     return processed
 
 
+def process_file(path, model_size):
+    """Process one file from the inbox and file it under processed/failed."""
+    try:
+        process_one(path, model_size=model_size)
+        shutil.move(path, os.path.join(DONE, os.path.basename(path)))
+        return True
+    except Exception:
+        print("\n  PROBLEM with " + os.path.basename(path) + " - details below.")
+        traceback.print_exc()
+        try:
+            shutil.move(path, os.path.join(FAILED, os.path.basename(path)))
+        except Exception:
+            pass
+        return False
+
+
+def download(url):
+    """Download a video URL into the inbox with yt-dlp and return its path."""
+    work = os.path.join(WORKROOT, "download-" + str(int(time.time())))
+    os.makedirs(work, exist_ok=True)
+    print("  downloading " + url)
+    src = ingest.resolve_input(url, work)
+    dest = os.path.join(INBOX, "download-" + time.strftime("%Y%m%d-%H%M%S") + os.path.splitext(src)[1])
+    shutil.move(src, dest)
+    shutil.rmtree(work, ignore_errors=True)
+    print("  saved as " + os.path.basename(dest))
+    return dest
+
+
 def main():
     p = argparse.ArgumentParser(description="Automatic clip pipeline.")
     p.add_argument("--watch", action="store_true")
     p.add_argument("--interval", type=int, default=15)
-    p.add_argument("--model", default="base")
+    p.add_argument("--model", default=None, help="whisper size (default: from settings)")
+    p.add_argument("--file", help="process just this file from the inbox")
+    p.add_argument("--url", help="download this video URL first, then process it")
     args = p.parse_args()
+    args.model = args.model or settings.load()["model"]
 
     _ensure_dirs()
+
+    if args.url or args.file:
+        path = download(args.url) if args.url else args.file
+        raise SystemExit(0 if process_file(path, args.model) else 1)
 
     if not args.watch:
         n = scan_once(args.model)

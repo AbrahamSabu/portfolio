@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clipping</title>
+<meta name="token" content="__TOKEN__">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e2572b'/><rect x='11' y='7' width='10' height='18' rx='2' stroke='white' stroke-width='2.5' fill='none'/></svg>">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">C</span><div><strong>clipping</strong><small>Long video in, short captioned clips out.</small></div></div>
+  <div class="status"><span id="phase" class="pill">Idle</span><button id="stop" class="btn danger" hidden>Stop</button></div>
+</header>
+<div class="layout">
+  <nav class="steps">
+    <a href="#setup" data-step="setup"><b>1</b><span>Setup</span><i></i></a>
+    <a href="#add" data-step="add"><b>2</b><span>Add videos</span><i></i></a>
+    <a href="#settings" data-step="settings"><b>3</b><span>Clip settings</span><i></i></a>
+    <a href="#process" data-step="process"><b>4</b><span>Make clips</span><i></i></a>
+    <a href="#clips" data-step="clips"><b>5</b><span>Your clips</span><i></i></a>
+  </nav>
+  <main>
+    <section id="setup" class="panel">
+      <h1>Setup</h1>
+      <p class="lead">Everything runs on your computer. There are no API keys: transcription runs locally, and Claude Code (on your own account) picks the best moments.</p>
+      <div class="card">
+        <div class="card-head"><h2>Checklist</h2><div class="row tight"><button class="btn" id="install" hidden>Install packages</button><button class="btn" id="recheck">Check again</button></div></div>
+        <ul class="checks" id="checks"><li class="muted">Checking…</li></ul>
+      </div>
+      <div class="next"><a class="btn primary" href="#add">Next: add a video →</a></div>
+    </section>
+
+    <section id="add" class="panel">
+      <h1>Add videos</h1>
+      <p class="lead">Drop in a podcast, interview, stream or talk. Longer videos with lots of talking work best.</p>
+      <label class="drop" id="drop">
+        <b>Drop video files here</b>
+        <span class="muted">or click to choose · mp4, mov, mkv, webm, avi, m4v</span>
+        <input type="file" id="file" accept="video/*,.mkv" multiple>
+      </label>
+      <div class="progress uploading" id="upProgress" hidden><div></div><span></span></div>
+      <div class="card" style="margin-top:16px">
+        <h2>Or paste a link</h2>
+        <div class="row"><input id="url" placeholder="https://… (any site yt-dlp supports)"><button class="btn primary" id="addUrl">Download &amp; clip</button></div>
+        <p class="hint">Only clip videos you own or have permission to use.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Waiting to be clipped</h2><button class="btn primary" id="processAll">Make clips from all</button></div>
+        <ul class="filelist" id="inbox"></ul>
+      </div>
+    </section>
+
+    <section id="settings" class="panel">
+      <h1>Clip settings</h1>
+      <p class="lead">Saved straight away, and used for the next video you process.</p>
+      <div class="card grid2">
+        <label class="field wide"><span>Transcription quality</span>
+          <select id="model">
+            <option value="tiny">Tiny: fastest, rough</option>
+            <option value="base">Base: fast, good (recommended)</option>
+            <option value="small">Small: slower, better</option>
+            <option value="medium">Medium: slow, very good</option>
+            <option value="large-v3">Large: slowest, best</option>
+          </select></label>
+        <label class="field"><span>Shortest clip: <b id="minVal"></b>s</span><input id="min_secs" type="range" min="5" max="120" step="5"></label>
+        <label class="field"><span>Longest clip: <b id="maxVal"></b>s</span><input id="max_secs" type="range" min="15" max="180" step="5"></label>
+        <label class="field"><span>Clips per video <em>(0 = every good one)</em></span><input id="max_clips" type="number" min="0" max="50"></label>
+      </div>
+      <p class="hint">Want different captions or a different clip style? The prompt is in <code>_system/select_clips.py</code> and the caption look is in <code>_system/captions.py</code>.</p>
+    </section>
+
+    <section id="process" class="panel">
+      <h1>Make clips</h1>
+      <p class="lead">Each video goes through: transcribe → pick the best moments → follow the speaker into a vertical frame → burn in captions. Videos process one at a time.</p>
+      <div id="queue" class="queue"></div>
+      <div class="card"><h2>Activity</h2><ol class="log" id="log"></ol></div>
+    </section>
+
+    <section id="clips" class="panel">
+      <h1>Your clips</h1>
+      <div class="actionbar" style="justify-content:flex-start"><button class="btn" id="openOut">Open clips folder</button></div>
+      <div id="groups"></div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -2,25 +2,52 @@
 
 # Clipping
 
-**Long video in, short vertical captioned clips out. Runs on your own machine, with no API keys.**
+**Long video in, short vertical captioned clips out. It runs on your own machine through a simple app, with no API keys.**
 
-A local tool in the style of Opus Clip: you put a long video in and get short, vertical,
-captioned clips out. It runs on your own computer with no AI API keys. Transcription
-uses faster-whisper locally. Claude Code, on your subscription, picks the clips.
-OpenCV reframes them to vertical.
+![Drop in a video or paste a link](screenshots/app-add.png)
 
-No videos are included. Both folders below start empty.
+## Quick start
 
-## How to run (Windows)
+You need [Python 3.9+](https://python.org), [ffmpeg](https://ffmpeg.org), and [Claude Code](https://claude.com/claude-code)
+(signed in), which picks the clips.
 
-1. Double-click `SETUP.bat` once. It creates the Python environment and folders.
-2. Put a video in `1 Drop videos here`.
-3. Double-click `CLIP.bat`. The clips appear in `2 Clips`.
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/AbrahamSabu/portfolio.git clipping
+cd clipping
+git sparse-checkout set projects/clipping
+cd projects/clipping
+```
 
-`WATCH.bat` keeps running instead and clips each new video as it lands in the drop folder.
+Then double-click **`START.bat`** on Windows, or run `./start.sh` on Mac and Linux. The first run sets up Python and
+installs the packages (a few minutes, once). After that it opens straight into the app at **http://localhost:4323**.
 
-## More
+To install ffmpeg: `winget install ffmpeg` (Windows), `brew install ffmpeg` (Mac), or `sudo apt install ffmpeg` (Linux).
 
-[_system/README.md](_system/README.md) covers how the pipeline works, the no-API-key
-rule, and tuning. [_system/CLIPPING_BRIEF.md](_system/CLIPPING_BRIEF.md) is the brief
-Claude Code reads when it chooses clips.
+## How it works
+
+| Step | In the app | What happens |
+|---|---|---|
+| **1. Setup** | Checklist | Checks Python, ffmpeg, Claude Code and the Python packages, with a one-click install for anything missing |
+| **2. Add videos** | Drag & drop, or paste a link | Files go into `1 Drop videos here`. Links are downloaded with yt-dlp |
+| **3. Clip settings** | Sliders | Transcription quality, the shortest and longest clip, and how many clips per video |
+| **4. Make clips** | Live queue | **Transcribe** locally with faster-whisper → **Claude Code picks** the strongest self-contained moments → **follow the speaker** into a 9:16 frame with OpenCV → **burn in captions** with ffmpeg |
+| **5. Your clips** | Player grid | Watch, save, or open the `2 Clips` folder |
+
+![Clip settings](screenshots/app-settings.png)
+
+## Make it your own
+
+- **Clip length and count:** set in the app.
+- **What makes a good clip:** edit the prompt in `_system/select_clips.py`.
+- **Caption look** (words per line, font, position): edit `_system/captions.py`.
+- **Command line:** `python _system/auto.py` processes everything waiting. Add `--watch` to keep watching the folder,
+  or use `--file video.mp4` or `--url https://…` for a single video.
+
+## Notes
+
+- Everything stays local: your videos, clips, settings and the Python environment are all gitignored.
+- Only clip videos you own or have permission to use.
+
+## License
+
+[MIT](LICENSE)
