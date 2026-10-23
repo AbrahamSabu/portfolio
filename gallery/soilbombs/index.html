@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Soil Bombs — Nature's Pills for Tired Soil</title>
+<meta name="description" content="Soil Bombs are dissolvable, all-in-one plant food bombs. Drop one in water, let it fizz, feed your plants — and watch them thrive." />
+<meta name="theme-color" content="#3F5C36" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,700&family=Poppins:wght@300;400;500;600;700&family=Pacifico&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --cream:#F6F1E4;
+    --cream-deep:#EDE6D2;
+    --char:#2A2A26;
+    --char-soft:#4a4840;
+    --green:#5E8C4E;
+    --green-bright:#7DB56A;
+    --green-glow:#9bd67f;
+    --olive:#37502f;
+    --sage:#A8C09A;
+    --sage-soft:#C7D7BC;
+    --shadow:0 24px 60px -22px rgba(42,42,38,.4);
+    --shadow-sm:0 12px 34px -14px rgba(42,42,38,.3);
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Poppins',system-ui,sans-serif;color:var(--char);
+    background:var(--cream);line-height:1.6;overflow-x:hidden;
+  }
+  body.loading{overflow:hidden;height:100vh}
+  h1,h2,h3,.serif{font-family:'Playfair Display',Georgia,serif}
+  .script{font-family:'Pacifico',cursive}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 26px}
+  ::selection{background:var(--green-bright);color:#fff}
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:.5em;position:relative;
+    padding:.9em 1.7em;border-radius:999px;font-weight:600;font-size:.98rem;
+    cursor:pointer;border:none;transition:box-shadow .3s ease, background .3s ease, color .3s;
+    will-change:transform;white-space:nowrap;
+  }
+  .btn-primary{background:var(--green);color:#fff;box-shadow:0 14px 30px -10px rgba(94,140,78,.85)}
+  .btn-primary:hover{background:var(--green-bright);box-shadow:0 20px 40px -12px rgba(125,181,106,.95)}
+  .btn-ghost{background:transparent;color:var(--char);border:1.6px solid rgba(42,42,38,.28)}
+  .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+  .btn .arrow{transition:transform .3s}
+  .btn:hover .arrow{transform:translateX(4px)}
+
+  /* ---------- CUSTOM CURSOR ---------- */
+  .cursor-dot,.cursor-ring{position:fixed;top:0;left:0;border-radius:50%;pointer-events:none;z-index:9999;mix-blend-mode:multiply}
+  .cursor-dot{width:8px;height:8px;background:var(--green);transform:translate(-50%,-50%)}
+  .cursor-ring{width:38px;height:38px;border:1.5px solid var(--green-bright);transform:translate(-50%,-50%);transition:width .25s,height .25s,background .25s,opacity .25s}
+  .cursor-ring.hover{width:60px;height:60px;background:rgba(125,181,106,.14);border-color:transparent}
+  body.has-cursor,body.has-cursor *{cursor:none !important}
+  @media(hover:none),(pointer:coarse){.cursor-dot,.cursor-ring{display:none}}
+
+  /* ---------- PRELOADER ---------- */
+  #loader{position:fixed;inset:0;z-index:10000;background:var(--olive);display:grid;place-items:center;transition:opacity .7s ease, visibility .7s}
+  #loader.done{opacity:0;visibility:hidden}
+  .load-inner{text-align:center;color:var(--cream)}
+  .load-glass{width:120px;height:150px;margin:0 auto 22px;position:relative;border:3px solid rgba(255,255,255,.5);border-top:none;border-radius:10px 10px 20px 20px;overflow:hidden}
+  .load-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(var(--green-bright),var(--green));animation:fillup 1.8s ease-in-out forwards}
+  @keyframes fillup{to{height:88%}}
+  .load-bomb{position:absolute;left:50%;top:12px;width:34px;height:34px;transform:translateX(-50%);animation:sink 1.8s ease-in forwards}
+  @keyframes sink{0%{top:-40px}55%{top:50px}100%{top:78px;opacity:.15}}
+  .load-inner .script{font-size:2rem;color:#fff;opacity:0;animation:fadein .6s ease .9s forwards}
+  .load-bar{width:150px;height:4px;border-radius:4px;background:rgba(255,255,255,.2);margin:14px auto 0;overflow:hidden}
+  .load-bar i{display:block;height:100%;width:0;background:var(--green-glow);animation:load 1.9s ease forwards}
+  @keyframes load{to{width:100%}}
+  @keyframes fadein{to{opacity:1}}
+
+  /* ---------- SCROLL VINE PROGRESS ---------- */
+  .vine{position:fixed;top:0;right:16px;height:100vh;width:30px;z-index:40;pointer-events:none}
+  @media(max-width:1050px){.vine{display:none}}
+  .vine svg{height:100%;width:100%}
+  .vine .track{stroke:rgba(94,140,78,.15)}
+  .vine .grow{stroke:var(--green);stroke-linecap:round;transition:stroke-dashoffset .1s linear}
+  .vine .bud{fill:var(--green-bright);transition:transform .2s}
+
+  /* ---------- NAV ---------- */
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(246,241,228,.72);border-bottom:1px solid transparent;transition:border-color .3s, box-shadow .3s}
+  header.scrolled{border-color:rgba(42,42,38,.08);box-shadow:0 6px 24px -18px rgba(42,42,38,.6)}
+  nav{display:flex;align-items:center;justify-content:space-between;height:74px}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:600}
+  .brand .badge{width:44px;height:44px;flex:0 0 auto;transition:transform .5s}
+  .brand:hover .badge{transform:rotate(-12deg) scale(1.08)}
+  .brand .name{font-family:'Playfair Display',serif;font-weight:700;font-size:1.25rem}
+  .navlinks{display:flex;gap:30px;align-items:center}
+  .navlinks a{font-size:.95rem;font-weight:500;position:relative;color:var(--char-soft)}
+  .navlinks a.link::after{content:"";position:absolute;left:0;bottom:-6px;width:0;height:2px;background:var(--green);transition:width .25s}
+  .navlinks a.link:hover,.navlinks a.link.active{color:var(--char)}
+  .navlinks a.link:hover::after,.navlinks a.link.active::after{width:100%}
+  .navlinks .btn{color:#fff}
+  .menu-btn{display:none;background:none;border:none;cursor:pointer;font-size:1.7rem;color:var(--char)}
+  #mobile{display:none;flex-direction:column;gap:6px;padding:0 26px 16px}
+  #mobile a{padding:10px 0;border-bottom:1px solid rgba(42,42,38,.08);font-weight:500}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;overflow:hidden;padding:66px 0 88px;min-height:88vh;display:flex;align-items:center}
+  .mesh{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;z-index:0}
+  .hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;width:100%}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(199,215,188,.7);color:var(--olive);padding:.5em 1.05em;border-radius:999px;font-size:.82rem;font-weight:600;margin-bottom:22px;backdrop-filter:blur(4px)}
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 0 0 rgba(125,181,106,.7);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(125,181,106,.6)}70%{box-shadow:0 0 0 10px rgba(125,181,106,0)}100%{box-shadow:0 0 0 0 rgba(125,181,106,0)}}
+  .hero h1{font-size:clamp(2.7rem,6vw,4.8rem);line-height:1.0;font-weight:900;letter-spacing:-1.5px}
+  .hero h1 .word{display:inline-block}
+  .hero h1 em{font-style:italic;color:var(--green);font-weight:700;position:relative}
+  .hero h1 em svg{position:absolute;left:0;bottom:-10px;width:100%;height:14px}
+  .hero p.lead{font-size:1.16rem;color:var(--char-soft);max-width:520px;margin:22px 0 32px}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+  .hero-note{margin-top:30px;display:flex;gap:30px;flex-wrap:wrap;color:var(--char-soft);font-size:.9rem}
+  .hero-note b{color:var(--char);font-family:'Playfair Display',serif;font-size:1.35rem;display:block;line-height:1}
+  .scroll-cue{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;color:var(--char-soft);font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.8}
+  .scroll-cue .mouse{width:22px;height:34px;border:2px solid var(--char-soft);border-radius:12px;position:relative}
+  .scroll-cue .mouse::after{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:4px;height:6px;border-radius:2px;background:var(--char-soft);animation:wheel 1.6s infinite}
+  @keyframes wheel{0%{opacity:1;top:6px}100%{opacity:0;top:16px}}
+
+  /* dissolving glass scene */
+  .scene{position:relative;display:flex;align-items:center;justify-content:center;min-height:460px}
+  .glass{position:relative;width:240px;height:300px;background:linear-gradient(180deg,rgba(199,215,188,.32),rgba(168,192,154,.5));border:3px solid rgba(255,255,255,.75);border-top:none;border-radius:14px 14px 28px 28px;box-shadow:var(--shadow),inset 0 0 40px rgba(255,255,255,.4);overflow:hidden;transition:transform .3s}
+  .water{position:absolute;left:0;right:0;bottom:0;height:70%;background:linear-gradient(180deg,rgba(125,181,106,.5),rgba(63,92,54,.68));animation:sway 6s ease-in-out infinite;transition:background .8s}
+  .water::before{content:"";position:absolute;top:-8px;left:0;right:0;height:14px;background:rgba(255,255,255,.4);border-radius:50%}
+  @keyframes sway{0%,100%{transform:skewY(-1.2deg)}50%{transform:skewY(1.2deg)}}
+  .bomb-svg{position:absolute;left:50%;top:42%;width:58px;height:58px;transform:translate(-50%,-50%);animation:bob 4s ease-in-out infinite;filter:drop-shadow(0 8px 10px rgba(0,0,0,.3));z-index:3}
+  @keyframes bob{0%,100%{top:42%}50%{top:49%}}
+  .bubble{position:absolute;background:radial-gradient(circle at 30% 30%,#fff,rgba(255,255,255,.35));border-radius:50%;opacity:0;z-index:2}
+  @keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:.9}100%{transform:translateY(-250px) scale(1.15);opacity:0}}
+  .leaf-float{position:absolute;will-change:transform;z-index:2;pointer-events:none}
+  .drop-btn{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);z-index:5}
+  .falling-bomb{position:absolute;left:50%;width:46px;height:46px;margin-left:-23px;z-index:4;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.3))}
+  @keyframes drop{0%{top:-54px}72%{top:150px}84%{top:134px}100%{top:150px}}
+  .splash{position:absolute;left:50%;top:30%;width:24px;height:10px;margin-left:-12px;border:2px solid rgba(255,255,255,.85);border-radius:50%;transform:translateY(-50%);opacity:0;pointer-events:none;z-index:3}
+  @keyframes splash{0%{opacity:.9}100%{opacity:0;width:130px;height:48px;margin-left:-65px}}
+
+  /* ---------- MARQUEE ---------- */
+  .marquee{background:var(--char);color:var(--cream);padding:16px 0;overflow:hidden;white-space:nowrap;transform:rotate(-1.4deg);margin:10px 0}
+  .marquee-track{display:inline-flex;gap:38px;animation:scrollx 22s linear infinite;font-family:'Playfair Display',serif;font-style:italic;font-size:1.35rem;font-weight:500}
+  .marquee-track span{display:inline-flex;align-items:center;gap:38px}
+  .marquee .star{color:var(--green-bright);font-style:normal}
+  @keyframes scrollx{to{transform:translateX(-50%)}}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:100px 0;position:relative}
+  .sec-head{text-align:center;max-width:660px;margin:0 auto 58px}
+  .sec-head .kicker{color:var(--green);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:.78rem}
+  .sec-head h2{font-size:clamp(2rem,4.4vw,3.1rem);font-weight:800;margin:10px 0 14px;letter-spacing:-.5px}
+  .sec-head p{color:var(--char-soft);font-size:1.06rem}
+
+  /* HOW IT WORKS */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  .tilt{transform-style:preserve-3d;transition:transform .2s ease}
+  .step{background:#fff;border-radius:24px;padding:38px 28px 32px;text-align:center;box-shadow:var(--shadow-sm);border:1px solid rgba(42,42,38,.05);position:relative}
+  .step .num{position:absolute;top:-18px;left:50%;transform:translateX(-50%) translateZ(40px);width:40px;height:40px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-family:'Playfair Display',serif;font-weight:700;box-shadow:0 8px 18px -6px rgba(94,140,78,.9)}
+  .step .ico{width:82px;height:82px;margin:16px auto 18px;display:grid;place-items:center;background:var(--cream-deep);border-radius:50%;transform:translateZ(30px)}
+  .step h3{font-size:1.32rem;margin-bottom:8px;transform:translateZ(24px)}
+  .step p{color:var(--char-soft);font-size:.96rem;transform:translateZ(14px)}
+
+  /* ---------- INTERACTIVE GROWER ---------- */
+  .grower-sec{background:radial-gradient(1200px 500px at 50% -10%,rgba(168,192,154,.4),transparent),var(--cream-deep)}
+  .grower{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;background:#fff;border-radius:34px;padding:20px;box-shadow:var(--shadow);border:1px solid rgba(42,42,38,.05)}
+  .stage{position:relative;height:460px;border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#eaf3e2,#dbe9cf)}
+  .stage .sun{position:absolute;top:26px;right:30px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,#ffe9a8,#ffd466);box-shadow:0 0 50px 12px rgba(255,212,102,.5);animation:sunpulse 5s ease-in-out infinite}
+  @keyframes sunpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .stage .ground{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(180deg,#7a5b3a,#5e442a)}
+  .stage .ground::before{content:"";position:absolute;top:-6px;left:0;right:0;height:14px;background:#8a6a45;border-radius:50%}
+  .pot{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:4}
+  #flora{transform-origin:bottom center;transform:scale(.35);transition:transform .8s cubic-bezier(.34,1.4,.5,1)}
+  #flora .l{opacity:0;transform:scale(.1);transform-origin:bottom center;transition:transform .7s cubic-bezier(.34,1.7,.5,1),opacity .5s}
+  #flora .l.show{opacity:1;transform:scale(1)}
+  #flora .bloom{opacity:0;transform:scale(0);transform-origin:center;transition:transform .8s cubic-bezier(.34,1.9,.5,1),opacity .5s}
+  #flora .bloom.show{opacity:1;transform:scale(1)}
+  .thrive-badge{position:absolute;top:18px;left:50%;transform:translateX(-50%) translateY(-14px);background:var(--green);color:#fff;padding:.5em 1.2em;border-radius:999px;font-weight:600;font-size:.9rem;box-shadow:var(--shadow-sm);opacity:0;transition:.5s;z-index:6}
+  .thrive-badge.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .grow-panel{padding:26px 30px 30px}
+  .grow-panel .kicker{color:var(--green);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:.78rem}
+  .grow-panel h2{font-size:clamp(1.8rem,3.4vw,2.6rem);font-weight:800;margin:8px 0 10px;letter-spacing:-.5px}
+  .grow-panel p{color:var(--char-soft)}
+  .meter{margin:24px 0 10px}
+  .meter-top{display:flex;justify-content:space-between;font-size:.85rem;font-weight:600;margin-bottom:8px}
+  .meter-bar{height:16px;border-radius:10px;background:var(--cream-deep);overflow:hidden;position:relative}
+  .meter-fill{height:100%;width:0;border-radius:10px;background:linear-gradient(90deg,var(--green),var(--green-bright),var(--green-glow));background-size:200% 100%;transition:width .6s cubic-bezier(.34,1.3,.5,1);animation:shimmer 2s linear infinite}
+  @keyframes shimmer{to{background-position:200% 0}}
+  .grow-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:22px;align-items:center}
+  .feed-count{font-size:.9rem;color:var(--char-soft)}
+  .feed-count b{color:var(--green);font-size:1.1rem}
+  .reset-btn{background:none;border:none;color:var(--char-soft);font-size:.85rem;cursor:pointer;text-decoration:underline;font-family:inherit}
+
+  /* ---------- BENEFITS ---------- */
+  .benefits{background:var(--olive);color:var(--cream);border-radius:38px;margin:0 26px;overflow:hidden;position:relative}
+  .benefits::after{content:"";position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(125,181,106,.4),transparent 70%);top:-120px;right:-80px}
+  .benefits .wrap{padding:82px 26px;position:relative;z-index:2}
+  .benefits .sec-head h2{color:var(--cream)}
+  .benefits .sec-head .kicker{color:var(--sage)}
+  .benefits .sec-head p{color:rgba(246,241,228,.75)}
+  .bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+  .bcard{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:30px 22px;transition:background .3s, transform .3s, box-shadow .3s;cursor:default}
+  .bcard:hover{background:rgba(255,255,255,.13);transform:translateY(-8px);box-shadow:0 24px 40px -20px rgba(0,0,0,.5)}
+  .bcard .ico{width:54px;height:54px;margin-bottom:16px;color:var(--green-glow)}
+  .bcard h3{font-size:1.16rem;color:#fff;margin-bottom:6px}
+  .bcard p{font-size:.9rem;color:rgba(246,241,228,.72)}
+
+  /* ---------- STATS ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;text-align:center}
+  .stat{padding:20px}
+  .stat .n{font-family:'Playfair Display',serif;font-size:clamp(2.4rem,5vw,3.4rem);font-weight:900;color:var(--green);line-height:1}
+  .stat .n small{font-size:1.6rem}
+  .stat p{color:var(--char-soft);font-size:.92rem;margin-top:6px}
+
+  /* ---------- PRICING ---------- */
+  .prices{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;align-items:stretch}
+  .price{background:#fff;border-radius:26px;padding:40px 30px;text-align:center;border:1px solid rgba(42,42,38,.07);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .price.feat{background:var(--char);color:var(--cream)}
+  .price.feat h3,.price.feat .amt{color:#fff}
+  .price .tag{font-size:.78rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--green)}
+  .price.feat .tag{color:var(--green-bright)}
+  .price h3{font-size:1.55rem;margin:8px 0 4px}
+  .price .amt{font-family:'Playfair Display',serif;font-size:3.1rem;font-weight:900;line-height:1}
+  .price .amt small{font-size:1rem;font-weight:500;color:var(--char-soft)}
+  .price.feat .amt small{color:var(--sage)}
+  .price ul{list-style:none;margin:24px 0 28px;text-align:left;display:grid;gap:11px}
+  .price li{display:flex;gap:10px;align-items:flex-start;font-size:.94rem;color:var(--char-soft)}
+  .price.feat li{color:rgba(246,241,228,.82)}
+  .price li svg{flex:0 0 auto;margin-top:3px;color:var(--green)}
+  .price.feat li svg{color:var(--green-bright)}
+  .price .btn{width:100%;justify-content:center;margin-top:auto}
+  .price.feat .btn-primary{background:var(--green-bright)}
+  .ribbon{position:absolute;top:18px;right:-36px;background:var(--green-bright);color:#fff;font-size:.72rem;font-weight:700;letter-spacing:1px;padding:6px 44px;transform:rotate(45deg)}
+
+  /* ---------- STORY ---------- */
+  .story{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  .story-card{background:linear-gradient(160deg,var(--sage-soft),var(--cream-deep));border-radius:30px;padding:48px;position:relative;box-shadow:var(--shadow-sm);overflow:hidden}
+  .story-card .big-script{font-family:'Pacifico',cursive;color:var(--olive);font-size:clamp(2.3rem,4.2vw,3.4rem);line-height:1.1;position:relative;z-index:2}
+  .story-card p{margin-top:16px;color:var(--char-soft);position:relative;z-index:2}
+  .story-card .ghost-leaf{position:absolute;right:-30px;bottom:-30px;width:180px;opacity:.25}
+  .story h2{font-size:clamp(2rem,4vw,2.8rem);font-weight:800;letter-spacing:-.5px}
+  .story p{color:var(--char-soft);margin-top:16px;font-size:1.03rem}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+  .chip{background:#fff;border:1px solid rgba(42,42,38,.08);padding:.55em 1.05em;border-radius:999px;font-size:.85rem;font-weight:500;box-shadow:var(--shadow-sm);transition:transform .25s}
+  .chip:hover{transform:translateY(-3px)}
+  .chip span{color:var(--green)}
+
+  /* ---------- CTA ---------- */
+  .cta-band{text-align:center;background:var(--char);color:var(--cream);border-radius:38px;margin:0 26px;position:relative;overflow:hidden}
+  .cta-band::before,.cta-band::after{content:"";position:absolute;border-radius:50%;filter:blur(50px)}
+  .cta-band::before{width:300px;height:300px;background:rgba(94,140,78,.5);top:-120px;left:-60px}
+  .cta-band::after{width:260px;height:260px;background:rgba(125,181,106,.4);bottom:-120px;right:-40px}
+  .cta-band .wrap{padding:84px 26px;position:relative;z-index:2}
+  .cta-band h2{font-size:clamp(2.2rem,5.2vw,3.6rem);font-weight:900;color:#fff}
+  .cta-band p{color:rgba(246,241,228,.78);max-width:520px;margin:16px auto 30px;font-size:1.1rem}
+  .cta-band .btn-ghost{color:var(--cream);border-color:rgba(246,241,228,.35)}
+  .cta-band .btn-ghost:hover{color:#fff;border-color:var(--green-bright)}
+
+  /* ---------- FOOTER ---------- */
+  footer{padding:64px 0 40px}
+  .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px}
+  .foot .brand .name{font-size:1.2rem}
+  .foot .links{display:flex;gap:26px;font-size:.92rem;color:var(--char-soft)}
+  .foot .links a:hover{color:var(--green)}
+  .foot-bottom{margin-top:36px;padding-top:22px;border-top:1px solid rgba(42,42,38,.1);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:.82rem;color:var(--char-soft)}
+
+  /* ---------- REVEAL ---------- */
+  .reveal{opacity:0;transform:translateY(34px);transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+  .reveal.d1{transition-delay:.09s}.reveal.d2{transition-delay:.18s}.reveal.d3{transition-delay:.27s}
+  @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}.reveal{opacity:1;transform:none}}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media(max-width:900px){
+    section{padding:72px 0}
+    .hero{min-height:auto;padding:40px 0 72px}
+    .hero-grid,.story,.grower{grid-template-columns:1fr}
+    .scene{order:-1;min-height:340px;margin-bottom:22px}
+    .steps,.prices{grid-template-columns:1fr}
+    .bgrid,.stats{grid-template-columns:1fr 1fr}
+    .navlinks{display:none}
+    .menu-btn{display:block}
+    .grower{padding:14px}
+    .stage{height:380px}
+    .benefits,.cta-band{margin:0 14px}
+    .benefits .wrap,.cta-band .wrap{padding:62px 20px}
+    .story-card{padding:36px}
+    .marquee-track{font-size:1.1rem}
+    .scroll-cue{display:none}
+  }
+  @media(max-width:520px){
+    .wrap{padding:0 18px}
+    section{padding:56px 0}
+    .bgrid,.stats{grid-template-columns:1fr}
+    .hero{padding:24px 0 64px}
+    .hero h1{letter-spacing:-.8px}
+    .hero p.lead{font-size:1.05rem}
+    .hero-note{gap:18px 26px}
+    .hero-note b{font-size:1.2rem}
+    .scene{min-height:320px}
+    .glass{width:210px;height:270px}
+    .price{padding:32px 24px}
+    .step{padding:34px 22px 28px}
+    .grow-panel{padding:20px 4px 6px}
+    .sec-head{margin-bottom:44px}
+    .hero-cta{width:100%}
+    .hero-cta .btn{flex:1 1 100%;justify-content:center}
+    .grow-actions{flex-direction:column;align-items:stretch;text-align:center}
+    .grow-actions .btn{width:100%;justify-content:center}
+    .benefits,.cta-band{border-radius:28px}
+    .story-card{padding:30px}
+  }
+</style>
+</head>
+<body class="loading">
+
+<!-- logo symbol -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="58" fill="#F6F1E4" stroke="#5E8C4E" stroke-width="2.5"/>
+    <path d="M32 66 C24 50 30 34 44 32" fill="none" stroke="#5E8C4E" stroke-width="5" stroke-linecap="round"/>
+    <path d="M40 30q-8 2-9 10 8-1 9-10z M35 42q-7 3-7 11 7-2 7-11z M33 54q-6 4-5 12 6-3 5-12z" fill="#5E8C4E"/>
+    <path d="M88 66 C96 50 90 34 76 32" fill="none" stroke="#5E8C4E" stroke-width="5" stroke-linecap="round"/>
+    <path d="M80 30q8 2 9 10-8-1-9-10z M85 42q7 3 7 11-7-2-7-11z M87 54q6 4 5 12-6-3-5-12z" fill="#5E8C4E"/>
+    <circle cx="60" cy="66" r="20" fill="#2A2A26"/>
+    <path d="M60 46 q6 -8 13 -9" fill="none" stroke="#2A2A26" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="75" cy="35" r="3.4" fill="#7DB56A"/>
+    <circle cx="53" cy="60" r="5" fill="#4a4a44"/>
+  </symbol>
+  <symbol id="leaf" viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></symbol>
+</svg>
+
+<!-- PRELOADER -->
+<div id="loader">
+  <div class="load-inner">
+    <div class="load-glass">
+      <div class="load-fill"></div>
+      <svg class="load-bomb" viewBox="0 0 120 120"><circle cx="60" cy="72" r="30" fill="#2A2A26"/><circle cx="50" cy="62" r="8" fill="#4a4a44"/><path d="M60 42 q8 -12 20 -13" fill="none" stroke="#2A2A26" stroke-width="6" stroke-linecap="round"/><circle cx="82" cy="27" r="6" fill="#7DB56A"/></svg>
+    </div>
+    <div class="script">Soil Bombs</div>
+    <div class="load-bar"><i></i></div>
+  </div>
+</div>
+
+<!-- CURSOR -->
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<!-- VINE PROGRESS -->
+<div class="vine" aria-hidden="true">
+  <svg viewBox="0 0 30 800" preserveAspectRatio="none">
+    <path class="track" d="M15 5 Q28 200 15 400 Q2 600 15 795" fill="none" stroke-width="3"/>
+    <path id="vineGrow" class="grow" d="M15 5 Q28 200 15 400 Q2 600 15 795" fill="none" stroke-width="3"/>
+    <circle id="vineBud" class="bud" cx="15" cy="5" r="6"/>
+  </svg>
+</div>
+
+<header id="hdr">
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#top"><svg class="badge"><use href="#logo"/></svg><span class="name">Soil Bombs</span></a>
+      <div class="navlinks">
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#grow">Grow one</a>
+        <a class="link" href="#why">Why us</a>
+        <a class="link" href="#pricing">Packs</a>
+        <a class="link" href="#story">Our story</a>
+        <a class="btn btn-primary magnetic" href="#pricing">Shop now</a>
+      </div>
+      <button class="menu-btn" aria-label="menu" id="menuBtn">☰</button>
+    </nav>
+  </div>
+  <div id="mobile">
+    <a href="#how">How it works</a><a href="#grow">Grow one</a><a href="#why">Why us</a><a href="#pricing">Packs</a><a href="#story">Our story</a>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero" id="hero">
+  <span class="mesh" style="width:420px;height:420px;background:var(--sage);top:-120px;right:-60px"></span>
+  <span class="mesh" style="width:300px;height:300px;background:var(--green-bright);bottom:-100px;left:-80px;opacity:.35"></span>
+  <span class="mesh" style="width:220px;height:220px;background:var(--cream-deep);top:40%;left:40%;opacity:.7"></span>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow reveal"><span class="dot"></span> Nature's pills for tired soil</span>
+        <h1 class="reveal d1"><span class="word">Drop&nbsp;it&nbsp;in.</span><br><span class="word">Watch&nbsp;it&nbsp;fizz.</span><br><em>Watch them grow.<svg viewBox="0 0 200 14" preserveAspectRatio="none"><path d="M2 9 Q50 2 100 7 T198 5" fill="none" stroke="#7DB56A" stroke-width="4" stroke-linecap="round"/></svg></em></h1>
+        <p class="lead reveal d2">Soil Bombs are little bombs of premium plant food, packed with every nutrient your plants could ever need. Dissolve one in water like a bath bomb, pour it in — and watch your houseplants thrive.</p>
+        <div class="hero-cta reveal d3">
+          <a class="btn btn-primary magnetic" href="#pricing">Get your Soil Bombs <span class="arrow">→</span></a>
+          <a class="btn btn-ghost magnetic" href="#grow">Grow a plant now</a>
+        </div>
+        <div class="hero-note reveal d3">
+          <div><b>100%</b>plant-loving nutrients</div>
+          <div><b>0</b>mess, no measuring</div>
+          <div><b>€4.99</b>starter 6-pack</div>
+        </div>
+      </div>
+      <div class="scene" id="scene">
+        <div class="glass" id="glass">
+          <div class="water" id="water"></div>
+          <svg class="bomb-svg" viewBox="0 0 120 120"><circle cx="60" cy="72" r="30" fill="#2A2A26"/><circle cx="50" cy="62" r="8" fill="#4a4a44"/><path d="M60 42 q8 -12 20 -13" fill="none" stroke="#2A2A26" stroke-width="5" stroke-linecap="round"/><circle cx="82" cy="27" r="5" fill="#7DB56A"/></svg>
+        </div>
+        <button class="btn btn-primary drop-btn" id="dropBtn">💧 Drop a bomb</button>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue"><div class="mouse"></div><span>scroll</span></div>
+</section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Nature's pills <span class="star">✦</span> Healing tired soil <span class="star">✦</span> We grow to give <span class="star">✦</span> All the nutrients <span class="star">✦</span> Mess-free feeding <span class="star">✦</span> Watch them thrive <span class="star">✦</span></span>
+    <span>Nature's pills <span class="star">✦</span> Healing tired soil <span class="star">✦</span> We grow to give <span class="star">✦</span> All the nutrients <span class="star">✦</span> Mess-free feeding <span class="star">✦</span> Watch them thrive <span class="star">✦</span></span>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">So simple</div>
+      <h2>Three steps to happy plants</h2>
+      <p>No dusty granules. No measuring liquid feeds. Just drop, dissolve and pour.</p>
+    </div>
+    <div class="steps">
+      <div class="tilt reveal d1"><div class="step">
+        <div class="num">1</div>
+        <div class="ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5E8C4E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6"/><circle cx="12" cy="14" r="6"/><path d="M9.5 13.5l1.8 1.8 3.2-3.2"/></svg></div>
+        <h3>Drop it in water</h3>
+        <p>Pop a Soil Bomb into a cup or watering can of water — one bomb is all it takes.</p>
+      </div></div>
+      <div class="tilt reveal d2"><div class="step">
+        <div class="num">2</div>
+        <div class="ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5E8C4E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="14" r="2"/><circle cx="13" cy="9" r="2.5"/><circle cx="17" cy="16" r="1.6"/><path d="M4 21h16"/></svg></div>
+        <h3>Watch it dissolve</h3>
+        <p>It fizzes away like a bath bomb, releasing a rich, nutrient-loaded feed into the water.</p>
+      </div></div>
+      <div class="tilt reveal d3"><div class="step">
+        <div class="num">3</div>
+        <div class="ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5E8C4E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12c0-3 2-5 5-5 0 3-2 5-5 5z"/><path d="M12 14c0-3-2-5-5-5 0 3 2 5 5 5z"/></svg></div>
+        <h3>Feed your plants</h3>
+        <p>Pour the mixture over your houseplants and watch them grow exceptionally well.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- INTERACTIVE GROWER -->
+<section id="grow" class="grower-sec">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">Try it yourself</div>
+      <h2>Grow your own plant 🌱</h2>
+      <p>Give it a few Soil Bombs and watch what happens. (Yes, it's oddly satisfying.)</p>
+    </div>
+    <div class="grower reveal d1">
+      <div class="stage" id="stage">
+        <div class="sun"></div>
+        <div class="thrive-badge" id="thrive">🎉 Thriving! Nice work.</div>
+        <div class="ground"></div>
+        <div class="pot">
+          <svg width="220" height="300" viewBox="0 0 220 300">
+            <!-- plant -->
+            <g id="flora">
+              <!-- main stem -->
+              <path class="l show" data-min="1" d="M110 240 C108 200 112 170 110 130" fill="none" stroke="#5E8C4E" stroke-width="8" stroke-linecap="round"/>
+              <!-- lower leaves -->
+              <path class="l" data-min="18" d="M110 210 C80 205 66 188 60 168 C90 168 108 184 110 210Z" fill="#6ea258"/>
+              <path class="l" data-min="18" d="M110 205 C140 200 154 183 160 163 C130 163 112 179 110 205Z" fill="#7DB56A"/>
+              <!-- mid leaves -->
+              <path class="l" data-min="42" d="M110 175 C78 168 62 148 58 126 C90 128 108 148 110 175Z" fill="#5E8C4E"/>
+              <path class="l" data-min="42" d="M110 170 C142 163 158 143 162 121 C130 123 112 143 110 170Z" fill="#6ea258"/>
+              <!-- upper leaves -->
+              <path class="l" data-min="66" d="M110 142 C88 132 78 112 78 92 C102 100 112 120 110 142Z" fill="#7DB56A"/>
+              <path class="l" data-min="66" d="M110 138 C132 128 142 108 142 88 C118 96 108 116 110 138Z" fill="#5E8C4E"/>
+              <!-- top sprout -->
+              <path class="l" data-min="85" d="M110 120 C104 104 106 90 110 74 C114 90 116 104 110 120Z" fill="#7DB56A"/>
+              <!-- bloom -->
+              <g class="bloom">
+                <circle cx="110" cy="70" r="10" fill="#f4c04e"/>
+                <g fill="#ffd9e2">
+                  <ellipse cx="110" cy="52" rx="9" ry="14"/>
+                  <ellipse cx="128" cy="70" rx="14" ry="9"/>
+                  <ellipse cx="110" cy="88" rx="9" ry="14"/>
+                  <ellipse cx="92" cy="70" rx="14" ry="9"/>
+                </g>
+                <circle cx="110" cy="70" r="7" fill="#f4c04e"/>
+              </g>
+            </g>
+            <!-- pot on top -->
+            <path d="M74 244 L146 244 L138 296 L82 296 Z" fill="#c97b52"/>
+            <rect x="68" y="232" width="84" height="18" rx="4" fill="#d98a60"/>
+          </svg>
+        </div>
+      </div>
+      <div class="grow-panel">
+        <div class="kicker">Nutrition level</div>
+        <h2 id="growTitle">Meet your little seedling</h2>
+        <p id="growMsg">This plant looks a bit tired. Feed it a Soil Bomb to get things growing!</p>
+        <div class="meter">
+          <div class="meter-top"><span>Soil health</span><span id="pct">0%</span></div>
+          <div class="meter-bar"><div class="meter-fill" id="fill"></div></div>
+        </div>
+        <div class="grow-actions">
+          <button class="btn btn-primary magnetic" id="feedBtn">💣 Feed a Soil Bomb</button>
+          <span class="feed-count">Bombs used: <b id="bombCount">0</b></span>
+          <button class="reset-btn" id="resetBtn">reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="why" style="padding:100px 0">
+  <div class="benefits reveal">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="kicker">Why Soil Bombs</div>
+        <h2>Everything tired soil is missing</h2>
+        <p>One little bomb delivers a full menu of nutrients — the easy, satisfying, planet-friendly way to feed your plants.</p>
+      </div>
+      <div class="bgrid">
+        <div class="bcard reveal d1"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l2.4 6.9H21l-5.3 4 2 6.6L12 15.6 6.3 19.5l2-6.6L3 8.9h6.6z"/></svg><h3>All the nutrients</h3><p>Every nutrient a plant could ever need, balanced into a single bomb.</p></div>
+        <div class="bcard reveal d2"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><h3>Mess-free &amp; fast</h3><p>No scooping, no measuring, no spills. Drop, dissolve, done.</p></div>
+        <div class="bcard reveal d3"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/><path d="M9 12l2 2 4-4"/></svg><h3>Kind to the planet</h3><p>A sustainable feed that heals tired soil rather than exhausting it.</p></div>
+        <div class="bcard reveal d3"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21C7 17 3 13 3 8.5 3 6 5 4 7.5 4c1.7 0 3.2 1 3.5 2.5C11.3 5 12.8 4 14.5 4 17 4 19 6 19 8.5 19 13 15 17 12 21z"/></svg><h3>Oddly satisfying</h3><p>The bath-bomb fizz makes plant care a moment you'll look forward to.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stats" style="padding:40px 0 100px">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat reveal d1"><div class="n" data-to="100">0<small>%</small></div><p>Nutrients your plant needs</p></div>
+      <div class="stat reveal d2"><div class="n" data-to="1">0</div><p>Bomb per feed — that's it</p></div>
+      <div class="stat reveal d3"><div class="n" data-to="6">0</div><p>Bombs in the starter pack</p></div>
+      <div class="stat reveal d3"><div class="n" data-pre="€" data-to="4" data-suf=".99">€0</div><p>Starting price</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">Grab a pack</div>
+      <h2>Pick your Soil Bombs</h2>
+      <p>Try a starter pack or stock up and save — every plant in the house will thank you.</p>
+    </div>
+    <div class="prices">
+      <div class="tilt reveal d1"><div class="price">
+        <div class="tag">Starter</div><h3>6 Pack</h3><div class="amt">€4.99</div>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>6 nutrient bombs</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Perfect for trying it out</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Feeds a few plants for weeks</li>
+        </ul>
+        <a class="btn btn-ghost magnetic" href="#cta">Choose 6-pack</a>
+      </div></div>
+      <div class="tilt reveal d2"><div class="price feat">
+        <div class="ribbon">POPULAR</div><div class="tag">Best value</div><h3>12 Pack</h3><div class="amt">€9.99</div>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>12 nutrient bombs</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Our most popular pack</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Keeps a shelf of plants thriving</li>
+        </ul>
+        <a class="btn btn-primary magnetic" href="#cta">Choose 12-pack</a>
+      </div></div>
+      <div class="tilt reveal d3"><div class="price">
+        <div class="tag">Stock up</div><h3>18 Pack</h3><div class="amt">€14.99</div>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>18 nutrient bombs</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Best for plant lovers</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>A whole jungle, sorted</li>
+        </ul>
+        <a class="btn btn-ghost magnetic" href="#cta">Choose 18-pack</a>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="story">
+  <div class="wrap">
+    <div class="story">
+      <div class="story-card reveal">
+        <div class="big-script">We grow<br>to give.</div>
+        <p>Soil Bombs is a Transition Year mini-company from Mount Mercy College, Cork — a team of young entrepreneurs turning a sustainable idea into a real, growing business.</p>
+        <svg class="ghost-leaf" viewBox="0 0 24 24" fill="#5E8C4E"><use href="#leaf"/></svg>
+      </div>
+      <div class="reveal d1">
+        <div class="kicker" style="color:var(--green);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:.78rem">Our story</div>
+        <h2>Made by students, rooted in sustainability</h2>
+        <p>What started as a Student Enterprise Programme project grew into something we're seriously proud of. We wanted to make plant care simple, satisfying and kind to the earth — so we packed everything tired soil needs into one little bomb.</p>
+        <p>From local markets to the SEP National Finals, we've been on an incredible journey — and we're only just getting started.</p>
+        <div class="chips">
+          <div class="chip"><span>★</span> SEP National Finalists</div>
+          <div class="chip"><span>🌍</span> Sustainability-first</div>
+          <div class="chip"><span>🎓</span> Mount Mercy College</div>
+          <div class="chip"><span>🌱</span> Student-run</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta" style="padding:60px 0 100px">
+  <div class="cta-band">
+    <div class="wrap reveal">
+      <h2>Ready to revive your plants?</h2>
+      <p>Grab your Soil Bombs, follow the journey, and join a community that grows to give.</p>
+      <div class="hero-cta" style="justify-content:center">
+        <a class="btn btn-primary magnetic" href="https://www.instagram.com/soilb0mbs/" target="_blank" rel="noopener">Follow @soilb0mbs</a>
+        <a class="btn btn-ghost magnetic" href="#pricing">Shop the packs</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <a class="brand" href="#top"><svg class="badge"><use href="#logo"/></svg><span class="name">Soil Bombs</span></a>
+      <div class="links">
+        <a href="#how">How it works</a><a href="#grow">Grow one</a><a href="#pricing">Packs</a><a href="#story">Our story</a>
+        <a href="https://www.instagram.com/soilb0mbs/" target="_blank" rel="noopener">Instagram</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="yr"></span> Soil Bombs — Nature's pills for tired soil 🌿</span>
+      <span>A TY Mini Company · Mount Mercy College, Cork</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  /* ---- PRELOADER ---- */
+  window.addEventListener('load',()=>{
+    setTimeout(()=>{
+      document.getElementById('loader').classList.add('done');
+      document.body.classList.remove('loading');
+    }, reduce?0:1900);
+  });
+
+  /* ---- CUSTOM CURSOR ---- */
+  const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(fine && !reduce){
+    document.body.classList.add('has-cursor');
+    const dot=document.querySelector('.cursor-dot'), ring=document.querySelector('.cursor-ring');
+    let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+    addEventListener('mousemove',e=>{
+      mx=e.clientX;my=e.clientY;
+      dot.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;
+    });
+    (function loop(){
+      rx+=(mx-rx)*.18; ry+=(my-ry)*.18;
+      ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;
+      requestAnimationFrame(loop);
+    })();
+    const hoverables='a,button,.tilt,.bcard,.chip';
+    document.querySelectorAll(hoverables).forEach(el=>{
+      el.addEventListener('mouseenter',()=>ring.classList.add('hover'));
+      el.addEventListener('mouseleave',()=>ring.classList.remove('hover'));
+    });
+  }
+
+  /* ---- HEADER + ACTIVE LINK + VINE ---- */
+  const hdr=document.getElementById('hdr');
+  const vineGrow=document.getElementById('vineGrow');
+  const vineBud=document.getElementById('vineBud');
+  const vLen=vineGrow?vineGrow.getTotalLength():0;
+  if(vineGrow){vineGrow.style.strokeDasharray=vLen;vineGrow.style.strokeDashoffset=vLen;}
+  function onScroll(){
+    hdr.classList.toggle('scrolled',scrollY>10);
+    const h=document.documentElement;
+    const p=h.scrollTop/(h.scrollHeight-h.clientHeight||1);
+    if(vineGrow){
+      vineGrow.style.strokeDashoffset=vLen*(1-p);
+      const pt=vineGrow.getPointAtLength(vLen*p);
+      vineBud.setAttribute('cx',pt.x);vineBud.setAttribute('cy',pt.y);
+    }
+  }
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+  // active nav link
+  const links=[...document.querySelectorAll('.navlinks a.link')];
+  const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+  const spy=new IntersectionObserver(es=>{
+    es.forEach(e=>{if(e.isIntersecting){
+      const i=secs.indexOf(e.target);
+      links.forEach(l=>l.classList.remove('active'));
+      if(links[i])links[i].classList.add('active');
+    }})
+  },{rootMargin:'-45% 0px -50% 0px'});
+  secs.forEach(s=>s&&spy.observe(s));
+
+  /* ---- MOBILE MENU ---- */
+  const mobile=document.getElementById('mobile');
+  document.getElementById('menuBtn').addEventListener('click',()=>{
+    mobile.style.display=mobile.style.display==='flex'?'none':'flex';
+  });
+  mobile.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>mobile.style.display='none'));
+
+  /* ---- REVEAL ---- */
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})
+  },{threshold:.14});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  /* ---- MAGNETIC BUTTONS ---- */
+  if(fine && !reduce){
+    document.querySelectorAll('.magnetic').forEach(el=>{
+      el.addEventListener('mousemove',e=>{
+        const r=el.getBoundingClientRect();
+        const x=e.clientX-r.left-r.width/2, y=e.clientY-r.top-r.height/2;
+        el.style.transform=`translate(${x*.3}px,${y*.4}px)`;
+      });
+      el.addEventListener('mouseleave',()=>el.style.transform='');
+    });
+  }
+
+  /* ---- 3D TILT ---- */
+  if(fine && !reduce){
+    document.querySelectorAll('.tilt').forEach(el=>{
+      el.addEventListener('mousemove',e=>{
+        const r=el.getBoundingClientRect();
+        const px=(e.clientX-r.left)/r.width-.5, py=(e.clientY-r.top)/r.height-.5;
+        el.style.transform=`perspective(800px) rotateY(${px*9}deg) rotateX(${-py*9}deg) translateY(-6px)`;
+      });
+      el.addEventListener('mouseleave',()=>el.style.transform='');
+    });
+  }
+
+  /* ---- HERO: bubbles + mouse-reactive leaves ---- */
+  const glass=document.getElementById('glass');
+  function spawnBubble(){
+    if(!glass) return;
+    const b=document.createElement('span');b.className='bubble';
+    const s=4+Math.random()*10;b.style.width=b.style.height=s+'px';
+    b.style.left=(22+Math.random()*56)+'%';b.style.bottom='12%';
+    b.style.animation=`rise ${2.5+Math.random()*2}s ease-in forwards`;
+    glass.appendChild(b);setTimeout(()=>b.remove(),4600);
+  }
+  if(!reduce) setInterval(spawnBubble,300);
+
+  // floating leaves in the scene
+  const scene=document.getElementById('scene');
+  const leaves=[];
+  if(scene && !reduce){
+    const colors=['#7DB56A','#5E8C4E','#A8C09A'];
+    for(let i=0;i<6;i++){
+      const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      s.setAttribute('viewBox','0 0 24 24');s.classList.add('leaf-float');
+      s.innerHTML='<use href="#leaf"/>';
+      const size=20+Math.random()*26;
+      s.style.width=size+'px';s.style.height=size+'px';
+      s.style.color=colors[i%3];s.setAttribute('fill','currentColor');
+      const bx=Math.random()*100,by=Math.random()*100;
+      s.style.left=bx+'%';s.style.top=by+'%';s.style.opacity=.45+Math.random()*.3;
+      scene.appendChild(s);
+      leaves.push({el:s,bx,by,ph:Math.random()*6.28,sp:.4+Math.random()*.5});
+    }
+    let mxr=0,myr=0;
+    scene.addEventListener('mousemove',e=>{
+      const r=scene.getBoundingClientRect();
+      mxr=((e.clientX-r.left)/r.width-.5)*2;
+      myr=((e.clientY-r.top)/r.height-.5)*2;
+    });
+    scene.addEventListener('mouseleave',()=>{mxr=0;myr=0});
+    let t=0;
+    (function anim(){
+      t+=.016;
+      leaves.forEach(L=>{
+        const fx=Math.sin(t*L.sp+L.ph)*10 - mxr*22*L.sp;
+        const fy=Math.cos(t*L.sp+L.ph)*12 - myr*22*L.sp;
+        const rot=Math.sin(t*L.sp+L.ph)*18;
+        L.el.style.transform=`translate(${fx}px,${fy}px) rotate(${rot}deg)`;
+      });
+      requestAnimationFrame(anim);
+    })();
+  }
+
+  // drop-a-bomb button: a bomb visibly falls in, splashes, fizzes
+  const water=document.getElementById('water');
+  const dropBtn=document.getElementById('dropBtn');
+  let fedCount=0;
+  const bombSVG='<svg viewBox="0 0 120 120"><circle cx="60" cy="72" r="30" fill="#2A2A26"/><circle cx="50" cy="62" r="8" fill="#4a4a44"/><path d="M60 42 q8 -12 20 -13" fill="none" stroke="#2A2A26" stroke-width="6" stroke-linecap="round"/><circle cx="82" cy="27" r="6" fill="#7DB56A"/></svg>';
+  function heroDrop(){
+    if(!glass) return;
+    const b=document.createElement('div');
+    b.className='falling-bomb';
+    b.innerHTML=bombSVG;
+    if(reduce){b.style.top='150px';} else {b.style.animation='drop .6s cubic-bezier(.45,.05,.7,.6) forwards';}
+    glass.appendChild(b);
+    const land=reduce?0:380;
+    setTimeout(()=>{
+      const s=document.createElement('div');s.className='splash';
+      if(!reduce)s.style.animation='splash .6s ease-out forwards';
+      glass.appendChild(s);setTimeout(()=>s.remove(),650);
+      for(let i=0;i<22;i++) setTimeout(spawnBubble,i*32);
+      glass.style.transform='scale(1.035)';setTimeout(()=>glass.style.transform='',320);
+      if(water){water.style.background='linear-gradient(180deg,rgba(155,214,127,.75),rgba(94,140,78,.85))';
+        setTimeout(()=>water.style.background='',1100);}
+    },land);
+    setTimeout(()=>{b.style.transition='opacity .5s, transform .5s';b.style.opacity='0';b.style.transform='scale(.6)';},land+140);
+    setTimeout(()=>b.remove(),land+760);
+    fedCount++;
+    dropBtn.textContent=fedCount===1?'💚 Drop another':('🌿 '+fedCount+' dropped — again?');
+  }
+  dropBtn.addEventListener('click',heroDrop);
+
+  /* ---- STAT COUNTERS ---- */
+  const counters=document.querySelectorAll('.stat .n');
+  const cio=new IntersectionObserver(es=>{
+    es.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const el=e.target, to=+el.dataset.to, pre=el.dataset.pre||'', suf=el.dataset.suf||'';
+      const hasPct=el.textContent.includes('%');
+      let cur=0; const step=Math.max(1,Math.ceil(to/38));
+      const tick=()=>{cur=Math.min(to,cur+step);
+        el.innerHTML=pre+cur+(hasPct?'<small>%</small>':suf);
+        if(cur<to)requestAnimationFrame(tick);};
+      tick(); cio.unobserve(el);
+    })
+  },{threshold:.6});
+  counters.forEach(c=>cio.observe(c));
+
+  /* ---- INTERACTIVE PLANT GROWER ---- */
+  const flora=document.getElementById('flora');
+  const fill=document.getElementById('fill');
+  const pct=document.getElementById('pct');
+  const bombCount=document.getElementById('bombCount');
+  const growTitle=document.getElementById('growTitle');
+  const growMsg=document.getElementById('growMsg');
+  const thrive=document.getElementById('thrive');
+  const stage=document.getElementById('stage');
+  const leavesEls=[...document.querySelectorAll('#flora .l')];
+  const bloom=document.querySelector('#flora .bloom');
+  let level=0, bombs=0;
+
+  const copy=[
+    {t:'Meet your little seedling',m:'This plant looks a bit tired. Feed it a Soil Bomb to get things growing!'},
+    {t:'It\'s waking up!',m:'Nutrients are kicking in — look at those first leaves unfurl.'},
+    {t:'Growing nicely 🌿',m:'Healthy, happy and reaching for the sun. Keep the bombs coming.'},
+    {t:'Almost there!',m:'Lush and leafy. One or two more bombs and it\'ll be thriving.'},
+    {t:'Thriving! 🌸',m:'Full, green and in bloom — that\'s the Soil Bombs difference.'}
+  ];
+
+  function render(){
+    level=Math.max(0,Math.min(100,level));
+    fill.style.width=level+'%';
+    pct.textContent=Math.round(level)+'%';
+    flora.style.transform='scale('+(0.35+level/100*0.65)+')';
+    leavesEls.forEach(l=>l.classList.toggle('show', level>=+l.dataset.min));
+    const bloomOn=level>=100;
+    bloom.classList.toggle('show',bloomOn);
+    thrive.classList.toggle('show',bloomOn);
+    const idx=level>=100?4:level>=80?3:level>=55?2:level>=25?1:0;
+    growTitle.textContent=copy[idx].t;
+    growMsg.textContent=copy[idx].m;
+  }
+
+  function celebrate(){
+    const colors=['#7DB56A','#5E8C4E','#f4c04e','#ffd9e2','#A8C09A'];
+    for(let i=0;i<28;i++){
+      const p=document.createElement('span');
+      p.style.cssText='position:absolute;top:40%;left:50%;width:10px;height:10px;border-radius:2px;z-index:7;pointer-events:none';
+      p.style.background=colors[i%colors.length];
+      stage.appendChild(p);
+      const ang=Math.random()*6.28, dist=80+Math.random()*160;
+      const dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist-40;
+      p.animate([
+        {transform:'translate(-50%,-50%) rotate(0) scale(1)',opacity:1},
+        {transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*540}deg) scale(.4)`,opacity:0}
+      ],{duration:1100+Math.random()*500,easing:'cubic-bezier(.2,.6,.3,1)'});
+      setTimeout(()=>p.remove(),1700);
+    }
+  }
+
+  // little bomb-drop animation into the pot
+  function dropAnim(){
+    const b=document.createElement('div');
+    b.textContent='💣';
+    b.style.cssText='position:absolute;left:50%;top:-30px;transform:translateX(-50%);font-size:26px;z-index:6;pointer-events:none';
+    stage.appendChild(b);
+    b.animate([
+      {top:'-30px',opacity:1},
+      {top:'210px',opacity:1,offset:.8},
+      {top:'230px',opacity:0}
+    ],{duration:650,easing:'cubic-bezier(.5,0,.75,0)'});
+    setTimeout(()=>b.remove(),700);
+  }
+
+  document.getElementById('feedBtn').addEventListener('click',()=>{
+    if(level>=100){celebrate();return;}
+    bombs++; bombCount.textContent=bombs;
+    dropAnim();
+    const was=level; level+=20;
+    render();
+    if(was<100 && level>=100) setTimeout(celebrate,300);
+  });
+  document.getElementById('resetBtn').addEventListener('click',()=>{
+    level=0;bombs=0;bombCount.textContent='0';render();
+  });
+  render();
+
+  document.getElementById('yr').textContent=new Date().getFullYear();
+})();
+</script>
+</body>
+</html>

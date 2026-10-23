@@ -17,7 +17,7 @@ I build AI pipelines, tools and websites. **[Open the portfolio site →](https:
 
 ## Websites
 
-The **[gallery](https://abrahamsabu.github.io/portfolio/gallery/)** has 45 sites, best first. Six were hand-built, and 39 were
+The **[gallery](https://abrahamsabu.github.io/portfolio/gallery/)** has 48 sites, best first. Nine were hand-built, and 39 were
 built hands-off by auto-websites.
 
 ![Websites](assets/thumbs/jet-executive.jpg)

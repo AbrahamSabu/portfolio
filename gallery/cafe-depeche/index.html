@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#5c1a26" />
+  <title>Café Depeche — Coffee for the Masses, Lancaster Quay, Cork</title>
+  <meta name="description" content="Café Depeche is an award-winning independent coffee house on Lancaster Quay, Cork City. Serving specialty coffee and seasonal brunch since 2003. Mon–Fri from 6:30am." />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Café Depeche — Cork City" />
+  <meta property="og:description" content="Coffee for the masses. Award-winning brunch and specialty coffee on Lancaster Quay, Cork City. Here since 2003." />
+  <meta property="og:image" content="https://exoticgamerxd.github.io/cafe-depeche/assets/img/hero.jpg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Page loader -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader__mark">
+      <span class="loader__cup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 8.5h11v4a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z"/>
+          <path d="M16 9.8h1.8a2 2 0 0 1 0 4H16"/>
+          <path d="M8 3.6c-.6.9-.6 1.7 0 2.6"/>
+          <path d="M11.5 3.6c-.6.9-.6 1.7 0 2.6"/>
+        </svg>
+      </span>
+      <span class="loader__name">Café Depeche</span>
+    </div>
+  </div>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- Navigation -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#home" class="nav__brand" aria-label="Café Depeche home">
+        <span class="nav__brand-mark">CD</span>
+        <span class="nav__brand-text">Café&nbsp;Depeche</span>
+      </a>
+
+      <nav class="nav__links" aria-label="Primary">
+        <a href="#about">Story</a>
+        <a href="#menu">Menu</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#visit">Visit</a>
+      </nav>
+
+      <a href="#visit" class="btn btn--ghost nav__cta">Find Us</a>
+
+      <button class="nav__toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <nav class="mobile-menu__links" aria-label="Mobile">
+      <a href="#about">Story</a>
+      <a href="#menu">Menu</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#visit">Visit</a>
+      <a href="#visit" class="btn btn--solid">Find Us</a>
+    </nav>
+    <p class="mobile-menu__note">Lancaster Quay · Cork City</p>
+  </div>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" id="home">
+      <div class="hero__bg" data-parallax="0.25">
+        <div class="hero__bg-inner" data-hero-depth="22">
+          <img
+            src="assets/img/hero.jpg"
+            alt="A flat white with feather latte art on a red saucer at Café Depeche"
+            fetchpriority="high" />
+        </div>
+        <div class="hero__scrim"></div>
+        <div class="hero__grain" aria-hidden="true"></div>
+      </div>
+
+      <span class="hero__tag" aria-hidden="true">Est. 2003 — Cork City</span>
+
+      <div class="hero__content" data-hero-depth="-12">
+        <p class="hero__eyebrow reveal" data-reveal>Coffee for the masses · Lancaster Quay, Cork</p>
+        <h1 class="hero__title">
+          <span class="reveal-word">Slow</span>
+          <span class="reveal-word">mornings,</span>
+          <span class="reveal-word">honest</span>
+          <span class="reveal-word">coffee.</span>
+        </h1>
+        <p class="hero__lede reveal" data-reveal data-reveal-delay="500">
+          An award-winning brunch room and coffee house on Lancaster Quay, Cork.
+          We've been doing this since 2003 — and we still mean it every morning.
+        </p>
+        <div class="hero__actions reveal" data-reveal data-reveal-delay="650">
+          <a href="#menu" class="btn btn--solid">See the Menu</a>
+          <a href="#visit" class="btn btn--ghost btn--light">Plan a Visit</a>
+        </div>
+      </div>
+
+      <a href="#about" class="hero__scroll" aria-label="Scroll to story">
+        <span class="hero__scroll-line"></span>
+        <span class="hero__scroll-text">Scroll</span>
+      </a>
+    </section>
+
+    <!-- Marquee -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>Coffee for the Masses</span><span>•</span>
+        <span>Born in Cork 2003</span><span>•</span>
+        <span>Lancaster Quay</span><span>•</span>
+        <span>Food Awards Ireland 2024</span><span>•</span>
+        <span>Brunch Mon – Fri</span><span>•</span>
+        <span>Coffee for the Masses</span><span>•</span>
+        <span>Born in Cork 2003</span><span>•</span>
+        <span>Lancaster Quay</span><span>•</span>
+        <span>Food Awards Ireland 2024</span><span>•</span>
+        <span>Brunch Mon – Fri</span><span>•</span>
+      </div>
+    </div>
+
+    <!-- About / Story -->
+    <section class="about" id="about">
+      <div class="about__grid">
+        <div class="about__media reveal" data-reveal>
+          <img
+            src="assets/img/about.jpg"
+            alt="The cosy interior of Café Depeche with its fireplace and framed music press" loading="lazy" />
+          <div class="about__media-badge">
+            <span class="about__media-badge-num">Est.</span>
+            <span class="about__media-badge-year">2003</span>
+          </div>
+        </div>
+
+        <div class="about__text">
+          <p class="section-eyebrow reveal" data-reveal>Our Story</p>
+          <h2 class="section-title reveal" data-reveal data-reveal-delay="80">
+            <span class="title-line">Born in Cork, 2003. Named for the music.</span>
+          </h2>
+          <p class="reveal" data-reveal data-reveal-delay="160">
+            Café Depeche has been part of Cork life since 2003 — a Lancaster Quay
+            institution with a fireplace in the corner, walls lined with framed music
+            press, and a Depeche Mode mural that gives the place its name. It's coffee
+            for the masses, served with a bit of soul.
+          </p>
+          <p class="reveal" data-reveal data-reveal-delay="240">
+            The brunch is proper and generous, the latte art is taken seriously, and the
+            welcome is pure Cork. We were proud to be named Oceanic Regional Winner at the
+            Food Awards Ireland 2024 — and we still cook every plate like we're trying to
+            win it again.
+          </p>
+
+          <ul class="about__stats reveal" data-reveal data-reveal-delay="320">
+            <li>
+              <span class="about__stat-num" data-count="23">0</span>
+              <span class="about__stat-label">Years on the quay</span>
+            </li>
+            <li>
+              <span class="about__stat-num" data-count="11">0</span>
+              <span class="about__stat-label">Brunch dishes</span>
+            </li>
+            <li>
+              <span class="about__stat-num" data-count="1" data-suffix=" Award">0</span>
+              <span class="about__stat-label">Food Awards Ireland 2024</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bento highlights -->
+    <section class="bento" id="highlights">
+      <div class="bento__head">
+        <p class="section-eyebrow reveal" data-reveal>Why Depeche</p>
+        <h2 class="section-title reveal" data-reveal data-reveal-delay="80">
+          <span class="title-line">A Cork institution, in a few words.</span>
+        </h2>
+      </div>
+
+      <div class="bento__grid">
+        <article class="bento__tile bento__tile--feature reveal" data-reveal>
+          <svg class="bento__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3.6l2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 15.55l-4.7 2.5.9-5.23-3.8-3.7 5.25-.76z"/>
+          </svg>
+          <h3 class="bento__title">Food Awards Ireland 2024</h3>
+          <p class="bento__text">Oceanic Regional Winner — recognised for the food we're proud to serve every day.</p>
+        </article>
+
+        <article class="bento__tile bento__tile--wide reveal" data-reveal data-reveal-delay="80">
+          <svg class="bento__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 8.5h11v4a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z"/>
+            <path d="M16 9.8h1.8a2 2 0 0 1 0 4H16"/>
+            <path d="M8 3.6c-.6.9-.6 1.7 0 2.6"/>
+            <path d="M11.5 3.6c-.6.9-.6 1.7 0 2.6"/>
+          </svg>
+          <h3 class="bento__title">Coffee from 6:30am</h3>
+          <p class="bento__text">Early doors, Monday to Friday. Serious latte art, no fuss — coffee for the masses.</p>
+        </article>
+
+        <article class="bento__tile reveal" data-reveal data-reveal-delay="160">
+          <svg class="bento__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <ellipse cx="12" cy="12" rx="8.5" ry="6.5"/>
+            <circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/>
+          </svg>
+          <h3 class="bento__title">All-day brunch</h3>
+          <p class="bento__text">Generous, proper, and made to order.</p>
+        </article>
+
+        <article class="bento__tile reveal" data-reveal data-reveal-delay="240">
+          <svg class="bento__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="3.4"/>
+            <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>
+          </svg>
+          <h3 class="bento__title">The Depeche Mode wall</h3>
+          <p class="bento__text">Named for the band, wrapped in music history.</p>
+        </article>
+
+        <article class="bento__tile bento__tile--wide reveal" data-reveal data-reveal-delay="120">
+          <svg class="bento__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3.2c2.2 2.8 4 4.6 4 7.6a4 4 0 0 1-8 0c0-1.3.5-2.5 1.4-3.5.4 1.2 1.1 1.7 1.9 1.7-1.1-1.9-.2-4.3.7-5.8z"/>
+          </svg>
+          <h3 class="bento__title">Born in Cork, 2003</h3>
+          <p class="bento__text">A fireplace in the corner, framed music press on the walls, and two decades of regulars.</p>
+        </article>
+
+        <article class="bento__tile bento__tile--wide reveal" data-reveal data-reveal-delay="200">
+          <svg class="bento__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3.5 9.5c1.7-1.9 3.4-1.9 5 0s3.3 1.9 5 0 3.3-1.9 5 0"/>
+            <path d="M3.5 14.5c1.7-1.9 3.4-1.9 5 0s3.3 1.9 5 0 3.3-1.9 5 0"/>
+          </svg>
+          <h3 class="bento__title">Seating on the quay</h3>
+          <p class="bento__text">Pull up outside on Lancaster Quay and watch the city go by.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Menu -->
+    <section class="menu" id="menu">
+      <div class="menu__head">
+        <p class="section-eyebrow reveal" data-reveal>The Menu</p>
+        <h2 class="section-title reveal" data-reveal data-reveal-delay="80">
+          <span class="title-line">Pulled with care. Baked today.</span>
+        </h2>
+        <p class="menu__note reveal" data-reveal data-reveal-delay="160">
+          The brunch menu is seasonal — ask us what's good today. Coffee served Mon–Fri from 6:30am.
+        </p>
+      </div>
+
+      <div class="menu__columns">
+        <!-- Coffee -->
+        <div class="menu__col reveal" data-reveal>
+          <h3 class="menu__col-title">The Coffee</h3>
+          <ul class="menu__list">
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Espresso</span>
+                <p class="menu__item-sub">7g of fine blend, pure water &amp; pure passion</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Ristretto</span>
+                <p class="menu__item-sub">Same coffee, less water — concentrated &amp; intense</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Cuban Espresso</span>
+                <p class="menu__item-sub">Single espresso infused with sugar</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Flat White</span>
+                <p class="menu__item-sub">Double espresso with steamed milk</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Cappuccino</span>
+                <p class="menu__item-sub">Velvety &amp; rich, dusted with cinnamon or cocoa</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Latte</span>
+                <p class="menu__item-sub">Double espresso with steamed milk &amp; froth</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Long Black</span>
+                <p class="menu__item-sub">Double espresso &amp; water</p>
+              </div>
+            </li>
+            <li class="menu__item menu__item--desc">
+              <div>
+                <span class="menu__item-name">Affogato</span>
+                <p class="menu__item-sub">Espresso poured over a scoop of vanilla ice cream</p>
+              </div>
+            </li>
+          </ul>
+          <p class="menu__col-note">All served with 2 shots as standard · all available over ice<br>Soya · Decaff · Extra Shot · Flavoured Syrup available</p>
+        </div>
+
+        <!-- Brunch -->
+        <div class="menu__col reveal" data-reveal data-reveal-delay="120">
+          <h3 class="menu__col-title">Brunch</h3>
+          <ul class="menu__list">
+            <li class="menu__item">
+              <span class="menu__item-name">The Great Outdoors! <span class="menu__tag">V</span></span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€13.50</span>
+            </li>
+            <li class="menu__item-sub-full">Mushroom &amp; spinach on sourdough / cannellini bean purée / poached egg</li>
+            <li class="menu__item">
+              <span class="menu__item-name">Agent Orange</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€13.50</span>
+            </li>
+            <li class="menu__item-sub-full">Poached eggs on sourdough / avocado / orange / sun-dried tomato / flaked almonds</li>
+            <li class="menu__item">
+              <span class="menu__item-name">Leave in Salmon</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€15.50</span>
+            </li>
+            <li class="menu__item-sub-full">Poached eggs / smoked salmon / spinach / hollandaise</li>
+            <li class="menu__item">
+              <span class="menu__item-name">I Feel Loved</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€17.00</span>
+            </li>
+            <li class="menu__item-sub-full">Spiced beef on brioche / pickled cucumber / caramelised onions / smoked cheddar / honey &amp; mustard</li>
+            <li class="menu__item">
+              <span class="menu__item-name">I Ham 2 to Hold</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€16.00</span>
+            </li>
+            <li class="menu__item-sub-full">Pulled pork on a bubble waffle / poached eggs / yuzu hollandaise</li>
+            <li class="menu__item">
+              <span class="menu__item-name">I Want it All</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€16.00</span>
+            </li>
+            <li class="menu__item-sub-full">Sausage / smoked bacon / poached eggs / baked beans / wild mushrooms / tomatoes / potatoes / black pudding / sourdough</li>
+            <li class="menu__item">
+              <span class="menu__item-name">Big Muff</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€20.50</span>
+            </li>
+            <li class="menu__item-sub-full">Fillet of sirloin &amp; poached eggs / hollandaise / sourdough / roasted tomato</li>
+            <li class="menu__item">
+              <span class="menu__item-name">Enjoy the Soup</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€8.50</span>
+            </li>
+            <li class="menu__item-sub-full">Our homemade soup · with sandwich of the day €15.00</li>
+          </ul>
+        </div>
+
+        <!-- Desserts & Extras -->
+        <div class="menu__col reveal" data-reveal data-reveal-delay="240">
+          <h3 class="menu__col-title">Desserts &amp; Pancakes</h3>
+          <ul class="menu__list">
+            <li class="menu__item">
+              <span class="menu__item-name">Ghost Again</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€12.50</span>
+            </li>
+            <li class="menu__item-sub-full">Pancakes / fresh seasonal fruit / flaked almonds / Canadian maple syrup / chantilly cream</li>
+            <li class="menu__item">
+              <span class="menu__item-name">Just Can't Get Enough</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€13.50</span>
+            </li>
+            <li class="menu__item-sub-full">Pancakes / smoked bacon / winter berries / Canadian maple syrup</li>
+            <li class="menu__item">
+              <span class="menu__item-name">The Sinner in Me</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€8.00</span>
+            </li>
+            <li class="menu__item-sub-full">Callebaut 70.4% chocolate brownie / fresh strawberries / chantilly cream</li>
+            <li class="menu__item">
+              <span class="menu__item-name">It's Called a Tart <span class="menu__tag">GF</span></span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€3.70</span>
+            </li>
+            <li class="menu__item-sub-full">Caramel &amp; peanut slice / chantilly cream / caramel sauce</li>
+            <li class="menu__item">
+              <span class="menu__item-name">Bitter Apple</span>
+              <span class="menu__item-dots"></span>
+              <span class="menu__item-price">€8.00</span>
+            </li>
+            <li class="menu__item-sub-full">Apple tart / crème brûlée / shot of cox apple juice</li>
+          </ul>
+
+          <div class="menu__extras">
+            <h4 class="menu__extras-title">If You Want</h4>
+            <p>Bacon · Sausage · Egg · Sourdough Toast — <strong>€2.00</strong> per item</p>
+            <p>Sauce / Cream / Nutella / Butter / Jam — <strong>€1.50</strong></p>
+            <p>Scrambled instead of poached — <strong>€2.50</strong></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature / Parallax break -->
+    <section class="feature" id="feature">
+      <div class="feature__bg" data-parallax="0.18">
+        <img
+          src="assets/img/feature.jpg"
+          alt="The Depeche Mode mural wall inside Café Depeche" loading="lazy" />
+      </div>
+      <div class="feature__scrim"></div>
+      <blockquote class="feature__quote reveal" data-reveal>
+        <p>"Coffee for the masses."</p>
+        <cite>— Café Depeche, Lancaster Quay, Cork · Est. 2003</cite>
+      </blockquote>
+    </section>
+
+    <!-- Gallery -->
+    <section class="gallery" id="gallery">
+      <div class="gallery__head">
+        <p class="section-eyebrow reveal" data-reveal>The Room</p>
+        <h2 class="section-title reveal" data-reveal data-reveal-delay="80">
+          <span class="title-line">A little corner of calm.</span>
+        </h2>
+      </div>
+
+      <div class="reel reveal" id="reel" data-reveal>
+        <button class="reel__panel is-active" type="button" aria-label="The full Irish">
+          <img src="assets/img/gallery-1.jpg" alt="A full Irish brunch on a red plate at Café Depeche" loading="lazy" draggable="false" />
+          <span class="reel__label">The full Irish</span>
+          <span class="reel__cap">The full Irish</span>
+        </button>
+        <button class="reel__panel" type="button" aria-label="Brunch, done properly">
+          <img src="assets/img/gallery-2.jpg" alt="The Depeche fry-up with sourdough, eggs and black pudding" loading="lazy" draggable="false" />
+          <span class="reel__label">Brunch</span>
+          <span class="reel__cap">Brunch, done properly</span>
+        </button>
+        <button class="reel__panel" type="button" aria-label="Dusted cappuccino">
+          <img src="assets/img/gallery-3.jpg" alt="A dusted cappuccino in a red cup" loading="lazy" draggable="false" />
+          <span class="reel__label">Cappuccino</span>
+          <span class="reel__cap">Dusted cappuccino</span>
+        </button>
+        <button class="reel__panel" type="button" aria-label="Lancaster Quay">
+          <img src="assets/img/gallery-4.jpg" alt="Café Depeche storefront with outdoor seating on Lancaster Quay" loading="lazy" draggable="false" />
+          <span class="reel__label">Lancaster Quay</span>
+          <span class="reel__cap">Lancaster Quay</span>
+        </button>
+        <button class="reel__panel" type="button" aria-label="Tea and a cinnamon bun">
+          <img src="assets/img/gallery-5.jpg" alt="A pot of tea with a cinnamon bun" loading="lazy" draggable="false" />
+          <span class="reel__label">Tea &amp; bun</span>
+          <span class="reel__cap">Tea &amp; a cinnamon bun</span>
+        </button>
+        <button class="reel__panel" type="button" aria-label="Flat white and a sausage roll">
+          <img src="assets/img/gallery-6.jpg" alt="A sausage roll with a flat white and feather latte art" loading="lazy" draggable="false" />
+          <span class="reel__label">Flat white</span>
+          <span class="reel__cap">Flat white &amp; a sausage roll</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="reviews" id="reviews">
+      <div class="reviews__head">
+        <p class="section-eyebrow reveal" data-reveal>Kind Words</p>
+        <h2 class="section-title reveal" data-reveal data-reveal-delay="80">
+          <span class="title-line">Loved by Cork.</span>
+        </h2>
+      </div>
+
+      <div class="reviews__inner reveal" data-reveal data-reveal-delay="120">
+        <div class="reviews__media" id="reviewsMedia" aria-hidden="true">
+          <!-- images injected by JS -->
+        </div>
+
+        <div class="reviews__content">
+          <blockquote class="reviews__quote" id="reviewsQuote"></blockquote>
+          <div class="reviews__person">
+            <p class="reviews__name" id="reviewsName"></p>
+            <p class="reviews__role" id="reviewsRole"></p>
+          </div>
+          <div class="reviews__nav">
+            <button class="reviews__btn" id="reviewsPrev" aria-label="Previous review">←</button>
+            <button class="reviews__btn" id="reviewsNext" aria-label="Next review">→</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Visit -->
+    <section class="visit" id="visit">
+      <div class="visit__grid">
+        <div class="visit__info">
+          <p class="section-eyebrow reveal" data-reveal>Visit Us</p>
+          <h2 class="section-title reveal" data-reveal data-reveal-delay="80">
+            <span class="title-line">On the quay, by the river.</span>
+          </h2>
+
+          <div class="visit__details reveal" data-reveal data-reveal-delay="160">
+            <div class="visit__block">
+              <h3>Find us</h3>
+              <p>19 Lancaster Quay<br />Mardyke, Cork, T12 XK40<br />Ireland</p>
+            </div>
+
+            <div class="visit__block">
+              <h3>Opening hours <span class="visit__status" id="openStatus" aria-live="polite"></span></h3>
+              <ul class="visit__hours">
+                <li data-days="1,2"><span>Mon &amp; Tue</span><span>6:30 – 16:00</span></li>
+                <li data-days="3,4"><span>Wed &amp; Thu</span><span>6:30 – 16:30</span></li>
+                <li data-days="5"><span>Friday</span><span>6:30 – 17:00</span></li>
+                <li data-days="0,6"><span class="visit__closed">Sat &amp; Sun</span><span class="visit__closed">Closed</span></li>
+              </ul>
+            </div>
+
+            <div class="visit__block">
+              <h3>Say hello</h3>
+              <p>
+                <a href="tel:+353877824902">087 782 4902</a>
+              </p>
+              <div class="visit__social">
+                <a href="https://www.instagram.com/cafedepeche" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
+                <a href="https://www.facebook.com/cafe-depeche" target="_blank" rel="noopener noreferrer" aria-label="Facebook">Facebook</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="visit__cta reveal" data-reveal data-reveal-delay="120">
+          <h3 class="visit__cta-title">Pop in &amp; say hello</h3>
+          <p class="visit__cta-text">
+            No booking needed — we're a walk-in spot. Come for the coffee,
+            stay for the brunch. We'd love to see you.
+          </p>
+          <div class="visit__cta-actions">
+            <a href="tel:+353877824902" class="btn btn--solid btn--block">Call 087 782 4902</a>
+            <a href="https://www.google.com/maps/search/?api=1&query=Caf%C3%A9%20Depeche%2019%20Lancaster%20Quay%20Cork" target="_blank" rel="noopener noreferrer" class="btn btn--ghost btn--block">Get Directions</a>
+            <a href="https://www.instagram.com/cafedepeche" target="_blank" rel="noopener noreferrer" class="btn btn--ghost btn--block">Follow on Instagram</a>
+          </div>
+          <p class="visit__cta-hours">Open Mon–Fri from 6:30am · Closed weekends</p>
+        </div>
+      </div>
+
+      <div class="visit__map reveal" data-reveal>
+        <iframe
+          title="Map of Café Depeche, 19 Lancaster Quay, Cork City"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=-8.4920%2C51.8940%2C-8.4820%2C51.8990&amp;layer=mapnik&amp;marker=51.8966%2C-8.4872"
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="footer__brand-mark">Café Depeche</span>
+        <p>Coffee for the masses. Lancaster Quay, Cork City.<br/>Here since 2003.</p>
+      </div>
+      <nav class="footer__nav" aria-label="Footer">
+        <a href="#about">Story</a>
+        <a href="#menu">Menu</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#visit">Visit</a>
+      </nav>
+    </div>
+    <div class="footer__base">
+      <p>© <span id="year"></span> Café Depeche · 19 Lancaster Quay, Cork</p>
+      <p>
+        <a href="https://www.instagram.com/cafedepeche" target="_blank" rel="noopener noreferrer">Instagram</a>
+        &nbsp;·&nbsp;
+        <a href="https://www.facebook.com/cafe-depeche" target="_blank" rel="noopener noreferrer">Facebook</a>
+      </p>
+    </div>
+  </footer>
+
+  <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
+
+  <script src="js/main.js" defer></script>
+</body>
+</html>
