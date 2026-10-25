@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heloria Sim: open-source multi-engine rocket simulator</title>
+<style>
+:root{--bg:#141618;--panel:#1C1F22;--line:#2E3338;--ink:#ECEEEF;--dim:#8F9398;--gold:#D8C48A}
+@media (prefers-color-scheme: light){:root{--bg:#F6F5F1;--panel:#FFFFFF;--line:#E2E0DA;--ink:#1B1D20;--dim:#5E636A;--gold:#8A6D1F}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:48px 20px 64px}
+h1{font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:0 0 .4rem}h2{margin:2.4rem 0 .6rem;font-size:1.4rem}
+.lede{color:var(--dim);font-size:1.15rem;max-width:44rem}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin:1.4rem 0}
+.btn{display:inline-block;padding:10px 18px;border-radius:10px;border:1px solid var(--line);color:var(--ink);text-decoration:none;background:var(--panel)}
+.btn.primary{background:var(--gold);color:#141618;border-color:var(--gold);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card b{display:block;margin-bottom:4px}.card span{color:var(--dim);font-size:.95rem}
+img{max-width:100%;border-radius:12px;border:1px solid var(--line);display:block}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:start}
+table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+.wrap{overflow-x:auto}footer{color:var(--dim);font-size:.9rem;margin-top:3rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Heloria Sim</h1>
+<p class="lede">An open-source rocket flight simulator that flies one design through three independent engines (OpenRocket, RocketPy and a built-in physics model), shows where they agree, and runs thousands of randomised flights to see how a design holds up.</p>
+<div class="btns">
+  <a class="btn primary" href="#" id="app-link">Open the live app</a>
+  <a class="btn" href="README.md">Read the README</a>
+  <a class="btn" href="DEPLOY.md">Run your own copy</a>
+</div>
+<img src="docs/screenshot_compare.png" alt="Heloria Sim comparing three engines on the Heloria v8 rocket">
+
+<h2>What it does</h2>
+<div class="grid">
+  <div class="card"><b>Three engines, one answer</b><span>The same rocket goes through OpenRocket, RocketPy and a built-in model. You get each result, the average, and a flag wherever they disagree.</span></div>
+  <div class="card"><b>Simple or advanced design</b><span>Swap real parts from a catalogue, or edit every dimension, material, fin shape and mass, with a live true-scale drawing.</span></div>
+  <div class="card"><b>Thousands of flights</b><span>Monte Carlo runs vary wind, gusts, temperature, build weight, motor thrust and drag, then let you explore what drives the result.</span></div>
+  <div class="card"><b>All the data</b><span>Download every flight, full time series, percentiles, plots and a report as CSV, JSON and HTML.</span></div>
+</div>
+
+<h2>Built for a real rocket</h2>
+<p>I wrote it while designing Heloria v8, a 29 mm minimum-diameter rocket aiming for Mach 1.2 or more. On that design the engines agree closely:</p>
+<div class="wrap"><table>
+<tr><th></th><th>Built-in</th><th>RocketPy</th><th>OpenRocket</th></tr>
+<tr><td>Top speed</td><td>Mach 1.47</td><td>Mach 1.47</td><td>Mach 1.45</td></tr>
+<tr><td>Apogee</td><td>2,990 m</td><td>2,990 m</td><td>2,940 m</td></tr>
+<tr><td>Stability</td><td>3.31 cal</td><td>3.29 cal</td><td>3.29 cal</td></tr>
+</table></div>
+
+<h2>Works on a phone</h2>
+<div class="phones">
+  <img src="docs/heloria_sim_phone_1_design.png" alt="Design screen on a phone">
+  <img src="docs/heloria_sim_phone_2_results.png" alt="Engine comparison on a phone">
+  <img src="docs/heloria_sim_phone_3_montecarlo.png" alt="Monte Carlo results on a phone">
+  <img src="docs/heloria_sim_phone_4_drag.png" alt="Drag and stability charts on a phone">
+</div>
+
+<h2>Tech</h2>
+<p>Python, Streamlit, Altair, NumPy, RocketPy, and OpenRocket through its Java API (JPype). GPL-3.0 licensed.</p>
+<footer>Heloria Labs · Simulations are estimates; designs should be checked by a club safety officer before flying.</footer>
+</main>
+</body>
+</html>

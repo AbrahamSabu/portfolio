@@ -1,0 +1,50 @@
+# Parts for Simple mode. Masses are typical values; edit or add your own parts.
+airframes:
+  - id: blackhawk29_710
+    name: Wildman Blackhawk 29, tube cut to 710 mm
+    nose: {shape: conical, length: 0.157, mass: 0.035, material: fiberglass}
+    body: {length: 0.710, outer_diameter: 0.032, inner_diameter: 0.0291, material: fiberglass, mass: 0.143}
+  - id: blackhawk29_full
+    name: Wildman Blackhawk 29, full 915 mm tube
+    nose: {shape: conical, length: 0.157, mass: 0.035, material: fiberglass}
+    body: {length: 0.915, outer_diameter: 0.032, inner_diameter: 0.0291, material: fiberglass, mass: 0.1843}
+  - id: generic38_800
+    name: Generic 38 mm fibreglass minimum-diameter, 800 mm tube
+    nose: {shape: ogive, length: 0.20, mass: 0.060, material: fiberglass}
+    body: {length: 0.800, outer_diameter: 0.0405, inner_diameter: 0.0385, material: fiberglass, mass: 0.215}
+fins:
+  - id: v8_swept
+    name: Swept 60/14/31 mm, 3 mm carbon, airfoiled (Heloria v8)
+    fins: {count: 3, root: 0.060, tip: 0.014, span: 0.031, sweep: 0.046, thickness: 0.0028, material: carbon_sheet, edge: airfoil}
+  - id: v7
+    name: 55/12/32 mm, 3 mm carbon, airfoiled
+    fins: {count: 3, root: 0.055, tip: 0.012, span: 0.032, sweep: 0.030, thickness: 0.0028, material: carbon_sheet, edge: airfoil}
+  - id: kit_cut
+    name: Kit fins cut to 70/25/32 mm, 4.2 mm carbon
+    fins: {count: 3, root: 0.070, tip: 0.025, span: 0.032, sweep: 0.045, thickness: 0.0042, material: carbon, edge: airfoil}
+  - id: kit_full
+    name: Kit fins as supplied, 163/41/39 mm, 4.2 mm carbon
+    fins: {count: 3, root: 0.163, tip: 0.041, span: 0.039, sweep: 0.122, thickness: 0.0042, material: carbon, edge: rounded}
+chutes:
+  - {id: c30, name: "30 cm (12\") chute", diameter: 0.30}
+  - {id: c38, name: "38 cm (15\") chute", diameter: 0.38}
+  - {id: c45, name: "45 cm (18\") chute", diameter: 0.45}
+  - {id: c60, name: "60 cm (24\") chute", diameter: 0.60}
+electronics:
+  - id: dual_tracker
+    name: Two altimeters, GPS tracker, beeper, batteries, av-bay
+    masses: [{name: av-bay and electronics, mass: 0.085, position_frac: 0.30}]
+  - id: single
+    name: One altimeter and battery in a small av-bay
+    masses: [{name: av-bay and altimeter, mass: 0.040, position_frac: 0.28}]
+  - id: none
+    name: No electronics (motor ejection only)
+    masses: []
+extras:
+  - {name: "recovery hardware (Kevlar, swivel, protector)", mass: 0.018, position_frac: 0.45}
+  - {name: motor block, mass: 0.004, position_frac: 0.58}
+  - {name: paint and filler, mass: 0.006, position_frac: 0.55}
+sites:
+  - {id: coast, name: "Coastal airfield (50 m)", site_elevation: 50}
+  - {id: mountain, name: "Upland site (300 m)", site_elevation: 300}
+finishes: [rough, normal, smooth, polished]

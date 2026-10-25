@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heloria-sim"
+version = "0.1.2"
+description = "Open, multi-engine model rocket flight simulator: OpenRocket, RocketPy and a built-in engine, compared and combined"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.10"
+dependencies = ["numpy", "pyyaml", "matplotlib"]
+
+[project.optional-dependencies]
+rocketpy = ["rocketpy>=1.10"]
+openrocket = ["jpype1>=1.5"]
+ui = ["streamlit>=1.30", "pandas"]
+all = ["rocketpy>=1.10", "jpype1>=1.5", "streamlit>=1.30", "pandas"]
+
+[project.scripts]
+heloria-sim = "heloria_sim.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["heloria_sim*"]
+
+[tool.setuptools.package-data]
+heloria_sim = ["data/*.yaml", "data/motors/*.eng"]

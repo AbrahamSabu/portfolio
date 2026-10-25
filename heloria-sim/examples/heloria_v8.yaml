@@ -1,0 +1,17 @@
+name: Heloria v8
+finish: smooth
+nose: {shape: conical, length: 0.157, thickness: 0.0015, shoulder_length: 0.03, material: fiberglass, mass: 0.035}
+body: {length: 0.710, outer_diameter: 0.032, inner_diameter: 0.0291, material: fiberglass, mass: 0.143}
+fins: {count: 3, root: 0.060, tip: 0.014, span: 0.031, sweep: 0.046, thickness: 0.0028, material: carbon_sheet, edge: airfoil, offset_from_aft: 0.0}
+motor: {designation: 381I224-15A, overhang: 0.0}
+recovery: {chute_diameter: 0.45, chute_cd: 0.8, deploy: apogee, deploy_delay: 0.0}
+masses:
+  - {name: "av-bay: coupler, bulkheads, sled, electronics, batteries", mass: 0.085, position: 0.245}
+  - {name: "Kevlar, swivel, quick links, protector", mass: 0.018, position: 0.40}
+  - {name: motor block, mass: 0.004, position: 0.500}
+  - {name: fin root layup, mass: 0.010, position: 0.837}
+  - {name: retention clips and hardpoints, mass: 0.004, position: 0.860}
+  - {name: rail buttons, mass: 0.002, position: 0.700}
+  - {name: paint and filler, mass: 0.006, position: 0.50}
+  - {name: build margin, mass: 0.015, position: 0.45}
+launch: {rail_length: 3.0, rail_angle: 0.0, rail_heading: 270.0, site_elevation: 50.0, temperature_c: 15.0, pressure_hpa: 1013.25, wind_speed: 0.0, wind_from: 270.0, wind_aloft_factor: 1.0, turbulence: 0.0}
