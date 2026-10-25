@@ -1,0 +1,8 @@
+numpy
+pyyaml
+matplotlib
+pandas
+altair
+streamlit>=1.40
+rocketpy>=1.10
+jpype1>=1.5
