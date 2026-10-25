@@ -1,3 +1,5 @@
+[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Project page](https://abrahamsabu.github.io/portfolio/projects/heloria-sim/)
+
 # Heloria Sim
 
 An open-source model and high-power rocket flight simulator that runs your design through **several independent simulation engines** and shows where they agree, where they don't, and the average of what they say. Then it flies it hundreds or thousands of times with randomised weather, build and motor variation, and gives you all the data.
@@ -27,6 +29,17 @@ On the Heloria v8 example (CTI I224, 29 mm minimum diameter), calm day:
 
 ## Install
 
+Get just this project from the portfolio repo:
+
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/AbrahamSabu/portfolio.git heloria-sim
+cd heloria-sim
+git sparse-checkout set projects/heloria-sim .streamlit
+cd projects/heloria-sim
+```
+
+Then:
+
 ```bash
 pip install -e .            # core + built-in engine
 pip install -e ".[all]"     # + RocketPy, OpenRocket bridge and the web app
@@ -42,8 +55,8 @@ export HELORIA_OR_JAR=/path/to/OpenRocket-24.12.jar
 
 The app runs on [Streamlit Community Cloud](https://streamlit.io/cloud) for free, straight from this repository:
 
-1. Fork or upload this repository to GitHub.
-2. Sign in at share.streamlit.io with GitHub, click **Create app**, pick the repository, branch `main`, and main file `streamlit_app.py`.
+1. Fork this repository on GitHub.
+2. Sign in at share.streamlit.io with GitHub, click **Create app**, pick the repository, branch `main`, and main file `projects/heloria-sim/streamlit_app.py`.
 3. Click **Deploy**. You get a public link that works on phones and computers.
 
 The built-in engine and RocketPy work immediately. `packages.txt` installs Java, so the OpenRocket engine works too: press **Download the OpenRocket engine** in the sidebar once (it fetches the official OpenRocket jar from GitHub).
