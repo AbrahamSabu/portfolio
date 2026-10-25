@@ -20,17 +20,18 @@ h1{font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:0 0 .4rem}h2{margin:2.4
 img{max-width:100%;border-radius:12px;border:1px solid var(--line);display:block}
 .phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:start}
 table{border-collapse:collapse;width:100%;font-size:.95rem}td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
-.wrap{overflow-x:auto}footer{color:var(--dim);font-size:.9rem;margin-top:3rem}
+.wrap{overflow-x:auto}.back{margin:0 0 1.2rem;font-size:.95rem}.back a{color:var(--dim);text-decoration:none}.back a:hover{color:var(--ink)}footer{color:var(--dim);font-size:.9rem;margin-top:3rem}
 </style>
 </head>
 <body>
 <main>
+<p class="back"><a href="../../">← Portfolio</a></p>
 <h1>Heloria Sim</h1>
 <p class="lede">An open-source rocket flight simulator that flies one design through three independent engines (OpenRocket, RocketPy and a built-in physics model), shows where they agree, and runs thousands of randomised flights to see how a design holds up.</p>
 <div class="btns">
-  <a class="btn primary" href="#" id="app-link">Open the live app</a>
-  <a class="btn" href="README.md">Read the README</a>
-  <a class="btn" href="DEPLOY.md">Run your own copy</a>
+  <!-- When the Streamlit app is live, add: <a class="btn primary" href="APP-URL">Open the live app</a> -->
+  <a class="btn primary" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/heloria-sim#install">Get the code</a>
+  <a class="btn" href="https://github.com/AbrahamSabu/portfolio/tree/main/projects/heloria-sim#try-it-online--deploy-your-own">Run your own copy</a>
 </div>
 <img src="docs/screenshot_compare.png" alt="Heloria Sim comparing three engines on the Heloria v8 rocket">
 
