@@ -25,12 +25,13 @@ async function main(): Promise<void> {
   const startedAt = Date.now();
 
   const scenario = getScenario(config.scenario);
-  const scenarioInfo: ScenarioInfo = {
-    id: scenario.id,
-    name: scenario.name,
-    center: scenario.center,
-    zoom: scenario.zoom,
-  };
+  const worldwide = config.feeds.includes('opensky') && config.opensky.area === 'world';
+  // With only live worldwide traffic, the scenario's area means nothing, so
+  // frame and name the whole map. With the simulator too, keep its area.
+  const scenarioInfo: ScenarioInfo =
+    worldwide && !config.feeds.includes('sim')
+      ? { id: 'world', name: 'Worldwide', center: { lat: 30, lon: 0 }, zoom: 2 }
+      : { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
 
   // Every feed pushes into the same store; nothing downstream knows which ran.
   const feeds: Feed[] = [];
@@ -40,7 +41,13 @@ async function main(): Promise<void> {
         feeds.push(new Simulator({ scenario, seed: config.sim.seed }));
         break;
       case 'opensky':
-        feeds.push(new OpenSkyFeed({ bounds: scenario.bounds, ...config.opensky }));
+        feeds.push(
+          new OpenSkyFeed({
+            bounds: config.opensky.area === 'world' ? null : scenario.bounds,
+            pollMs: config.opensky.pollMs,
+            ...(config.opensky.credentials ? { credentials: config.opensky.credentials } : {}),
+          }),
+        );
         break;
     }
   }

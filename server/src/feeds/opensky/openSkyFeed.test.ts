@@ -69,6 +69,10 @@ describe('requestCost', () => {
     expect(requestCost(CHANNEL)).toBe(1);
   });
 
+  it('charges 4 credits for the whole world', () => {
+    expect(requestCost(null)).toBe(4);
+  });
+
   it('follows the documented area bands', () => {
     expect(requestCost({ south: 0, west: 0, north: 10, east: 10 })).toBe(2);
     expect(requestCost({ south: 0, west: 0, north: 20, east: 20 })).toBe(3);
@@ -86,16 +90,23 @@ describe('OpenSkyFeed', () => {
     const url = new URL(calls[0]!.url);
     expect(url.origin + url.pathname).toBe('https://opensky-network.org/api/states/all');
     expect(Object.fromEntries(url.searchParams)).toEqual({
+      extended: '1',
       lamin: '49.3',
       lomin: '-4.5',
       lamax: '51.6',
       lomax: '2.8',
-      extended: '1',
     });
     expect(authHeader(calls[0]!.init)).toBeUndefined();
     expect(upserts).toHaveLength(13);
     expect(removals).toHaveLength(5); // on the ground at Gatwick
     expect(feed.health()).toMatchObject({ auth: 'anonymous', aircraft: 13, creditsRemaining: 399 });
+  });
+
+  it('polls the whole world by leaving the box out', async () => {
+    const { fetch, calls } = scripted(json(recorded));
+    const { feed } = setup(fetch, { bounds: null });
+    await feed.pollOnce();
+    expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({ extended: '1' });
   });
 
   it('treats an empty sky as success, not failure', async () => {

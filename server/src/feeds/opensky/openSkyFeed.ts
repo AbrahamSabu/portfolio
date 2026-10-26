@@ -18,9 +18,11 @@ export const DAILY_CREDITS = { anonymous: 400, standard: 4000 } as const;
 
 /**
  * Credits one /states/all request costs, by bounding-box area in square
- * degrees: up to 25 costs 1, up to 100 costs 2, up to 400 costs 3, more costs 4.
+ * degrees: up to 25 costs 1, up to 100 costs 2, up to 400 costs 3, more (or
+ * the whole world) costs 4.
  */
-export function requestCost(b: BBox): number {
+export function requestCost(b: BBox | null): number {
+  if (!b) return 4;
   const area = (b.north - b.south) * (b.east - b.west);
   if (area <= 25) return 1;
   if (area <= 100) return 2;
@@ -34,7 +36,8 @@ export interface OpenSkyCredentials {
 }
 
 export interface OpenSkyOptions {
-  bounds: BBox;
+  /** The area to poll, or null for the whole world. */
+  bounds: BBox | null;
   pollMs: number;
   /** OAuth2 client credentials. Without them the feed polls anonymously. */
   credentials?: OpenSkyCredentials;
@@ -118,6 +121,7 @@ export class OpenSkyFeed implements Feed {
     const daily = this.authenticated ? DAILY_CREDITS.standard : DAILY_CREDITS.anonymous;
     const hours = (daily / cost) * (this.opts.pollMs / 3_600_000);
     this.log.info('configured', {
+      area: this.opts.bounds ? 'scenario' : 'world',
       every: `${this.opts.pollMs / 1000}s`,
       auth: this.authenticated ? 'client credentials' : 'anonymous',
       creditsPerPoll: cost,
@@ -196,14 +200,15 @@ export class OpenSkyFeed implements Feed {
     const token = await this.getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const { south, west, north, east } = this.opts.bounds;
-    const query = new URLSearchParams({
-      lamin: String(south),
-      lomin: String(west),
-      lamax: String(north),
-      lomax: String(east),
-      extended: '1', // adds the aircraft category at index 17
-    });
+    const query = new URLSearchParams({ extended: '1' }); // adds the aircraft category at index 17
+    // Leaving the box out asks for the whole world.
+    const box = this.opts.bounds;
+    if (box) {
+      query.set('lamin', String(box.south));
+      query.set('lomin', String(box.west));
+      query.set('lamax', String(box.north));
+      query.set('lomax', String(box.east));
+    }
     const res = await this.fetch(`${STATES_URL}?${query}`, { headers, signal: this.signal() });
 
     const remaining = Number(res.headers.get('X-Rate-Limit-Remaining'));
