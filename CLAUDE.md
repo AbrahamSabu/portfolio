@@ -12,7 +12,7 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (34 tests at the first commit).
+- `npm test`: Vitest from the root config (59 tests after roadmap item 1).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -21,14 +21,15 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 
 - `shared/` (`@watchfloor/shared`, its package.json exports TS source directly):
   the `Track` type, the WebSocket protocol (`protocol.ts`), geodesy (`geo.ts`:
-  distance, bearing, dead reckoning), staleness rules (`staleness.ts`) and
-  `sanitizeTrack` validation (`validate.ts`).
+  distance, bearing, dead reckoning), staleness rules (`staleness.ts`),
+  `TrailHistory` (`trail.ts`) and `sanitizeTrack` validation (`validate.ts`).
 - `server/`: Node plus `ws`, bundled with esbuild for production. `trackStore.ts`,
   `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface plus the simulator) and
   `scenarios/`.
 - `client/`: Vite, MapLibre GL JS v6 and milsymbol v3 in plain TypeScript, with no
-  UI framework. `map/` (createMap, trackLayer, symbols, reticle), `net/connection`,
-  `state/` (trackStore, clock, selection) and `ui/` (detailsPanel, statusBar, format).
+  UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl, symbols,
+  reticle), `net/connection`, `state/` (trackStore, trackQuery, clock, selection)
+  and `ui/` (trackList, detailsPanel, statusBar, format).
 
 ## Architecture
 
@@ -45,12 +46,18 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
   all clients. It always sends one, even when empty, because the delta doubles
   as a heartbeat. Clients with more than 2 MB buffered are skipped and later
   resynced with a snapshot. It pings every 15 s to drop dead sockets.
-- Protocol (`PROTOCOL_VERSION = 1`): hello (protocol, serverTime, tickMs,
-  staleness, scenario), then snapshot, then a delta per tick. Applying messages
+- Protocol (`PROTOCOL_VERSION = 2`): hello (protocol, serverTime, tickMs,
+  staleness, scenario), then snapshot (tracks plus `trails`), then a delta per tick. Applying messages
   is idempotent. **Bump the version on any breaking change**; the client shows
   "reload the page" on mismatch.
 - Staleness: air goes stale at 30 s and is dropped at 120 s; sea goes stale at
   90 s and is dropped at 10 min.
+- Trails (`shared/src/trail.ts`): `TrailHistory` keeps reported positions as
+  `[lon, lat, t]` tuples rounded to about 1 m. Air keeps 5 min with 200 m
+  minimum spacing; sea keeps 30 min with 50 m spacing. The server store records
+  every accepted report and sends the history in the snapshot. The browser store
+  loads it, then records delta upserts and prunes using `serverTime`. Trails
+  show reported positions only, never dead-reckoned ones.
 - Client:
   - ServerClock keeps the lowest-latency offset sample.
   - TrackLayer renders at 10 Hz, dead-reckons live tracks and freezes them at
@@ -59,6 +66,14 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
   - Symbols come from `map.setMissingStyleImageResolver`, with ids
     `sym:<15-char SIDC>` or `sym:<SIDC>:<label>`. The labelled version appears
     from zoom 8.
+  - TrailLayer rebuilds trail lines only on store or selection change. A separate
+    "heads" source joins the last report to the symbol at 10 Hz. Its mode
+    (all, selected or off) is cycled by TrailControl or the T key and saved in
+    localStorage.
+  - TrackList is a left drawer (L key; `/` focuses search), or a bottom sheet
+    under 640 px. Its filter and sort are pure functions in `state/trackQuery.ts`.
+    Rows are reused per id and only moved when the order changes, and they use
+    roving tabindex. Selecting a row pans the map without turning on follow.
   - Selection is a DOM Marker reticle with a lock-on animation, plus a details
     panel and follow mode. Dragging the map cancels follow.
   - Reconnect uses exponential backoff with jitter and a watchdog of
@@ -97,6 +112,9 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 - `.gitattributes` pins LF line endings because the user's global `core.autocrlf=true`.
 - npm 11 blocks esbuild's postinstall script. That is harmless, because the
   platform binary arrives as an optional dependency and both builds work.
+- Snapshot size grows with trails (about 90 KB after 3 minutes; a few hundred KB
+  at steady state). It is sent once per connect, not per tick. If it matters,
+  enable `permessage-deflate` on the ws server.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.
@@ -119,8 +137,7 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 
 ## Roadmap (next up first)
 
-1. Track history trails, plus a sortable, filterable track list panel
-   (air/sea filter, callsign search, row selects track).
+1. ~~Track history trails and a sortable, filterable track list~~ (done).
 2. Live aircraft from the OpenSky Network API as a Feed (anonymous rate limits;
    staleness may need per-source tuning).
 3. Live ships from AISStream.io over WebSocket (free API key in `.env`).
