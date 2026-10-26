@@ -1,3 +1,4 @@
+import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
 import type { Track } from './track';
 import type { TrailPoint } from './trail';
@@ -19,8 +20,10 @@ import type { TrailPoint } from './trail';
  *   2  snapshot carries `trails`
  *   3  staleness is `{ byDomain, bySource }`, with per-source overrides;
  *      hello carries `traffic`
+ *   4  browsers send `view` (what they're looking at), so a pay-per-area
+ *      feed can poll only the watched areas
  */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 export interface HelloMessage {
   type: 'hello';
@@ -88,4 +91,39 @@ export function parseServerMessage(raw: string): ServerMessage | null {
     default:
       return null;
   }
+}
+
+/**
+ * Messages browsers send to the server. Only one so far: the area on screen
+ * (plus a margin), sent on connect and after each pan or zoom settles.
+ * Longitudes may run past ±180 when the map has wrapped around the world.
+ */
+export interface ViewMessage {
+  type: 'view';
+  bbox: BBox;
+}
+
+export type ClientMessage = ViewMessage;
+
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Strict parse of a browser message. The server must treat these as untrusted:
+ * a view decides what a paid API is asked for.
+ */
+export function parseClientMessage(raw: string): ClientMessage | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof data !== 'object' || data === null) return null;
+  const m = data as Record<string, unknown>;
+  if (m.type !== 'view' || typeof m.bbox !== 'object' || m.bbox === null) return null;
+  const { south, west, north, east } = m.bbox as Record<string, unknown>;
+  if (!finite(south) || !finite(west) || !finite(north) || !finite(east)) return null;
+  if (south > north || west > east) return null;
+  if (south < -90 || north > 90 || west < -720 || east > 720) return null;
+  return { type: 'view', bbox: { south, west, north, east } };
 }
