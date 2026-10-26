@@ -12,7 +12,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (109 tests after roadmap item 2).
+- `npm test`: Vitest from the root config (116 tests after roadmap item 2).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -38,7 +38,10 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - **Feed contract:** `start(sink)` and `stop()`, where the sink has
   `upsert(report: unknown)` and `remove(id)`. New feeds (OpenSky, AISStream)
   implement this and push into the same store, and nothing downstream changes.
-  An optional `health()` adds feed state to `/healthz`.
+  An optional `health()` adds feed state to `/healthz`. An optional
+  `setDemand(watched)` hint (may be called before `start`) is driven by the
+  Hub's `onClientsChanged(count)`; `index.ts` calls `setDemand(false)` before
+  starting feeds, because nobody is connected yet. The simulator ignores it.
 - Track ids are `${source}:${nativeId}`, for example `adsb:4ca7b3` or `sim:air-0001`.
 - Server TrackStore: drops out-of-order reports, rejects timestamps more than
   30 s in the future, and keeps dirty and removed sets. `flush()` returns only
@@ -107,6 +110,10 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
     floored at the poll interval. Optional OAuth2 client credentials; rejected
     credentials fall back to anonymous. fetch, clock, random and timers are
     injected; tests use fixtures in `opensky/fixtures/`.
+  - With no viewers it skips its next due poll and stops rescheduling (the
+    pending timer is the grace period). `setDemand(true)` resumes at
+    `max(0, nextDueAt - now)`, so reloads can't poll early and 429 waits hold.
+    When recording arrives (roadmap 6), the recorder must count as demand.
   - Budget (OpenSky docs, Oct 2026): 400 credits/day anonymous, 4,000 with
     an account; boxes up to 25 sq° cost 1 credit per poll. Data resolution is
     10 s anonymous, 5 s authenticated.
@@ -168,9 +175,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 ## Roadmap (next up first)
 
 1. ~~Track history trails and a sortable, filterable track list~~ (done).
-2. ~~Live aircraft from the OpenSky Network API as a Feed~~ (done). Follow-ups:
-   pause polling while no browser is connected (saves credits), and show live
-   feed health (rate limited, failing) in the UI rather than only `/healthz`.
+2. ~~Live aircraft from the OpenSky Network API as a Feed~~ (done). Polling pauses
+   while no browser is connected. Follow-up: show live feed health (paused,
+   rate limited, failing) in the UI rather than only `/healthz`.
 3. Live ships from AISStream.io over WebSocket (free API key in `.env`).
 4. Geofences drawn on the map, with entry and exit alerts.
 5. Operator tagging of affiliation.
