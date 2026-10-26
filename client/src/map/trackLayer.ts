@@ -4,6 +4,7 @@ import { deadReckon, destination, ruleFor, type Domain, type LatLon } from '@wat
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
+import { renderIntervalMs } from './renderRate';
 import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symbols';
 
 const TRACKS_SOURCE = 'tracks';
@@ -11,8 +12,6 @@ const LEADERS_SOURCE = 'track-leaders';
 export const SYMBOL_LAYER = 'track-symbols';
 export const LEADER_LAYER = 'track-leaders';
 
-/** Positions are recomputed at 10 Hz: smooth enough, cheap enough. */
-const RENDER_INTERVAL_MS = 100;
 /** Speed leaders show where a track will be after this long. Ships are slow, so theirs look further ahead. */
 const LEADER_SECONDS: Record<Domain, number> = { air: 60, sea: 600 };
 /** Callsign labels appear from this zoom level in. */
@@ -52,6 +51,8 @@ export interface DisplayPosition extends LatLon {
 export class TrackLayer {
   private readonly positions = new Map<string, DisplayPosition>();
   private lastRender = 0;
+  /** Set when data or selection changed, so the next frame renders whatever the zoom-based interval says. */
+  private needsRender = true;
   private readonly frameListeners = new Set<() => void>();
 
   constructor(
@@ -65,6 +66,8 @@ export class TrackLayer {
     map.on('style.load', () => this.install());
     if (map.isStyleLoaded()) this.install();
     this.bindInteraction();
+    store.subscribe(() => (this.needsRender = true));
+    selection.subscribe(() => (this.needsRender = true));
     requestAnimationFrame(this.loop);
   }
 
@@ -151,8 +154,11 @@ export class TrackLayer {
 
   private readonly loop = (time: number): void => {
     requestAnimationFrame(this.loop);
-    if (document.hidden || time - this.lastRender < RENDER_INTERVAL_MS) return;
+    if (document.hidden) return;
+    const interval = renderIntervalMs(this.map.getZoom(), this.map.getCenter().lat);
+    if (!this.needsRender && time - this.lastRender < interval) return;
     this.lastRender = time;
+    this.needsRender = false;
     this.render();
   };
 
