@@ -117,7 +117,7 @@ export class OpenSkyFeed implements Feed {
     const cost = requestCost(this.opts.bounds);
     const daily = this.authenticated ? DAILY_CREDITS.standard : DAILY_CREDITS.anonymous;
     const hours = (daily / cost) * (this.opts.pollMs / 3_600_000);
-    this.log.info('polling', {
+    this.log.info('configured', {
       every: `${this.opts.pollMs / 1000}s`,
       auth: this.authenticated ? 'client credentials' : 'anonymous',
       creditsPerPoll: cost,
