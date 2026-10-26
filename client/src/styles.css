@@ -433,6 +433,17 @@ button {
   cursor: pointer;
 }
 
+/* Stands in for rows outside the windowed range; its height is set from code. */
+.track-table tbody tr.track-spacer {
+  cursor: default;
+  pointer-events: none;
+}
+
+.track-table tbody tr.track-spacer td {
+  padding: 0;
+  border: 0;
+}
+
 .track-table tbody tr:hover {
   background: var(--surface-raised);
 }
