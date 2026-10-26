@@ -15,8 +15,11 @@ const TOKEN_MARGIN_MS = 60_000;
 const MAX_BACKOFF_MS = 5 * 60_000;
 /** Early polls (a view moved off the polled area) never come sooner than this after the last attempt: OpenSky's data only changes every 10 s anonymously. */
 const MIN_EARLY_GAP_MS = 10_000;
-/** And wait this long for a view to settle, so a pan across the map costs one poll, not several. */
-const VIEW_SETTLE_MS = 1_000;
+/**
+ * And wait until views have stopped changing for this long, so a pan or a
+ * zoom made of several steps costs one poll, not one per step.
+ */
+const VIEW_SETTLE_MS = 2_000;
 
 /** Daily /states credits per tier, from the OpenSky REST docs (checked October 2026). */
 export const DAILY_CREDITS = { anonymous: 400, standard: 4000 } as const;
@@ -95,6 +98,8 @@ export class OpenSkyFeed implements Feed {
   /** What the last fully successful poll covered. */
   private lastPolled: Plan = [];
   private lastAttemptAt = Number.NEGATIVE_INFINITY;
+  /** When an early poll is pending: when the regular poll it replaced was due. */
+  private regularDueAt: number | null = null;
 
   // Exposed through health() for /healthz.
   private lastSuccessAt: number | null = null;
@@ -169,22 +174,35 @@ export class OpenSkyFeed implements Feed {
 
   /**
    * Bring the next poll forward when the plan isn't covered by the last one,
-   * so panning somewhere new doesn't wait a whole interval for aircraft. It
-   * only ever moves a poll earlier, never into a backoff or 429 wait, and
-   * never within MIN_EARLY_GAP_MS of the last attempt.
+   * so panning somewhere new doesn't wait a whole interval for aircraft.
+   *
+   * It's a debounce: while views keep changing, a pending early poll moves
+   * later, so a multi-step gesture costs one poll. It never lands after the
+   * regular poll it replaced, never in a backoff or 429 wait, and never within
+   * MIN_EARLY_GAP_MS of the last attempt. If the view returns to the polled
+   * area, the regular schedule comes back.
    */
   private maybePollEarly(): void {
     if (!this.opts.viewport || this.timer === null || !this.active) return;
-    if (covers(this.lastPolled, this.plan)) return;
     if (this.backoff.attempts > 0 || this.pausedUntil !== null) return;
     const now = this.now();
+    const regular = this.regularDueAt ?? this.nextDueAt;
+
+    if (covers(this.lastPolled, this.plan)) {
+      if (this.regularDueAt === null) return;
+      this.clearTimer(this.timer);
+      this.regularDueAt = null;
+      this.schedule(Math.max(0, regular - now)); // back to the regular poll
+      return;
+    }
+
     const due = Math.max(now + VIEW_SETTLE_MS, this.lastAttemptAt + MIN_EARLY_GAP_MS);
-    if (due >= this.nextDueAt) return;
+    if (due >= regular) return;
     this.clearTimer(this.timer);
-    this.log.info('view moved off the polled area; polling early', {
-      area: describePlan(this.plan),
-      inS: Math.round((due - now) / 1000),
-    });
+    if (this.regularDueAt === null) {
+      this.log.info('view moved off the polled area; polling early', { area: describePlan(this.plan) });
+    }
+    this.regularDueAt = regular;
     this.schedule(due - now);
   }
 
@@ -218,6 +236,7 @@ export class OpenSkyFeed implements Feed {
 
   private async tick(): Promise<void> {
     this.timer = null;
+    this.regularDueAt = null;
     if (!this.sink) return; // stopped while the timer was pending
     if (!this.active) {
       // Leave nextDueAt as it is: the poll is overdue, so a returning viewer gets one at once.

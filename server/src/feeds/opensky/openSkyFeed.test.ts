@@ -436,7 +436,41 @@ describe('OpenSkyFeed viewport mode', () => {
     await fire();
     advance(30_000);
     feed.setAreas([MADRID]);
-    expect(timers.at(-1)).toBe(1_000);
+    expect(timers.at(-1)).toBe(2_000);
+  });
+
+  it('debounces: a view that keeps changing pushes the early poll back, never past the regular one', async () => {
+    const { fetch, calls } = scripted(json(recorded), json(recorded));
+    const { feed, timers, fire, advance } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    await fire();
+    advance(30_000);
+    // A zoom out in steps: each new view restarts the 2 s settle.
+    for (const view of [MADRID, { south: 39, west: -6, north: 42, east: -1 }, { south: 36, west: -10, north: 44, east: 0 }]) {
+      feed.setAreas([view]);
+      advance(1_000);
+    }
+    expect(timers.slice(2)).toEqual([2_000, 2_000, 2_000]);
+    await fire();
+    expect(calls).toHaveLength(2); // one poll for the whole gesture
+    expect(box(calls[1]!.url)).toBe('36,-10,44,0'); // the final view, at 2 credits
+
+    // Near the regular poll, the debounce can't push past it.
+    advance(POLL_MS - 1_000);
+    feed.setAreas([TOKYO]);
+    expect(timers.at(-1)).toBe(POLL_MS); // the regular poll, rescheduled after the last one, is untouched
+  });
+
+  it('returns to the regular schedule if the view goes back to the polled area', async () => {
+    const { fetch } = scripted(json(recorded));
+    const { feed, timers, fire, advance } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    await fire();
+    advance(30_000);
+    feed.setAreas([MADRID]);
+    expect(timers.at(-1)).toBe(2_000);
+    feed.setAreas([LONDON]);
+    expect(timers.at(-1)).toBe(30_000); // the regular poll, still due at 60 s
   });
 
   it('never brings a poll forward into a backoff or a 429 wait', async () => {
@@ -501,6 +535,6 @@ describe('OpenSkyFeed viewport mode', () => {
     await polling;
     release(json(recorded));
     for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0)); // let the poll finish
-    expect(timers).toEqual([0, POLL_MS, 5_000]); // rescheduled to 10 s after that poll began
+    expect(timers).toEqual([0, POLL_MS, 5_000]); // 10 s after that poll began (settling already passed)
   });
 });
