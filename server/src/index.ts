@@ -25,13 +25,17 @@ async function main(): Promise<void> {
   const startedAt = Date.now();
 
   const scenario = getScenario(config.scenario);
-  const worldwide = config.feeds.includes('opensky') && config.opensky.area === 'world';
+  const liveOnly = config.feeds.includes('opensky') && !config.feeds.includes('sim');
   // With only live worldwide traffic, the scenario's area means nothing, so
-  // frame and name the whole map. With the simulator too, keep its area.
+  // frame and name the whole map. Viewport mode is worldwide too, but starts on
+  // the scenario: a zoomed-in first view costs 1 credit, not 4. With the
+  // simulator, keep its area.
   const scenarioInfo: ScenarioInfo =
-    worldwide && !config.feeds.includes('sim')
+    liveOnly && config.opensky.area === 'world'
       ? { id: 'world', name: 'Worldwide', center: { lat: 30, lon: 0 }, zoom: 2 }
-      : { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
+      : liveOnly && config.opensky.area === 'viewport'
+        ? { id: 'world', name: 'Worldwide', center: scenario.center, zoom: scenario.zoom }
+        : { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
 
   // Every feed pushes into the same store; nothing downstream knows which ran.
   const feeds: Feed[] = [];
@@ -43,7 +47,8 @@ async function main(): Promise<void> {
       case 'opensky':
         feeds.push(
           new OpenSkyFeed({
-            bounds: config.opensky.area === 'world' ? null : scenario.bounds,
+            bounds: config.opensky.area === 'scenario' ? scenario.bounds : null,
+            viewport: config.opensky.area === 'viewport',
             pollMs: config.opensky.pollMs,
             ...(config.opensky.credentials ? { credentials: config.opensky.credentials } : {}),
           }),
@@ -74,6 +79,9 @@ async function main(): Promise<void> {
     traffic: trafficKind(config.feeds),
     onClientsChanged: (count) => {
       for (const feed of feeds) feed.setDemand?.(count > 0);
+    },
+    onViewsChanged: (views) => {
+      for (const feed of feeds) feed.setAreas?.(views);
     },
   });
 

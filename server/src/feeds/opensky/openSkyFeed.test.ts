@@ -356,3 +356,151 @@ describe('OpenSkyFeed demand', () => {
     expect(timers).toEqual([0]);
   });
 });
+
+describe('OpenSkyFeed viewport mode', () => {
+  const LONDON = { south: 51.2, west: -0.6, north: 51.8, east: 0.4 };
+  const MADRID = { south: 40.2, west: -4.0, north: 40.7, east: -3.4 };
+  const TOKYO = { south: 35.4, west: 139.4, north: 35.9, east: 140.1 };
+
+  function viewportFeed(fetch: typeof globalThis.fetch) {
+    let now = 1_792_975_620_000;
+    const timers: number[] = [];
+    let cleared = 0;
+    let latest: () => void = () => {};
+    const feed = new OpenSkyFeed({
+      bounds: null,
+      viewport: true,
+      pollMs: POLL_MS,
+      fetch,
+      now: () => now,
+      random: () => 1,
+      log: silent,
+      setTimer: (fn, ms) => {
+        timers.push(ms);
+        latest = fn;
+      },
+      clearTimer: () => cleared++,
+    });
+    const out = recordingSink();
+    const fire = async () => {
+      latest();
+      await new Promise((r) => setTimeout(r, 0));
+    };
+    feed.start(out.sink);
+    return { feed, timers, fire, advance: (ms: number) => (now += ms), cleared: () => cleared, ...out };
+  }
+
+  const box = (url: string) => {
+    const q = new URL(url).searchParams;
+    return [q.get('lamin'), q.get('lomin'), q.get('lamax'), q.get('lomax')].join(',');
+  };
+
+  it('waits for a view, then polls just that area for 1 credit', async () => {
+    const { fetch, calls } = scripted(json(recorded));
+    const { feed, timers, fire } = viewportFeed(fetch);
+    expect(timers).toEqual([]); // a browser is connected but hasn't said where it's looking
+
+    feed.setAreas([LONDON]);
+    expect(timers).toEqual([0]);
+    await fire();
+    expect(calls.map((c) => box(c.url))).toEqual(['51,-1,52,1']);
+    expect(feed.health()).toMatchObject({ polled: '51,-1,52,1', creditsPerPoll: 1 });
+  });
+
+  it('does not poll early for a view the last poll already covered', async () => {
+    const { fetch } = scripted(json(recorded));
+    const { feed, timers, fire } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    await fire();
+    feed.setAreas([{ south: 51.4, west: -0.3, north: 51.6, east: 0.1 }]); // a small pan inside London
+    expect(timers).toEqual([0, POLL_MS]);
+  });
+
+  it('polls early when the view moves somewhere new, but not within 10 s of the last poll', async () => {
+    const { fetch, calls } = scripted(json(recorded), json(recorded));
+    const { feed, timers, fire, advance, cleared } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    await fire();
+    advance(2_000);
+    feed.setAreas([MADRID]);
+    expect(timers).toEqual([0, POLL_MS, 8_000]); // 10 s after the last poll, not 60
+    expect(cleared()).toBe(1);
+    await fire();
+    expect(box(calls[1]!.url)).toBe('40,-4,41,-3');
+  });
+
+  it('waits for the view to settle before an early poll', async () => {
+    const { fetch } = scripted(json(recorded));
+    const { feed, timers, fire, advance } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    await fire();
+    advance(30_000);
+    feed.setAreas([MADRID]);
+    expect(timers.at(-1)).toBe(1_000);
+  });
+
+  it('never brings a poll forward into a backoff or a 429 wait', async () => {
+    for (const failure of [json('', { status: 503 }), json('', { status: 429, headers: { 'X-Rate-Limit-Retry-After-Seconds': '3600' } })]) {
+      const { fetch } = scripted(failure);
+      const { feed, timers, fire, advance } = viewportFeed(fetch);
+      feed.setAreas([LONDON]);
+      await fire();
+      const waiting = timers.length;
+      advance(30_000);
+      feed.setAreas([MADRID]);
+      expect(timers).toHaveLength(waiting);
+    }
+  });
+
+  it('polls far-apart views as separate small requests in one poll', async () => {
+    const { fetch, calls } = scripted(json(recorded), json(recorded));
+    const { feed, fire, upserts } = viewportFeed(fetch);
+    feed.setAreas([LONDON, TOKYO]);
+    await fire();
+    expect(calls.map((c) => box(c.url))).toEqual(['51,-1,52,1', '35,139,36,141']);
+    expect(upserts).toHaveLength(26);
+    expect(feed.health()).toMatchObject({ creditsPerPoll: 2, aircraft: 26 });
+  });
+
+  it('keeps what earlier requests returned when a later one fails, but counts the poll as failed', async () => {
+    const { fetch } = scripted(json(recorded), json('', { status: 500 }));
+    const { feed, fire, upserts, timers } = viewportFeed(fetch);
+    feed.setAreas([LONDON, TOKYO]);
+    await fire();
+    expect(upserts).toHaveLength(13);
+    expect(feed.health()).toMatchObject({ polled: 'none', lastError: 'HTTP 500', consecutiveFailures: 1 });
+    expect(timers.at(-1)).toBe(POLL_MS); // backoff, floored at the interval
+  });
+
+  it('pauses when no browser has a view', async () => {
+    const { fetch, calls } = scripted(json(recorded));
+    const { feed, fire, advance, timers } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    await fire();
+    feed.setAreas([]);
+    advance(POLL_MS);
+    await fire();
+    expect(calls).toHaveLength(1);
+    expect(timers).toEqual([0, POLL_MS]);
+    expect(feed.health().paused).toBe(true);
+  });
+
+  it('polls early after a poll if the view moved while the request was in flight', async () => {
+    let release: (r: Response) => void = () => {};
+    const calls: string[] = [];
+    const fetch = (async (input: string | URL | Request) => {
+      calls.push(String(input));
+      if (calls.length === 1) return new Promise<Response>((r) => (release = r));
+      return json(recorded);
+    }) as typeof globalThis.fetch;
+    const { feed, timers, fire, advance } = viewportFeed(fetch);
+    feed.setAreas([LONDON]);
+    const polling = fire();
+    advance(5_000);
+    feed.setAreas([MADRID]); // no timer pending: the poll is in flight
+    await polling;
+    release(json(recorded));
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0)); // let the poll finish
+    expect(timers).toEqual([0, POLL_MS, 5_000]); // rescheduled to 10 s after that poll began
+  });
+});

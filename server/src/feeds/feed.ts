@@ -1,3 +1,5 @@
+import type { BBox } from '@watchfloor/shared';
+
 /**
  * A feed is anything that produces track reports: the simulator today,
  * ADS-B and AIS clients next. Feeds don't know about WebSockets or the store;
@@ -19,6 +21,11 @@ export interface Feed {
    * request; free feeds ignore it. May be called before start().
    */
   setDemand?(watched: boolean): void;
+  /**
+   * What each browser is looking at. A hint for feeds that pay by area;
+   * others ignore it.
+   */
+  setAreas?(views: BBox[]): void;
   /** Feed-specific state for /healthz (credits left, last error...). */
   health?(): Record<string, unknown>;
 }

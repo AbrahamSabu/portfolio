@@ -16,8 +16,11 @@ export interface Config {
     seed: number;
   };
   opensky: {
-    /** 'scenario' polls the scenario's bounding box; 'world' polls everywhere (4 credits a poll). */
-    area: 'scenario' | 'world';
+    /**
+     * 'scenario' polls the scenario's bounding box; 'world' polls everywhere
+     * (4 credits a poll); 'viewport' polls only what browsers are looking at.
+     */
+    area: 'scenario' | 'world' | 'viewport';
     /** OAuth2 client credentials; without them the feed polls anonymously. */
     credentials?: { clientId: string; clientSecret: string };
     pollMs: number;
@@ -73,8 +76,8 @@ function openSkyConfig(): Config['opensky'] {
   const authed = Boolean(clientId);
   const pollS = int('OPENSKY_POLL_S', authed ? 15 : 60, authed ? 5 : 10, 3600);
   const area = (process.env.OPENSKY_AREA || 'scenario').trim().toLowerCase();
-  if (area !== 'scenario' && area !== 'world') {
-    throw new Error(`OPENSKY_AREA must be scenario or world (got "${area}")`);
+  if (area !== 'scenario' && area !== 'world' && area !== 'viewport') {
+    throw new Error(`OPENSKY_AREA must be scenario, world or viewport (got "${area}")`);
   }
   return { area, ...(authed ? { credentials: { clientId, clientSecret } } : {}), pollMs: pollS * 1000 };
 }
