@@ -1,6 +1,6 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { DataDrivenPropertyValueSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
-import { deadReckon, destination, type Domain, type LatLon } from '@watchfloor/shared';
+import { deadReckon, destination, ruleFor, type Domain, type LatLon } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
@@ -164,7 +164,7 @@ export class TrackLayer {
     const seen = new Set<string>();
 
     for (const track of this.store.all()) {
-      const rule = this.store.staleness[track.domain];
+      const rule = ruleFor(track, this.store.staleness);
       const age = now - track.observedAt;
       const stale = age > rule.staleAfterMs;
       // Dead-reckon up to the stale threshold, then hold the last estimate.

@@ -17,8 +17,9 @@ import type { TrailPoint } from './trail';
  * History:
  *   1  hello, snapshot, delta
  *   2  snapshot carries `trails`
+ *   3  staleness is `{ byDomain, bySource }`, with per-source overrides
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export interface HelloMessage {
   type: 'hello';

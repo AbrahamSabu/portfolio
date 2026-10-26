@@ -1,6 +1,7 @@
 import {
   sanitizeTrack,
   TrailHistory,
+  ruleFor,
   type StalenessRules,
   type Track,
   type TrailPoint,
@@ -65,7 +66,7 @@ export class TrackStore {
       return false;
     }
     // Too old to be worth showing at all.
-    if (now - track.observedAt > this.staleness[track.domain].dropAfterMs) return false;
+    if (now - track.observedAt > ruleFor(track, this.staleness).dropAfterMs) return false;
 
     // Reports can arrive out of order (network, feed batching). Never go backwards.
     const existing = this.tracks.get(track.id);
@@ -93,7 +94,7 @@ export class TrackStore {
   prune(now = Date.now()): number {
     let count = 0;
     for (const [id, track] of this.tracks) {
-      if (now - track.observedAt > this.staleness[track.domain].dropAfterMs) {
+      if (now - track.observedAt > ruleFor(track, this.staleness).dropAfterMs) {
         this.remove(id);
         count++;
       }

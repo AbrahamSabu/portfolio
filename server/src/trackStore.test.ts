@@ -21,6 +21,18 @@ function track(id: string, observedAt = NOW, extra: Partial<Track> = {}): Track 
 }
 
 describe('TrackStore', () => {
+  it('prunes by the source override when there is one', () => {
+    const rules = { ...DEFAULT_STALENESS, bySource: { adsb: { staleAfterMs: 145_000, dropAfterMs: 360_000 } } };
+    const store = new TrackStore(rules);
+    const air = { domain: 'air', platform: 'aircraft', affiliation: 'unknown' } as const;
+    store.ingest(track('sim:a', NOW, air), NOW);
+    store.ingest(track('adsb:4ca7b3', NOW, { ...air, source: 'adsb' }), NOW);
+    // Past the air default (2 min) but inside the OpenSky override (6 min).
+    store.prune(NOW + 200_000);
+    expect(store.get('sim:a')).toBeUndefined();
+    expect(store.get('adsb:4ca7b3')).toBeDefined();
+  });
+
   it('coalesces repeated reports into one upsert per flush', () => {
     const store = new TrackStore(DEFAULT_STALENESS);
     store.ingest(track('sim:a', NOW - 2000), NOW);
@@ -51,7 +63,7 @@ describe('TrackStore', () => {
 
   it('prunes tracks past their drop window', () => {
     const store = new TrackStore(DEFAULT_STALENESS);
-    const dropAfter = DEFAULT_STALENESS.sea.dropAfterMs;
+    const dropAfter = DEFAULT_STALENESS.byDomain.sea.dropAfterMs;
     store.ingest(track('sim:old', NOW - dropAfter + 1000), NOW);
     store.ingest(track('sim:new', NOW), NOW);
     store.flush();
@@ -93,7 +105,7 @@ describe('TrackStore', () => {
     it('forgets the trail when its track is removed or pruned', () => {
       const store = new TrackStore(DEFAULT_STALENESS);
       store.ingest(track('sim:a'), NOW);
-      store.ingest(track('sim:old', NOW - DEFAULT_STALENESS.sea.dropAfterMs + 1000), NOW);
+      store.ingest(track('sim:old', NOW - DEFAULT_STALENESS.byDomain.sea.dropAfterMs + 1000), NOW);
       store.remove('sim:a');
       store.prune(NOW + 2000);
       expect(store.trailSnapshot()).toEqual({});

@@ -1,5 +1,6 @@
 import {
   DEFAULT_STALENESS,
+  ruleFor,
   TrailHistory,
   trackStatus,
   type StalenessRules,
@@ -49,7 +50,7 @@ export class TrackStore {
   }
 
   status(track: Track, now: number): TrackStatus {
-    return trackStatus(now - track.observedAt, this.rules[track.domain]);
+    return trackStatus(now - track.observedAt, ruleFor(track, this.rules));
   }
 
   applySnapshot(tracks: Track[], trails: Record<string, TrailPoint[]>): void {
