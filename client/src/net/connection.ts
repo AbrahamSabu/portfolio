@@ -1,4 +1,4 @@
-import { PROTOCOL_VERSION, parseServerMessage, type ServerMessage } from '@watchfloor/shared';
+import { PROTOCOL_VERSION, parseServerMessage, type ClientMessage, type ServerMessage } from '@watchfloor/shared';
 
 export type ConnectionState =
   | { status: 'connecting' }
@@ -35,6 +35,11 @@ export class Connection {
     private readonly url: string,
     private readonly handlers: ConnectionHandlers,
   ) {}
+
+  /** Send to the server if connected. Dropped otherwise: callers resend on the next hello. */
+  send(message: ClientMessage): void {
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(message));
+  }
 
   start(): void {
     if (!this.stopped) return;

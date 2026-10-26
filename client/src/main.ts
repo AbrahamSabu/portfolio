@@ -6,6 +6,7 @@ import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { loadTrailMode, TrailControl } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
+import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
 import { Selection } from './state/selection';
@@ -109,6 +110,21 @@ async function main(): Promise<void> {
   const scenarioName = el('scenario-name');
   let framed = false;
 
+  // Tell the server what's on screen, so a pay-per-area feed can poll just that.
+  // Debounced: a pan or zoom sends one view once it settles, not one per frame.
+  const sendView = () => {
+    const b = map.getBounds();
+    connection.send({
+      type: 'view',
+      bbox: viewForServer({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }),
+    });
+  };
+  let viewTimer: number | undefined;
+  map.on('moveend', () => {
+    window.clearTimeout(viewTimer);
+    viewTimer = window.setTimeout(sendView, 500);
+  });
+
   const connection = new Connection(defaultSocketUrl(), {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
@@ -121,6 +137,7 @@ async function main(): Promise<void> {
             map.jumpTo({ center: [center.lon, center.lat], zoom });
           }
           framed = true;
+          sendView(); // on every (re)connect, so the server always knows what we're looking at
           break;
         case 'snapshot':
           store.applySnapshot(message.tracks, message.trails);

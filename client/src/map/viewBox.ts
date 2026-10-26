@@ -39,3 +39,14 @@ export function inViewBox(b: ViewBox, lon: number, lat: number): boolean {
   }
   return false;
 }
+
+/**
+ * The view to report to the server. Kept tighter than the drawing margin,
+ * because the server may pay by area for what it fetches. A view wider than
+ * the world (zoomed right out on a wide screen) becomes exactly the world.
+ */
+export function viewForServer(screen: ViewBox, margin = 0.2): ViewBox {
+  const padded = padViewBox(screen, margin);
+  if (padded.east - padded.west >= 360) return { ...padded, west: -180, east: 180 };
+  return padded;
+}

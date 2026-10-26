@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inViewBox, padViewBox } from './viewBox';
+import { inViewBox, padViewBox, viewForServer } from './viewBox';
 
 const channel = { west: -2, south: 49.5, east: 2, north: 51.5 };
 
@@ -26,5 +26,21 @@ describe('padViewBox', () => {
   it('grows the box on every side, clamped at the poles', () => {
     expect(padViewBox(channel, 0.5)).toEqual({ west: -4, south: 48.5, east: 4, north: 52.5 });
     expect(padViewBox({ west: 0, south: 60, east: 10, north: 85 }, 0.5).north).toBe(90);
+  });
+});
+
+describe('viewForServer', () => {
+  it('adds a 20% margin', () => {
+    expect(viewForServer({ west: 0, south: 50, east: 10, north: 52 })).toEqual({
+      west: -2,
+      south: 49.6,
+      east: 12,
+      north: 52.4,
+    });
+  });
+
+  it('collapses a view wider than the world to exactly the world', () => {
+    const v = viewForServer({ west: -700, south: -85, east: 700, north: 85 });
+    expect([v.west, v.east]).toEqual([-180, 180]);
   });
 });
