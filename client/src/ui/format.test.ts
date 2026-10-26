@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { formatAltitude, formatCourse, formatDtg, formatLat, formatLon, formatSpeed } from './format';
+import {
+  formatAge,
+  formatAltitude,
+  formatCourse,
+  formatDtg,
+  formatDuration,
+  formatLat,
+  formatLon,
+  formatSpeed,
+} from './format';
 
 describe('format', () => {
   it('writes positions as degrees and decimal minutes', () => {
@@ -23,5 +32,13 @@ describe('format', () => {
 
   it('formats a military date-time group in UTC', () => {
     expect(formatDtg(Date.UTC(2026, 9, 25, 14, 32))).toBe('251432Z OCT 26');
+  });
+
+  it('formats elapsed time compactly, and as an age', () => {
+    expect(formatDuration(4400)).toBe('4 s');
+    expect(formatDuration(150_000)).toBe('2 min');
+    expect(formatDuration(2 * 3_600_000)).toBe('2 h');
+    expect(formatDuration(-500)).toBe('0 s');
+    expect(formatAge(150_000)).toBe('2 min ago');
   });
 });

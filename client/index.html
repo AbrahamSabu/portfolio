@@ -20,14 +20,71 @@
   <body>
     <div class="app">
       <header class="topbar">
-        <div class="brand">
-          <span class="brand-name">Watchfloor</span>
-          <span class="brand-scenario" id="scenario-name">Connecting to server</span>
+        <div class="topbar-start">
+          <button
+            class="topbar-button"
+            id="list-toggle"
+            type="button"
+            aria-controls="track-list"
+            aria-expanded="false"
+            title="Track list (L)"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h8" /></svg>
+            <span>Tracks</span>
+          </button>
+          <div class="brand">
+            <span class="brand-name">Watchfloor</span>
+            <span class="brand-scenario" id="scenario-name">Connecting to server</span>
+          </div>
         </div>
         <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
       </header>
 
       <div class="map" id="map" role="region" aria-label="Tactical map"></div>
+
+      <aside class="track-list" id="track-list" hidden aria-labelledby="track-list-title">
+        <header class="track-list-head">
+          <h2 class="track-list-title" id="track-list-title">
+            Tracks <span class="track-list-count" data-count></span>
+          </h2>
+          <button class="icon-button" type="button" data-close aria-label="Close track list">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+
+        <div class="track-list-filters">
+          <div class="segmented" role="group" aria-label="Show">
+            <button type="button" data-domain="all" aria-pressed="true">All</button>
+            <button type="button" data-domain="air" aria-pressed="false">Air</button>
+            <button type="button" data-domain="sea" aria-pressed="false">Sea</button>
+          </div>
+          <input
+            class="search"
+            type="search"
+            data-search
+            placeholder="Search callsign"
+            aria-label="Search by callsign or track id (/)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="track-table-wrap">
+          <table class="track-table" role="grid" aria-labelledby="track-list-title" aria-readonly="true">
+            <thead>
+              <tr>
+                <th scope="col"><button type="button" data-sort="callsign">Callsign</button></th>
+                <th scope="col"><button type="button" data-sort="type">Type</button></th>
+                <th scope="col" class="num"><button type="button" data-sort="speed">Speed</button></th>
+                <th scope="col" class="num"><button type="button" data-sort="altitude">Alt</button></th>
+                <th scope="col" class="num"><button type="button" data-sort="age">Age</button></th>
+              </tr>
+            </thead>
+            <tbody data-rows></tbody>
+          </table>
+          <p class="track-list-empty" data-empty hidden>No tracks match.</p>
+        </div>
+      </aside>
 
       <aside class="details" id="details" hidden aria-labelledby="details-title">
         <header class="details-head">

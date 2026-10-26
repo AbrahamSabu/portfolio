@@ -30,6 +30,8 @@
 
   --topbar-h: 44px;
   --statusbar-h: 30px;
+  /* Leaves room for the 300 px details panel on mid-sized screens. */
+  --list-w: min(440px, calc(100vw - 340px));
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
@@ -123,6 +125,43 @@ button {
   text-overflow: ellipsis;
 }
 
+.topbar-start {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.topbar-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.topbar-button:hover,
+.topbar-button[aria-expanded='true'] {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.topbar-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
 /* The date-time group is the one piece of type given room to be a feature. */
 .dtg {
   font-size: var(--text-lg);
@@ -206,6 +245,238 @@ button {
 .cursor {
   margin-left: auto;
   white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- track list */
+
+.track-list {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  left: 12px;
+  width: var(--list-w);
+  bottom: calc(var(--statusbar-h) + var(--safe-bottom) + 12px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(3 8 11 / 0.45);
+}
+
+.track-list[hidden] {
+  display: none;
+}
+
+.track-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 0 14px;
+}
+
+.track-list-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.track-list-count {
+  margin-left: 4px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.track-list-filters {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.segmented {
+  display: flex;
+  flex: none;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.segmented button {
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--rule);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.search::placeholder {
+  color: var(--ink-muted);
+}
+
+.track-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.track-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Fixed columns: widths don't jump as values change every second. */
+  table-layout: fixed;
+  font-size: var(--text-sm);
+}
+
+.track-table th:nth-child(1) {
+  width: 34%;
+}
+
+.track-table th:nth-child(2) {
+  width: 24%;
+}
+
+.track-table th:nth-child(3),
+.track-table th:nth-child(5) {
+  width: 13%;
+}
+
+.track-table th:nth-child(4) {
+  width: 16%;
+}
+
+.track-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  background: var(--surface-solid);
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  font-weight: 500;
+}
+
+.track-table th button {
+  width: 100%;
+  padding: 7px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.track-table th button:hover,
+.track-table th[aria-sort] button {
+  color: var(--ink);
+}
+
+.track-table th[aria-sort='ascending'] button::after {
+  content: ' ↑';
+}
+
+.track-table th[aria-sort='descending'] button::after {
+  content: ' ↓';
+}
+
+.track-table .num {
+  text-align: right;
+}
+
+.track-table th:first-child button,
+.track-table td:first-child {
+  padding-left: 14px;
+}
+
+.track-table th:last-child button,
+.track-table td:last-child {
+  padding-right: 14px;
+}
+
+.track-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgb(38 64 76 / 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-table tbody tr {
+  cursor: pointer;
+}
+
+.track-table tbody tr:hover {
+  background: var(--surface-raised);
+}
+
+.track-table tbody tr:focus-visible {
+  outline-offset: -2px;
+}
+
+.track-table tbody tr[aria-selected='true'] {
+  background: rgb(201 160 255 / 0.12);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.track-row-stale td {
+  color: var(--ink-muted);
+}
+
+/* Stays a table cell (not flex) so the column's ellipsis still applies. */
+.track-cell-callsign {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.track-cell-callsign .swatch {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+
+.track-cell-muted {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.track-list-empty {
+  margin: 0;
+  padding: 16px 14px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+/* Keep the map controls clear of the open list. */
+body[data-list-open] .maplibregl-ctrl-top-left {
+  left: calc(var(--list-w) + 12px);
 }
 
 /* --------------------------------------------------------- details panel */
@@ -480,6 +751,22 @@ button {
       opacity: 0;
       transform: translateY(10px);
     }
+  }
+
+  .track-list {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    height: 60%;
+  }
+
+  body[data-list-open] .maplibregl-ctrl-top-left {
+    left: 0;
+  }
+
+  .topbar-button span {
+    display: none;
   }
 
   .cursor {

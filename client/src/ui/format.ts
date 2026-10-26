@@ -64,12 +64,17 @@ export function formatAltitude(m: number | undefined): string {
   return `${(Math.round(ft / 50) * 50).toLocaleString('en-GB')} ft`;
 }
 
-export function formatAge(ms: number): string {
+/** Compact elapsed time for tight spaces such as table cells: "5 s", "2 min", "1 h". */
+export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
-  if (s < 60) return `${s} s ago`;
+  if (s < 60) return `${s} s`;
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min ago`;
-  return `${Math.floor(m / 60)} h ago`;
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h`;
+}
+
+export function formatAge(ms: number): string {
+  return `${formatDuration(ms)} ago`;
 }
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];

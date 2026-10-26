@@ -13,6 +13,7 @@ import { TrackStore } from './state/trackStore';
 import { DetailsPanel } from './ui/detailsPanel';
 import { formatDtg } from './ui/format';
 import { StatusBar } from './ui/statusBar';
+import { TrackList } from './ui/trackList';
 
 function el(id: string): HTMLElement {
   const node = document.getElementById(id);
@@ -48,6 +49,15 @@ async function main(): Promise<void> {
   map.addControl(trailControl, 'top-left');
   const reticle = new Reticle(map);
   new DetailsPanel(el('details'), store, clock, layer, selection);
+  const list = new TrackList(
+    el('track-list'),
+    el('list-toggle') as HTMLButtonElement,
+    store,
+    clock,
+    layer,
+    selection,
+    map,
+  );
 
   // Reticle and follow mode track the dead-reckoned position, not the last report.
   selection.subscribe((id, previous) => {
@@ -79,6 +89,11 @@ async function main(): Promise<void> {
     // Single-letter shortcuts must not fire while the operator is typing.
     if (isTyping(event) || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 't' || event.key === 'T') trailControl.cycle();
+    if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
+    if (event.key === '/') {
+      event.preventDefault(); // otherwise the slash lands in the search box
+      list.focusSearch();
+    }
   });
 
   // Top bar clock, in server time.
