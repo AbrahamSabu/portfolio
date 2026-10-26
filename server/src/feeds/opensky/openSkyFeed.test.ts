@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Logger } from '../../log';
 import type { TrackSink } from '../feed';
-import { OpenSkyFeed, requestCost, type OpenSkyOptions } from './openSkyFeed';
+import { OpenSkyFeed, type OpenSkyOptions } from './openSkyFeed';
 
 const CHANNEL = { south: 49.3, west: -4.5, north: 51.6, east: 2.8 };
 const POLL_MS = 60_000;
@@ -63,22 +63,6 @@ function setup(fetch: typeof globalThis.fetch, opts: Partial<OpenSkyOptions> = {
 
 const authHeader = (init: RequestInit | undefined) =>
   (init?.headers as Record<string, string> | undefined)?.Authorization;
-
-describe('requestCost', () => {
-  it('charges 1 credit for the English Channel box (about 17 square degrees)', () => {
-    expect(requestCost(CHANNEL)).toBe(1);
-  });
-
-  it('charges 4 credits for the whole world', () => {
-    expect(requestCost(null)).toBe(4);
-  });
-
-  it('follows the documented area bands', () => {
-    expect(requestCost({ south: 0, west: 0, north: 10, east: 10 })).toBe(2);
-    expect(requestCost({ south: 0, west: 0, north: 20, east: 20 })).toBe(3);
-    expect(requestCost({ south: -90, west: -180, north: 90, east: 180 })).toBe(4);
-  });
-});
 
 describe('OpenSkyFeed', () => {
   it('polls the scenario box anonymously and pushes what it maps', async () => {

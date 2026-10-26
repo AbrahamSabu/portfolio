@@ -2,6 +2,7 @@ import type { BBox } from '@watchfloor/shared';
 import { createLogger, type Logger } from '../../log';
 import type { Feed, TrackSink } from '../feed';
 import { Backoff } from './backoff';
+import { requestCost } from './coverage';
 import { mapState, parseStatesResponse } from './mapState';
 
 const STATES_URL = 'https://opensky-network.org/api/states/all';
@@ -15,20 +16,6 @@ const MAX_BACKOFF_MS = 5 * 60_000;
 
 /** Daily /states credits per tier, from the OpenSky REST docs (checked October 2026). */
 export const DAILY_CREDITS = { anonymous: 400, standard: 4000 } as const;
-
-/**
- * Credits one /states/all request costs, by bounding-box area in square
- * degrees: up to 25 costs 1, up to 100 costs 2, up to 400 costs 3, more (or
- * the whole world) costs 4.
- */
-export function requestCost(b: BBox | null): number {
-  if (!b) return 4;
-  const area = (b.north - b.south) * (b.east - b.west);
-  if (area <= 25) return 1;
-  if (area <= 100) return 2;
-  if (area <= 400) return 3;
-  return 4;
-}
 
 export interface OpenSkyCredentials {
   clientId: string;
