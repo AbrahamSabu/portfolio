@@ -70,4 +70,33 @@ describe('TrackStore', () => {
     expect(upserts.map((t) => t.id)).toEqual(['sim:a']);
     expect(removals).toEqual([]);
   });
+
+  describe('trails', () => {
+    it('keeps every accepted report, even ones coalesced out of the delta', () => {
+      const store = new TrackStore(DEFAULT_STALENESS);
+      store.ingest(track('sim:a', NOW - 3000, { lat: 50.0 }), NOW);
+      store.ingest(track('sim:a', NOW - 2000, { lat: 50.01 }), NOW);
+      store.ingest(track('sim:a', NOW - 1000, { lat: 50.02 }), NOW);
+
+      expect(store.flush().upserts).toHaveLength(1);
+      expect(store.trailSnapshot()['sim:a']?.map((p) => p[1])).toEqual([50, 50.01, 50.02]);
+    });
+
+    it('does not record rejected or out-of-order reports', () => {
+      const store = new TrackStore(DEFAULT_STALENESS);
+      store.ingest(track('sim:a', NOW, { lat: 50.0 }), NOW);
+      store.ingest(track('sim:a', NOW - 5000, { lat: 50.5 }), NOW);
+      store.ingest({ id: 'junk' }, NOW);
+      expect(store.trailSnapshot()).toEqual({ 'sim:a': [[0, 50, NOW]] });
+    });
+
+    it('forgets the trail when its track is removed or pruned', () => {
+      const store = new TrackStore(DEFAULT_STALENESS);
+      store.ingest(track('sim:a'), NOW);
+      store.ingest(track('sim:old', NOW - DEFAULT_STALENESS.sea.dropAfterMs + 1000), NOW);
+      store.remove('sim:a');
+      store.prune(NOW + 2000);
+      expect(store.trailSnapshot()).toEqual({});
+    });
+  });
 });

@@ -33,6 +33,14 @@ export const DEFAULT_TRAIL_RULES: TrailRules = {
   sea: { windowMs: 30 * 60_000, minSpacingM: 50 },
 };
 
+/**
+ * Five decimal places is about 1 m: far finer than anything visible on the
+ * map, and it roughly halves the JSON size of a snapshot's trails.
+ */
+function roundCoord(deg: number): number {
+  return Math.round(deg * 1e5) / 1e5;
+}
+
 interface Entry {
   domain: Domain;
   points: TrailPoint[];
@@ -73,7 +81,7 @@ export class TrailHistory {
       const moved = distanceM({ lon: last[0], lat: last[1] }, track);
       if (moved < this.rules[track.domain].minSpacingM) return false;
     }
-    entry.points.push([track.lon, track.lat, track.observedAt]);
+    entry.points.push([roundCoord(track.lon), roundCoord(track.lat), track.observedAt]);
     return true;
   }
 

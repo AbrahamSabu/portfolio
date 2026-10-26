@@ -111,6 +111,7 @@ export class Hub {
       type: 'snapshot',
       serverTime: Date.now(),
       tracks: this.opts.store.snapshot(),
+      trails: this.opts.store.trailSnapshot(),
     };
     client.ws.send(JSON.stringify(snapshot));
     client.needsResync = false;

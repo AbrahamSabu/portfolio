@@ -1,19 +1,24 @@
 import type { StalenessRules } from './staleness';
 import type { Track } from './track';
+import type { TrailPoint } from './trail';
 
 /**
  * Messages the server sends to browsers over the WebSocket.
  *
  * The flow is:
  *   1. `hello`    once, right after connecting (protocol version + settings)
- *   2. `snapshot` once, the full current picture
+ *   2. `snapshot` once, the full current picture plus each track's recent trail
  *   3. `delta`    every tick, only what changed since the last tick
  *
  * Applying a delta is idempotent: upserting a track the client already has,
  * or removing one it never had, is harmless. That keeps reconnects and
  * mid-tick joins simple. Bump PROTOCOL_VERSION on any breaking change.
+ *
+ * History:
+ *   1  hello, snapshot, delta
+ *   2  snapshot carries `trails`
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 export interface HelloMessage {
   type: 'hello';
@@ -28,6 +33,11 @@ export interface SnapshotMessage {
   type: 'snapshot';
   serverTime: number;
   tracks: Track[];
+  /**
+   * Recent reported positions per track id, oldest first. Deltas don't repeat
+   * these: the client extends each trail from the upserts it receives.
+   */
+  trails: Record<string, TrailPoint[]>;
 }
 
 export interface DeltaMessage {
@@ -62,7 +72,9 @@ export function parseServerMessage(raw: string): ServerMessage | null {
     case 'hello':
       return typeof m.protocol === 'number' ? (m as unknown as HelloMessage) : null;
     case 'snapshot':
-      return Array.isArray(m.tracks) ? (m as unknown as SnapshotMessage) : null;
+      return Array.isArray(m.tracks) && typeof m.trails === 'object' && m.trails !== null
+        ? (m as unknown as SnapshotMessage)
+        : null;
     case 'delta':
       return Array.isArray(m.upserts) && Array.isArray(m.removals)
         ? (m as unknown as DeltaMessage)

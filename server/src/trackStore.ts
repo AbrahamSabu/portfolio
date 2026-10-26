@@ -1,4 +1,11 @@
-import { sanitizeTrack, type StalenessRules, type Track } from '@watchfloor/shared';
+import {
+  sanitizeTrack,
+  TrailHistory,
+  type StalenessRules,
+  type Track,
+  type TrailPoint,
+  type TrailRules,
+} from '@watchfloor/shared';
 
 export interface StoreChanges {
   upserts: Track[];
@@ -15,14 +22,24 @@ const MAX_FUTURE_MS = 30_000;
  * consolidated update once per tick. So the store records *which* tracks
  * changed (dirty / removed sets) and `flush()` hands back just those,
  * coalescing many reports for one track into its latest state.
+ *
+ * It also keeps each track's recent trail. Deltas only carry the latest
+ * state, but the trail records every accepted report, so a browser that
+ * connects later still gets the full history in its snapshot.
  */
 export class TrackStore {
   private readonly tracks = new Map<string, Track>();
   private readonly dirty = new Set<string>();
   private readonly removed = new Set<string>();
+  private readonly trails: TrailHistory;
   private rejectedCount = 0;
 
-  constructor(private readonly staleness: StalenessRules) {}
+  constructor(
+    private readonly staleness: StalenessRules,
+    trailRules?: TrailRules,
+  ) {
+    this.trails = new TrailHistory(trailRules);
+  }
 
   get size(): number {
     return this.tracks.size;
@@ -55,6 +72,7 @@ export class TrackStore {
     if (existing && existing.observedAt >= track.observedAt) return false;
 
     this.tracks.set(track.id, track);
+    this.trails.record(track);
     this.dirty.add(track.id);
     this.removed.delete(track.id);
     return true;
@@ -62,12 +80,16 @@ export class TrackStore {
 
   remove(id: string): boolean {
     if (!this.tracks.delete(id)) return false;
+    this.trails.remove(id);
     this.dirty.delete(id);
     this.removed.add(id);
     return true;
   }
 
-  /** Drop tracks that haven't reported within their domain's window. Returns how many went. */
+  /**
+   * Drop tracks that haven't reported within their domain's window, and trail
+   * points older than the trail window. Returns how many tracks went.
+   */
   prune(now = Date.now()): number {
     let count = 0;
     for (const [id, track] of this.tracks) {
@@ -76,11 +98,17 @@ export class TrackStore {
         count++;
       }
     }
+    this.trails.prune(now);
     return count;
   }
 
   snapshot(): Track[] {
     return Array.from(this.tracks.values());
+  }
+
+  /** Recent history for every current track, keyed by id. */
+  trailSnapshot(): Record<string, TrailPoint[]> {
+    return this.trails.toRecord();
   }
 
   /** Everything that changed since the previous flush, then reset. */
