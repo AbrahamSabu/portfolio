@@ -1,5 +1,5 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
+import type { DataDrivenPropertyValueSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { deadReckon, destination, type Domain, type LatLon } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
@@ -9,7 +9,7 @@ import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symb
 const TRACKS_SOURCE = 'tracks';
 const LEADERS_SOURCE = 'track-leaders';
 export const SYMBOL_LAYER = 'track-symbols';
-const LEADER_LAYER = 'track-leaders';
+export const LEADER_LAYER = 'track-leaders';
 
 /** Positions are recomputed at 10 Hz: smooth enough, cheap enough. */
 const RENDER_INTERVAL_MS = 100;
@@ -26,6 +26,16 @@ export const AFFILIATION_COLOR = {
   unknown: '#FFFF80',
   pending: '#FFFF80',
 } as const;
+
+/** Line colour from a feature's `affiliation` property. Shared by leaders and trails. */
+export const AFFILIATION_LINE_COLOR: DataDrivenPropertyValueSpecification<string> = [
+  'match',
+  ['get', 'affiliation'],
+  'friend', AFFILIATION_COLOR.friend,
+  'hostile', AFFILIATION_COLOR.hostile,
+  'neutral', AFFILIATION_COLOR.neutral,
+  AFFILIATION_COLOR.unknown,
+];
 
 export interface DisplayPosition extends LatLon {
   stale: boolean;
@@ -84,14 +94,7 @@ export class TrackLayer {
         source: LEADERS_SOURCE,
         layout: { 'line-cap': 'round' },
         paint: {
-          'line-color': [
-            'match',
-            ['get', 'affiliation'],
-            'friend', AFFILIATION_COLOR.friend,
-            'hostile', AFFILIATION_COLOR.hostile,
-            'neutral', AFFILIATION_COLOR.neutral,
-            AFFILIATION_COLOR.unknown,
-          ],
+          'line-color': AFFILIATION_LINE_COLOR,
           'line-width': 1.5,
           'line-opacity': 0.7,
         },

@@ -4,6 +4,8 @@ import './styles.css';
 import { createMap } from './map/createMap';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
+import { loadTrailMode, TrailControl } from './map/trailControl';
+import { TrailLayer } from './map/trailLayer';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
 import { Selection } from './state/selection';
@@ -16,6 +18,11 @@ function el(id: string): HTMLElement {
   const node = document.getElementById(id);
   if (!node) throw new Error(`Missing #${id} in index.html`);
   return node;
+}
+
+function isTyping(event: KeyboardEvent): boolean {
+  const target = event.target;
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
 }
 
 /** Symbol labels are drawn onto canvases, so give the web font a moment to arrive first. */
@@ -37,6 +44,8 @@ async function main(): Promise<void> {
   await waitForFonts();
 
   const layer = new TrackLayer(map, store, clock, selection);
+  const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, loadTrailMode()));
+  map.addControl(trailControl, 'top-left');
   const reticle = new Reticle(map);
   new DetailsPanel(el('details'), store, clock, layer, selection);
 
@@ -67,6 +76,9 @@ async function main(): Promise<void> {
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') selection.select(null);
+    // Single-letter shortcuts must not fire while the operator is typing.
+    if (isTyping(event) || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === 't' || event.key === 'T') trailControl.cycle();
   });
 
   // Top bar clock, in server time.
@@ -98,10 +110,10 @@ async function main(): Promise<void> {
           framed = true;
           break;
         case 'snapshot':
-          store.applySnapshot(message.tracks);
+          store.applySnapshot(message.tracks, message.trails);
           break;
         case 'delta':
-          store.applyDelta(message.upserts, message.removals);
+          store.applyDelta(message.upserts, message.removals, message.serverTime);
           break;
       }
     },

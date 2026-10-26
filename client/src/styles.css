@@ -440,6 +440,16 @@ button {
   filter: invert(0.88);
 }
 
+.trail-toggle {
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+.trail-toggle[data-mode='off'] {
+  color: var(--ink-muted);
+}
+
 .maplibregl-ctrl-attrib {
   background: rgb(16 28 35 / 0.8) !important;
   color: var(--ink-muted);
