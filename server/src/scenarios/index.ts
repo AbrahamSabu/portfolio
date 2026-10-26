@@ -1,7 +1,7 @@
 import { englishChannel } from './englishChannel';
 import type { Scenario } from './types';
 
-/** Add new areas here. The id is what SIM_SCENARIO selects. */
+/** Add new areas here. The id is what SCENARIO selects. */
 const scenarios: Record<string, Scenario> = {
   [englishChannel.id]: englishChannel,
 };

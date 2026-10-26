@@ -16,15 +16,23 @@ async function main(): Promise<void> {
   const store = new TrackStore(staleness);
   const startedAt = Date.now();
 
-  const feeds: Feed[] = [];
-  let scenarioInfo: ScenarioInfo | null = null;
+  const scenario = getScenario(config.scenario);
+  const scenarioInfo: ScenarioInfo = {
+    id: scenario.id,
+    name: scenario.name,
+    center: scenario.center,
+    zoom: scenario.zoom,
+  };
 
-  if (config.sim.enabled) {
-    const scenario = getScenario(config.sim.scenario);
-    scenarioInfo = { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
-    feeds.push(new Simulator({ scenario, seed: config.sim.seed }));
+  // Every feed pushes into the same store; nothing downstream knows which ran.
+  const feeds: Feed[] = [];
+  for (const name of config.feeds) {
+    switch (name) {
+      case 'sim':
+        feeds.push(new Simulator({ scenario, seed: config.sim.seed }));
+        break;
+    }
   }
-  // Live feeds (ADS-B, AIS) will be added here and push into the same store.
 
   let hub: Hub | undefined;
   const server = createHttpServer({
