@@ -62,6 +62,12 @@ export interface OpenSkyOptions {
  *   never faster than the poll interval, because every request spends credits.
  * - 401 with credentials: the token expired; fetch a new one next poll.
  * - Credentials rejected outright: log it and carry on anonymously.
+ *
+ * While nobody is watching (setDemand(false)) the feed stops at its next
+ * scheduled poll instead of spending credits on an empty room. The pending
+ * timer doubles as a grace period, so a page reload never pauses it. On
+ * resume it polls at the time already scheduled (nextDueAt), never sooner, so
+ * reconnect storms can't burn credits and 429 waits and backoff survive.
  */
 export class OpenSkyFeed implements Feed {
   readonly name = 'opensky';
@@ -78,6 +84,11 @@ export class OpenSkyFeed implements Feed {
   private stopController = new AbortController();
   private credentials: OpenSkyCredentials | undefined;
   private token: { value: string; expiresAt: number } | null = null;
+  private watched = true;
+  /** True when we skipped a due poll for lack of viewers and have no timer pending. */
+  private paused = false;
+  /** When the next poll is (or was) due; resuming never polls before this. */
+  private nextDueAt = 0;
 
   // Exposed through health() for /healthz.
   private lastSuccessAt: number | null = null;
@@ -113,11 +124,27 @@ export class OpenSkyFeed implements Feed {
       // At the standard tier's allowance; feeders and licensed users get more.
       budgetLastsHours: Math.round(hours * 10) / 10,
     });
-    this.schedule(0);
+    if (this.watched) {
+      this.schedule(0);
+    } else {
+      this.nextDueAt = this.now();
+      this.paused = true;
+      this.log.info('no viewers yet; polling starts when a browser connects');
+    }
+  }
+
+  setDemand(watched: boolean): void {
+    this.watched = watched;
+    if (!watched || !this.paused || !this.sink) return;
+    this.paused = false;
+    const delay = Math.max(0, this.nextDueAt - this.now());
+    this.log.info('viewer connected, polling resumed', { nextPollInS: Math.round(delay / 1000) });
+    this.schedule(delay);
   }
 
   stop(): void {
     this.sink = null;
+    this.paused = false;
     this.stopController.abort();
     if (this.timer !== null) this.clearTimer(this.timer);
     this.timer = null;
@@ -126,6 +153,7 @@ export class OpenSkyFeed implements Feed {
   health(): Record<string, unknown> {
     return {
       auth: this.authenticated ? 'client credentials' : 'anonymous',
+      paused: this.paused,
       aircraft: this.aircraft,
       lastSuccessAt: this.lastSuccessAt && new Date(this.lastSuccessAt).toISOString(),
       creditsRemaining: this.creditsRemaining,
@@ -136,11 +164,19 @@ export class OpenSkyFeed implements Feed {
   }
 
   private schedule(ms: number): void {
+    this.nextDueAt = this.now() + ms;
     this.timer = this.setTimer(() => void this.tick(), ms);
   }
 
   private async tick(): Promise<void> {
+    this.timer = null;
     if (!this.sink) return; // stopped while the timer was pending
+    if (!this.watched) {
+      // Leave nextDueAt as it is: the poll is overdue, so a returning viewer gets one at once.
+      this.paused = true;
+      this.log.info('no viewers, polling paused');
+      return;
+    }
     const delay = await this.pollOnce();
     if (this.sink) this.schedule(delay);
   }

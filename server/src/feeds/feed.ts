@@ -14,6 +14,11 @@ export interface Feed {
   readonly name: string;
   start(sink: TrackSink): void;
   stop(): void;
+  /**
+   * Whether anyone is watching. A hint for feeds that cost something per
+   * request; free feeds ignore it. May be called before start().
+   */
+  setDemand?(watched: boolean): void;
   /** Feed-specific state for /healthz (credits left, last error...). */
   health?(): Record<string, unknown>;
 }

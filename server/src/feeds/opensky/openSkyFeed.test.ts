@@ -260,3 +260,104 @@ describe('OpenSkyFeed', () => {
     });
   });
 });
+
+describe('OpenSkyFeed demand', () => {
+  /** A feed with recorded timers: fire() runs the most recent one and lets the poll settle. */
+  function watchable(...responses: Array<Response | Error>) {
+    let now = 1_792_975_620_000;
+    const timers: number[] = [];
+    let latest: () => void = () => {};
+    const { fetch, calls } = scripted(...responses);
+    const feed = new OpenSkyFeed({
+      bounds: CHANNEL,
+      pollMs: POLL_MS,
+      fetch,
+      now: () => now,
+      random: () => 1,
+      log: silent,
+      setTimer: (fn, ms) => {
+        timers.push(ms);
+        latest = fn;
+      },
+      clearTimer: () => {},
+    });
+    const fire = async () => {
+      latest();
+      await new Promise((r) => setTimeout(r, 0));
+    };
+    return { feed, timers, calls, fire, advance: (ms: number) => (now += ms), ...recordingSink() };
+  }
+
+  it('waits for the first viewer before spending a credit', async () => {
+    const { feed, timers, calls, fire, sink, upserts } = watchable(json(recorded));
+    feed.setDemand(false);
+    feed.start(sink);
+    expect(timers).toEqual([]);
+    expect(feed.health().paused).toBe(true);
+
+    feed.setDemand(true);
+    expect(timers).toEqual([0]);
+    await fire();
+    expect(calls).toHaveLength(1);
+    expect(upserts).toHaveLength(13);
+    expect(timers).toEqual([0, POLL_MS]);
+  });
+
+  it('skips the next due poll when nobody is watching, and stops rescheduling', async () => {
+    const { feed, timers, calls, fire, advance, sink } = watchable(json(recorded));
+    feed.start(sink);
+    await fire();
+    feed.setDemand(false);
+    advance(POLL_MS);
+    await fire();
+    expect(calls).toHaveLength(1);
+    expect(timers).toEqual([0, POLL_MS]);
+    expect(feed.health().paused).toBe(true);
+  });
+
+  it('polls at once for a viewer who returns after the poll fell due', async () => {
+    const { feed, timers, fire, advance, sink } = watchable(json(recorded));
+    feed.start(sink);
+    await fire();
+    feed.setDemand(false);
+    advance(POLL_MS);
+    await fire();
+    advance(3_600_000);
+    feed.setDemand(true);
+    expect(timers).toEqual([0, POLL_MS, 0]);
+    expect(feed.health().paused).toBe(false);
+  });
+
+  it('lets a page reload neither pause polling nor poll early', async () => {
+    const { feed, timers, calls, fire, sink } = watchable(json(recorded));
+    feed.start(sink);
+    await fire();
+    for (let i = 0; i < 10; i++) {
+      feed.setDemand(false);
+      feed.setDemand(true);
+    }
+    expect(timers).toEqual([0, POLL_MS]); // still just the one pending poll
+    expect(calls).toHaveLength(1);
+  });
+
+  it('keeps honouring a 429 wait across viewers leaving and returning', async () => {
+    const { feed, timers, fire, advance, sink } = watchable(
+      json('', { status: 429, headers: { 'X-Rate-Limit-Retry-After-Seconds': '7200' } }),
+    );
+    feed.start(sink);
+    await fire();
+    feed.setDemand(false);
+    advance(3_600_000);
+    feed.setDemand(true);
+    expect(timers).toEqual([0, 7_200_000]);
+  });
+
+  it('never schedules two polls when demand is reported twice', () => {
+    const { feed, timers, sink } = watchable();
+    feed.setDemand(false);
+    feed.start(sink);
+    feed.setDemand(true);
+    feed.setDemand(true);
+    expect(timers).toEqual([0]);
+  });
+});

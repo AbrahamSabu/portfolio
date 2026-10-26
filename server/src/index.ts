@@ -57,13 +57,29 @@ async function main(): Promise<void> {
     }),
   });
 
-  hub = new Hub({ server, path: '/ws', store, tickMs: config.tickMs, staleness, scenario: scenarioInfo, traffic: trafficKind(config.feeds) });
+  hub = new Hub({
+    server,
+    path: '/ws',
+    store,
+    tickMs: config.tickMs,
+    staleness,
+    scenario: scenarioInfo,
+    traffic: trafficKind(config.feeds),
+    onClientsChanged: (count) => {
+      for (const feed of feeds) feed.setDemand?.(count > 0);
+    },
+  });
 
   const sink = {
     upsert: (report: unknown) => store.ingest(report),
     remove: (id: string) => store.remove(id),
   };
-  for (const feed of feeds) feed.start(sink);
+  // Nobody is connected yet. Without this, every tsx watch restart in
+  // development would spend an OpenSky credit.
+  for (const feed of feeds) {
+    feed.setDemand?.(false);
+    feed.start(sink);
+  }
   hub.start();
 
   await new Promise<void>((resolve, reject) => {
