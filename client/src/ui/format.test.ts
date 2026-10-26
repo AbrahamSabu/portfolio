@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  trafficLabel,
   formatAge,
   formatAltitude,
   formatCourse,
@@ -40,5 +41,17 @@ describe('format', () => {
     expect(formatDuration(2 * 3_600_000)).toBe('2 h');
     expect(formatDuration(-500)).toBe('0 s');
     expect(formatAge(150_000)).toBe('2 min ago');
+  });
+});
+
+describe('trafficLabel', () => {
+  it('never passes simulated traffic off as live', () => {
+    expect(trafficLabel('simulated', 'English Channel')).toBe('English Channel, simulated traffic');
+    expect(trafficLabel('live', 'English Channel')).toBe('English Channel, live traffic');
+    expect(trafficLabel('mixed', 'English Channel')).toBe('English Channel, live and simulated traffic');
+  });
+
+  it('stands alone without a scenario', () => {
+    expect(trafficLabel('live')).toBe('Live traffic');
   });
 });

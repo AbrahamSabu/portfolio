@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { TrafficKind } from '@watchfloor/shared';
 
 /** Every setting in one place, read once at startup. See .env.example. */
 export interface Config {
@@ -45,6 +46,13 @@ function int(name: string, fallback: number, min: number, max: number): number {
     throw new Error(`${name} must be an integer between ${min} and ${max} (got "${raw}")`);
   }
   return n;
+}
+
+/** What the running feeds add up to, for the hello message. */
+export function trafficKind(feeds: readonly FeedName[]): TrafficKind {
+  const simulated = feeds.includes('sim');
+  const live = feeds.some((f) => f !== 'sim');
+  return simulated && live ? 'mixed' : live ? 'live' : 'simulated';
 }
 
 /**

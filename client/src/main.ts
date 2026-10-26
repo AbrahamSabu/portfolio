@@ -11,7 +11,7 @@ import { ServerClock } from './state/clock';
 import { Selection } from './state/selection';
 import { TrackStore } from './state/trackStore';
 import { DetailsPanel } from './ui/detailsPanel';
-import { formatDtg } from './ui/format';
+import { formatDtg, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
 
@@ -115,9 +115,7 @@ async function main(): Promise<void> {
       switch (message.type) {
         case 'hello':
           store.setStaleness(message.staleness);
-          scenarioName.textContent = message.scenario
-            ? `${message.scenario.name}, simulated traffic`
-            : 'Live traffic';
+          scenarioName.textContent = trafficLabel(message.traffic, message.scenario?.name);
           if (message.scenario && !framed && !userHasMoved()) {
             const { center, zoom } = message.scenario;
             map.jumpTo({ center: [center.lon, center.lat], zoom });

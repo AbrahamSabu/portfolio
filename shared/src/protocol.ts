@@ -17,7 +17,8 @@ import type { TrailPoint } from './trail';
  * History:
  *   1  hello, snapshot, delta
  *   2  snapshot carries `trails`
- *   3  staleness is `{ byDomain, bySource }`, with per-source overrides
+ *   3  staleness is `{ byDomain, bySource }`, with per-source overrides;
+ *      hello carries `traffic`
  */
 export const PROTOCOL_VERSION = 3;
 
@@ -28,7 +29,11 @@ export interface HelloMessage {
   tickMs: number;
   staleness: StalenessRules;
   scenario: ScenarioInfo | null;
+  /** Whether the picture is real, invented or both, so the UI never passes off a simulation as live. */
+  traffic: TrafficKind;
 }
+
+export type TrafficKind = 'simulated' | 'live' | 'mixed';
 
 export interface SnapshotMessage {
   type: 'snapshot';

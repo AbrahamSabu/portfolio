@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type TrackSource } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type TrackSource, type TrafficKind } from '@watchfloor/shared';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   airliner: 'Airliner',
@@ -27,9 +27,21 @@ export const AFFILIATION_LABEL: Record<Affiliation, string> = {
 
 export const SOURCE_LABEL: Record<TrackSource, string> = {
   sim: 'Simulator',
-  adsb: 'ADS-B',
+  adsb: 'ADS-B (OpenSky)',
   ais: 'AIS',
 };
+
+const TRAFFIC_LABEL: Record<TrafficKind, string> = {
+  simulated: 'simulated traffic',
+  live: 'live traffic',
+  mixed: 'live and simulated traffic',
+};
+
+/** Top bar subtitle: where we're looking and, honestly, whether any of it is real. */
+export function trafficLabel(traffic: TrafficKind, scenarioName?: string): string {
+  const label = TRAFFIC_LABEL[traffic];
+  return scenarioName ? `${scenarioName}, ${label}` : label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 /** Degrees and decimal minutes, the usual format in aviation and at sea: 50°27.12′N */
 function ddm(value: number, positive: string, negative: string, degDigits: number): string {

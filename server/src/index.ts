@@ -1,5 +1,5 @@
 import { DEFAULT_STALENESS, polledStaleness, type ScenarioInfo, type StalenessRules } from '@watchfloor/shared';
-import { loadConfig } from './config';
+import { loadConfig, trafficKind } from './config';
 import type { Feed } from './feeds/feed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     }),
   });
 
-  hub = new Hub({ server, path: '/ws', store, tickMs: config.tickMs, staleness, scenario: scenarioInfo });
+  hub = new Hub({ server, path: '/ws', store, tickMs: config.tickMs, staleness, scenario: scenarioInfo, traffic: trafficKind(config.feeds) });
 
   const sink = {
     upsert: (report: unknown) => store.ingest(report),

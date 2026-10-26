@@ -7,6 +7,7 @@ import {
   type ScenarioInfo,
   type SnapshotMessage,
   type StalenessRules,
+  type TrafficKind,
 } from '@watchfloor/shared';
 import type { TrackStore } from './trackStore';
 import { createLogger } from './log';
@@ -33,6 +34,7 @@ export interface HubOptions {
   tickMs: number;
   staleness: StalenessRules;
   scenario: ScenarioInfo | null;
+  traffic: TrafficKind;
 }
 
 /**
@@ -101,6 +103,7 @@ export class Hub {
       tickMs: this.opts.tickMs,
       staleness: this.opts.staleness,
       scenario: this.opts.scenario,
+      traffic: this.opts.traffic,
     };
     ws.send(JSON.stringify(hello));
     this.sendSnapshot(client);
