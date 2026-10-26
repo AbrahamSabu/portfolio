@@ -14,9 +14,14 @@ export interface Config {
   sim: {
     seed: number;
   };
+  opensky: {
+    /** OAuth2 client credentials; without them the feed polls anonymously. */
+    credentials?: { clientId: string; clientSecret: string };
+    pollMs: number;
+  };
 }
 
-export const FEED_NAMES = ['sim'] as const;
+export const FEED_NAMES = ['sim', 'opensky'] as const;
 export type FeedName = (typeof FEED_NAMES)[number];
 
 /** Parse a comma-separated feed list such as "sim,opensky". Order and duplicates don't matter. */
@@ -40,6 +45,24 @@ function int(name: string, fallback: number, min: number, max: number): number {
     throw new Error(`${name} must be an integer between ${min} and ${max} (got "${raw}")`);
   }
   return n;
+}
+
+/**
+ * OpenSky settings. The default interval is set by the daily credit budget
+ * (1 credit per poll for a box up to 25 square degrees): anonymous users get
+ * 400 a day, so 60 s lasts about 6.7 hours; an account gets 4,000, so 15 s
+ * lasts about 16.7 hours. The floor is OpenSky's data resolution (10 s
+ * anonymous, 5 s with an account); polling faster returns the same data.
+ */
+function openSkyConfig(): Config['opensky'] {
+  const clientId = process.env.OPENSKY_CLIENT_ID?.trim() || '';
+  const clientSecret = process.env.OPENSKY_CLIENT_SECRET?.trim() || '';
+  if (Boolean(clientId) !== Boolean(clientSecret)) {
+    throw new Error('Set both OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET, or neither to poll anonymously');
+  }
+  const authed = Boolean(clientId);
+  const pollS = int('OPENSKY_POLL_S', authed ? 15 : 60, authed ? 5 : 10, 3600);
+  return { ...(authed ? { credentials: { clientId, clientSecret } } : {}), pollMs: pollS * 1000 };
 }
 
 /**
@@ -72,5 +95,6 @@ export function loadConfig(): Config {
     sim: {
       seed: int('SIM_SEED', 42, 0, 2 ** 32 - 1),
     },
+    opensky: openSkyConfig(),
   };
 }

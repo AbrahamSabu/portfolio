@@ -9,10 +9,11 @@ describe('parseFeeds', () => {
 
   it('accepts a list, ignoring case, spaces and duplicates', () => {
     expect(parseFeeds(' SIM , sim')).toEqual(['sim']);
+    expect(parseFeeds('opensky,sim')).toEqual(['sim', 'opensky']);
   });
 
   it('rejects unknown feeds with the list of valid ones', () => {
-    expect(() => parseFeeds('sim,radar')).toThrow(/unknown feed "radar".*Available: sim/);
+    expect(() => parseFeeds('sim,radar')).toThrow(/unknown feed "radar".*Available: sim, opensky/);
   });
 
   it('rejects a list with no names', () => {

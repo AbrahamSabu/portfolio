@@ -1,6 +1,7 @@
-import { DEFAULT_STALENESS, type ScenarioInfo } from '@watchfloor/shared';
+import { DEFAULT_STALENESS, polledStaleness, type ScenarioInfo, type StalenessRules } from '@watchfloor/shared';
 import { loadConfig } from './config';
 import type { Feed } from './feeds/feed';
+import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { createHttpServer } from './http';
@@ -12,7 +13,14 @@ const log = createLogger('main');
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const staleness = DEFAULT_STALENESS;
+  // Polled feeds deliver reports in bursts, so their tracks get windows sized
+  // to the poll interval instead of the transponder-rate defaults.
+  const staleness: StalenessRules = {
+    ...DEFAULT_STALENESS,
+    bySource: config.feeds.includes('opensky')
+      ? { adsb: polledStaleness(config.opensky.pollMs, DEFAULT_STALENESS.byDomain.air) }
+      : {},
+  };
   const store = new TrackStore(staleness);
   const startedAt = Date.now();
 
@@ -31,6 +39,9 @@ async function main(): Promise<void> {
       case 'sim':
         feeds.push(new Simulator({ scenario, seed: config.sim.seed }));
         break;
+      case 'opensky':
+        feeds.push(new OpenSkyFeed({ bounds: scenario.bounds, ...config.opensky }));
+        break;
     }
   }
 
@@ -42,7 +53,7 @@ async function main(): Promise<void> {
       tracks: store.size,
       rejectedReports: store.rejected,
       clients: hub?.clientCount ?? 0,
-      feeds: feeds.map((f) => f.name),
+      feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
     }),
   });
 

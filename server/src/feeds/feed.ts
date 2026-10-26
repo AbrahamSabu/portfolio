@@ -14,4 +14,6 @@ export interface Feed {
   readonly name: string;
   start(sink: TrackSink): void;
   stop(): void;
+  /** Feed-specific state for /healthz (credits left, last error...). */
+  health?(): Record<string, unknown>;
 }
