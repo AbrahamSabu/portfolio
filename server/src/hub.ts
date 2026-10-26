@@ -14,8 +14,20 @@ import { createLogger } from './log';
 
 const log = createLogger('hub');
 
-/** If a client has this much unsent data queued, it's too slow: stop sending and resync later. */
-const MAX_BUFFERED_BYTES = 2 * 1024 * 1024;
+/**
+ * A client with more than this many deltas not yet written to its socket is
+ * too slow: stop sending and resync it later.
+ *
+ * Backlog is counted in deltas (roughly ticks behind), not bytes, because
+ * message sizes vary a thousandfold: an empty delta is ~60 bytes, a worldwide
+ * snapshot ~2.5 MB. Deltas queued behind a snapshot that is still being
+ * written don't count, and no resync starts while one is in flight. Counting
+ * bytes made one big snapshot look like a slow client, which got another
+ * snapshot, which looked slow too: a snapshot storm.
+ */
+const MAX_PENDING_DELTAS = 5;
+/** Memory backstop per client, whatever the message count. */
+const MAX_BUFFERED_BYTES = 32 * 1024 * 1024;
 const HEARTBEAT_MS = 15_000;
 const MAX_CLIENTS = 200;
 
@@ -24,6 +36,10 @@ interface Client {
   alive: boolean;
   /** Set when we skipped deltas for this client; it gets a full snapshot once it catches up. */
   needsResync: boolean;
+  /** Deltas handed to ws but not yet written, excluding those queued behind a snapshot. */
+  backlog: number;
+  /** A snapshot has been handed to ws and not yet written. */
+  snapshotInFlight: boolean;
   address: string;
 }
 
@@ -88,7 +104,7 @@ export class Hub {
       return;
     }
 
-    const client: Client = { ws, alive: true, needsResync: false, address };
+    const client: Client = { ws, alive: true, needsResync: false, backlog: 0, snapshotInFlight: false, address };
     this.addClient(client);
 
     ws.on('pong', () => (client.alive = true));
@@ -106,7 +122,7 @@ export class Hub {
       scenario: this.opts.scenario,
       traffic: this.opts.traffic,
     };
-    ws.send(JSON.stringify(hello));
+    client.ws.send(JSON.stringify(hello));
     this.sendSnapshot(client);
   }
 
@@ -117,8 +133,24 @@ export class Hub {
       tracks: this.opts.store.snapshot(),
       trails: this.opts.store.trailSnapshot(),
     };
-    client.ws.send(JSON.stringify(snapshot));
+    client.snapshotInFlight = true;
     client.needsResync = false;
+    // The callback fires once ws has written the message, or on error.
+    client.ws.send(JSON.stringify(snapshot), () => (client.snapshotInFlight = false));
+  }
+
+  private sendDelta(client: Client, payload: string): void {
+    // Waiting behind a snapshot is expected, not a sign of a slow client.
+    const counted = !client.snapshotInFlight;
+    if (counted) client.backlog++;
+    client.ws.send(payload, () => {
+      if (counted) client.backlog--;
+    });
+  }
+
+  private isLagging(client: Client): boolean {
+    if (client.ws.bufferedAmount > MAX_BUFFERED_BYTES) return true;
+    return !client.snapshotInFlight && client.backlog > MAX_PENDING_DELTAS;
   }
 
   private tick(): void {
@@ -133,7 +165,7 @@ export class Hub {
 
     for (const client of this.clients) {
       if (client.ws.readyState !== WebSocket.OPEN) continue;
-      if (client.ws.bufferedAmount > MAX_BUFFERED_BYTES) {
+      if (this.isLagging(client)) {
         if (!client.needsResync) log.warn('client falling behind, pausing', { address: client.address });
         client.needsResync = true;
         continue;
@@ -141,7 +173,7 @@ export class Hub {
       if (client.needsResync) {
         this.sendSnapshot(client);
       } else {
-        client.ws.send(payload);
+        this.sendDelta(client, payload);
       }
     }
   }
