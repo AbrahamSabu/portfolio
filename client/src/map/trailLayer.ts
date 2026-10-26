@@ -4,6 +4,7 @@ import type { Track } from '@watchfloor/shared';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
 import { AFFILIATION_LINE_COLOR, LEADER_LAYER, type TrackLayer } from './trackLayer';
+import { inViewBox } from './viewBox';
 
 /** Which tracks show their history. */
 export type TrailMode = 'all' | 'selected' | 'off';
@@ -48,6 +49,8 @@ export class TrailLayer {
     store.subscribe(() => this.renderTrails());
     selection.subscribe(() => this.renderTrails());
     tracks.onFrame(() => this.renderHeads());
+    // Trails are culled to the view, so a finished pan or zoom needs a rebuild.
+    map.on('moveend', () => this.renderTrails());
   }
 
   get mode(): TrailMode {
@@ -87,10 +90,14 @@ export class TrailLayer {
     this.renderTrails();
   }
 
-  /** The tracks whose trails are visible in the current mode. */
+  /** The tracks whose trails are visible in the current mode, and near enough the screen to draw. */
   private *visibleTracks(): Iterable<Track> {
     if (this.currentMode === 'all') {
-      yield* this.store.all();
+      const view = this.tracks.viewBox();
+      for (const track of this.store.all()) {
+        const pos = this.tracks.positionOf(track.id);
+        if (track.id === this.selection.id || (pos && inViewBox(view, pos.lon, pos.lat))) yield track;
+      }
     } else if (this.currentMode === 'selected' && this.selection.id) {
       const track = this.store.get(this.selection.id);
       if (track) yield track;

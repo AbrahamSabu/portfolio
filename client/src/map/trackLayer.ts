@@ -5,6 +5,7 @@ import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
 import { renderIntervalMs } from './renderRate';
+import { inViewBox, padViewBox, type ViewBox } from './viewBox';
 import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symbols';
 
 const TRACKS_SOURCE = 'tracks';
@@ -16,6 +17,8 @@ export const LEADER_LAYER = 'track-leaders';
 
 /** Speed leaders show where a track will be after this long. Ships are slow, so theirs look further ahead. */
 const LEADER_SECONDS: Record<Domain, number> = { air: 60, sea: 600 };
+/** Margin around the screen, as a fraction of its size, within which tracks are still drawn. */
+const VIEW_MARGIN = 0.5;
 /** Full symbols and speed leaders from this zoom in; dots below it. */
 const SYMBOL_MIN_ZOOM = 5;
 /** Callsign labels appear from this zoom level in. */
@@ -72,14 +75,21 @@ export class TrackLayer {
     this.bindInteraction();
     store.subscribe(() => (this.needsRender = true));
     selection.subscribe(() => (this.needsRender = true));
-    // Crossing the symbol zoom changes whether leaders are computed.
-    map.on('zoomend', () => (this.needsRender = true));
+    // Crossing the symbol zoom changes whether leaders are computed, and a
+    // finished pan or zoom brings new tracks into the drawn area.
+    map.on('moveend', () => (this.needsRender = true));
     requestAnimationFrame(this.loop);
   }
 
   /** Where a track is currently drawn (dead-reckoned), for the reticle, follow mode and details. */
   positionOf(id: string): DisplayPosition | undefined {
     return this.positions.get(id);
+  }
+
+  /** The screen plus a margin: tracks outside it are positioned but not drawn. */
+  viewBox(): ViewBox {
+    const b = this.map.getBounds();
+    return padViewBox({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }, VIEW_MARGIN);
   }
 
   /** Called after each render, once positions are up to date. */
@@ -194,6 +204,7 @@ export class TrackLayer {
     const seen = new Set<string>();
     // Leaders aren't drawn below the symbol zoom, so don't compute thousands of them.
     const withLeaders = this.map.getZoom() >= SYMBOL_MIN_ZOOM;
+    const view = this.viewBox();
 
     for (const track of this.store.all()) {
       const rule = ruleFor(track, this.store.staleness);
@@ -203,6 +214,8 @@ export class TrackLayer {
       const pos = deadReckon(track, track.courseDeg, track.speedMps, Math.min(age, rule.staleAfterMs));
       this.positions.set(track.id, { lat: pos.lat, lon: pos.lon, stale });
       seen.add(track.id);
+      // Everything gets a position (reticle, follow, details); only what's near the screen gets a feature.
+      if (track.id !== selectedId && !inViewBox(view, pos.lon, pos.lat)) continue;
 
       const sidc = sidcFor(track);
       const icon = symbolImageId(sidc);
