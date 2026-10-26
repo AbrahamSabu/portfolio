@@ -1,0 +1,493 @@
+/*
+ * Watchfloor visual system
+ *
+ * The map is the work surface; chrome stays quiet and slate-blue so the
+ * affiliation colours of the symbols (cyan friend, green neutral, red hostile,
+ * yellow unknown) are the brightest things on screen. One accent, orchid, is
+ * reserved for "what the operator is acting on": selection and focus. It is
+ * deliberately outside the symbology palette so it can never be mistaken
+ * for an identity.
+ */
+
+:root {
+  --surface: rgb(16 28 35 / 0.92);
+  --surface-solid: #101c23;
+  --surface-raised: #172832;
+  --rule: #26404c;
+  --ink: #dce6eb;
+  --ink-muted: #8fa3ae;
+  --accent: #c9a0ff;
+  --ok: #7fd9b0;
+  --warn: #f0c36a;
+  --bad: #ff8f87;
+  --map-bg: #0e171c;
+
+  --font: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --text-sm: 0.8125rem; /* 13px */
+  --text-md: 0.9375rem; /* 15px */
+  --text-lg: 1.0625rem; /* 17px */
+  --text-xl: 1.5rem; /* 24px */
+
+  --topbar-h: 44px;
+  --statusbar-h: 30px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--map-bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+}
+
+.app > .map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--topbar-h) + var(--safe-top));
+  padding: var(--safe-top) 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.brand-scenario {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The date-time group is the one piece of type given room to be a feature. */
+.dtg {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- status bar */
+
+.statusbar {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--statusbar-h) + var(--safe-bottom));
+  padding: 0 16px var(--safe-bottom);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.link-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--warn);
+}
+
+.link[data-state='open'] .link-dot {
+  background: var(--ok);
+}
+
+.link[data-state='waiting'] .link-dot,
+.link[data-state='incompatible'] .link-dot {
+  background: var(--bad);
+}
+
+.link-retry {
+  border: 1px solid var(--rule);
+  background: var(--surface-raised);
+  border-radius: 3px;
+  padding: 1px 8px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.link-retry:hover {
+  border-color: var(--ink-muted);
+}
+
+.counts {
+  display: flex;
+  gap: 16px;
+}
+
+.counts strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.counts-stale strong {
+  color: var(--warn);
+}
+
+.cursor {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------- details panel */
+
+.details {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  right: 12px;
+  width: 300px;
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  overflow-y: auto;
+  padding: 16px 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(3 8 11 / 0.45);
+}
+
+.details-enter {
+  animation: details-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes details-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+.details-head {
+  position: relative;
+  padding-right: 32px;
+}
+
+.details-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.details-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.icon-button svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.details-close {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+}
+
+.details-stale-note {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 3px;
+  background: rgb(240 195 106 / 0.1);
+  color: var(--warn);
+  font-size: var(--text-sm);
+}
+
+.details-stale .readout dd {
+  color: var(--ink-muted);
+}
+
+.readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin: 16px 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.readout-row {
+  min-width: 0;
+}
+
+.readout-wide {
+  grid-column: 1 / -1;
+}
+
+.readout dt {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.readout dd {
+  margin: 1px 0 0;
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+
+.readout-wide dd {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.readout-id {
+  color: var(--ink-muted);
+  font-weight: 400 !important;
+}
+
+.button {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-raised);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--ink-muted);
+}
+
+.button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- reticle */
+
+.reticle {
+  width: 46px;
+  height: 46px;
+  pointer-events: none;
+}
+
+.reticle-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.reticle-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 0 solid var(--accent);
+  filter: drop-shadow(0 0 1px rgb(9 16 21 / 0.9));
+}
+
+.reticle-tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
+.reticle-tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
+.reticle-bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
+.reticle-br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
+
+.reticle-stale .reticle-corner {
+  border-color: var(--ink-muted);
+}
+
+/* The one orchestrated moment: brackets close in on the selected track. */
+.reticle-lock {
+  animation: reticle-lock 280ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+@keyframes reticle-lock {
+  from {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+/* ------------------------------------------------------ MapLibre controls */
+
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-top-right {
+  top: calc(var(--topbar-h) + var(--safe-top));
+}
+
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+  bottom: calc(var(--statusbar-h) + var(--safe-bottom));
+}
+
+.maplibregl-ctrl-group {
+  background: var(--surface-solid);
+  border: 1px solid var(--rule);
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--rule);
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.88);
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgb(16 28 35 / 0.8) !important;
+  color: var(--ink-muted);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--ink-muted);
+}
+
+.maplibregl-ctrl-attrib-button {
+  filter: invert(0.85);
+}
+
+/* ------------------------------------------------------------- small screens */
+
+@media (max-width: 640px) {
+  .details {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--statusbar-h) + var(--safe-bottom) + 8px);
+    width: auto;
+    max-height: 55%;
+  }
+
+  @keyframes details-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  .cursor {
+    display: none;
+  }
+
+  .statusbar {
+    gap: 16px;
+  }
+
+  .brand-scenario {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details-enter,
+  .reticle-lock {
+    animation: none;
+  }
+}

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Watchfloor: a real-time common operating picture of air and sea traffic." />
+    <title>Watchfloor</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23101C23'/%3E%3Cpath d='M7 12V7h5M20 7h5v5M25 20v5h-5M12 25H7v-5' fill='none' stroke='%23C9A0FF' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2380E0FF'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-name">Watchfloor</span>
+          <span class="brand-scenario" id="scenario-name">Connecting to server</span>
+        </div>
+        <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
+      </header>
+
+      <div class="map" id="map" role="region" aria-label="Tactical map"></div>
+
+      <aside class="details" id="details" hidden aria-labelledby="details-title">
+        <header class="details-head">
+          <p class="details-identity">
+            <span class="swatch" data-swatch aria-hidden="true"></span>
+            <span data-field="identity"></span>
+          </p>
+          <h2 class="details-title" id="details-title" data-field="title"></h2>
+          <button class="icon-button details-close" type="button" data-close aria-label="Close track details">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+
+        <p class="details-stale-note" data-stale-note hidden>
+          No recent reports. The position shown is the last estimate.
+        </p>
+
+        <dl class="readout">
+          <div class="readout-row readout-wide">
+            <dt>Position</dt>
+            <dd><span data-field="lat"></span><span data-field="lon"></span></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Course</dt>
+            <dd data-field="course"></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Speed</dt>
+            <dd data-field="speed"></dd>
+          </div>
+          <div class="readout-row" data-altitude-row>
+            <dt>Altitude</dt>
+            <dd data-field="altitude"></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Last report</dt>
+            <dd data-field="age"></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Source</dt>
+            <dd data-field="source"></dd>
+          </div>
+          <div class="readout-row readout-wide">
+            <dt>Track ID</dt>
+            <dd class="readout-id" data-field="id"></dd>
+          </div>
+        </dl>
+
+        <button class="button" type="button" data-follow aria-pressed="false">Follow on map</button>
+      </aside>
+
+      <footer class="statusbar" id="statusbar">
+        <div class="link" data-link data-state="connecting" role="status" aria-live="polite">
+          <span class="link-dot" aria-hidden="true"></span>
+          <span data-link-text>Connecting</span>
+          <button class="link-retry" type="button" data-link-retry hidden>Retry now</button>
+        </div>
+        <div class="counts">
+          <span><strong data-count-air>0</strong> air</span>
+          <span><strong data-count-sea>0</strong> sea</span>
+          <span class="counts-stale" data-stale-wrap hidden><strong data-count-stale>0</strong> stale</span>
+        </div>
+        <div class="cursor" data-cursor aria-hidden="true"></div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
