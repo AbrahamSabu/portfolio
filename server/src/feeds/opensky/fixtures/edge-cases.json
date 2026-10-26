@@ -1,0 +1,14 @@
+{"_note":"Synthetic rows covering cases the recorded response doesn't. Index 17 (category) is present only with extended=1.","time":1792975612,"states":[
+  ["aaa001","NOPOS   ","Test",1792975612,1792975612,null,null,1000,false,100,90,0,null,1000,null,false,0,0],
+  ["aaa002",null,"Test",1792975610,1792975611,0.5,50.5,300,false,40,180,0,null,330,null,false,0,8],
+  ["aaa003","        ","Test",1792975612,1792975612,0.6,50.6,2000,false,60,270,0,null,2050,null,false,0],
+  ["aaa004","DRONE1  ","Test",1792975612,1792975612,0.7,50.7,120,false,15,45,0,null,150,null,false,0,14],
+  ["aaa005","TUG17   ","Test",1792975612,1792975612,0.8,50.8,null,false,5,10,null,null,null,null,false,0,17],
+  ["aaa006","NOTIME  ","Test",null,1792975600,0.9,50.9,3000,false,120,0,0,null,3100,null,false,0,0],
+  ["aaa007","NOTRACK ","Test",1792975612,1792975612,1.0,51.0,4000,false,150,null,0,null,4100,null,false,0,0],
+  ["aaa008","BARO    ","Test",1792975612,1792975612,1.1,51.1,5000,false,160,100,0,null,null,null,false,0,2],
+  ["AAA009","HEAVY1  ","Test",1792975612,1792975612,1.2,51.2,11000,false,240,120,0,null,11200,null,false,0,6],
+  ["aaa010","GND     ","Test",1792975500,1792975600,null,null,null,true,0,0,null,null,null,null,false,0,0],
+  ["aaa011"],
+  "not a row"
+]}
