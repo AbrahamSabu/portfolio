@@ -12,7 +12,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (135 tests after roadmap item 2 and worldwide coverage).
+- `npm test`: Vitest from the root config (168 tests after viewport polling).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -41,7 +41,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   An optional `health()` adds feed state to `/healthz`. An optional
   `setDemand(watched)` hint (may be called before `start`) is driven by the
   Hub's `onClientsChanged(count)`; `index.ts` calls `setDemand(false)` before
-  starting feeds, because nobody is connected yet. The simulator ignores it.
+  starting feeds, because nobody is connected yet. An optional
+  `setAreas(views)` is driven by the Hub's `onViewsChanged(views)`. The
+  simulator ignores both.
 - Track ids are `${source}:${nativeId}`, for example `adsb:4ca7b3` or `sim:air-0001`.
 - Server TrackStore: drops out-of-order reports, rejects timestamps more than
   30 s in the future, and keeps dirty and removed sets. `flush()` returns only
@@ -54,9 +56,13 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   one is in flight; **don't go back to judging by bufferedAmount**, which made
   a 2.5 MB worldwide snapshot look slow and caused a snapshot storm.
   bufferedAmount > 32 MB stays as a memory backstop. It pings every 15 s to
-  drop dead sockets.
-- Protocol (`PROTOCOL_VERSION = 3`): hello (protocol, serverTime, tickMs,
-  staleness, scenario, traffic), then snapshot (tracks plus `trails`), then a delta per tick. Applying messages
+  drop dead sockets. Browser messages (`view` only) go through
+  `parseClientMessage`; each client keeps its latest view, and changes are
+  reported once per tick via `onViewsChanged`. maxPayload is 4 KB.
+- Protocol (`PROTOCOL_VERSION = 4`): hello (protocol, serverTime, tickMs,
+  staleness, scenario, traffic), then snapshot (tracks plus `trails`), then a delta per tick.
+  The browser sends `view` (screen plus 20%, `viewForServer`) on every hello
+  and 500 ms after each `moveend`. Applying messages
   is idempotent. **Bump the version on any breaking change**; the client shows
   "reload the page" on mismatch.
 - Staleness (`shared/src/staleness.ts`): rules are `{ byDomain, bySource }`
@@ -129,6 +135,17 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
     pending timer is the grace period). `setDemand(true)` resumes at
     `max(0, nextDueAt - now)`, so reloads can't poll early and 429 waits hold.
     When recording arrives (roadmap 6), the recorder must count as demand.
+  - `OPENSKY_AREA=viewport`: `coverage.ts` (pure) plans requests from views:
+    antimeridian split, outward snap to whole degrees, cheapest of separate
+    boxes / one union / world (ties go to fewer requests). The feed is
+    "active" only with demand and a non-empty plan. `maybePollEarly` is a
+    bounded debounce: an uncovered plan brings the next poll forward to
+    max(now + 2 s, lastAttempt + 10 s), later views push it back but never
+    past the regular poll it replaced, covered views restore the regular
+    poll, and never during backoff or a 429. It also runs after each poll
+    (the view may move mid-request). A failed request keeps earlier results
+    but leaves `lastPolled` unchanged. /healthz has `polled` and
+    `creditsPerPoll`. Opens on the scenario (cheap) but names it Worldwide.
   - Budget (OpenSky docs, Oct 2026): 400 credits/day anonymous, 4,000 with
     an account; boxes up to 25 sq° cost 1 credit per poll. Data resolution is
     10 s anonymous, 5 s authenticated.
@@ -141,7 +158,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   `OPENSKY_POLL_S` (default 60 anonymous, 15 with an account).
   `OPENSKY_AREA=world` polls globally (4 credits, ~7,000 aircraft, ~1.1 MB);
   with only live worldwide traffic, hello frames and names the map
-  "Worldwide", otherwise the scenario keeps it.
+  "Worldwide", otherwise the scenario keeps it. `OPENSKY_AREA=viewport`
+  polls only what browsers show (1 credit at zoom 8+, 2 at the Channel's
+  zoom 7, 4 for the world).
 
 ## Gotchas already solved (do not undo)
 
