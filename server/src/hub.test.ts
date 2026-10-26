@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { DEFAULT_STALENESS, type Track } from '@watchfloor/shared';
+import { DEFAULT_STALENESS, type BBox, type Track } from '@watchfloor/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { Hub } from './hub';
@@ -99,4 +99,52 @@ describe('Hub', () => {
     expect(types.filter((t) => t === 'snapshot')).toHaveLength(1);
     expect(types.filter((t) => t === 'delta').length).toBeGreaterThan(10);
   });
+
+  it('reports browser views once per tick, latest first, and forgets them on disconnect', async () => {
+    const reports: BBox[][] = [];
+    server = createServer();
+    hub = new Hub({
+      server,
+      path: '/ws',
+      store: new TrackStore(DEFAULT_STALENESS),
+      tickMs: 50,
+      staleness: DEFAULT_STALENESS,
+      scenario: null,
+      traffic: 'live',
+      onViewsChanged: (views) => reports.push(views),
+    });
+    hub.start();
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+    const settle = () => new Promise((r) => setTimeout(r, 200));
+    const open = async () => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      await new Promise((r) => ws.once('open', r));
+      return ws;
+    };
+    const view = (west: number) => ({ south: 50, west, north: 51, east: west + 1 });
+
+    const a = await open();
+    for (let i = 0; i < 10; i++) a.send(JSON.stringify({ type: 'view', bbox: view(i) }));
+    a.send('junk');
+    a.send(JSON.stringify({ type: 'view', bbox: { south: 5, west: 0, north: 1, east: 1 } })); // inverted: ignored
+    await settle();
+    expect(reports.length).toBeLessThanOrEqual(2); // a burst becomes one or two reports, not ten
+    expect(reports.at(-1)).toEqual([view(9)]);
+
+    const b = await open();
+    b.send(JSON.stringify({ type: 'view', bbox: view(100) }));
+    await settle();
+    expect(reports.at(-1)).toEqual([view(9), view(100)]);
+
+    a.close();
+    await settle();
+    expect(reports.at(-1)).toEqual([view(100)]);
+
+    // A message over the 4 KB limit closes that socket (ws enforces maxPayload).
+    const closed = new Promise<number>((r) => b.once('close', (code) => r(code)));
+    b.send('x'.repeat(5000));
+    expect(await closed).toBe(1009);
+  });
 });
+

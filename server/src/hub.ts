@@ -2,6 +2,8 @@ import type { IncomingMessage, Server } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import {
   PROTOCOL_VERSION,
+  parseClientMessage,
+  type BBox,
   type DeltaMessage,
   type HelloMessage,
   type ScenarioInfo,
@@ -40,6 +42,8 @@ interface Client {
   backlog: number;
   /** A snapshot has been handed to ws and not yet written. */
   snapshotInFlight: boolean;
+  /** The area this browser last said it was looking at, if it has said. */
+  view: BBox | null;
   address: string;
 }
 
@@ -56,6 +60,11 @@ export interface HubOptions {
    * pay-per-request feeds can pause while nobody is watching.
    */
   onClientsChanged?: (count: number) => void;
+  /**
+   * Called with every browser's current view when any of them changes,
+   * at most once per tick however often browsers send them.
+   */
+  onViewsChanged?: (views: BBox[]) => void;
 }
 
 /**
@@ -68,6 +77,8 @@ export interface HubOptions {
 export class Hub {
   private readonly wss: WebSocketServer;
   private readonly clients = new Set<Client>();
+  /** Some browser's view changed (or one with a view left) since the last report. */
+  private viewsDirty = false;
   private tickTimer: NodeJS.Timeout | undefined;
   private heartbeatTimer: NodeJS.Timeout | undefined;
 
@@ -75,7 +86,7 @@ export class Hub {
     this.wss = new WebSocketServer({
       server: opts.server,
       path: opts.path,
-      maxPayload: 64 * 1024, // clients don't send anything big
+      maxPayload: 4 * 1024, // browsers only send small view messages
       perMessageDeflate: { threshold: 1024 },
     });
     this.wss.on('connection', (ws, req) => this.onConnection(ws, req));
@@ -104,14 +115,13 @@ export class Hub {
       return;
     }
 
-    const client: Client = { ws, alive: true, needsResync: false, backlog: 0, snapshotInFlight: false, address };
+    const client: Client = { ws, alive: true, needsResync: false, backlog: 0, snapshotInFlight: false, view: null, address };
     this.addClient(client);
 
     ws.on('pong', () => (client.alive = true));
     ws.on('close', () => this.dropClient(client, 'client disconnected'));
     ws.on('error', (err) => log.warn('client socket error', { address, error: err.message }));
-    // Nothing is expected from clients yet; ignore anything they send.
-    ws.on('message', () => {});
+    ws.on('message', (data) => this.onClientMessage(client, String(data)));
 
     const hello: HelloMessage = {
       type: 'hello',
@@ -154,6 +164,7 @@ export class Hub {
   }
 
   private tick(): void {
+    this.reportViews();
     const now = Date.now();
     this.opts.store.prune(now);
     const { upserts, removals } = this.opts.store.flush();
@@ -188,7 +199,27 @@ export class Hub {
   private dropClient(client: Client, reason: string): void {
     if (!this.clients.delete(client)) return;
     log.info(reason, { address: client.address, clients: this.clients.size });
+    if (client.view) this.viewsDirty = true;
     this.opts.onClientsChanged?.(this.clients.size);
+  }
+
+  /** Browser messages are untrusted: anything that doesn't parse is ignored. */
+  private onClientMessage(client: Client, raw: string): void {
+    const message = parseClientMessage(raw);
+    if (!message) {
+      log.debug('ignored client message', { address: client.address });
+      return;
+    }
+    client.view = message.bbox;
+    this.viewsDirty = true; // reported on the next tick, which also rate-limits a chatty browser
+  }
+
+  private reportViews(): void {
+    if (!this.viewsDirty) return;
+    this.viewsDirty = false;
+    const views: BBox[] = [];
+    for (const client of this.clients) if (client.view) views.push(client.view);
+    this.opts.onViewsChanged?.(views);
   }
 
   /** Protocol-level ping/pong: drop connections that silently died (sleeping laptops, NAT timeouts). */
