@@ -50,6 +50,21 @@ describe('Simulator', () => {
     }
   });
 
+  it('never shows two live tracks with the same callsign', () => {
+    const sim = new Simulator({ scenario: englishChannel, seed: 7, dropouts: false });
+    const live = new Map<string, string | undefined>();
+    sim.attach(
+      { upsert: (r) => live.set((r as Track).id, (r as Track).callsign), remove: (id) => live.delete(id) },
+      START,
+    );
+    for (let t = START; t <= START + 60 * 60_000; t += STEP) {
+      sim.step(t);
+      if ((t - START) % 60_000 !== 0) continue;
+      const callsigns = [...live.values()].filter((c) => c !== undefined);
+      expect(new Set(callsigns).size).toBe(callsigns.length);
+    }
+  });
+
   it('is deterministic for a given seed', () => {
     const a = run(42, 5).reports.slice(0, 200);
     const b = run(42, 5).reports.slice(0, 200);

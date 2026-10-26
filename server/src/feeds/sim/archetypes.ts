@@ -12,7 +12,7 @@ import {
 import type { Scenario } from '../../scenarios';
 import type { Behaviour, SimEntity } from './entity';
 import { randomPointIn } from './motion';
-import { names } from './names';
+import { names, uniqueName } from './names';
 import type { Rng } from './rng';
 
 export interface SpawnContext {
@@ -22,6 +22,8 @@ export interface SpawnContext {
   id: string;
   /** True at startup: place mid-journey so the picture is full immediately. */
   initial: boolean;
+  /** Callsigns already in use by active entities; the new one must differ. */
+  takenCallsigns: ReadonlySet<string>;
 }
 
 interface Profile {
@@ -275,7 +277,7 @@ export function spawn(archetype: Archetype, ctx: SpawnContext): SimEntity | null
     done: false,
   };
 
-  const callsign = profile.callsign(rng);
+  const callsign = uniqueName(() => profile.callsign(rng), ctx.takenCallsigns);
   if (callsign) entity.callsign = callsign;
 
   if (profile.altitudeRangeM) {

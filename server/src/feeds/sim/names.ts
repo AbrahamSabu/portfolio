@@ -30,3 +30,27 @@ export const names = {
   yacht: (rng: Rng) => rng.pick(YACHTS),
   naval: (rng: Rng) => `${rng.pick(NAVAL)} F${rng.int(201, 299)}`,
 };
+
+const NUMERALS = ['II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+/**
+ * Draw a callsign that no active entity is using.
+ *
+ * Duplicate names on screen make the track list and labels ambiguous, so
+ * redraw a few times first. Some pools are small (there are only ten yacht
+ * names), so if they run out, add a numeral the way real vessel registers
+ * do: SALT SPRAY, SALT SPRAY II, and so on.
+ */
+export function uniqueName(
+  draw: () => string | undefined,
+  taken: ReadonlySet<string>,
+  attempts = 20,
+): string | undefined {
+  let name = draw();
+  for (let i = 1; i < attempts && name !== undefined && taken.has(name); i++) name = draw();
+  if (name === undefined || !taken.has(name)) return name;
+  for (let n = 0; ; n++) {
+    const candidate = `${name} ${NUMERALS[n] ?? n + 2}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}

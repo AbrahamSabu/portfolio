@@ -123,7 +123,10 @@ export class Simulator implements Feed {
   private create(archetype: Archetype, now: number, initial: boolean): SimEntity | null {
     const prefix = archetype.slice(0, 3);
     const id = `${prefix}-${(++this.seq).toString().padStart(4, '0')}`;
-    return spawn(archetype, { rng: this.rng, scenario: this.opts.scenario, now, id, initial });
+    // Includes any entity being replaced, so a departing name isn't reused at once.
+    const takenCallsigns = new Set<string>();
+    for (const e of this.entities) if (e.callsign) takenCallsigns.add(e.callsign);
+    return spawn(archetype, { rng: this.rng, scenario: this.opts.scenario, now, id, initial, takenCallsigns });
   }
 
   private maybeReport(e: SimEntity, now: number): void {
