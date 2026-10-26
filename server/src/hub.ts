@@ -35,6 +35,11 @@ export interface HubOptions {
   staleness: StalenessRules;
   scenario: ScenarioInfo | null;
   traffic: TrafficKind;
+  /**
+   * Called with the new count whenever a browser connects or goes away, so
+   * pay-per-request feeds can pause while nobody is watching.
+   */
+  onClientsChanged?: (count: number) => void;
 }
 
 /**
@@ -84,14 +89,10 @@ export class Hub {
     }
 
     const client: Client = { ws, alive: true, needsResync: false, address };
-    this.clients.add(client);
-    log.info('client connected', { address, clients: this.clients.size });
+    this.addClient(client);
 
     ws.on('pong', () => (client.alive = true));
-    ws.on('close', () => {
-      this.clients.delete(client);
-      log.info('client disconnected', { address, clients: this.clients.size });
-    });
+    ws.on('close', () => this.dropClient(client, 'client disconnected'));
     ws.on('error', (err) => log.warn('client socket error', { address, error: err.message }));
     // Nothing is expected from clients yet; ignore anything they send.
     ws.on('message', () => {});
@@ -145,13 +146,25 @@ export class Hub {
     }
   }
 
+  private addClient(client: Client): void {
+    this.clients.add(client);
+    log.info('client connected', { address: client.address, clients: this.clients.size });
+    this.opts.onClientsChanged?.(this.clients.size);
+  }
+
+  /** Safe to call twice (terminate() is followed by a close event): only a real removal notifies. */
+  private dropClient(client: Client, reason: string): void {
+    if (!this.clients.delete(client)) return;
+    log.info(reason, { address: client.address, clients: this.clients.size });
+    this.opts.onClientsChanged?.(this.clients.size);
+  }
+
   /** Protocol-level ping/pong: drop connections that silently died (sleeping laptops, NAT timeouts). */
   private heartbeat(): void {
     for (const client of this.clients) {
       if (!client.alive) {
-        log.info('terminating unresponsive client', { address: client.address });
         client.ws.terminate();
-        this.clients.delete(client);
+        this.dropClient(client, 'terminated unresponsive client');
         continue;
       }
       client.alive = false;
