@@ -12,7 +12,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (116 tests after roadmap item 2).
+- `npm test`: Vitest from the root config (135 tests after roadmap item 2 and worldwide coverage).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -48,8 +48,13 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   what changed, coalesced per track.
 - Hub: every 1 s tick it prunes, flushes and broadcasts one serialised delta to
   all clients. It always sends one, even when empty, because the delta doubles
-  as a heartbeat. Clients with more than 2 MB buffered are skipped and later
-  resynced with a snapshot. It pings every 15 s to drop dead sockets.
+  as a heartbeat. A client with more than 5 unwritten deltas (counted via the
+  `ws.send` callback) is skipped and later resynced with a snapshot. Deltas
+  queued behind a snapshot in flight don't count, and no resync starts while
+  one is in flight; **don't go back to judging by bufferedAmount**, which made
+  a 2.5 MB worldwide snapshot look slow and caused a snapshot storm.
+  bufferedAmount > 32 MB stays as a memory backstop. It pings every 15 s to
+  drop dead sockets.
 - Protocol (`PROTOCOL_VERSION = 3`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic), then snapshot (tracks plus `trails`), then a delta per tick. Applying messages
   is idempotent. **Bump the version on any breaking change**; the client shows
@@ -69,8 +74,15 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   show reported positions only, never dead-reckoned ones.
 - Client:
   - ServerClock keeps the lowest-latency offset sample.
-  - TrackLayer renders at 10 Hz, dead-reckons live tracks and freezes them at
-    the stale threshold. Stale tracks draw at 40% opacity.
+  - TrackLayer dead-reckons live tracks and freezes them at the stale
+    threshold. Stale tracks draw at 40% opacity. Its render interval comes
+    from `map/renderRate.ts` (a 300 m/s jet moves at most half a pixel per
+    frame: 10 Hz zoomed in, 1 Hz at world view). Store, selection and
+    `moveend` force the next frame. Only tracks inside `viewBox()` (screen
+    plus 50%, antimeridian-aware, `map/viewBox.ts`) and the selected one
+    become features; all get positions. Below zoom 5 a circle layer
+    (`track-dots`) replaces symbols and leaders aren't computed. Trails and
+    heads use the same view cull.
   - Speed leaders look 60 s ahead for air and 600 s for sea.
   - Symbols come from `map.setMissingStyleImageResolver`, with ids
     `sym:<15-char SIDC>` or `sym:<SIDC>:<label>`. The labelled version appears
@@ -83,6 +95,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
     under 640 px. Its filter and sort are pure functions in `state/trackQuery.ts`.
     Rows are reused per id and only moved when the order changes, and they use
     roving tabindex. Selecting a row pans the map without turning on follow.
+    It is windowed (`ui/listWindow.ts`): only rows in view plus overscan exist,
+    between two spacer rows; row height is measured. Keys move by index in the
+    sorted list (arrows, Page Up/Down, Home, End); aria-rowcount/rowindex.
   - Selection is a DOM Marker reticle with a lock-on animation, plus a details
     panel and follow mode. Dragging the map cancels follow.
   - Reconnect uses exponential backoff with jitter and a watchdog of
@@ -124,6 +139,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   the area for all of them. `SIM_ENABLED` is gone and errors if set.
   `OPENSKY_CLIENT_ID`/`OPENSKY_CLIENT_SECRET` (both or neither) and
   `OPENSKY_POLL_S` (default 60 anonymous, 15 with an account).
+  `OPENSKY_AREA=world` polls globally (4 credits, ~7,000 aircraft, ~1.1 MB);
+  with only live worldwide traffic, hello frames and names the map
+  "Worldwide", otherwise the scenario keeps it.
 
 ## Gotchas already solved (do not undo)
 
@@ -143,9 +161,12 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `.gitattributes` pins LF line endings because the user's global `core.autocrlf=true`.
 - npm 11 blocks esbuild's postinstall script. That is harmless, because the
   platform binary arrives as an optional dependency and both builds work.
-- Snapshot size grows with trails (about 90 KB after 3 minutes; a few hundred KB
-  at steady state). It is sent once per connect, not per tick. If it matters,
-  enable `permessage-deflate` on the ws server.
+- Snapshot size: about 90 KB after 3 minutes of simulation; worldwide about
+  2.5 MB raw / 0.5 MB deflated, with a 1.4 MB raw / 214 KB deflated delta
+  after each poll. `permessage-deflate` is on (threshold 1 KB).
+- Headless SwiftShader is GPU-bound when zoomed in close (about 6 fps with the
+  main thread 94% idle). Judge client performance by Performance.getMetrics
+  script and task time over CDP, not fps alone.
 - Every live OpenSky poll spends a credit from a 400-a-day anonymous budget.
   Never hit the real API from tests or loops; use the fixtures. For a manual
   check, one production instance with `FEEDS=opensky` for a few minutes is enough.
