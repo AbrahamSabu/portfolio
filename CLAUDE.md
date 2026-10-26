@@ -3,8 +3,8 @@
 A real-time common operating picture (COP): a defence-style tactical map of
 live air and sea tracks drawn with NATO MIL-STD-2525C symbols. It is a
 portfolio project, so code quality, structure, tests and the README matter as
-much as features. Today it runs on a built-in traffic simulator; live ADS-B
-(aircraft) and AIS (ships) feeds come next.
+much as features. It runs on a built-in traffic simulator by default, and can
+show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 
 ## Commands
 
@@ -12,7 +12,7 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (59 tests after roadmap item 1).
+- `npm test`: Vitest from the root config (109 tests after roadmap item 2).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -24,7 +24,7 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
   distance, bearing, dead reckoning), staleness rules (`staleness.ts`),
   `TrailHistory` (`trail.ts`) and `sanitizeTrack` validation (`validate.ts`).
 - `server/`: Node plus `ws`, bundled with esbuild for production. `trackStore.ts`,
-  `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface plus the simulator) and
+  `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface, `sim/`, `opensky/`) and
   `scenarios/`.
 - `client/`: Vite, MapLibre GL JS v6 and milsymbol v3 in plain TypeScript, with no
   UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl, symbols,
@@ -38,6 +38,7 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 - **Feed contract:** `start(sink)` and `stop()`, where the sink has
   `upsert(report: unknown)` and `remove(id)`. New feeds (OpenSky, AISStream)
   implement this and push into the same store, and nothing downstream changes.
+  An optional `health()` adds feed state to `/healthz`.
 - Track ids are `${source}:${nativeId}`, for example `adsb:4ca7b3` or `sim:air-0001`.
 - Server TrackStore: drops out-of-order reports, rejects timestamps more than
   30 s in the future, and keeps dirty and removed sets. `flush()` returns only
@@ -46,12 +47,17 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
   all clients. It always sends one, even when empty, because the delta doubles
   as a heartbeat. Clients with more than 2 MB buffered are skipped and later
   resynced with a snapshot. It pings every 15 s to drop dead sockets.
-- Protocol (`PROTOCOL_VERSION = 2`): hello (protocol, serverTime, tickMs,
-  staleness, scenario), then snapshot (tracks plus `trails`), then a delta per tick. Applying messages
+- Protocol (`PROTOCOL_VERSION = 3`): hello (protocol, serverTime, tickMs,
+  staleness, scenario, traffic), then snapshot (tracks plus `trails`), then a delta per tick. Applying messages
   is idempotent. **Bump the version on any breaking change**; the client shows
   "reload the page" on mismatch.
-- Staleness: air goes stale at 30 s and is dropped at 120 s; sea goes stale at
-  90 s and is dropped at 10 min.
+- Staleness (`shared/src/staleness.ts`): rules are `{ byDomain, bySource }`
+  and are **always** looked up with `ruleFor(track, rules)` (server store,
+  browser store, track layer). Domain defaults: air stale 30 s / drop 120 s,
+  sea stale 90 s / drop 10 min. `index.ts` sets `bySource.adsb` from
+  `polledStaleness(pollMs)` when OpenSky runs (60 s poll gives 145 s / 360 s).
+- `hello.traffic` is `simulated | live | mixed` (from `trafficKind(feeds)`);
+  the top bar labels the picture from it. Never present sim traffic as live.
 - Trails (`shared/src/trail.ts`): `TrailHistory` keeps reported positions as
   `[lon, lat, t]` tuples rounded to about 1 m. Air keeps 5 min with 200 m
   minimum spacing; sea keeps 30 min with 50 m spacing. The server store records
@@ -90,9 +96,27 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
   - Ships move only inside lanes, routes and areas, which is how they stay off
     land without coastline data.
   - About 85 contacts across 12 archetypes. All names and callsigns are invented.
+- OpenSky (`server/src/feeds/opensky/`):
+  - `mapState.ts` is pure: a state vector becomes an airborne report, an
+    on-ground id (the feed calls `sink.remove`) or a skip reason. observedAt
+    is `time_position` (fallback `last_contact`); geometric altitude beats
+    barometric; category picks platform but never a military role.
+  - `openSkyFeed.ts` polls `/states/all` for `scenario.bounds` with
+    `extended=1`. `pollOnce()` returns the next delay and never throws.
+    429 waits `X-Rate-Limit-Retry-After-Seconds`; other failures use `Backoff`
+    floored at the poll interval. Optional OAuth2 client credentials; rejected
+    credentials fall back to anonymous. fetch, clock, random and timers are
+    injected; tests use fixtures in `opensky/fixtures/`.
+  - Budget (OpenSky docs, Oct 2026): 400 credits/day anonymous, 4,000 with
+    an account; boxes up to 25 sq° cost 1 credit per poll. Data resolution is
+    10 s anonymous, 5 s authenticated.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
-  runs without a basemap.
+  runs without a basemap. `FEEDS` (`sim`, `opensky`, or `sim,opensky`;
+  default `sim`) picks the feeds; `SCENARIO` (old name `SIM_SCENARIO`) picks
+  the area for all of them. `SIM_ENABLED` is gone and errors if set.
+  `OPENSKY_CLIENT_ID`/`OPENSKY_CLIENT_SECRET` (both or neither) and
+  `OPENSKY_POLL_S` (default 60 anonymous, 15 with an account).
 
 ## Gotchas already solved (do not undo)
 
@@ -115,6 +139,12 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 - Snapshot size grows with trails (about 90 KB after 3 minutes; a few hundred KB
   at steady state). It is sent once per connect, not per tick. If it matters,
   enable `permessage-deflate` on the ws server.
+- Every live OpenSky poll spends a credit from a 400-a-day anonymous budget.
+  Never hit the real API from tests or loops; use the fixtures. For a manual
+  check, one production instance with `FEEDS=opensky` for a few minutes is enough.
+- Another session may already be running the dev server on 8080/5173. Don't
+  kill it; verify with `npm run build`, then from `server/`
+  `PORT=8090 FEEDS=opensky node dist/index.js` (env vars override `.env`).
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.
@@ -138,8 +168,9 @@ much as features. Today it runs on a built-in traffic simulator; live ADS-B
 ## Roadmap (next up first)
 
 1. ~~Track history trails and a sortable, filterable track list~~ (done).
-2. Live aircraft from the OpenSky Network API as a Feed (anonymous rate limits;
-   staleness may need per-source tuning).
+2. ~~Live aircraft from the OpenSky Network API as a Feed~~ (done). Follow-ups:
+   pause polling while no browser is connected (saves credits), and show live
+   feed health (rate limited, failing) in the UI rather than only `/healthz`.
 3. Live ships from AISStream.io over WebSocket (free API key in `.env`).
 4. Geofences drawn on the map, with entry and exit alerts.
 5. Operator tagging of affiliation.
