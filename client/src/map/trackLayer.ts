@@ -10,10 +10,14 @@ import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symb
 const TRACKS_SOURCE = 'tracks';
 const LEADERS_SOURCE = 'track-leaders';
 export const SYMBOL_LAYER = 'track-symbols';
+/** Small dots for the zoomed-out view, where thousands of full symbols would just be a smear. */
+export const DOT_LAYER = 'track-dots';
 export const LEADER_LAYER = 'track-leaders';
 
 /** Speed leaders show where a track will be after this long. Ships are slow, so theirs look further ahead. */
 const LEADER_SECONDS: Record<Domain, number> = { air: 60, sea: 600 };
+/** Full symbols and speed leaders from this zoom in; dots below it. */
+const SYMBOL_MIN_ZOOM = 5;
 /** Callsign labels appear from this zoom level in. */
 const LABEL_MIN_ZOOM = 8;
 
@@ -68,6 +72,8 @@ export class TrackLayer {
     this.bindInteraction();
     store.subscribe(() => (this.needsRender = true));
     selection.subscribe(() => (this.needsRender = true));
+    // Crossing the symbol zoom changes whether leaders are computed.
+    map.on('zoomend', () => (this.needsRender = true));
     requestAnimationFrame(this.loop);
   }
 
@@ -95,6 +101,7 @@ export class TrackLayer {
         id: LEADER_LAYER,
         type: 'line',
         source: LEADERS_SOURCE,
+        minzoom: SYMBOL_MIN_ZOOM,
         layout: { 'line-cap': 'round' },
         paint: {
           'line-color': AFFILIATION_LINE_COLOR,
@@ -103,11 +110,25 @@ export class TrackLayer {
         },
       });
     }
+    if (!map.getLayer(DOT_LAYER)) {
+      map.addLayer({
+        id: DOT_LAYER,
+        type: 'circle',
+        source: TRACKS_SOURCE,
+        maxzoom: SYMBOL_MIN_ZOOM,
+        paint: {
+          'circle-color': AFFILIATION_LINE_COLOR,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 1.5, SYMBOL_MIN_ZOOM, 3],
+          'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.9],
+        },
+      });
+    }
     if (!map.getLayer(SYMBOL_LAYER)) {
       map.addLayer({
         id: SYMBOL_LAYER,
         type: 'symbol',
         source: TRACKS_SOURCE,
+        minzoom: SYMBOL_MIN_ZOOM,
         layout: {
           'icon-image': ['step', ['zoom'], ['get', 'icon'], LABEL_MIN_ZOOM, ['get', 'iconLabeled']],
           'icon-allow-overlap': true,
@@ -132,6 +153,7 @@ export class TrackLayer {
 
   private bindInteraction(): void {
     const map = this.map;
+    const layers = [SYMBOL_LAYER, DOT_LAYER];
     map.on('click', (event) => {
       if (!map.getLayer(SYMBOL_LAYER)) return;
       const { x, y } = event.point;
@@ -141,15 +163,17 @@ export class TrackLayer {
           [x - pad, y - pad],
           [x + pad, y + pad],
         ],
-        { layers: [SYMBOL_LAYER] },
+        { layers },
       );
       // Prefer whatever is drawn on top.
       hits.sort((a, b) => Number(b.properties.sortKey) - Number(a.properties.sortKey));
       const id = hits[0]?.properties.id;
       this.selection.select(typeof id === 'string' ? id : null);
     });
-    map.on('mouseenter', SYMBOL_LAYER, () => (map.getCanvas().style.cursor = 'pointer'));
-    map.on('mouseleave', SYMBOL_LAYER, () => (map.getCanvas().style.cursor = ''));
+    for (const layer of layers) {
+      map.on('mouseenter', layer, () => (map.getCanvas().style.cursor = 'pointer'));
+      map.on('mouseleave', layer, () => (map.getCanvas().style.cursor = ''));
+    }
   }
 
   private readonly loop = (time: number): void => {
@@ -168,6 +192,8 @@ export class TrackLayer {
     const points: Feature<Point>[] = [];
     const leaders: Feature<LineString>[] = [];
     const seen = new Set<string>();
+    // Leaders aren't drawn below the symbol zoom, so don't compute thousands of them.
+    const withLeaders = this.map.getZoom() >= SYMBOL_MIN_ZOOM;
 
     for (const track of this.store.all()) {
       const rule = ruleFor(track, this.store.staleness);
@@ -187,12 +213,13 @@ export class TrackLayer {
           id: track.id,
           icon,
           iconLabeled: track.callsign ? symbolImageId(sidc, track.callsign) : icon,
+          affiliation: track.affiliation,
           stale: stale ? 1 : 0,
           sortKey: (track.id === selectedId ? 10 : 0) + (track.domain === 'air' ? 1 : 0),
         },
       });
 
-      if (!stale && track.speedMps > 0.5) {
+      if (withLeaders && !stale && track.speedMps > 0.5) {
         const tip = destination(pos, track.courseDeg, track.speedMps * LEADER_SECONDS[track.domain]);
         leaders.push({
           type: 'Feature',
