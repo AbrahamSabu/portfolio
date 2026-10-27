@@ -197,10 +197,14 @@ that could have been fetched before they arrived.
   (`ADSBLOL_WARM_POLL_S`; 30 s keeps aircraft inside their live window).
   A viewer arriving to data older than pollMs gets an early poll (~1 s) via
   `wantsEarlyPoll`. View circles the home doesn't cover are added after it.
-  **Budget:** polls are >= 5 s apart per circle (`MIN_MS_PER_CIRCLE`), at
-  most 12 requests/min. Measured: 7 circles every 10 s drew 429s (no
-  Retry-After) within seconds and the IP stayed limited for minutes; 6 every
-  30 s never did. adsb.lol publishes no limit ("dynamic").
+  **Budget:** requests start >= 1.2 s apart (`REQUEST_GAP_MS`; measured:
+  6 within ~1 s fine, the 7th got 429; 10 spaced 1 s all fine), and polls
+  are >= 8 s apart per circle (`MIN_MS_PER_CIRCLE`), at most 7.5
+  requests/min (Cork: 6). adsb.lol publishes no limit ("dynamic"). 42/min
+  drew 429s at once, and even a paced 12/min drew one about every minute.
+  **Repeated test restarts plus a wide-view tab got our IP refused outright
+  (429, no Retry-After) for a long while. Don't hammer it: one test server,
+  few restarts, close stale tabs.**
   Categories go through `feeds/adsb/category.ts` (codes like 'A3' to
   OpenSky's numbers). Fixtures are ODbL-credited.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
