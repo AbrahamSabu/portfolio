@@ -13,7 +13,7 @@ AISStream.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (257 tests after live AIS).
+- `npm test`: Vitest from the root config (261 tests after live AIS).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -215,7 +215,20 @@ AISStream.
     subscription, but more than 1 update/s closes the connection. 3
     connections per key, 3 per IP. Uncompressed connections get bandwidth
     limits (since Sep 2026) and over-limit messages are dropped; so are a slow
-    reader's. No replay. Frames are binary UTF-8 JSON.
+    reader's. No replay. Frames are binary UTF-8 JSON. **Recorded, not as
+    documented:** the confirmation is `{"Message":{"CompressionEnabled":true},
+    "MessageType":"SubscriptionConfirmation"}`; MetaData keys are `MMSI`,
+    `MMSI_String`, `ShipName`, lowercase `latitude`/`longitude`, and
+    `time_utc` ("2026-10-27 22:21:46.881361972 +0000 UTC").
+  - Measured (Oct 2026): Channel box 4-5 msg/s, ~750 ships after 8 min;
+    world ~110 msg/s (peaks 214), 59 kB/s decompressed, ~20k ships after
+    10 min, 4.7 MB snapshot at 16k, ~30% main thread in long tasks at 17k
+    (headless). Coverage is mostly Europe (Singapore Strait: 5 ships in 30 s).
+    8% of Channel fixes are stamped 1-2 s ahead of time_utc (why fixTime
+    allows 5 s of skew). Only ~1 in 5 Channel ships is typed after 8 min:
+    static data is every 6 min and often missed, and many types are tugs or
+    dredgers (`vessel`). Fixtures: `fixtures/channel-2026-10-27.json` (real
+    frames, 15 ships) and hand-made `edge-cases.json`.
   - `mapAis.ts` is pure: envelope parse (`SubscriptionConfirmation`,
     `{error}`, AIS), Class A/B positions and both static types.
     ITU-R M.1371 "not available" values (lat 91, lon 181, Sog 102.3, Cog
@@ -280,6 +293,10 @@ AISStream.
 - Each running AIS server holds one of the key's 3 AISStream connections; a
   fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
   `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
+- `DataCredits` tracks style readiness itself (`style.load` /
+  `styledataloading`). Don't go back to `map.isStyleLoaded()`: it's false
+  while tiles load, so a hello arriving then (the worldwide page) never
+  installed the credit.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.
