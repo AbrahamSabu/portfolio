@@ -33,7 +33,10 @@ export interface Config {
   adsblol: {
     /** API base; set only to point at a local stub. */
     apiUrl?: string;
+    /** While someone is watching. */
     pollMs: number;
+    /** The scenario's area while nobody is watching, so the picture is ready when someone opens the page. */
+    warmPollMs: number;
   };
   ais: {
     /** AISStream API key. Without one the feed runs but only reports that it's missing. */
@@ -96,12 +99,19 @@ function httpUrl(name: string): string | undefined {
 }
 
 /**
- * adsb.lol settings. It's free, but run by volunteers: 30 s keeps the load
- * light, and it only ever polls views up to region size.
+ * adsb.lol settings. It's free, but run by volunteers, so the load stays
+ * light: one request every 10 s per area while someone watches (the map
+ * dead-reckons in between), and one every 30 s for the home area while nobody
+ * does. 30 s keeps unwatched aircraft inside their live window, so a page
+ * opening on them shows them live, not faded.
  */
 function adsbLolConfig(): Config['adsblol'] {
   const apiUrl = httpUrl('ADSBLOL_API_URL');
-  return { ...(apiUrl ? { apiUrl } : {}), pollMs: int('ADSBLOL_POLL_S', 30, 10, 600) * 1000 };
+  return {
+    ...(apiUrl ? { apiUrl } : {}),
+    pollMs: int('ADSBLOL_POLL_S', 10, 5, 600) * 1000,
+    warmPollMs: int('ADSBLOL_WARM_POLL_S', 30, 10, 3600) * 1000,
+  };
 }
 
 /**

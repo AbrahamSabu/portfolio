@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Logger } from '../../log';
 import type { TrackSink } from '../feed';
-import { AdsbLolFeed } from './adsbLolFeed';
+import { AdsbLolFeed, type AdsbLolOptions } from './adsbLolFeed';
 
 const POLL_MS = 30_000;
 const cairo = readFileSync(new URL('./fixtures/cairo-2026-10-27.json', import.meta.url), 'utf8');
@@ -15,6 +15,11 @@ const json = (body: string, init: ResponseInit = {}) =>
   new Response(body, { status: 200, ...init, headers: { 'Content-Type': 'application/json', ...(init.headers as Record<string, string>) } });
 
 function setup(...responses: Response[]) {
+  return setupWith({}, ...responses);
+}
+
+/** `watched: false` mimics index.ts, which tells feeds nobody is connected before starting them. */
+function setupWith(extra: Partial<AdsbLolOptions> & { watched?: boolean }, ...responses: Response[]) {
   let now = 1_793_121_200_000;
   const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
   const timers: number[] = [];
@@ -37,7 +42,9 @@ function setup(...responses: Response[]) {
     },
     clearTimer: () => {},
     log: silent,
+    ...extra,
   });
+  if (extra.watched === false) feed.setDemand(false);
   const sink: TrackSink = { upsert: (r) => upserts.push(r as { id: string }), remove: (id) => removals.push(id) };
   feed.start(sink);
   const fire = async () => {
@@ -140,5 +147,42 @@ describe('AdsbLolFeed', () => {
     expect(timers.at(-1)).toBe(1_000); // a 1 s settle, well before the regular 30 s poll
     await fire();
     expect(calls).toHaveLength(2);
+  });
+
+  describe('with a home area', () => {
+    const HOME = [{ lat: -26, lon: 28, radiusNm: 250 }];
+    const warm = (...r: Response[]) => setupWith({ home: HOME, warmPollMs: 60_000, watched: false }, ...r);
+
+    it('keeps the home area warm with nobody watching, at the slower interval', async () => {
+      const { calls, timers, fire, upserts } = warm(json(cairo), json(cairo));
+      expect(timers).toEqual([0]); // polls at once, no viewer needed
+      await fire();
+      expect(calls[0]!.url).toMatch(/\/v2\/point\/-26\/28\/250$/);
+      expect(upserts).toHaveLength(37);
+      expect(timers.at(-1)).toBe(60_000);
+    });
+
+    it('polls almost at once when a viewer arrives to warm data older than a watched poll', async () => {
+      const { feed, calls, timers, fire, advance } = warm(json(cairo), json(cairo), json(cairo));
+      await fire();
+      advance(45_000); // older than POLL_MS (30 s), not yet due (60 s)
+      feed.setDemand(true);
+      expect(timers.at(-1)).toBe(1_000); // the scheduler's settle, not the remaining 15 s
+      await fire();
+      expect(calls).toHaveLength(2);
+      expect(timers.at(-1)).toBe(POLL_MS); // watched cadence from now on
+    });
+
+    it('adds view circles only where the home area does not already cover them', async () => {
+      const { feed, calls, fire } = warm(json(cairo), json(cairo), json(cairo), json(cairo));
+      await fire();
+      feed.setDemand(true);
+      feed.setAreas([JOHANNESBURG]); // inside home
+      await fire();
+      expect(calls).toHaveLength(2);
+      feed.setAreas([{ south: -34.5, west: 18, north: -33.5, east: 19 }]); // Cape Town, outside
+      await fire();
+      expect(calls.slice(2).map((c) => c.url.split('/point/')[1])).toEqual(['-26/28/250', expect.stringMatching(/^-34/)]);
+    });
   });
 });

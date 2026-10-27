@@ -3,7 +3,7 @@ import { createLogger, type Logger } from '../../log';
 import type { Feed, TrackSink } from '../feed';
 import { Backoff } from '../backoff';
 import { PollScheduler, polledFeedStatus } from '../pollScheduler';
-import { circlesCover, circlesFor, type Circle } from './circles';
+import { circleContains, circlesCover, circlesFor, type Circle } from './circles';
 import { mapAircraft, parseAircraftResponse } from './mapAircraft';
 
 export const DEFAULT_ADSBLOL_URL = 'https://api.adsb.lol';
@@ -19,7 +19,16 @@ const CONCURRENCY = 2;
 const MAX_BACKOFF_MS = 5 * 60_000;
 
 export interface AdsbLolOptions {
+  /** Interval while someone is watching. */
   pollMs: number;
+  /**
+   * The home area's circles, polled whether or not anyone is watching (at
+   * warmPollMs when nobody is), so a page opening on it finds the picture
+   * already there instead of waiting for the first poll.
+   */
+  home?: Circle[];
+  /** Interval for the home area while nobody is watching. Defaults to pollMs. */
+  warmPollMs?: number;
   /** API base, e.g. a local stub for testing. Defaults to adsb.lol's. */
   apiUrl?: string;
   // Injectable for tests, so nothing touches the network or real time.
@@ -55,6 +64,7 @@ export class AdsbLolFeed implements Feed {
   private sink: TrackSink | null = null;
   private stopController = new AbortController();
   private watched = true;
+  private readonly home: Circle[];
   private plan: Circle[] = [];
   private tooWide = false;
   private lastPolled: Circle[] = [];
@@ -68,12 +78,16 @@ export class AdsbLolFeed implements Feed {
     this.fetch = opts.fetch ?? globalThis.fetch;
     this.now = opts.now ?? Date.now;
     this.log = opts.log ?? createLogger('adsblol');
+    this.home = opts.home ?? [];
+    this.plan = this.home;
     this.backoff = new Backoff(opts.pollMs, Math.max(MAX_BACKOFF_MS, opts.pollMs), opts.random);
     this.scheduler = new PollScheduler(
       {
         run: () => this.pollOnce(),
         isActive: () => this.active,
-        wantsEarlyPoll: () => !circlesCover(this.lastPolled, this.plan),
+        // Early when the view moved off what was polled, or when a viewer
+        // arrives to warm data older than a watched poll would be.
+        wantsEarlyPoll: () => !circlesCover(this.lastPolled, this.plan) || this.warmDataIsOld(),
         isWaiting: () => this.backoff.attempts > 0 || this.pausedUntil !== null,
         describe: () => describeCircles(this.plan),
       },
@@ -90,15 +104,24 @@ export class AdsbLolFeed implements Feed {
     );
   }
 
-  /** Someone is watching a view narrow enough to cover. */
+  /** There's something to poll: a home area always, views only while someone watches. */
   private get active(): boolean {
-    return this.watched && this.plan.length > 0;
+    return this.plan.length > 0 && (this.watched || this.home.length > 0);
+  }
+
+  private warmDataIsOld(): boolean {
+    return this.watched && this.lastSuccessAt !== null && this.now() - this.lastSuccessAt > this.opts.pollMs;
   }
 
   start(sink: TrackSink): void {
     this.sink = sink;
     this.stopController = new AbortController();
-    this.log.info('configured', { every: `${this.opts.pollMs / 1000}s`, area: 'views up to region size' });
+    this.log.info('configured', {
+      every: `${this.opts.pollMs / 1000}s`,
+      area: 'views up to region size',
+      home: describeCircles(this.home),
+      ...(this.home.length ? { unwatchedEvery: `${(this.opts.warmPollMs ?? this.opts.pollMs) / 1000}s` } : {}),
+    });
     this.scheduler.start();
   }
 
@@ -110,7 +133,9 @@ export class AdsbLolFeed implements Feed {
   setAreas(views: BBox[]): void {
     const circles = circlesFor(views);
     this.tooWide = circles === null;
-    this.plan = circles ?? [];
+    // Home first, then any view circle the home area doesn't already cover.
+    const extra = (circles ?? []).filter((c) => !this.home.some((h) => circleContains(h, c)));
+    this.plan = [...this.home, ...extra];
     this.scheduler.refresh();
   }
 
@@ -137,6 +162,8 @@ export class AdsbLolFeed implements Feed {
   health(): Record<string, unknown> {
     return {
       paused: this.scheduler.paused,
+      home: describeCircles(this.home),
+      warm: !this.watched && this.home.length > 0,
       standingAside: this.tooWide ? 'view wider than a region' : false,
       polled: describeCircles(this.lastPolled),
       aircraft: this.aircraft,
@@ -187,7 +214,7 @@ export class AdsbLolFeed implements Feed {
     this.pausedUntil = null;
     this.lastError = null;
     this.lastSuccessAt = this.now();
-    return this.opts.pollMs;
+    return this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
   }
 
   /** Fetch one circle and push its aircraft straight away. Network errors become a failed result. */

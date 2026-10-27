@@ -10,6 +10,7 @@ import {
 import { loadConfig, trafficKind } from './config';
 import type { Feed } from './feeds/feed';
 import { AdsbLolFeed } from './feeds/adsblol/adsbLolFeed';
+import { circlesFor } from './feeds/adsblol/circles';
 import { WORLD } from './feeds/ais/areas';
 import { AisStreamFeed } from './feeds/ais/aisStreamFeed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
@@ -84,6 +85,9 @@ async function main(): Promise<void> {
         feeds.push(
           new AdsbLolFeed({
             pollMs: config.adsblol.pollMs,
+            // Always poll the scenario's area, so the picture is there before anyone looks.
+            home: circlesFor([scenario.bounds]) ?? [],
+            warmPollMs: config.adsblol.warmPollMs,
             ...(config.adsblol.apiUrl ? { apiUrl: config.adsblol.apiUrl } : {}),
           }),
         );
