@@ -27,8 +27,6 @@ const CONFIRM_TIMEOUT_MS = 15_000;
  * alone doesn't mean the connection died; a missing pong does.
  */
 const PING_EVERY_MS = 30_000;
-/** With nobody watching, keep streaming this long in case they come back (a reload, say). */
-const IDLE_GRACE_MS = 2 * 60_000;
 /**
  * Least time between subscription messages on one connection. AISStream
  * closes a connection that updates more than once a second; twice the limit
@@ -81,9 +79,10 @@ export interface AisStreamOptions {
  * connection healthy (reconnect with backoff, keepalive) and turning
  * messages into tracks (mapAis, ShipRegistry for names and types).
  *
- * With no viewers it disconnects after a grace period; AIS has no replay, so
- * what was missed is simply gone, and ships reappear as they next report.
- * When recording arrives (roadmap 6), the recorder must count as demand.
+ * It streams whether or not anyone is watching, so it has no setDemand().
+ * AIS has no replay: a ship missed while disconnected only reappears when it
+ * next reports, up to 3 minutes later for a moored one. Staying connected is
+ * free and keeps the picture ready for the moment a page opens.
  */
 export class AisStreamFeed implements Feed {
   readonly name = 'ais';
@@ -98,7 +97,6 @@ export class AisStreamFeed implements Feed {
 
   private sink: TrackSink | null = null;
   private boxes: BBox[];
-  private watched = true;
 
   private socket: AisSocket | null = null;
   private opened = false;
@@ -108,7 +106,6 @@ export class AisStreamFeed implements Feed {
   private retryTimer: unknown = null;
   private retryAt: number | null = null;
   private watchdogTimer: unknown = null;
-  private idleTimer: unknown = null;
   private resubscribeTimer: unknown = null;
   private lastSubscribedAt = -Infinity;
 
@@ -144,29 +141,14 @@ export class AisStreamFeed implements Feed {
   stop(): void {
     this.sink = null;
     this.clearRetry();
-    this.clearIdle();
     this.disconnect();
-  }
-
-  setDemand(watched: boolean): void {
-    this.watched = watched;
-    if (watched) {
-      this.clearIdle();
-      this.reconcile();
-    } else if (this.socket && this.idleTimer === null) {
-      this.idleTimer = this.setTimer(() => {
-        this.idleTimer = null;
-        this.log.info('nobody watching: disconnecting');
-        this.disconnect();
-      }, IDLE_GRACE_MS);
-    }
   }
 
   /**
    * Viewport mode: subscribe to what browsers are looking at. AISStream takes
    * a new subscription on the open connection (it replaces the old one), so
    * a pan costs one small message, not a reconnect. No views (everyone left)
-   * keeps the last subscription: the idle grace decides when to disconnect.
+   * keeps the last subscription streaming, ready for the next viewer.
    * There is no replay, so ships in a newly covered area appear as they next
    * report: seconds for ships underway, up to 3 minutes for moored ones.
    */
@@ -219,9 +201,8 @@ export class AisStreamFeed implements Feed {
 
   /** Connect if we should be streaming and aren't (or aren't about to). */
   private reconcile(): void {
-    const wanted = this.sink !== null && Boolean(this.opts.apiKey) && this.watched && this.boxes.length > 0;
+    const wanted = this.sink !== null && Boolean(this.opts.apiKey) && this.boxes.length > 0;
     if (wanted && !this.socket && this.retryTimer === null) this.connect();
-    if (!wanted && this.socket && this.watched) this.disconnect();
   }
 
   private connect(): void {
@@ -353,8 +334,6 @@ export class AisStreamFeed implements Feed {
     const delay = Math.max(this.backoff.next(), rejected ? REJECTED_RETRY_MS : 0);
     this.log.warn('connection closed', { code, reason, error: this.lastError, retryInS: Math.round(delay / 1000) });
 
-    // Scheduled even with nobody watching, so a viewer arriving can't skip the backoff;
-    // reconcile() decides then whether anyone still wants the stream.
     this.retryAt = now + delay;
     this.retryTimer = this.setTimer(() => {
       this.retryTimer = null;
@@ -408,10 +387,6 @@ export class AisStreamFeed implements Feed {
     this.retryAt = null;
   }
 
-  private clearIdle(): void {
-    if (this.idleTimer !== null) this.clearTimer(this.idleTimer);
-    this.idleTimer = null;
-  }
 
   private skip(reason: AisSkipReason | 'unparsed'): void {
     this.skipped[reason] = (this.skipped[reason] ?? 0) + 1;

@@ -207,42 +207,16 @@ describe('AisStreamFeed', () => {
     expect(t.sockets).toHaveLength(2);
   });
 
-  it('with nobody watching, keeps streaming for a grace period, then disconnects', () => {
+  it('streams from the start whether or not anyone is watching, so the picture is ready', () => {
     const t = harness();
-    t.feed.setDemand(false);
-    t.feed.start(t.sink);
-    expect(t.sockets).toHaveLength(0);
-
-    t.feed.setDemand(true);
+    t.feed.start(t.sink); // index.ts starts feeds before anyone connects
     expect(t.sockets).toHaveLength(1);
     t.last().accept();
-    t.feed.setDemand(false);
-    t.advance(60_000);
-    t.feed.setDemand(true); // a reload: same connection
-    t.feed.setDemand(false);
-    t.advance(119_999);
+    t.last().h.onMessage(frame(edge.messages.classA));
+    t.advance(30 * 60_000);
+    expect(t.sockets).toHaveLength(1);
     expect(t.last().terminated).toBe(false);
-    t.advance(1);
-    expect(t.last().terminated).toBe(true);
-    // Closing on purpose is not a failure, and nothing reconnects.
-    expect(t.feed.status().state).toBe('starting');
-    t.advance(10 * 60_000);
-    expect(t.sockets).toHaveLength(1);
-
-    t.feed.setDemand(true);
-    expect(t.sockets).toHaveLength(2);
-  });
-
-  it("doesn't let a returning viewer skip the backoff", () => {
-    const t = harness();
-    t.feed.start(t.sink);
-    t.last().h.onOpen();
-    t.last().h.onClose(1006, ''); // rejected: 30 s
-    t.feed.setDemand(false);
-    t.feed.setDemand(true);
-    expect(t.sockets).toHaveLength(1);
-    t.advance(30_000);
-    expect(t.sockets).toHaveLength(2);
+    expect(t.upserts).toHaveLength(1);
   });
 
   it('stop() closes without retrying', () => {
