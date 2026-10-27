@@ -8,7 +8,10 @@ export interface Config {
   host: string;
   tickMs: number;
   staticDir: string;
-  /** Which feeds run. Defaults to the simulator so the demo works offline. */
+  /**
+   * Which feeds run. Defaults to live aircraft from adsb.lol (free, no key)
+   * and live ships from AISStream; `sim` runs the offline simulator.
+   */
   feeds: FeedName[];
   /** The area every feed covers: the simulator's geography and live feeds' bounding box. */
   scenario: string;
@@ -50,7 +53,7 @@ export type FeedName = (typeof FEED_NAMES)[number];
 
 /** Parse a comma-separated feed list such as "sim,opensky". Order and duplicates don't matter. */
 export function parseFeeds(raw: string | undefined): FeedName[] {
-  if (raw === undefined || raw.trim() === '') return ['sim'];
+  if (raw === undefined || raw.trim() === '') return ['adsblol', 'ais'];
   const names = raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   for (const name of names) {
     if (!(FEED_NAMES as readonly string[]).includes(name)) {
@@ -178,7 +181,7 @@ export function loadConfig(): Config {
     staticDir: path.resolve(process.cwd(), process.env.STATIC_DIR || '../client/dist'),
     feeds: parseFeeds(process.env.FEEDS),
     // SIM_SCENARIO is the old name, kept so existing .env files still work.
-    scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'english-channel',
+    scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'cork',
     sim: {
       seed: int('SIM_SEED', 42, 0, 2 ** 32 - 1),
     },

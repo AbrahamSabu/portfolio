@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { parseFeeds, trafficKind } from './config';
 
 describe('parseFeeds', () => {
-  it('defaults to the simulator so the demo works offline', () => {
-    expect(parseFeeds(undefined)).toEqual(['sim']);
-    expect(parseFeeds('  ')).toEqual(['sim']);
+  it('defaults to live aircraft and ships', () => {
+    expect(parseFeeds(undefined)).toEqual(['adsblol', 'ais']);
+    expect(parseFeeds('  ')).toEqual(['adsblol', 'ais']);
   });
 
   it('accepts a list, ignoring case, spaces and duplicates', () => {

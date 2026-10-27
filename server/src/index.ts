@@ -41,6 +41,10 @@ async function main(): Promise<void> {
   const startedAt = Date.now();
 
   const scenario = getScenario(config.scenario);
+  if (config.feeds.includes('sim') && Object.keys(scenario.population).length === 0) {
+    // Live-only areas (Cork) have no lanes or routes, so simulated ships would have nowhere to go.
+    throw new Error(`The simulator has no traffic for ${scenario.name}. Use SCENARIO=english-channel with FEEDS=sim.`);
+  }
   // The areas of the live feeds that have one (adsb.lol only follows views).
   const areas = [
     ...(config.feeds.includes('opensky') ? [config.opensky.area] : []),

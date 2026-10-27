@@ -1,8 +1,10 @@
+import { cork } from './cork';
 import { englishChannel } from './englishChannel';
 import type { Scenario } from './types';
 
 /** Add new areas here. The id is what SCENARIO selects. */
 const scenarios: Record<string, Scenario> = {
+  [cork.id]: cork,
   [englishChannel.id]: englishChannel,
 };
 
