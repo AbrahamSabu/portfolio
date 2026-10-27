@@ -7,6 +7,11 @@ describe('creditsFor', () => {
     expect(html).toMatch(/^Aircraft: .*OpenSky Network.*adsb\.lol.*ODbL/);
   });
 
+  it('groups aircraft and ship credits', () => {
+    expect(creditsFor(['ais'])).toMatch(/^Ships: .*aisstream\.io.*AISStream<\/a>$/);
+    expect(creditsFor(['sim', 'ais', 'opensky'])).toMatch(/^Aircraft: .*OpenSky Network.*; Ships: .*AISStream/);
+  });
+
   it('is empty for feeds that need no credit', () => {
     expect(creditsFor([])).toBe('');
     expect(creditsFor(['sim'])).toBe('');

@@ -3,7 +3,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 /**
  * Credits for the live data on the map, shown in MapLibre's attribution
  * control next to the basemap's. adsb.lol's data is ODbL, which requires
- * attribution with the licence; OpenSky asks to be credited too.
+ * attribution with the licence; OpenSky and AISStream are credited too.
  *
  * The attribution control collects credits from sources that visible layers
  * use, so the credits ride on an empty source with an empty layer. It is
@@ -12,16 +12,24 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 const SOURCE = 'data-credits';
 const LAYER = 'data-credits';
 
-const CREDITS: Record<string, string> = {
-  opensky: '<a href="https://opensky-network.org" target="_blank" rel="noopener">The OpenSky Network</a>',
-  adsblol:
-    '<a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)',
+/** Credits by feed id, grouped by what each feed shows. */
+const CREDITS: Record<string, { kind: 'Aircraft' | 'Ships'; html: string }> = {
+  opensky: { kind: 'Aircraft', html: '<a href="https://opensky-network.org" target="_blank" rel="noopener">The OpenSky Network</a>' },
+  adsblol: {
+    kind: 'Aircraft',
+    html: '<a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)',
+  },
+  ais: { kind: 'Ships', html: '<a href="https://aisstream.io" target="_blank" rel="noopener">AISStream</a>' },
 };
 
 /** The credit line for a set of feed ids; empty when none need one (the simulator). */
 export function creditsFor(feeds: readonly string[]): string {
-  const parts = feeds.map((feed) => CREDITS[feed]).filter((c): c is string => c !== undefined);
-  return parts.length ? `Aircraft: ${parts.join(', ')}` : '';
+  const credits = feeds.map((feed) => CREDITS[feed]).filter((c) => c !== undefined);
+  const line = (kind: 'Aircraft' | 'Ships') => {
+    const parts = credits.filter((c) => c.kind === kind).map((c) => c.html);
+    return parts.length ? `${kind}: ${parts.join(', ')}` : '';
+  };
+  return [line('Aircraft'), line('Ships')].filter(Boolean).join('; ');
 }
 
 export class DataCredits {

@@ -58,7 +58,8 @@ export function describeFeedStatus(s: FeedStatus): string | null {
  */
 export function describeFeeds(feeds: FeedStatus[]): string {
   const lines = feeds.map(describeFeedStatus).filter((line): line is string => line !== null);
-  const delivering = feeds.some((f) => f.state === 'ok' || f.state === 'starting');
+  // Ships on the map don't explain missing aircraft, so AIS doesn't count.
+  const delivering = feeds.some((f) => f.feed !== 'ais' && (f.state === 'ok' || f.state === 'starting'));
   if (!delivering) {
     for (const f of feeds) if (f.state === 'standing-aside') lines.push(`Zoom in to see aircraft from ${f.label}`);
   }

@@ -102,6 +102,13 @@ describe('describeFeeds', () => {
     expect(describeFeeds([{ ...opensky, state: 'ok' }, { ...adsblol, state: 'standing-aside' }])).toBe('');
   });
 
+  it('still suggests zooming in for aircraft while ships are delivering', () => {
+    const ais = { feed: 'ais', label: 'AISStream' };
+    expect(describeFeeds([{ ...ais, state: 'ok' }, { ...adsblol, state: 'standing-aside' }])).toBe(
+      'Zoom in to see aircraft from adsb.lol',
+    );
+  });
+
   it('suggests zooming in when standing aside is why the map is empty', () => {
     expect(
       describeFeeds([{ ...opensky, state: 'rate-limited', until: Date.UTC(2026, 9, 28, 17, 1) }, { ...adsblol, state: 'standing-aside' }]),
