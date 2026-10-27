@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Logger } from '../../log';
 import { AisStreamFeed, type AisSocket, type AisSocketHandlers, type AisStreamOptions } from './aisStreamFeed';
+import { sanitizeTrack } from '@watchfloor/shared';
 import edge from './fixtures/edge-cases.json';
+import recorded from './fixtures/channel-2026-10-27.json';
 
 const CHANNEL = { south: 49.3, west: -4.5, north: 51.6, east: 2.8 };
 const quiet: Logger = { debug() {}, info() {}, warn() {}, error() {} };
@@ -320,5 +322,46 @@ describe('AisStreamFeed in viewport mode', () => {
     t.feed.setAreas([SOLENT]);
     t.advance(5_000);
     expect(t.last().sent).toHaveLength(1);
+  });
+});
+
+describe('AisStreamFeed replaying a recorded Channel stream', () => {
+  function replay() {
+    const t = harness();
+    t.advance(recorded.frames[0]!.receivedAt - t.now() - 500); // connect just before the recording starts
+    t.feed.start(t.sink);
+    t.last().h.onOpen();
+    const receivedAt: number[] = []; // our clock when each upsert's frame arrived
+    for (const f of recorded.frames) {
+      t.advance(Math.max(0, f.receivedAt - t.now()));
+      t.last().h.onMessage(f.raw);
+      while (receivedAt.length < t.upserts.length) receivedAt.push(f.receivedAt);
+    }
+    return { ...t, receivedAt };
+  }
+
+  it('confirms, with compression, and understands every frame', () => {
+    const t = replay();
+    expect(t.feed.status().state).toBe('ok');
+    expect(t.feed.health()).toMatchObject({ compression: true, messages: recorded.frames.length, skipped: {} });
+  });
+
+  it('turns every position report into a valid track, timed close to its receipt', () => {
+    const t = replay();
+    expect(t.upserts).toHaveLength(18);
+    t.upserts.forEach((u, i) => {
+      expect(sanitizeTrack(u)).not.toBeNull();
+      // AISStream relays within a second or two; clocks a little ahead show as a fix just after receipt.
+      expect(Math.abs((u.observedAt as number) - t.receivedAt[i]!)).toBeLessThan(5_000);
+    });
+  });
+
+  it('names and types ships from static data heard earlier', () => {
+    const t = replay();
+    const daisy = t.upserts.find((u) => u.id === 'ais:477745100');
+    expect(daisy).toMatchObject({ callsign: 'GOLDEN DAISY', platform: 'tanker', domain: 'sea', affiliation: 'unknown' });
+    // Class B static (part B) carries only the type; the name came from AISStream's metadata.
+    const sunsail = t.upserts.filter((u) => u.id === 'ais:232029791');
+    expect(sunsail.at(-1)).toMatchObject({ callsign: 'SUNSAIL SOLARIS' });
   });
 });

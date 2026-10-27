@@ -18,6 +18,14 @@ describe('parseStreamMessage', () => {
     expect(parseStreamMessage(JSON.stringify(edge.messages.error))).toEqual({ kind: 'error', error: 'Api Key Is Not Valid' });
   });
 
+  it('reads the compression flag from the confirmation as AISStream really sends it', () => {
+    // Recorded: the flag sits directly under Message, unlike the AIS message types.
+    expect(parseStreamMessage('{"Message":{"CompressionEnabled":true},"MessageType":"SubscriptionConfirmation"}')).toEqual({
+      kind: 'confirmation',
+      compression: true,
+    });
+  });
+
   it('rejects frames that are not JSON or not an envelope', () => {
     expect(parseStreamMessage('not json')).toBeNull();
     expect(parseStreamMessage('[1,2]')).toBeNull();

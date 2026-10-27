@@ -64,8 +64,11 @@ export function parseStreamMessage(raw: string): StreamMessage | null {
   if (typeof m.error === 'string') return { kind: 'error', error: m.error };
   if (typeof m.MessageType !== 'string' || !isObject(m.Message)) return null;
   if (m.MessageType === 'SubscriptionConfirmation') {
-    const body = m.Message.SubscriptionConfirmation;
-    return { kind: 'confirmation', compression: isObject(body) && body.CompressionEnabled === true };
+    // Recorded (Oct 2026): {"Message":{"CompressionEnabled":true},...}, the flag directly
+    // under Message, not under Message.SubscriptionConfirmation like AIS types.
+    const nested = m.Message.SubscriptionConfirmation;
+    const body = isObject(nested) ? nested : m.Message;
+    return { kind: 'confirmation', compression: body.CompressionEnabled === true };
   }
   const body = m.Message[m.MessageType];
   if (!isObject(body)) return null;
