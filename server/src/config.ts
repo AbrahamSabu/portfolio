@@ -32,9 +32,17 @@ export interface Config {
     apiUrl?: string;
     pollMs: number;
   };
+  ais: {
+    /** AISStream API key. Without one the feed runs but only reports that it's missing. */
+    apiKey?: string;
+    /** 'scenario' streams the scenario's bounding box; 'world' streams everywhere. */
+    area: 'scenario' | 'world';
+    /** Stream URL; set only to point at a local stub. */
+    url?: string;
+  };
 }
 
-export const FEED_NAMES = ['sim', 'opensky', 'adsblol'] as const;
+export const FEED_NAMES = ['sim', 'opensky', 'adsblol', 'ais'] as const;
 export type FeedName = (typeof FEED_NAMES)[number];
 
 /** Parse a comma-separated feed list such as "sim,opensky". Order and duplicates don't matter. */
@@ -88,6 +96,29 @@ function httpUrl(name: string): string | undefined {
 function adsbLolConfig(): Config['adsblol'] {
   const apiUrl = httpUrl('ADSBLOL_API_URL');
   return { ...(apiUrl ? { apiUrl } : {}), pollMs: int('ADSBLOL_POLL_S', 30, 10, 600) * 1000 };
+}
+
+/**
+ * AISStream settings. A missing key isn't an error here: the feed reports it
+ * in the status bar, which is more useful than a server that won't start.
+ */
+function aisConfig(): Config['ais'] {
+  const apiKey = process.env.AISSTREAM_API_KEY?.trim() || undefined;
+  const area = (process.env.AIS_AREA || 'scenario').trim().toLowerCase();
+  if (area !== 'scenario' && area !== 'world') {
+    throw new Error(`AIS_AREA must be scenario or world (got "${area}")`);
+  }
+  const url = process.env.AISSTREAM_URL?.trim() || undefined;
+  if (url) {
+    let protocol = '';
+    try {
+      protocol = new URL(url).protocol;
+    } catch {
+      // reported below
+    }
+    if (protocol !== 'wss:' && protocol !== 'ws:') throw new Error(`AISSTREAM_URL must be a ws(s) URL (got "${url}")`);
+  }
+  return { ...(apiKey ? { apiKey } : {}), area, ...(url ? { url } : {}) };
 }
 
 /**
@@ -150,5 +181,6 @@ export function loadConfig(): Config {
     },
     opensky: openSkyConfig(),
     adsblol: adsbLolConfig(),
+    ais: aisConfig(),
   };
 }

@@ -1,7 +1,16 @@
-import { DEFAULT_STALENESS, polledStaleness, type ScenarioInfo, type StalenessRules } from '@watchfloor/shared';
+import {
+  AIS_STALENESS,
+  DEFAULT_STALENESS,
+  polledStaleness,
+  type ScenarioInfo,
+  type StalenessRule,
+  type StalenessRules,
+  type TrackSource,
+} from '@watchfloor/shared';
 import { loadConfig, trafficKind } from './config';
 import type { Feed } from './feeds/feed';
 import { AdsbLolFeed } from './feeds/adsblol/adsbLolFeed';
+import { AisStreamFeed } from './feeds/ais/aisStreamFeed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
@@ -11,6 +20,7 @@ import { getScenario } from './scenarios';
 import { TrackStore } from './trackStore';
 
 const log = createLogger('main');
+const WORLD = { south: -90, west: -180, north: 90, east: 180 };
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -21,23 +31,30 @@ async function main(): Promise<void> {
     config.feeds.includes('opensky') ? config.opensky.pollMs : 0,
     config.feeds.includes('adsblol') ? config.adsblol.pollMs : 0,
   );
-  const staleness: StalenessRules = {
-    ...DEFAULT_STALENESS,
-    bySource: adsbPollMs > 0 ? { adsb: polledStaleness(adsbPollMs, DEFAULT_STALENESS.byDomain.air) } : {},
-  };
+  // AIS ships report at rates set by what they're doing (minutes apart when
+  // moored), so they get their own rule too.
+  const bySource: Partial<Record<TrackSource, StalenessRule>> = {};
+  if (adsbPollMs > 0) bySource.adsb = polledStaleness(adsbPollMs, DEFAULT_STALENESS.byDomain.air);
+  if (config.feeds.includes('ais')) bySource.ais = AIS_STALENESS;
+  const staleness: StalenessRules = { ...DEFAULT_STALENESS, bySource };
   const store = new TrackStore(staleness);
   const startedAt = Date.now();
 
   const scenario = getScenario(config.scenario);
-  const liveOnly = config.feeds.includes('opensky') && !config.feeds.includes('sim');
+  // The areas of the live feeds that have one (adsb.lol only follows views).
+  const areas = [
+    ...(config.feeds.includes('opensky') ? [config.opensky.area] : []),
+    ...(config.feeds.includes('ais') ? [config.ais.area] : []),
+  ];
+  const liveOnly = areas.length > 0 && !config.feeds.includes('sim');
   // With only live worldwide traffic, the scenario's area means nothing, so
   // frame and name the whole map. Viewport mode is worldwide too, but starts on
   // the scenario: a zoomed-in first view costs 1 credit, not 4. With the
-  // simulator, keep its area.
+  // simulator, or any live feed held to the scenario, keep its area.
   const scenarioInfo: ScenarioInfo =
-    liveOnly && config.opensky.area === 'world'
+    liveOnly && areas.every((a) => a === 'world')
       ? { id: 'world', name: 'Worldwide', center: { lat: 30, lon: 0 }, zoom: 2 }
-      : liveOnly && config.opensky.area === 'viewport'
+      : liveOnly && areas.every((a) => a !== 'scenario')
         ? { id: 'world', name: 'Worldwide', center: scenario.center, zoom: scenario.zoom }
         : { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
 
@@ -47,6 +64,15 @@ async function main(): Promise<void> {
     switch (name) {
       case 'sim':
         feeds.push(new Simulator({ scenario, seed: config.sim.seed }));
+        break;
+      case 'ais':
+        feeds.push(
+          new AisStreamFeed({
+            apiKey: config.ais.apiKey,
+            boxes: [config.ais.area === 'world' ? WORLD : scenario.bounds],
+            ...(config.ais.url ? { url: config.ais.url } : {}),
+          }),
+        );
         break;
       case 'adsblol':
         feeds.push(

@@ -11,10 +11,11 @@ describe('parseFeeds', () => {
     expect(parseFeeds(' SIM , sim')).toEqual(['sim']);
     expect(parseFeeds('opensky,sim')).toEqual(['sim', 'opensky']);
     expect(parseFeeds('adsblol, opensky')).toEqual(['opensky', 'adsblol']);
+    expect(parseFeeds('ais,sim')).toEqual(['sim', 'ais']);
   });
 
   it('rejects unknown feeds with the list of valid ones', () => {
-    expect(() => parseFeeds('sim,radar')).toThrow(/unknown feed "radar".*Available: sim, opensky, adsblol/);
+    expect(() => parseFeeds('sim,radar')).toThrow(/unknown feed "radar".*Available: sim, opensky, adsblol, ais/);
   });
 
   it('rejects a list with no names', () => {

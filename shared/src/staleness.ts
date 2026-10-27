@@ -33,6 +33,16 @@ export const DEFAULT_STALENESS: StalenessRules = {
   bySource: {},
 };
 
+/**
+ * Live AIS. A ship's report rate follows what it's doing (ITU-R M.1371):
+ * Class A every 2-10 s underway but every 3 minutes at anchor or moored,
+ * Class B every 30 s, or 3 minutes below 2 knots. The sea default (stale at
+ * 90 s) would fade every moored ship between reports. Stale after two missed
+ * 3-minute reports plus a margin, dropped after about six. Moving ships
+ * report far more often, so they rarely get near either.
+ */
+export const AIS_STALENESS: StalenessRule = { staleAfterMs: 390_000, dropAfterMs: 1_200_000 };
+
 export function ruleFor(track: Pick<Track, 'source' | 'domain'>, rules: StalenessRules): StalenessRule {
   return rules.bySource[track.source] ?? rules.byDomain[track.domain];
 }

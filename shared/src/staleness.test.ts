@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STALENESS, polledStaleness, ruleFor, type StalenessRules } from './staleness';
+import { AIS_STALENESS, DEFAULT_STALENESS, polledStaleness, ruleFor, trackStatus, type StalenessRules } from './staleness';
 
 describe('ruleFor', () => {
   const rules: StalenessRules = {
@@ -32,5 +32,17 @@ describe('polledStaleness', () => {
     const rule = polledStaleness(1_000, air);
     expect(rule.staleAfterMs).toBeGreaterThanOrEqual(air.staleAfterMs);
     expect(rule.dropAfterMs).toBe(air.dropAfterMs);
+  });
+});
+
+describe('AIS_STALENESS', () => {
+  it('keeps a moored ship live between its 3-minute reports, unlike the sea default', () => {
+    const rules: StalenessRules = { ...DEFAULT_STALENESS, bySource: { ais: AIS_STALENESS } };
+    const moored = { source: 'ais', domain: 'sea' } as const;
+    const sim = { source: 'sim', domain: 'sea' } as const;
+    expect(trackStatus(3 * 60_000 + 5_000, ruleFor(moored, rules))).toBe('live');
+    expect(trackStatus(3 * 60_000 + 5_000, ruleFor(sim, rules))).toBe('stale');
+    // Two missed reports in a row is the honest signal.
+    expect(trackStatus(2 * 3 * 60_000 + 31_000, ruleFor(moored, rules))).toBe('stale');
   });
 });
