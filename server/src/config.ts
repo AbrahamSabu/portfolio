@@ -27,9 +27,14 @@ export interface Config {
     credentials?: { clientId: string; clientSecret: string };
     pollMs: number;
   };
+  adsblol: {
+    /** API base; set only to point at a local stub. */
+    apiUrl?: string;
+    pollMs: number;
+  };
 }
 
-export const FEED_NAMES = ['sim', 'opensky'] as const;
+export const FEED_NAMES = ['sim', 'opensky', 'adsblol'] as const;
 export type FeedName = (typeof FEED_NAMES)[number];
 
 /** Parse a comma-separated feed list such as "sim,opensky". Order and duplicates don't matter. */
@@ -62,6 +67,29 @@ export function trafficKind(feeds: readonly FeedName[]): TrafficKind {
   return simulated && live ? 'mixed' : live ? 'live' : 'simulated';
 }
 
+/** An optional http(s) base URL from the environment, without a trailing slash. */
+function httpUrl(name: string): string | undefined {
+  const url = process.env[name]?.trim().replace(/\/+$/, '') || undefined;
+  if (!url) return undefined;
+  let protocol = '';
+  try {
+    protocol = new URL(url).protocol;
+  } catch {
+    // reported below
+  }
+  if (protocol !== 'https:' && protocol !== 'http:') throw new Error(`${name} must be an http(s) URL (got "${url}")`);
+  return url;
+}
+
+/**
+ * adsb.lol settings. It's free, but run by volunteers: 30 s keeps the load
+ * light, and it only ever polls views up to region size.
+ */
+function adsbLolConfig(): Config['adsblol'] {
+  const apiUrl = httpUrl('ADSBLOL_API_URL');
+  return { ...(apiUrl ? { apiUrl } : {}), pollMs: int('ADSBLOL_POLL_S', 30, 10, 600) * 1000 };
+}
+
 /**
  * OpenSky settings. The default interval is set by the daily credit budget
  * (1 credit per poll for a box up to 25 square degrees): anonymous users get
@@ -81,18 +109,7 @@ function openSkyConfig(): Config['opensky'] {
   if (area !== 'scenario' && area !== 'world' && area !== 'viewport') {
     throw new Error(`OPENSKY_AREA must be scenario, world or viewport (got "${area}")`);
   }
-  const apiUrl = process.env.OPENSKY_API_URL?.trim().replace(/\/+$/, '') || undefined;
-  if (apiUrl) {
-    let protocol = '';
-    try {
-      protocol = new URL(apiUrl).protocol;
-    } catch {
-      // reported below
-    }
-    if (protocol !== 'https:' && protocol !== 'http:') {
-      throw new Error(`OPENSKY_API_URL must be an http(s) URL (got "${apiUrl}")`);
-    }
-  }
+  const apiUrl = httpUrl('OPENSKY_API_URL');
   return {
     area,
     ...(apiUrl ? { apiUrl } : {}),
@@ -132,5 +149,6 @@ export function loadConfig(): Config {
       seed: int('SIM_SEED', 42, 0, 2 ** 32 - 1),
     },
     opensky: openSkyConfig(),
+    adsblol: adsbLolConfig(),
   };
 }

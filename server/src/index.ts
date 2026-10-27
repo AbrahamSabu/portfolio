@@ -1,6 +1,7 @@
 import { DEFAULT_STALENESS, polledStaleness, type ScenarioInfo, type StalenessRules } from '@watchfloor/shared';
 import { loadConfig, trafficKind } from './config';
 import type { Feed } from './feeds/feed';
+import { AdsbLolFeed } from './feeds/adsblol/adsbLolFeed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
@@ -14,12 +15,15 @@ const log = createLogger('main');
 async function main(): Promise<void> {
   const config = loadConfig();
   // Polled feeds deliver reports in bursts, so their tracks get windows sized
-  // to the poll interval instead of the transponder-rate defaults.
+  // to the poll interval instead of the transponder-rate defaults. Both ADS-B
+  // providers feed the same 'adsb' tracks, so the slower interval sets the rule.
+  const adsbPollMs = Math.max(
+    config.feeds.includes('opensky') ? config.opensky.pollMs : 0,
+    config.feeds.includes('adsblol') ? config.adsblol.pollMs : 0,
+  );
   const staleness: StalenessRules = {
     ...DEFAULT_STALENESS,
-    bySource: config.feeds.includes('opensky')
-      ? { adsb: polledStaleness(config.opensky.pollMs, DEFAULT_STALENESS.byDomain.air) }
-      : {},
+    bySource: adsbPollMs > 0 ? { adsb: polledStaleness(adsbPollMs, DEFAULT_STALENESS.byDomain.air) } : {},
   };
   const store = new TrackStore(staleness);
   const startedAt = Date.now();
@@ -43,6 +47,14 @@ async function main(): Promise<void> {
     switch (name) {
       case 'sim':
         feeds.push(new Simulator({ scenario, seed: config.sim.seed }));
+        break;
+      case 'adsblol':
+        feeds.push(
+          new AdsbLolFeed({
+            pollMs: config.adsblol.pollMs,
+            ...(config.adsblol.apiUrl ? { apiUrl: config.adsblol.apiUrl } : {}),
+          }),
+        );
         break;
       case 'opensky':
         feeds.push(
