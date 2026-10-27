@@ -1,3 +1,4 @@
+import type { FeedStatus } from './feedStatus';
 import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
 import type { Track } from './track';
@@ -22,8 +23,10 @@ import type { TrailPoint } from './trail';
  *      hello carries `traffic`
  *   4  browsers send `view` (what they're looking at), so a pay-per-area
  *      feed can poll only the watched areas
+ *   5  hello carries `feeds` (each live feed's status); a delta carries
+ *      `feeds` only in the tick where one changed
  */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 export interface HelloMessage {
   type: 'hello';
@@ -34,6 +37,8 @@ export interface HelloMessage {
   scenario: ScenarioInfo | null;
   /** Whether the picture is real, invented or both, so the UI never passes off a simulation as live. */
   traffic: TrafficKind;
+  /** How each feed that can fail is doing (rate limited, failing...). */
+  feeds: FeedStatus[];
 }
 
 export type TrafficKind = 'simulated' | 'live' | 'mixed';
@@ -54,6 +59,8 @@ export interface DeltaMessage {
   serverTime: number;
   upserts: Track[];
   removals: string[];
+  /** Present only when a feed's status changed this tick: the full new list. */
+  feeds?: FeedStatus[];
 }
 
 export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage;

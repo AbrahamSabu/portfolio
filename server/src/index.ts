@@ -83,6 +83,7 @@ async function main(): Promise<void> {
     onViewsChanged: (views) => {
       for (const feed of feeds) feed.setAreas?.(views);
     },
+    feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
   });
 
   const sink = {

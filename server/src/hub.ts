@@ -5,6 +5,7 @@ import {
   parseClientMessage,
   type BBox,
   type DeltaMessage,
+  type FeedStatus,
   type HelloMessage,
   type ScenarioInfo,
   type SnapshotMessage,
@@ -65,6 +66,8 @@ export interface HubOptions {
    * at most once per tick however often browsers send them.
    */
   onViewsChanged?: (views: BBox[]) => void;
+  /** Current status of each feed that can fail; sent in hello and whenever it changes. */
+  feedStatus?: () => FeedStatus[];
 }
 
 /**
@@ -79,6 +82,8 @@ export class Hub {
   private readonly clients = new Set<Client>();
   /** Some browser's view changed (or one with a view left) since the last report. */
   private viewsDirty = false;
+  /** The feed statuses every connected browser already has, serialised. */
+  private sentFeeds = '[]';
   private tickTimer: NodeJS.Timeout | undefined;
   private heartbeatTimer: NodeJS.Timeout | undefined;
 
@@ -131,6 +136,7 @@ export class Hub {
       staleness: this.opts.staleness,
       scenario: this.opts.scenario,
       traffic: this.opts.traffic,
+      feeds: this.opts.feedStatus?.() ?? [],
     };
     client.ws.send(JSON.stringify(hello));
     this.sendSnapshot(client);
@@ -172,6 +178,13 @@ export class Hub {
     // Always send, even when empty: it doubles as a heartbeat the browser can watch,
     // and carries serverTime for clock-offset estimation.
     const delta: DeltaMessage = { type: 'delta', serverTime: now, upserts, removals };
+    // Feed status rides on the delta only when it changed, so the per-tick message stays small.
+    const feeds = this.opts.feedStatus?.() ?? [];
+    const feedsJson = JSON.stringify(feeds);
+    if (feedsJson !== this.sentFeeds) {
+      delta.feeds = feeds;
+      this.sentFeeds = feedsJson;
+    }
     const payload = JSON.stringify(delta);
 
     for (const client of this.clients) {

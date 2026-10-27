@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { DEFAULT_STALENESS, type BBox, type Track } from '@watchfloor/shared';
+import { DEFAULT_STALENESS, type BBox, type FeedStatus, type Track } from '@watchfloor/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { Hub } from './hub';
@@ -145,6 +145,38 @@ describe('Hub', () => {
     const closed = new Promise<number>((r) => b.once('close', (code) => r(code)));
     b.send('x'.repeat(5000));
     expect(await closed).toBe(1009);
+  });
+
+  it('sends feed status in hello, then on a delta only when it changes', async () => {
+    let feeds: FeedStatus[] = [{ feed: 'opensky', label: 'OpenSky', state: 'starting' }];
+    server = createServer();
+    hub = new Hub({
+      server,
+      path: '/ws',
+      store: new TrackStore(DEFAULT_STALENESS),
+      tickMs: 30,
+      staleness: DEFAULT_STALENESS,
+      scenario: null,
+      traffic: 'live',
+      feedStatus: () => feeds,
+    });
+    hub.start();
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+
+    const messages: Array<{ type: string; feeds?: FeedStatus[] }> = [];
+    const client = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    client.on('message', (data) => messages.push(JSON.parse(String(data))));
+    await new Promise((r) => setTimeout(r, 200));
+    expect(messages[0]).toMatchObject({ type: 'hello', feeds });
+
+    const before = messages.length;
+    feeds = [{ feed: 'opensky', label: 'OpenSky', state: 'rate-limited', until: 123 }];
+    await new Promise((r) => setTimeout(r, 200));
+    const withFeeds = messages.slice(before).filter((m) => m.type === 'delta' && m.feeds);
+    expect(withFeeds).toHaveLength(1);
+    expect(withFeeds[0]!.feeds).toEqual(feeds);
+    client.close();
   });
 });
 
