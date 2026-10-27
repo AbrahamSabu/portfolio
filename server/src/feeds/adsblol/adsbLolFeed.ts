@@ -1,7 +1,7 @@
 import type { BBox, FeedStatus } from '@watchfloor/shared';
 import { createLogger, type Logger } from '../../log';
 import type { Feed, TrackSink } from '../feed';
-import { Backoff } from '../opensky/backoff';
+import { Backoff } from '../backoff';
 import { PollScheduler, polledFeedStatus } from '../pollScheduler';
 import { circlesCover, circlesFor, type Circle } from './circles';
 import { mapAircraft, parseAircraftResponse } from './mapAircraft';

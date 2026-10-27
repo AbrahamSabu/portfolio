@@ -2,7 +2,7 @@ import type { BBox, FeedStatus } from '@watchfloor/shared';
 import { createLogger, type Logger } from '../../log';
 import type { Feed, TrackSink } from '../feed';
 import { PollScheduler, polledFeedStatus, type PolledStatusInput } from '../pollScheduler';
-import { Backoff } from './backoff';
+import { Backoff } from '../backoff';
 import { covers, describePlan, planCost, planCoverage, type Plan } from './coverage';
 import { mapState, parseStatesResponse } from './mapState';
 
