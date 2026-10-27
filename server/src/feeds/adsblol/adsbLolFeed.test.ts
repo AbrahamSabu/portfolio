@@ -184,5 +184,15 @@ describe('AdsbLolFeed', () => {
       await fire();
       expect(calls.slice(2).map((c) => c.url.split('/point/')[1])).toEqual(['-26/28/250', expect.stringMatching(/^-34/)]);
     });
+
+    it('stretches the interval with the number of circles, so a wide view stays within budget', async () => {
+      const r = () => json(cairo);
+      const { feed, timers, fire } = setupWith({ home: HOME, pollMs: 10_000, watched: true }, r(), r(), r(), r(), r(), r(), r(), r());
+      await fire();
+      expect(timers.at(-1)).toBe(10_000); // home only: 1 circle
+      feed.setAreas([{ south: -34.5, west: 18, north: -33.5, east: 19 }, { south: -30.5, west: 30.5, north: -29.5, east: 31.5 }]);
+      await fire();
+      expect(timers.at(-1)).toBe(15_000); // home, Cape Town and Durban: 3 circles x 5 s
+    });
   });
 });

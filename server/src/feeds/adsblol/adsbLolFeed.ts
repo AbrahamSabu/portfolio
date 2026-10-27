@@ -17,6 +17,13 @@ const REQUEST_TIMEOUT_MS = 15_000;
  */
 const CONCURRENCY = 2;
 const MAX_BACKOFF_MS = 5 * 60_000;
+/**
+ * The request budget: polls are at least this far apart per circle, so at
+ * most 12 requests a minute however many circles a view needs. Measured: 7
+ * circles every 10 s (42 a minute) drew 429s within seconds; 6 every 30 s
+ * never did. One circle (the home area) still updates every 10 s.
+ */
+const MIN_MS_PER_CIRCLE = 5_000;
 
 export interface AdsbLolOptions {
   /** Interval while someone is watching. */
@@ -214,7 +221,8 @@ export class AdsbLolFeed implements Feed {
     this.pausedUntil = null;
     this.lastError = null;
     this.lastSuccessAt = this.now();
-    return this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
+    const interval = this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
+    return Math.max(interval, plan.length * MIN_MS_PER_CIRCLE);
   }
 
   /** Fetch one circle and push its aircraft straight away. Network errors become a failed result. */
