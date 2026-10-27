@@ -16,6 +16,13 @@ const REQUEST_TIMEOUT_MS = 15_000;
  * once waits for the slower. It stays a light load on a free service.
  */
 const CONCURRENCY = 2;
+/**
+ * Least time between request starts. adsb.lol limits bursts: measured, six
+ * requests within about a second succeeded and the seventh drew a 429, while
+ * ten spaced a second apart all succeeded. Circles now answer in about 0.2 s,
+ * so without pacing a wide view's poll was exactly such a burst.
+ */
+const REQUEST_GAP_MS = 1_200;
 const MAX_BACKOFF_MS = 5 * 60_000;
 /**
  * The request budget: polls are at least this far apart per circle, so at
@@ -42,6 +49,8 @@ export interface AdsbLolOptions {
   fetch?: typeof fetch;
   now?: () => number;
   random?: () => number;
+  /** Waits between paced requests; tests make it instant. */
+  sleep?: (ms: number) => Promise<void>;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
   log?: Logger;
@@ -63,6 +72,8 @@ export class AdsbLolFeed implements Feed {
   readonly name = 'adsblol';
 
   private readonly fetch: typeof fetch;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private nextRequestAt = 0;
   private readonly now: () => number;
   private readonly log: Logger;
   private readonly backoff: Backoff;
@@ -83,6 +94,7 @@ export class AdsbLolFeed implements Feed {
 
   constructor(private readonly opts: AdsbLolOptions) {
     this.fetch = opts.fetch ?? globalThis.fetch;
+    this.sleep = opts.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.now = opts.now ?? Date.now;
     this.log = opts.log ?? createLogger('adsblol');
     this.home = opts.home ?? [];
@@ -200,6 +212,7 @@ export class AdsbLolFeed implements Feed {
     const worker = async () => {
       while (next < plan.length) {
         const circle = plan[next++]!;
+        await this.pace();
         results.push(await this.fetchCircle(base, circle));
       }
     };
@@ -223,6 +236,14 @@ export class AdsbLolFeed implements Feed {
     this.lastSuccessAt = this.now();
     const interval = this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
     return Math.max(interval, plan.length * MIN_MS_PER_CIRCLE);
+  }
+
+  /** Wait for this request's slot. The slot is taken before waiting, so concurrent workers queue in turn. */
+  private async pace(): Promise<void> {
+    const now = this.now();
+    const wait = this.nextRequestAt - now;
+    this.nextRequestAt = Math.max(now, this.nextRequestAt) + REQUEST_GAP_MS;
+    if (wait > 0) await this.sleep(wait);
   }
 
   /** Fetch one circle and push its aircraft straight away. Network errors become a failed result. */

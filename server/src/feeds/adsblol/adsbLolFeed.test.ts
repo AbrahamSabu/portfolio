@@ -36,6 +36,7 @@ function setupWith(extra: Partial<AdsbLolOptions> & { watched?: boolean }, ...re
     }) as typeof fetch,
     now: () => now,
     random: () => 1,
+    sleep: async () => {},
     setTimer: (fn, ms) => {
       timers.push(ms);
       latest = fn;
@@ -87,6 +88,7 @@ describe('AdsbLolFeed', () => {
       now: () => 1_793_121_200_000,
       setTimer: (fn) => void setTimeout(fn, 0),
       clearTimer: () => {},
+      sleep: async () => {},
       log: silent,
     });
     feed.start({ upsert: (r) => upserts.push(r), remove: () => {} });
@@ -193,6 +195,17 @@ describe('AdsbLolFeed', () => {
       feed.setAreas([{ south: -34.5, west: 18, north: -33.5, east: 19 }, { south: -30.5, west: 30.5, north: -29.5, east: 31.5 }]);
       await fire();
       expect(timers.at(-1)).toBe(15_000); // home, Cape Town and Durban: 3 circles x 5 s
+    });
+
+    it('spaces requests 1.2 s apart, so a wide view is never a burst', async () => {
+      const sleeps: number[] = [];
+      const r = () => json(cairo);
+      const { feed, fire } = setupWith({ home: HOME, watched: true, sleep: async (ms) => void sleeps.push(ms) }, r(), r(), r(), r());
+      await fire();
+      feed.setAreas([{ south: -34.5, west: 18, north: -33.5, east: 19 }, { south: -30.5, west: 30.5, north: -29.5, east: 31.5 }]);
+      await fire();
+      // The clock stands still here, so each later request waits one more gap.
+      expect(sleeps).toEqual([1_200, 2_400, 3_600]);
     });
   });
 });
