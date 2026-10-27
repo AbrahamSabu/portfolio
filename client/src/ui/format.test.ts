@@ -68,6 +68,9 @@ describe('describeFeedStatus', () => {
 
   it('explains each problem in a short line', () => {
     expect(describeFeedStatus({ ...opensky, state: 'starting' })).toBe('Waiting for OpenSky');
+    expect(
+      describeFeedStatus({ feed: 'ais', label: 'AISStream', state: 'unconfigured', detail: 'no API key, set AISSTREAM_API_KEY' }),
+    ).toBe('AISStream off: no API key, set AISSTREAM_API_KEY');
     expect(describeFeedStatus({ ...opensky, state: 'rate-limited', until: Date.UTC(2026, 9, 27, 0, 0) })).toBe(
       'OpenSky rate limited, resumes 270000Z',
     );

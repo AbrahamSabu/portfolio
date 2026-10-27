@@ -183,7 +183,7 @@ export class AisStreamFeed implements Feed {
   status(): FeedStatus {
     const base = { feed: this.name, label: 'AISStream' };
     if (!this.opts.apiKey) {
-      return { ...base, state: 'failing', detail: 'No AISStream API key: set AISSTREAM_API_KEY' };
+      return { ...base, state: 'unconfigured', detail: 'no API key, set AISSTREAM_API_KEY' };
     }
     if (this.socket && this.confirmedAt !== null) return { ...base, state: 'ok' };
     if (this.failures > 0) {

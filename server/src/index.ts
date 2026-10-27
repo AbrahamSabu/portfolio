@@ -117,7 +117,8 @@ async function main(): Promise<void> {
     tickMs: config.tickMs,
     staleness,
     scenario: scenarioInfo,
-    traffic: trafficKind(config.feeds),
+    // Without a key AIS can't deliver anything, so it mustn't make the label say "live".
+    traffic: trafficKind(config.feeds.filter((f) => f !== 'ais' || config.ais.apiKey)),
     onClientsChanged: (count) => {
       for (const feed of feeds) feed.setDemand?.(count > 0);
     },

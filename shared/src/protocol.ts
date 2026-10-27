@@ -27,8 +27,9 @@ import type { TrailPoint } from './trail';
  *      `feeds` only in the tick where one changed
  *   6  tracks may carry `provider` (which service delivered the report)
  *   7  feed state `standing-aside`
+ *   8  feed state `unconfigured`
  */
-export const PROTOCOL_VERSION = 7;
+export const PROTOCOL_VERSION = 8;
 
 export interface HelloMessage {
   type: 'hello';

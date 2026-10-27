@@ -48,6 +48,8 @@ export function describeFeedStatus(s: FeedStatus): string | null {
       return `${s.label} not responding${s.detail ? ` (${s.detail})` : ''}, retrying`;
     case 'standing-aside':
       return null; // on its own this isn't news; see describeFeeds
+    case 'unconfigured':
+      return `${s.label} off${s.detail ? `: ${s.detail}` : ''}`;
   }
 }
 

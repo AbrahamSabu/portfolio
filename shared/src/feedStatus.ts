@@ -9,8 +9,10 @@
  * - failing:      recent attempts failed; `detail` says how, `until` is the next retry
  * - standing-aside: healthy, but the current view is wider than it covers
  *                 (adsb.lol only covers about a region)
+ * - unconfigured: can't run until set up (no API key); `detail` says what's
+ *                 missing. Not an outage, so nothing retries.
  */
-export type FeedState = 'ok' | 'starting' | 'rate-limited' | 'failing' | 'standing-aside';
+export type FeedState = 'ok' | 'starting' | 'rate-limited' | 'failing' | 'standing-aside' | 'unconfigured';
 
 export interface FeedStatus {
   /** Stable id, e.g. 'opensky'. */

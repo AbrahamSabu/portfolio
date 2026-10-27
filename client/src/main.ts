@@ -140,7 +140,8 @@ async function main(): Promise<void> {
           }
           framed = true;
           status.setFeeds(message.feeds);
-          credits.set(message.feeds.map((f) => f.feed));
+          // A feed that can't run (no API key) shows no data, so it gets no credit.
+          credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           break;
         case 'snapshot':

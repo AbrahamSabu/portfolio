@@ -129,8 +129,8 @@ describe('AisStreamFeed', () => {
     expect(t.feed.status()).toEqual({
       feed: 'ais',
       label: 'AISStream',
-      state: 'failing',
-      detail: 'No AISStream API key: set AISSTREAM_API_KEY',
+      state: 'unconfigured',
+      detail: 'no API key, set AISSTREAM_API_KEY',
     });
     expect(t.feed.health()).toMatchObject({ configured: false });
   });
