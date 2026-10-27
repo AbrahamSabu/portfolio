@@ -34,16 +34,29 @@ export function creditsFor(feeds: readonly string[]): string {
 
 export class DataCredits {
   private html = '';
+  /**
+   * Whether the style can take a source now. Not `map.isStyleLoaded()`: that
+   * is also false while tiles load, so a hello arriving then (a heavy
+   * worldwide page) would skip the install, after style.load had already fired.
+   */
+  private styleReady: boolean;
 
   constructor(private readonly map: MapLibreMap) {
-    map.on('style.load', () => this.install());
+    this.styleReady = map.isStyleLoaded() === true;
+    map.on('styledataloading', () => {
+      this.styleReady = false;
+    });
+    map.on('style.load', () => {
+      this.styleReady = true;
+      this.install();
+    });
   }
 
   set(feeds: readonly string[]): void {
     const html = creditsFor(feeds);
     if (html === this.html) return;
     this.html = html;
-    if (this.map.isStyleLoaded()) this.install();
+    if (this.styleReady) this.install();
   }
 
   private install(): void {
