@@ -3,9 +3,12 @@
 A real-time common operating picture (COP): a defence-style tactical map of
 live air and sea tracks drawn with NATO MIL-STD-2525C symbols. It is a
 portfolio project, so code quality, structure, tests and the README matter as
-much as features. It runs on a built-in traffic simulator by default, and can
-show live aircraft from the OpenSky Network and adsb.lol, and live ships from
-AISStream.
+much as features. By default it opens on Cork with live aircraft from adsb.lol
+and live ships from AISStream; it can add the OpenSky Network, or run offline
+on a built-in simulator over the English Channel.
+**The user wants it to feel like Flightradar24: open the page and everything
+is already there.** Keep the picture warm; never make a viewer wait for data
+that could have been fetched before they arrived.
 
 ## Commands
 
@@ -13,7 +16,7 @@ AISStream.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (261 tests after live AIS).
+- `npm test`: Vitest from the root config (268 tests after the warm Cork picture).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -188,13 +191,27 @@ AISStream.
   keeps 2 s and 10 s to protect credits). A pan shows new aircraft in about
   3 s, measured. To measure, restart the test server between runs, or its
   leftover tracks hide new ones.
+  **Home area (warm):** `home` = `circlesFor([scenario.bounds])` (Cork: one
+  125 nm circle) is always in the plan, so the feed is always active and never
+  pauses: every 10 s watched (`ADSBLOL_POLL_S`), 30 s unwatched
+  (`ADSBLOL_WARM_POLL_S`; 30 s keeps aircraft inside their live window).
+  A viewer arriving to data older than pollMs gets an early poll (~1 s) via
+  `wantsEarlyPoll`. View circles the home doesn't cover are added after it.
+  **Budget:** polls are >= 5 s apart per circle (`MIN_MS_PER_CIRCLE`), at
+  most 12 requests/min. Measured: 7 circles every 10 s drew 429s (no
+  Retry-After) within seconds and the IP stayed limited for minutes; 6 every
+  30 s never did. adsb.lol publishes no limit ("dynamic").
   Categories go through `feeds/adsb/category.ts` (codes like 'A3' to
   OpenSky's numbers). Fixtures are ODbL-credited.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
-  runs without a basemap. `FEEDS` (`sim`, `opensky`, or `sim,opensky`;
-  default `sim`) picks the feeds; `SCENARIO` (old name `SIM_SCENARIO`) picks
-  the area for all of them. `SIM_ENABLED` is gone and errors if set.
+  runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`,
+  `ais`; default `adsblol,ais`) picks the feeds; `SCENARIO` (old name
+  `SIM_SCENARIO`; default `cork`) picks the area for all of them. `cork` is
+  live-only (empty simulator geography): `FEEDS=sim` with it fails at
+  startup and says to use `english-channel`. `PICTURE_FILE` (default
+  `../.cache/picture.json` from server/, `off` to disable) holds the saved
+  picture. `SIM_ENABLED` is gone and errors if set.
   `OPENSKY_CLIENT_ID`/`OPENSKY_CLIENT_SECRET` (both or neither) and
   `OPENSKY_POLL_S` (default 60 anonymous, 15 with an account).
   `OPENSKY_AREA=world` polls globally (4 credits, ~7,000 aircraft, ~1.1 MB);
@@ -202,7 +219,7 @@ AISStream.
   "Worldwide", otherwise the scenario keeps it. `OPENSKY_AREA=viewport`
   polls only what browsers show (1 credit at zoom 8+, 2 at the Channel's
   zoom 7, 4 for the world). `FEEDS` may include `adsblol` (`ADSBLOL_POLL_S`,
-  default 30; `ADSBLOL_API_URL`); the shared adsb staleness rule uses the
+  default 10; `ADSBLOL_WARM_POLL_S`, default 30; `ADSBLOL_API_URL`); the shared adsb staleness rule uses the
   slower of the two poll intervals. `FEEDS` may include `ais`:
   `AISSTREAM_API_KEY` (missing key = feed runs, reports `unconfigured`, and
   doesn't count towards `traffic` or map credits), `AIS_AREA` (scenario,
@@ -246,9 +263,9 @@ AISStream.
     connection (**AISStream says nothing: recorded close 1006 ~600 ms after
     subscribing**), so it waits >= 30 s. 15 s to open and confirm; then a
     ping every 30 s, and a missed pong drops the connection (silence alone
-    isn't failure: empty sea is quiet). No viewers: disconnect after 2 min
-    grace; retries are scheduled regardless so a reload can't skip backoff.
-    Recording (roadmap 6) must count as demand.
+    isn't failure: empty sea is quiet). It streams whether or not anyone
+    watches (no `setDemand`): it's free, and AIS can't catch up on missed
+    reports. Measured around Cork: ~0.5 msg/s, 15-20 ships (thin coverage).
   - `AIS_AREA=viewport`: `areas.ts` reuses coverage.ts's antimeridian split
     and whole-degree snap but keeps separate boxes (cost is volume, i.e.
     area; one union only past 16 boxes). Changes go out on the open
@@ -293,6 +310,16 @@ AISStream.
 - Each running AIS server holds one of the key's 3 AISStream connections; a
   fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
   `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
+- Picture cache (`server/src/pictureCache.ts`): the store's live tracks and
+  trails (never `sim:`) are saved every 30 s and on shutdown (temp file +
+  rename) and restored at startup through `TrackStore.restore` (re-validated,
+  drop windows applied; a saved trail replaces ingest's single point). The
+  file is keyed by scenario plus AIS/OpenSky area modes, so a world picture
+  never lands on Cork. Measured: after a restart, aircraft and ships show at
+  ~1.9 s (page load 0.7 s) instead of trickling in.
+- A browser tab left open on a test port reconnects to the next server
+  started there and counts as a viewer with its old (possibly wide) view.
+  That tab is what drove adsb.lol into 429s; close it or use a fresh port.
 - `DataCredits` tracks style readiness itself (`style.load` /
   `styledataloading`). Don't go back to `map.isStyleLoaded()`: it's false
   while tiles load, so a hello arriving then (the worldwide page) never
