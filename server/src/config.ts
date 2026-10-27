@@ -21,6 +21,8 @@ export interface Config {
      * (4 credits a poll); 'viewport' polls only what browsers are looking at.
      */
     area: 'scenario' | 'world' | 'viewport';
+    /** REST API base; set only to point at a proxy or a local stub. */
+    apiUrl?: string;
     /** OAuth2 client credentials; without them the feed polls anonymously. */
     credentials?: { clientId: string; clientSecret: string };
     pollMs: number;
@@ -79,7 +81,24 @@ function openSkyConfig(): Config['opensky'] {
   if (area !== 'scenario' && area !== 'world' && area !== 'viewport') {
     throw new Error(`OPENSKY_AREA must be scenario, world or viewport (got "${area}")`);
   }
-  return { area, ...(authed ? { credentials: { clientId, clientSecret } } : {}), pollMs: pollS * 1000 };
+  const apiUrl = process.env.OPENSKY_API_URL?.trim().replace(/\/+$/, '') || undefined;
+  if (apiUrl) {
+    let protocol = '';
+    try {
+      protocol = new URL(apiUrl).protocol;
+    } catch {
+      // reported below
+    }
+    if (protocol !== 'https:' && protocol !== 'http:') {
+      throw new Error(`OPENSKY_API_URL must be an http(s) URL (got "${apiUrl}")`);
+    }
+  }
+  return {
+    area,
+    ...(apiUrl ? { apiUrl } : {}),
+    ...(authed ? { credentials: { clientId, clientSecret } } : {}),
+    pollMs: pollS * 1000,
+  };
 }
 
 /**

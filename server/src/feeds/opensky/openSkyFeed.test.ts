@@ -93,6 +93,13 @@ describe('OpenSkyFeed', () => {
     expect(Object.fromEntries(new URL(calls[0]!.url).searchParams)).toEqual({ extended: '1' });
   });
 
+  it('can poll a different API base, such as a proxy or a stub', async () => {
+    const { fetch, calls } = scripted(json(recorded));
+    const { feed } = setup(fetch, { apiUrl: 'http://127.0.0.1:8095/api' });
+    await feed.pollOnce();
+    expect(calls[0]!.url.startsWith('http://127.0.0.1:8095/api/states/all?')).toBe(true);
+  });
+
   it('treats an empty sky as success, not failure', async () => {
     const { fetch } = scripted(json({ time: 1, states: null }));
     const { feed, upserts } = setup(fetch);

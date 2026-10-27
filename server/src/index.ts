@@ -50,6 +50,7 @@ async function main(): Promise<void> {
             bounds: config.opensky.area === 'scenario' ? scenario.bounds : null,
             viewport: config.opensky.area === 'viewport',
             pollMs: config.opensky.pollMs,
+            ...(config.opensky.apiUrl ? { apiUrl: config.opensky.apiUrl } : {}),
             ...(config.opensky.credentials ? { credentials: config.opensky.credentials } : {}),
           }),
         );

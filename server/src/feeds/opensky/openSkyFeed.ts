@@ -5,7 +5,7 @@ import { Backoff } from './backoff';
 import { covers, describePlan, planCost, planCoverage, type Plan } from './coverage';
 import { mapState, parseStatesResponse } from './mapState';
 
-const STATES_URL = 'https://opensky-network.org/api/states/all';
+export const DEFAULT_API_URL = 'https://opensky-network.org/api';
 const TOKEN_URL = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
 
 /** Give up on a request that hangs; the next poll will try again. */
@@ -35,6 +35,8 @@ export interface OpenSkyOptions {
   /** Poll only what browsers are looking at, as reported through setAreas(). */
   viewport?: boolean;
   pollMs: number;
+  /** REST API base, e.g. a proxy or a local stub for testing. Defaults to OpenSky's. */
+  apiUrl?: string;
   /** OAuth2 client credentials. Without them the feed polls anonymously. */
   credentials?: OpenSkyCredentials;
   // Injectable for tests, so nothing touches the network or real time.
@@ -291,7 +293,10 @@ export class OpenSkyFeed implements Feed {
         query.set('lamax', String(box.north));
         query.set('lomax', String(box.east));
       }
-      const res = await this.fetch(`${STATES_URL}?${query}`, { headers, signal: this.signal() });
+      const res = await this.fetch(`${this.opts.apiUrl ?? DEFAULT_API_URL}/states/all?${query}`, {
+        headers,
+        signal: this.signal(),
+      });
 
       const remaining = Number(res.headers.get('X-Rate-Limit-Remaining'));
       if (res.headers.has('X-Rate-Limit-Remaining') && Number.isFinite(remaining)) {
