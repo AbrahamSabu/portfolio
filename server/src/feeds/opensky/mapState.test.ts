@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { sanitizeTrack } from '@watchfloor/shared';
 import { describe, expect, it } from 'vitest';
-import { mapState, parseStatesResponse, platformFor, type MapOutcome } from './mapState';
+import { mapState, parseStatesResponse, type MapOutcome } from './mapState';
 
 function fixture(name: string): unknown {
   return JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
@@ -103,12 +103,6 @@ describe('mapState edge cases', () => {
 
   it('lower-cases the icao24 so ids are stable', () => {
     expect(report('aaa009').id).toBe('adsb:aaa009');
-  });
-});
-
-describe('platformFor', () => {
-  it('drops ground vehicles and obstacles', () => {
-    for (const c of [16, 17, 18, 19, 20]) expect(platformFor(c)).toBeNull();
   });
 });
 

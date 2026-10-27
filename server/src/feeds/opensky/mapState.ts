@@ -1,4 +1,5 @@
-import { makeTrackId, type Platform, type Track } from '@watchfloor/shared';
+import { makeTrackId, type Track } from '@watchfloor/shared';
+import { platformFor } from '../adsb/category';
 
 /**
  * Translating OpenSky state vectors into our Track shape. Pure functions, no
@@ -31,38 +32,6 @@ export type MapOutcome =
   | { kind: 'skip'; reason: SkipReason };
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-
-/**
- * ADS-B emitter category to our closed platform list. Null means "not an
- * aircraft" (ground vehicles and obstacles), which we leave off the air picture.
- *
- * Deliberately conservative: a category describes weight or airframe, not
- * role, so we never infer military platforms. A UAV (14) maps to plain
- * 'aircraft' because our 'uav' symbol is a military drone. In practice most
- * aircraft send 0 or 1 (no information) and show as 'aircraft'.
- */
-export function platformFor(category: unknown): Platform | null {
-  switch (category) {
-    case 2: // light, under 15,500 lb
-    case 9: // glider
-    case 12: // ultralight, hang glider, paraglider
-      return 'light-aircraft';
-    case 4: // large
-    case 5: // high-vortex large (e.g. B757)
-    case 6: // heavy, over 300,000 lb
-      return 'airliner';
-    case 8:
-      return 'helicopter';
-    case 16: // emergency surface vehicle
-    case 17: // service surface vehicle
-    case 18: // point obstacle
-    case 19: // cluster obstacle
-    case 20: // line obstacle
-      return null;
-    default:
-      return 'aircraft';
-  }
-}
 
 export function mapState(row: unknown): MapOutcome {
   if (!Array.isArray(row) || row.length < 17) return { kind: 'skip', reason: 'malformed' };
