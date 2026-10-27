@@ -18,10 +18,13 @@ import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
+import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
 import { getScenario } from './scenarios';
 import { TrackStore } from './trackStore';
 
 const log = createLogger('main');
+/** How often the live picture is saved for the next restart. */
+const PICTURE_SAVE_MS = 30_000;
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -140,6 +143,25 @@ async function main(): Promise<void> {
     upsert: (report: unknown) => store.ingest(report),
     remove: (id: string) => store.remove(id),
   };
+  // Bring back the picture saved before the last restart, so the first page
+  // after a restart isn't empty: AIS can't be asked for what it missed. The
+  // key includes the area settings, so a worldwide picture never lands on Cork.
+  const pictureKey = `${config.scenario}|ais:${config.ais.area}|opensky:${config.opensky.area}`;
+  if (config.pictureFile) {
+    const restored = restorePicture(store, loadPicture(config.pictureFile), pictureKey, Date.now());
+    if (restored > 0) log.info('restored the saved picture', { tracks: restored });
+  }
+  const savePictureNow = async () => {
+    if (!config.pictureFile) return;
+    try {
+      await savePicture(config.pictureFile, pictureOf(store, pictureKey, Date.now()));
+    } catch (err) {
+      log.warn('could not save the picture', { error: err instanceof Error ? err.message : String(err) });
+    }
+  };
+  const saveTimer = setInterval(() => void savePictureNow(), PICTURE_SAVE_MS);
+  saveTimer.unref();
+
   // Nobody is connected yet. Without this, every tsx watch restart in
   // development would spend an OpenSky credit.
   for (const feed of feeds) {
@@ -164,6 +186,8 @@ async function main(): Promise<void> {
     shuttingDown = true;
     log.info('shutting down', { signal });
     for (const feed of feeds) feed.stop();
+    clearInterval(saveTimer);
+    await savePictureNow();
     await hub?.stop();
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 2000).unref();

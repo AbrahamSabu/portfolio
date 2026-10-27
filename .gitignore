@@ -6,3 +6,5 @@ dist/
 .env.*
 !.env.example
 coverage/
+# The saved live picture (see server/src/pictureCache.ts)
+.cache/

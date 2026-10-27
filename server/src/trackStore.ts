@@ -81,6 +81,20 @@ export class TrackStore {
     return true;
   }
 
+  /**
+   * Seed the store with a picture saved before a restart. Every track goes
+   * through ingest(), so anything invalid or past its drop window stays out,
+   * and trails are kept only for tracks that made it in.
+   */
+  restore(tracks: unknown[], trails: Record<string, TrailPoint[]>, now = Date.now()): number {
+    let restored = 0;
+    for (const track of tracks) if (this.ingest(track, now)) restored++;
+    // A saved trail replaces the single point ingest() just recorded; without one, that point stays.
+    this.trails.load({ ...this.trails.toRecord(), ...trails }, this.tracks.values());
+    this.trails.prune(now);
+    return restored;
+  }
+
   remove(id: string): boolean {
     if (!this.tracks.delete(id)) return false;
     this.trails.remove(id);

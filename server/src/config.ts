@@ -8,6 +8,8 @@ export interface Config {
   host: string;
   tickMs: number;
   staticDir: string;
+  /** Where the live picture is saved between restarts; null to keep nothing. */
+  pictureFile: string | null;
   /**
    * Which feeds run. Defaults to live aircraft from adsb.lol (free, no key)
    * and live ships from AISStream; `sim` runs the offline simulator.
@@ -189,6 +191,10 @@ export function loadConfig(): Config {
     host: process.env.HOST || '127.0.0.1',
     tickMs: int('TICK_MS', 1000, 100, 10_000),
     staticDir: path.resolve(process.cwd(), process.env.STATIC_DIR || '../client/dist'),
+    pictureFile:
+      process.env.PICTURE_FILE?.trim().toLowerCase() === 'off'
+        ? null
+        : path.resolve(process.cwd(), process.env.PICTURE_FILE || '../.cache/picture.json'),
     feeds: parseFeeds(process.env.FEEDS),
     // SIM_SCENARIO is the old name, kept so existing .env files still work.
     scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'cork',
