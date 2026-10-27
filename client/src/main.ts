@@ -137,6 +137,7 @@ async function main(): Promise<void> {
             map.jumpTo({ center: [center.lon, center.lat], zoom });
           }
           framed = true;
+          status.setFeeds(message.feeds);
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           break;
         case 'snapshot':
@@ -144,6 +145,7 @@ async function main(): Promise<void> {
           break;
         case 'delta':
           store.applyDelta(message.upserts, message.removals, message.serverTime);
+          if (message.feeds) status.setFeeds(message.feeds);
           break;
       }
     },

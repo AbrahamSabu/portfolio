@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type TrackSource, type TrafficKind } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type TrackSource, type FeedStatus, type TrafficKind } from '@watchfloor/shared';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   airliner: 'Airliner',
@@ -30,6 +30,24 @@ export const SOURCE_LABEL: Record<TrackSource, string> = {
   adsb: 'ADS-B (OpenSky)',
   ais: 'AIS',
 };
+
+/**
+ * One line for the status bar about a feed that isn't delivering, or null
+ * when it is (a healthy feed says nothing, keeping the chrome quiet).
+ * Times are day-hour-minute Zulu, like the top bar's date-time group.
+ */
+export function describeFeedStatus(s: FeedStatus): string | null {
+  switch (s.state) {
+    case 'ok':
+      return null;
+    case 'starting':
+      return `Waiting for ${s.label}`;
+    case 'rate-limited':
+      return `${s.label} rate limited${s.until ? `, resumes ${formatDtg(s.until).split(' ')[0]}` : ''}`;
+    case 'failing':
+      return `${s.label} not responding${s.detail ? ` (${s.detail})` : ''}, retrying`;
+  }
+}
 
 const TRAFFIC_LABEL: Record<TrafficKind, string> = {
   simulated: 'simulated traffic',

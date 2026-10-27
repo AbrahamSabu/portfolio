@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  describeFeedStatus,
   trafficLabel,
   formatAge,
   formatAltitude,
@@ -55,3 +56,27 @@ describe('trafficLabel', () => {
     expect(trafficLabel('live')).toBe('Live traffic');
   });
 });
+
+describe('describeFeedStatus', () => {
+  const opensky = { feed: 'opensky', label: 'OpenSky' };
+
+  it('says nothing while a feed is healthy', () => {
+    expect(describeFeedStatus({ ...opensky, state: 'ok' })).toBeNull();
+  });
+
+  it('explains each problem in a short line', () => {
+    expect(describeFeedStatus({ ...opensky, state: 'starting' })).toBe('Waiting for OpenSky');
+    expect(describeFeedStatus({ ...opensky, state: 'rate-limited', until: Date.UTC(2026, 9, 27, 0, 0) })).toBe(
+      'OpenSky rate limited, resumes 270000Z',
+    );
+    expect(describeFeedStatus({ ...opensky, state: 'failing', detail: 'HTTP 503', until: 1 })).toBe(
+      'OpenSky not responding (HTTP 503), retrying',
+    );
+  });
+
+  it('copes without the optional details', () => {
+    expect(describeFeedStatus({ ...opensky, state: 'rate-limited' })).toBe('OpenSky rate limited');
+    expect(describeFeedStatus({ ...opensky, state: 'failing' })).toBe('OpenSky not responding, retrying');
+  });
+});
+

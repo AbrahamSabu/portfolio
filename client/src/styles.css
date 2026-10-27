@@ -242,6 +242,15 @@ button {
   color: var(--warn);
 }
 
+/* A live feed that isn't delivering. One line: long text is cut off, full text in the title. */
+.feed-status {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--warn);
+}
+
 .cursor {
   margin-left: auto;
   white-space: nowrap;

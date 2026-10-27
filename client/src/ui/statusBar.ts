@@ -2,7 +2,8 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ConnectionState } from '../net/connection';
 import type { ServerClock } from '../state/clock';
 import type { TrackStore } from '../state/trackStore';
-import { formatLat, formatLon } from './format';
+import type { FeedStatus } from '@watchfloor/shared';
+import { describeFeedStatus, formatLat, formatLon } from './format';
 
 /** Bottom strip: link health, what's on the picture, and where the pointer is. */
 export class StatusBar {
@@ -14,6 +15,7 @@ export class StatusBar {
   private readonly staleEl: HTMLElement;
   private readonly staleWrap: HTMLElement;
   private readonly cursorEl: HTMLElement;
+  private readonly feedEl: HTMLElement;
   private state: ConnectionState = { status: 'connecting' };
 
   constructor(
@@ -36,6 +38,7 @@ export class StatusBar {
     this.staleEl = q('[data-count-stale]');
     this.staleWrap = q('[data-stale-wrap]');
     this.cursorEl = q('[data-cursor]');
+    this.feedEl = q('[data-feed]');
 
     this.retryButton.addEventListener('click', onRetry);
 
@@ -51,6 +54,14 @@ export class StatusBar {
   setConnection(state: ConnectionState): void {
     this.state = state;
     this.renderLink();
+  }
+
+  /** Show why live tracks may be fading: only feeds that aren't delivering get a mention. */
+  setFeeds(feeds: FeedStatus[]): void {
+    const text = feeds.map(describeFeedStatus).filter((line): line is string => line !== null).join('; ');
+    this.feedEl.hidden = text === '';
+    if (this.feedEl.textContent !== text) this.feedEl.textContent = text;
+    this.feedEl.title = text; // the bar is one line, so long text is cut off with an ellipsis
   }
 
   private refresh(): void {
