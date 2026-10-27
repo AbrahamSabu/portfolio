@@ -120,7 +120,8 @@ export class AdsbLolFeed implements Feed {
   }
 
   status(): FeedStatus {
-    // Standing aside for a wide view, or with no views, isn't a fault: say nothing.
+    // Standing aside for a wide view isn't a fault; the UI mentions it only if nothing else is delivering.
+    if (this.tooWide) return { feed: 'adsblol', label: 'adsb.lol', state: 'standing-aside' };
     if (this.plan.length === 0) return { feed: 'adsblol', label: 'adsb.lol', state: 'ok' };
     return polledFeedStatus('adsblol', 'adsb.lol', {
       now: this.now(),

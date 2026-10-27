@@ -3,7 +3,7 @@ import type { ConnectionState } from '../net/connection';
 import type { ServerClock } from '../state/clock';
 import type { TrackStore } from '../state/trackStore';
 import type { FeedStatus } from '@watchfloor/shared';
-import { describeFeedStatus, formatLat, formatLon } from './format';
+import { describeFeeds, formatLat, formatLon } from './format';
 
 /** Bottom strip: link health, what's on the picture, and where the pointer is. */
 export class StatusBar {
@@ -58,7 +58,7 @@ export class StatusBar {
 
   /** Show why live tracks may be fading: only feeds that aren't delivering get a mention. */
   setFeeds(feeds: FeedStatus[]): void {
-    const text = feeds.map(describeFeedStatus).filter((line): line is string => line !== null).join('; ');
+    const text = describeFeeds(feeds);
     this.feedEl.hidden = text === '';
     if (this.feedEl.textContent !== text) this.feedEl.textContent = text;
     this.feedEl.title = text; // the bar is one line, so long text is cut off with an ellipsis

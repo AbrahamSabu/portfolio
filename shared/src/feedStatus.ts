@@ -7,8 +7,10 @@
  * - starting:     no successful fetch yet
  * - rate-limited: the provider asked us to wait; `until` is when polling resumes
  * - failing:      recent attempts failed; `detail` says how, `until` is the next retry
+ * - standing-aside: healthy, but the current view is wider than it covers
+ *                 (adsb.lol only covers about a region)
  */
-export type FeedState = 'ok' | 'starting' | 'rate-limited' | 'failing';
+export type FeedState = 'ok' | 'starting' | 'rate-limited' | 'failing' | 'standing-aside';
 
 export interface FeedStatus {
   /** Stable id, e.g. 'opensky'. */

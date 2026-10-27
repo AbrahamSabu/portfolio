@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   describeFeedStatus,
+  describeFeeds,
   formatSource,
   trafficLabel,
   formatAge,
@@ -89,6 +90,27 @@ describe('formatSource', () => {
 
   it('is just the kind of data otherwise', () => {
     expect(formatSource({ source: 'sim' })).toBe('Simulator');
+  });
+});
+
+describe('describeFeeds', () => {
+  const opensky = { feed: 'opensky', label: 'OpenSky' };
+  const adsblol = { feed: 'adsblol', label: 'adsb.lol' };
+
+  it('says nothing about a feed standing aside while another delivers', () => {
+    expect(describeFeeds([{ ...opensky, state: 'ok' }, { ...adsblol, state: 'standing-aside' }])).toBe('');
+  });
+
+  it('suggests zooming in when standing aside is why the map is empty', () => {
+    expect(
+      describeFeeds([{ ...opensky, state: 'rate-limited', until: Date.UTC(2026, 9, 28, 17, 1) }, { ...adsblol, state: 'standing-aside' }]),
+    ).toBe('OpenSky rate limited, resumes 281701Z; Zoom in to see aircraft from adsb.lol');
+  });
+
+  it('joins several problems', () => {
+    expect(describeFeeds([{ ...opensky, state: 'failing', detail: 'HTTP 503' }, { ...adsblol, state: 'starting' }])).toBe(
+      'OpenSky not responding (HTTP 503), retrying; Waiting for adsb.lol',
+    );
   });
 });
 

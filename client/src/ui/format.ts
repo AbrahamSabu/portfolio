@@ -46,7 +46,23 @@ export function describeFeedStatus(s: FeedStatus): string | null {
       return `${s.label} rate limited${s.until ? `, resumes ${formatDtg(s.until).split(' ')[0]}` : ''}`;
     case 'failing':
       return `${s.label} not responding${s.detail ? ` (${s.detail})` : ''}, retrying`;
+    case 'standing-aside':
+      return null; // on its own this isn't news; see describeFeeds
   }
+}
+
+/**
+ * The status bar's feed line: each feed's problem, plus a hint when the map
+ * is empty only because the view is too wide. That hint appears only when no
+ * other live feed is delivering, which is when it explains an empty map.
+ */
+export function describeFeeds(feeds: FeedStatus[]): string {
+  const lines = feeds.map(describeFeedStatus).filter((line): line is string => line !== null);
+  const delivering = feeds.some((f) => f.state === 'ok' || f.state === 'starting');
+  if (!delivering) {
+    for (const f of feeds) if (f.state === 'standing-aside') lines.push(`Zoom in to see aircraft from ${f.label}`);
+  }
+  return lines.join('; ');
 }
 
 export const PROVIDER_LABEL: Record<Provider, string> = {

@@ -72,11 +72,11 @@ describe('AdsbLolFeed', () => {
     expect(sleeps).toEqual([1000]);
   });
 
-  it('stands aside for views wider than a region, without calling it a fault', () => {
+  it('stands aside for views wider than a region, and says so', () => {
     const { feed, timers } = setup();
     feed.setAreas([SOUTH_AFRICA]);
     expect(timers).toEqual([]);
-    expect(feed.status().state).toBe('ok');
+    expect(feed.status().state).toBe('standing-aside');
     expect(feed.health().standingAside).toBe('view wider than a region');
   });
 
