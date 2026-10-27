@@ -2,6 +2,7 @@ import {
   sanitizeTrack,
   TrailHistory,
   ruleFor,
+  type Platform,
   type StalenessRules,
   type Track,
   type TrailPoint,
@@ -71,6 +72,7 @@ export class TrackStore {
     // Reports can arrive out of order (network, feed batching). Never go backwards.
     const existing = this.tracks.get(track.id);
     if (existing && existing.observedAt >= track.observedAt) return false;
+    if (existing) keepKnownIdentity(track, existing);
 
     this.tracks.set(track.id, track);
     this.trails.record(track);
@@ -125,3 +127,23 @@ export class TrackStore {
     return { upserts, removals };
   }
 }
+
+/** Platforms that only say "it flies" or "it floats". */
+const GENERIC_PLATFORMS: ReadonlySet<Platform> = new Set(['aircraft', 'vessel']);
+
+/**
+ * Several feeds can report the same track (two ADS-B providers, say), and they
+ * don't all send the same fields. A newer report brings the newest position,
+ * but it shouldn't erase who the track is: keep a known callsign the new
+ * report lacks, and don't let a generic platform replace a specific one, or
+ * symbols and labels would flicker between providers. Kinematics (position,
+ * altitude, speed) always come from the newest report: an old value is worse
+ * than none.
+ */
+function keepKnownIdentity(track: Track, existing: Track): void {
+  if (track.callsign === undefined && existing.callsign !== undefined) track.callsign = existing.callsign;
+  if (GENERIC_PLATFORMS.has(track.platform) && !GENERIC_PLATFORMS.has(existing.platform)) {
+    track.platform = existing.platform;
+  }
+}
+

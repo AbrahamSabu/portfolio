@@ -21,6 +21,31 @@ function track(id: string, observedAt = NOW, extra: Partial<Track> = {}): Track 
 }
 
 describe('TrackStore', () => {
+  describe('merging reports from several providers', () => {
+    const air = { domain: 'air', platform: 'airliner', affiliation: 'unknown', callsign: 'RYR20SW' } as const;
+
+    it('keeps a known callsign and specific platform when a newer report lacks them', () => {
+      const store = new TrackStore(DEFAULT_STALENESS);
+      store.ingest(track('adsb:4ca2bf', NOW - 5000, air), NOW);
+      store.ingest(track('adsb:4ca2bf', NOW, { domain: 'air', platform: 'aircraft', affiliation: 'unknown', lat: 50.1 }), NOW);
+      expect(store.get('adsb:4ca2bf')).toMatchObject({ callsign: 'RYR20SW', platform: 'airliner', lat: 50.1 });
+    });
+
+    it('takes a new callsign or a more specific platform from the newer report', () => {
+      const store = new TrackStore(DEFAULT_STALENESS);
+      store.ingest(track('adsb:4ca2bf', NOW - 5000, { ...air, platform: 'aircraft' }), NOW);
+      store.ingest(track('adsb:4ca2bf', NOW, { ...air, callsign: 'RYR21SW', platform: 'helicopter' }), NOW);
+      expect(store.get('adsb:4ca2bf')).toMatchObject({ callsign: 'RYR21SW', platform: 'helicopter' });
+    });
+
+    it('never carries old kinematics forward', () => {
+      const store = new TrackStore(DEFAULT_STALENESS);
+      store.ingest(track('adsb:4ca2bf', NOW - 5000, { ...air, altitudeM: 11000 }), NOW);
+      store.ingest(track('adsb:4ca2bf', NOW, air), NOW);
+      expect(store.get('adsb:4ca2bf')).not.toHaveProperty('altitudeM');
+    });
+  });
+
   it('prunes by the source override when there is one', () => {
     const rules = { ...DEFAULT_STALENESS, bySource: { adsb: { staleAfterMs: 145_000, dropAfterMs: 360_000 } } };
     const store = new TrackStore(rules);
