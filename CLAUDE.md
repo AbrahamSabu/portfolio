@@ -12,7 +12,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (213 tests after adsb.lol).
+- `npm test`: Vitest from the root config (217 tests after the loading-speed work).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -41,7 +41,8 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   implement this and push into the same store, and nothing downstream changes.
   An optional `health()` adds feed state to `/healthz`, and an optional
   `status()` returns a viewer-facing `FeedStatus` (shared/feedStatus.ts: ok,
-  starting, rate-limited with `until`, failing with `detail`). An optional
+  starting, rate-limited with `until`, failing with `detail`, standing-aside
+  when the view is wider than the feed covers). An optional
   `setDemand(watched)` hint (may be called before `start`) is driven by the
   Hub's `onClientsChanged(count)`; `index.ts` calls `setDemand(false)` before
   starting feeds, because nobody is connected yet. An optional
@@ -68,14 +69,17 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   bufferedAmount > 32 MB stays as a memory backstop. It pings every 15 s to
   drop dead sockets. Browser messages (`view` only) go through
   `parseClientMessage`; each client keeps its latest view, and changes are
-  reported once per tick via `onViewsChanged`. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 5`): hello (protocol, serverTime, tickMs,
+  reported via `onViewsChanged` within 100 ms of a change (coalescing
+  bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
+- Protocol (`PROTOCOL_VERSION = 7`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
-  line from `describeFeedStatus` for any feed not `ok`, and nothing otherwise.
-  The browser sends `view` (screen plus 20%, `viewForServer`) on every hello
-  and 500 ms after each `moveend`. Applying messages
+  line from `describeFeeds` for any feed with a problem, and nothing
+  otherwise; `standing-aside` adds "Zoom in to see aircraft from adsb.lol"
+  only when no other live feed is delivering. The browser sends `view`
+  (screen plus 20%, `viewForServer`) on every hello and 300 ms after each
+  `moveend`. Applying messages
   is idempotent. **Bump the version on any breaking change**; the client shows
   "reload the page" on mismatch.
 - Staleness (`shared/src/staleness.ts`): rules are `{ byDomain, bySource }`
@@ -173,8 +177,13 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   times reports from the response's `now` minus `seen_pos`, feet to metres,
   knots to m/s, skips '~' non-ICAO hexes. `circlesFor` tiles views with
   snapped circles of up to 250 nm; more than 6 (about a region, roughly
-  zoom 6+) and it stands aside with status ok. Polls circles one at a time,
-  1 s apart, with a project User-Agent; 429 waits for Retry-After.
+  zoom 6+) and it stands aside (status `standing-aside`). Fetches circles two
+  at a time (adsb.lol takes 1-3.5 s per circle) and pushes each as it
+  answers, with a project User-Agent; 429 waits for Retry-After. Being free,
+  its scheduler settles 1 s and may poll 3 s after the last attempt (OpenSky
+  keeps 2 s and 10 s to protect credits). A pan shows new aircraft in about
+  3 s, measured. To measure, restart the test server between runs, or its
+  leftover tracks hide new ones.
   Categories go through `feeds/adsb/category.ts` (codes like 'A3' to
   OpenSky's numbers). Fixtures are ODbL-credited.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
