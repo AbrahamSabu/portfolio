@@ -112,7 +112,7 @@ async function main(): Promise<void> {
   let framed = false;
 
   // Tell the server what's on screen, so a pay-per-area feed can poll just that.
-  // Debounced: a pan or zoom sends one view once it settles, not one per frame.
+  // Debounced: a pan or zoom sends one view once it settles (300 ms), not one per frame.
   const sendView = () => {
     const b = map.getBounds();
     connection.send({
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
   let viewTimer: number | undefined;
   map.on('moveend', () => {
     window.clearTimeout(viewTimer);
-    viewTimer = window.setTimeout(sendView, 500);
+    viewTimer = window.setTimeout(sendView, 300);
   });
 
   const credits = new DataCredits(map);

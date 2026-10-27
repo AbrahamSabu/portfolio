@@ -32,6 +32,8 @@ const MAX_PENDING_DELTAS = 5;
 /** Memory backstop per client, whatever the message count. */
 const MAX_BUFFERED_BYTES = 32 * 1024 * 1024;
 const HEARTBEAT_MS = 15_000;
+/** Views arriving within this window are reported together. */
+const VIEWS_COALESCE_MS = 100;
 const MAX_CLIENTS = 200;
 
 interface Client {
@@ -82,6 +84,7 @@ export class Hub {
   private readonly clients = new Set<Client>();
   /** Some browser's view changed (or one with a view left) since the last report. */
   private viewsDirty = false;
+  private viewsTimer: NodeJS.Timeout | undefined;
   /** The feed statuses every connected browser already has, serialised. */
   private sentFeeds = '[]';
   private tickTimer: NodeJS.Timeout | undefined;
@@ -109,6 +112,7 @@ export class Hub {
   async stop(): Promise<void> {
     clearInterval(this.tickTimer);
     clearInterval(this.heartbeatTimer);
+    clearTimeout(this.viewsTimer);
     for (const client of this.clients) client.ws.close(1001, 'Server shutting down');
     await new Promise<void>((resolve) => this.wss.close(() => resolve()));
   }
@@ -170,7 +174,6 @@ export class Hub {
   }
 
   private tick(): void {
-    this.reportViews();
     const now = Date.now();
     this.opts.store.prune(now);
     const { upserts, removals } = this.opts.store.flush();
@@ -212,7 +215,7 @@ export class Hub {
   private dropClient(client: Client, reason: string): void {
     if (!this.clients.delete(client)) return;
     log.info(reason, { address: client.address, clients: this.clients.size });
-    if (client.view) this.viewsDirty = true;
+    if (client.view) this.viewsChanged();
     this.opts.onClientsChanged?.(this.clients.size);
   }
 
@@ -224,7 +227,21 @@ export class Hub {
       return;
     }
     client.view = message.bbox;
-    this.viewsDirty = true; // reported on the next tick, which also rate-limits a chatty browser
+    this.viewsChanged();
+  }
+
+  /**
+   * Report views shortly after they change rather than on the next tick: a
+   * new view decides what gets fetched, so waiting up to a second for the tick
+   * was pure added latency. The short window still coalesces a burst, so a
+   * chatty browser costs one report per VIEWS_COALESCE_MS at most.
+   */
+  private viewsChanged(): void {
+    this.viewsDirty = true;
+    this.viewsTimer ??= setTimeout(() => {
+      this.viewsTimer = undefined;
+      this.reportViews();
+    }, VIEWS_COALESCE_MS);
   }
 
   private reportViews(): void {

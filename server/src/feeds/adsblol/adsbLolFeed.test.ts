@@ -98,13 +98,22 @@ describe('AdsbLolFeed', () => {
     expect(feed.health().polled).toBe('none');
   });
 
+  it('polls a moved view soon after the last poll: free, so a 3 s gap instead of 10 s', async () => {
+    const { feed, timers, fire, advance } = setup(json(cairo), json(cairo));
+    feed.setAreas([JOHANNESBURG]);
+    await fire();
+    advance(500);
+    feed.setAreas([{ south: -30.5, west: 30, north: -29, east: 31.5 }]);
+    expect(timers.at(-1)).toBe(2_500); // 3 s after that poll began
+  });
+
   it('polls early when the view moves somewhere new', async () => {
     const { feed, calls, timers, fire, advance } = setup(json(cairo), json(cairo));
     feed.setAreas([JOHANNESBURG]);
     await fire();
     advance(15_000);
     feed.setAreas([{ south: -30.5, west: 30, north: -29, east: 31.5 }]); // Durban
-    expect(timers.at(-1)).toBe(2_000); // the 2 s settle, well before the regular 30 s poll
+    expect(timers.at(-1)).toBe(1_000); // a 1 s settle, well before the regular 30 s poll
     await fire();
     expect(calls).toHaveLength(2);
   });

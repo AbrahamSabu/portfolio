@@ -100,7 +100,7 @@ describe('Hub', () => {
     expect(types.filter((t) => t === 'delta').length).toBeGreaterThan(10);
   });
 
-  it('reports browser views once per tick, latest first, and forgets them on disconnect', async () => {
+  it('reports browser views promptly, coalescing bursts, and forgets them on disconnect', async () => {
     const reports: BBox[][] = [];
     server = createServer();
     hub = new Hub({

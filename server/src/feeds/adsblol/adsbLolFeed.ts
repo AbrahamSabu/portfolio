@@ -81,6 +81,10 @@ export class AdsbLolFeed implements Feed {
         setTimer: opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms)),
         clearTimer: opts.clearTimer ?? ((h) => clearTimeout(h as NodeJS.Timeout)),
         log: this.log,
+        // adsb.lol is free, so a moved view is fetched sooner than OpenSky's
+        // (2 s settle, 10 s gap), whose every poll costs credits.
+        settleMs: 1_000,
+        minEarlyGapMs: 3_000,
       },
     );
   }

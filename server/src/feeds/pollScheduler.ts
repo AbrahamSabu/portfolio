@@ -99,7 +99,7 @@ export class PollScheduler {
     if (!this.hooks.isActive()) return;
     this.isPaused = false;
     const delay = Math.max(0, this.nextDueAt - this.opts.now());
-    this.opts.log.info('viewer connected, polling resumed', { nextPollInS: Math.round(delay / 1000) });
+    this.opts.log.info('polling resumed', { nextPollInS: Math.round(delay / 1000) });
     this.schedule(delay);
   }
 
@@ -138,7 +138,8 @@ export class PollScheduler {
     if (!this.hooks.isActive()) {
       // Leave nextDueAt as it is: the poll is overdue, so a returning viewer gets one at once.
       this.isPaused = true;
-      this.opts.log.info('no viewers, polling paused');
+      // Inactive means no viewers, or (for feeds that follow views) nothing in view to cover.
+      this.opts.log.info('nothing to poll (no viewers, or no view this feed covers); paused');
       return;
     }
     this.lastAttemptAt = this.opts.now();
