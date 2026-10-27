@@ -3,4 +3,5 @@ export * from './geo';
 export * from './staleness';
 export * from './trail';
 export * from './validate';
+export * from './feedStatus';
 export * from './protocol';

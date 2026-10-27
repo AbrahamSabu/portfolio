@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Logger } from '../../log';
 import type { TrackSink } from '../feed';
-import { OpenSkyFeed, type OpenSkyOptions } from './openSkyFeed';
+import { OpenSkyFeed, openSkyStatus, type OpenSkyOptions } from './openSkyFeed';
 
 const CHANNEL = { south: 49.3, west: -4.5, north: 51.6, east: 2.8 };
 const POLL_MS = 60_000;
@@ -536,5 +536,57 @@ describe('OpenSkyFeed viewport mode', () => {
     release(json(recorded));
     for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0)); // let the poll finish
     expect(timers).toEqual([0, POLL_MS, 5_000]); // 10 s after that poll began (settling already passed)
+  });
+});
+
+describe('openSkyStatus', () => {
+  const healthy = { now: 1000, lastSuccessAt: 900, pausedUntil: null, failures: 0, lastError: null, nextPollAt: 61_000 };
+
+  it('is ok after a successful poll', () => {
+    expect(openSkyStatus(healthy)).toEqual({ feed: 'opensky', label: 'OpenSky', state: 'ok' });
+  });
+
+  it('is starting before the first success', () => {
+    expect(openSkyStatus({ ...healthy, lastSuccessAt: null }).state).toBe('starting');
+  });
+
+  it('is failing with the error and the next retry', () => {
+    expect(openSkyStatus({ ...healthy, failures: 2, lastError: 'HTTP 503', nextPollAt: 121_000 })).toMatchObject({
+      state: 'failing',
+      detail: 'HTTP 503',
+      until: 121_000,
+    });
+  });
+
+  it('is rate limited until polling resumes, outranking the failure count', () => {
+    expect(openSkyStatus({ ...healthy, pausedUntil: 7_200_000, failures: 1, lastError: '429 rate limited' })).toEqual({
+      feed: 'opensky',
+      label: 'OpenSky',
+      state: 'rate-limited',
+      until: 7_200_000,
+    });
+  });
+
+  it('stops saying rate limited once the wait has passed', () => {
+    expect(openSkyStatus({ ...healthy, pausedUntil: 500 }).state).toBe('ok');
+  });
+});
+
+describe('OpenSkyFeed.status', () => {
+  it('follows the feed through a 429, a failure and recovery', async () => {
+    const { fetch } = scripted(
+      json('', { status: 429, headers: { 'X-Rate-Limit-Retry-After-Seconds': '3600' } }),
+      json('', { status: 503 }),
+      json(recorded),
+    );
+    const { feed, clock } = setup(fetch);
+    expect(feed.status().state).toBe('starting');
+    await feed.pollOnce();
+    expect(feed.status()).toMatchObject({ state: 'rate-limited' });
+    clock.advance(3_600_000);
+    await feed.pollOnce();
+    expect(feed.status()).toMatchObject({ state: 'failing', detail: 'HTTP 503' });
+    await feed.pollOnce();
+    expect(feed.status().state).toBe('ok');
   });
 });

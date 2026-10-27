@@ -1,4 +1,4 @@
-import type { BBox } from '@watchfloor/shared';
+import type { BBox, FeedStatus } from '@watchfloor/shared';
 
 /**
  * A feed is anything that produces track reports: the simulator today,
@@ -26,6 +26,8 @@ export interface Feed {
    * others ignore it.
    */
   setAreas?(views: BBox[]): void;
+  /** How the feed is doing, for viewers. Feeds that can't fail (the simulator) leave it out. */
+  status?(): FeedStatus;
   /** Feed-specific state for /healthz (credits left, last error...). */
   health?(): Record<string, unknown>;
 }
