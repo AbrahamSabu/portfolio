@@ -8,7 +8,7 @@ By default Watchfloor runs on a built-in traffic simulator over the English Chan
 
 ## What it does
 
-- Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, or simulated traffic, and always says which
+- Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, filled in from a second network (adsb.lol) where you're zoomed in, or simulated traffic, and always says which
 - Streams a live picture to the browser over WebSockets, sending only what changed each second
 - Draws each contact with its MIL-STD-2525C symbol, callsign label and a speed leader showing where it's heading, or as a small identity-coloured dot when zoomed out to a continent or the world
 - Moves symbols smoothly between reports using dead reckoning, so tracks glide instead of jumping
@@ -57,6 +57,8 @@ Keyboard shortcuts:
 Settings live in `.env` (copy `.env.example`). For example, `SIM_SEED` makes the simulated traffic identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
 
 ### Live aircraft
+
+Add `adsblol` to `FEEDS` (for example `FEEDS=opensky,adsblol`) to fill in aircraft OpenSky's receivers miss from a second volunteer network, adsb.lol. It's free and needs no key, but it only answers "aircraft within 250 nm of a point", so it covers views up to about a region (roughly zoom 6 and closer) and stands aside when you zoom out further. In a side-by-side test over five African areas it added only a handful of aircraft: both networks rely on ground receivers, and both saw nothing around Lagos or Addis Ababa. Only satellite ADS-B fills those gaps, and that's enterprise-priced.
 
 Set `FEEDS=opensky` in `.env` for real aircraft over the scenario's area, or `FEEDS=sim,opensky` for both. Add `OPENSKY_AREA=world` for every aircraft OpenSky can see, about 7,000 at once, or `OPENSKY_AREA=viewport` for anywhere in the world but only what's on screen, which is much cheaper when zoomed in. The top bar says whether the picture is live, simulated or both.
 
@@ -135,6 +137,8 @@ client/   MapLibre map, symbology, UI
 
 **Poll what people are looking at.** In viewport mode each browser tells the server what's on screen, and the server asks OpenSky for just that. A pure planner turns views into the cheapest requests: it splits views that cross the antimeridian (OpenSky can't take those), rounds outward to whole degrees so small pans don't change the request, and chooses between separate small boxes, one box around them all, or the whole world. Panning somewhere new brings the next poll forward, debounced so a multi-step zoom costs one poll, and never within 10 seconds of the last one or into a rate-limit wait. Browser messages are untrusted input, because they decide what a paid API is asked for: they're strictly parsed, size-capped at 4 KB, and coalesced to one report per tick. In testing, opening on the Channel cost 2 credits a poll instead of the world's 4.
 
+**Several providers, one aircraft, one track.** OpenSky and adsb.lol both report aircraft by their ICAO transponder address, and both feeds use it as the track id (`adsb:4ca7b3`), so a plane both networks see is one track, not two. The store already keeps only the newest report per track; the new rule is that a newer report can't erase identity: a known callsign stays if the newer report lacks one, and a generic "aircraft" never replaces a specific "airliner", so symbols don't flicker between providers. Position, speed and altitude always come from the newest report. Both providers' ADS-B categories go through one shared table, the details panel names who delivered the latest report ("ADS-B via adsb.lol"), and the map credits each provider, with adsb.lol's ODbL licence. The polling schedule (pausing with no viewers, debounced early polls) lives in one shared `PollScheduler`, so the second feed reused it instead of copying subtle code.
+
 **Say what's real.** The server tells the browser whether the picture is live, simulated or both, and the top bar says so. A simulated contact must never be mistaken for a real one. Likewise, when a live feed is rate limited or down, the status bar says so ("OpenSky rate limited, resumes 270000Z") instead of letting aircraft fade without explanation; a healthy feed says nothing. Feed status rides on the next delta only when it changes, so the per-second message stays small.
 
 **Server time, not browser time.** Track ages and dead reckoning compare server timestamps with "now". The client estimates its clock offset from every message, so a browser clock that's a few seconds off doesn't make tracks look stale.
@@ -145,7 +149,7 @@ client/   MapLibre map, symbology, UI
 
 - [x] Simulator, WebSocket pipeline, symbology, selection and details
 - [x] Track history trails and a sortable, filterable track list
-- [x] Live aircraft from the OpenSky Network API
+- [x] Live aircraft from the OpenSky Network API, filled in from adsb.lol
 - [ ] Live ships from AISStream.io
 - [ ] Geofences with entry and exit alerts
 - [ ] Operator tagging of affiliation (friend, neutral, unknown and so on)
@@ -156,6 +160,6 @@ client/   MapLibre map, symbology, UI
 - Basemap: © OpenStreetMap contributors, © CARTO
 - Symbols: [milsymbol](https://github.com/spatialillusions/milsymbol)
 - Map rendering: [MapLibre GL JS](https://maplibre.org/)
-- Live aircraft: [The OpenSky Network](https://opensky-network.org)
+- Live aircraft: [The OpenSky Network](https://opensky-network.org) and [adsb.lol](https://adsb.lol) (data under the [ODbL](https://opendatacommons.org/licenses/odbl/))
 
-All simulated traffic is invented, including callsigns and vessel names. Live aircraft come from OpenSky's crowd-sourced receivers and can be delayed, incomplete or missing. This is a portfolio project and must not be used for navigation.
+All simulated traffic is invented, including callsigns and vessel names. Live aircraft come from crowd-sourced receivers (OpenSky, adsb.lol) and can be delayed, incomplete or missing; empty areas often mean no receivers, not no aircraft. This is a portfolio project and must not be used for navigation.

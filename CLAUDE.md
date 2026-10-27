@@ -12,7 +12,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (179 tests after feed status in the UI).
+- `npm test`: Vitest from the root config (213 tests after adsb.lol).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -24,7 +24,8 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   distance, bearing, dead reckoning), staleness rules (`staleness.ts`),
   `TrailHistory` (`trail.ts`) and `sanitizeTrack` validation (`validate.ts`).
 - `server/`: Node plus `ws`, bundled with esbuild for production. `trackStore.ts`,
-  `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface, `sim/`, `opensky/`) and
+  `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface, `pollScheduler.ts`, `sim/`, `opensky/`,
+  `adsblol/`, shared `adsb/category.ts`) and
   `scenarios/`.
 - `client/`: Vite, MapLibre GL JS v6 and milsymbol v3 in plain TypeScript, with no
   UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl, symbols,
@@ -49,7 +50,14 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - Track ids are `${source}:${nativeId}`, for example `adsb:4ca7b3` or `sim:air-0001`.
 - Server TrackStore: drops out-of-order reports, rejects timestamps more than
   30 s in the future, and keeps dirty and removed sets. `flush()` returns only
-  what changed, coalesced per track.
+  what changed, coalesced per track. Several providers can report one track
+  (same `adsb:<icao24>` id): newest report wins, but `keepKnownIdentity`
+  keeps a known callsign and never lets a generic platform ('aircraft',
+  'vessel') replace a specific one. Kinematics always come from the newest.
+- `Track.provider` ('opensky' | 'adsb.lol', protocol v6) says who delivered
+  the latest report: details panel "ADS-B via adsb.lol"; the map's
+  attribution credits running live feeds (`map/dataCredits.ts`, an empty
+  source carrying the attribution).
 - Hub: every 1 s tick it prunes, flushes and broadcasts one serialised delta to
   all clients. It always sends one, even when empty, because the delta doubles
   as a heartbeat. A client with more than 5 unwritten deltas (counted via the
@@ -154,9 +162,21 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   - Budget (OpenSky docs, Oct 2026): 400 credits/day anonymous, 4,000 with
     an account; boxes up to 25 sq° cost 1 credit per poll. Data resolution is
     10 s anonymous, 5 s authenticated.
-  - `openSkyStatus()` (pure) derives the FeedStatus: a live 429 wait beats a
-    failure, failures beat "starting". `OPENSKY_API_URL` (http(s), default
-    OpenSky's) points at a proxy or a local stub.
+  - `openSkyStatus()` wraps the shared `polledFeedStatus()`: a live 429 wait
+    beats a failure, failures beat "starting". `OPENSKY_API_URL` (http(s),
+    default OpenSky's) points at a proxy or a local stub.
+- `PollScheduler` (`feeds/pollScheduler.ts`) owns when to poll for every
+  polled feed: pause with no viewers, resume at nextDueAt, the bounded
+  early-poll debounce. Feeds supply hooks: run, isActive, wantsEarlyPoll,
+  isWaiting, describe. Don't re-implement scheduling in a feed.
+- adsb.lol (`server/src/feeds/adsblol/`): readsb/ADSBx v2 JSON. `mapAircraft`
+  times reports from the response's `now` minus `seen_pos`, feet to metres,
+  knots to m/s, skips '~' non-ICAO hexes. `circlesFor` tiles views with
+  snapped circles of up to 250 nm; more than 6 (about a region, roughly
+  zoom 6+) and it stands aside with status ok. Polls circles one at a time,
+  1 s apart, with a project User-Agent; 429 waits for Retry-After.
+  Categories go through `feeds/adsb/category.ts` (codes like 'A3' to
+  OpenSky's numbers). Fixtures are ODbL-credited.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
   runs without a basemap. `FEEDS` (`sim`, `opensky`, or `sim,opensky`;
@@ -168,7 +188,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   with only live worldwide traffic, hello frames and names the map
   "Worldwide", otherwise the scenario keeps it. `OPENSKY_AREA=viewport`
   polls only what browsers show (1 credit at zoom 8+, 2 at the Channel's
-  zoom 7, 4 for the world).
+  zoom 7, 4 for the world). `FEEDS` may include `adsblol` (`ADSBLOL_POLL_S`,
+  default 30; `ADSBLOL_API_URL`); the shared adsb staleness rule uses the
+  slower of the two poll intervals.
 
 ## Gotchas already solved (do not undo)
 
