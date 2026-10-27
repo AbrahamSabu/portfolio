@@ -68,6 +68,7 @@ export function describeFeeds(feeds: FeedStatus[]): string {
 export const PROVIDER_LABEL: Record<Provider, string> = {
   opensky: 'OpenSky',
   'adsb.lol': 'adsb.lol',
+  aisstream: 'AISStream',
 };
 
 /** "ADS-B via adsb.lol": the kind of data, and which service delivered the latest report. */

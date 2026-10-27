@@ -1,0 +1,76 @@
+{
+  "_comment": "Hand-made AISStream messages for the cases a short recording may not contain. Shapes follow github.com/aisstream/ais-message-models; MMSIs and names are invented.",
+  "messages": {
+    "classA": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000001, "MMSI_String": 235000001, "ShipName": "TEST CARRIER        ", "latitude": 50.9, "longitude": 1.2, "time_utc": "2026-10-27 20:41:07.512345678 +0000 UTC" },
+      "Message": { "PositionReport": { "MessageID": 1, "UserID": 235000001, "Valid": true, "NavigationalStatus": 0, "Sog": 12.5, "Cog": 45.3, "TrueHeading": 44, "Latitude": 50.9, "Longitude": 1.2, "Timestamp": 5 } }
+    },
+    "noPosition": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000002, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 235000002, "Valid": true, "Sog": 0, "Cog": 360, "TrueHeading": 511, "Latitude": 91, "Longitude": 181, "Timestamp": 60 } }
+    },
+    "noSpeed": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000003, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 235000003, "Valid": true, "Sog": 102.3, "Cog": 90, "TrueHeading": 90, "Latitude": 50.5, "Longitude": 0.5, "Timestamp": 7 } }
+    },
+    "movingNoCourse": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000004, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 235000004, "Valid": true, "Sog": 8, "Cog": 360, "TrueHeading": 511, "Latitude": 50.5, "Longitude": 0.5, "Timestamp": 7 } }
+    },
+    "mooredNoCourse": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000005, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 235000005, "Valid": true, "NavigationalStatus": 5, "Sog": 0, "Cog": 360, "TrueHeading": 511, "Latitude": 50.95, "Longitude": 1.85, "Timestamp": 60 } }
+    },
+    "headingOnly": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000006, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 235000006, "Valid": true, "Sog": 6, "Cog": 360, "TrueHeading": 270, "Latitude": 50.5, "Longitude": 0.5, "Timestamp": 7 } }
+    },
+    "invalid": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000007, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 235000007, "Valid": false, "Sog": 6, "Cog": 90, "TrueHeading": 90, "Latitude": 50.5, "Longitude": 0.5, "Timestamp": 7 } }
+    },
+    "sart": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 970000001, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "PositionReport": { "UserID": 970000001, "Valid": true, "Sog": 0, "Cog": 0, "TrueHeading": 511, "Latitude": 50.5, "Longitude": 0.5, "Timestamp": 7 } }
+    },
+    "noTime": {
+      "MessageType": "PositionReport",
+      "MetaData": { "MMSI": 235000008 },
+      "Message": { "PositionReport": { "UserID": 235000008, "Valid": true, "Sog": 6, "Cog": 90, "TrueHeading": 90, "Latitude": 50.5, "Longitude": 0.5, "Timestamp": 7 } }
+    },
+    "classBExtended": {
+      "MessageType": "ExtendedClassBPositionReport",
+      "MetaData": { "MMSI": 235000009, "time_utc": "2026-10-27 20:41:07.5 +0000 UTC" },
+      "Message": { "ExtendedClassBPositionReport": { "MessageID": 19, "UserID": 235000009, "Valid": true, "Sog": 5.1, "Cog": 200, "TrueHeading": 511, "Latitude": 50.7, "Longitude": -1.3, "Timestamp": 6, "Name": "SEA SPRITE@@@@@@@@@@", "Type": 37 } }
+    },
+    "shipStatic": {
+      "MessageType": "ShipStaticData",
+      "MetaData": { "MMSI": 235000001, "time_utc": "2026-10-27 20:41:09.0 +0000 UTC" },
+      "Message": { "ShipStaticData": { "MessageID": 5, "UserID": 235000001, "Valid": true, "Name": "TEST CARRIER@@@@@@@@", "CallSign": "MABC1  ", "Type": 71, "Dimension": { "A": 150, "B": 30, "C": 12, "D": 12 }, "Destination": "ROTTERDAM" } }
+    },
+    "staticPartA": {
+      "MessageType": "StaticDataReport",
+      "MetaData": { "MMSI": 235000010, "time_utc": "2026-10-27 20:41:09.0 +0000 UTC" },
+      "Message": { "StaticDataReport": { "MessageID": 24, "UserID": 235000010, "Valid": true, "PartNumber": false, "ReportA": { "Valid": true, "Name": "LITTLE AUK" }, "ReportB": { "Valid": false, "ShipType": 0, "CallSign": "" } } }
+    },
+    "staticPartB": {
+      "MessageType": "StaticDataReport",
+      "MetaData": { "MMSI": 235000010, "time_utc": "2026-10-27 20:41:10.0 +0000 UTC" },
+      "Message": { "StaticDataReport": { "MessageID": 24, "UserID": 235000010, "Valid": true, "PartNumber": true, "ReportA": { "Valid": false, "Name": "" }, "ReportB": { "Valid": true, "ShipType": 36, "CallSign": "2ABC3" } } }
+    },
+    "confirmation": {
+      "MessageType": "SubscriptionConfirmation",
+      "MetaData": {},
+      "Message": { "SubscriptionConfirmation": { "CompressionEnabled": true } }
+    },
+    "error": { "error": "Api Key Is Not Valid" }
+  }
+}
