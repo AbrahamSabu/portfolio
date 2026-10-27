@@ -12,7 +12,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (168 tests after viewport polling).
+- `npm test`: Vitest from the root config (179 tests after feed status in the UI).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -38,7 +38,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - **Feed contract:** `start(sink)` and `stop()`, where the sink has
   `upsert(report: unknown)` and `remove(id)`. New feeds (OpenSky, AISStream)
   implement this and push into the same store, and nothing downstream changes.
-  An optional `health()` adds feed state to `/healthz`. An optional
+  An optional `health()` adds feed state to `/healthz`, and an optional
+  `status()` returns a viewer-facing `FeedStatus` (shared/feedStatus.ts: ok,
+  starting, rate-limited with `until`, failing with `detail`). An optional
   `setDemand(watched)` hint (may be called before `start`) is driven by the
   Hub's `onClientsChanged(count)`; `index.ts` calls `setDemand(false)` before
   starting feeds, because nobody is connected yet. An optional
@@ -59,8 +61,11 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   drop dead sockets. Browser messages (`view` only) go through
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported once per tick via `onViewsChanged`. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 4`): hello (protocol, serverTime, tickMs,
-  staleness, scenario, traffic), then snapshot (tracks plus `trails`), then a delta per tick.
+- Protocol (`PROTOCOL_VERSION = 5`): hello (protocol, serverTime, tickMs,
+  staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
+  A delta carries `feeds` only in the tick where a status changed (the Hub
+  compares serialised statuses each tick). The status bar shows a `--warn`
+  line from `describeFeedStatus` for any feed not `ok`, and nothing otherwise.
   The browser sends `view` (screen plus 20%, `viewForServer`) on every hello
   and 500 ms after each `moveend`. Applying messages
   is idempotent. **Bump the version on any breaking change**; the client shows
@@ -149,6 +154,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   - Budget (OpenSky docs, Oct 2026): 400 credits/day anonymous, 4,000 with
     an account; boxes up to 25 sq° cost 1 credit per poll. Data resolution is
     10 s anonymous, 5 s authenticated.
+  - `openSkyStatus()` (pure) derives the FeedStatus: a live 429 wait beats a
+    failure, failures beat "starting". `OPENSKY_API_URL` (http(s), default
+    OpenSky's) points at a proxy or a local stub.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
   runs without a basemap. `FEEDS` (`sim`, `opensky`, or `sim,opensky`;
@@ -189,6 +197,11 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - Every live OpenSky poll spends a credit from a 400-a-day anonymous budget.
   Never hit the real API from tests or loops; use the fixtures. For a manual
   check, one production instance with `FEEDS=opensky` for a few minutes is enough.
+  To see 429s and outages in the UI, run a local stub that scripts them and
+  set `OPENSKY_API_URL=http://127.0.0.1:<port>/api` with `OPENSKY_POLL_S=10`.
+- A production server keeps serving `client/dist` from disk, so rebuilding
+  while it runs gives its browsers a newer client than its server: restart it
+  after `npm run build`, or a reload shows the protocol-mismatch notice.
 - Another session may already be running the dev server on 8080/5173. Don't
   kill it; verify with `npm run build`, then from `server/`
   `PORT=8090 FEEDS=opensky node dist/index.js` (env vars override `.env`).
@@ -216,8 +229,8 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 
 1. ~~Track history trails and a sortable, filterable track list~~ (done).
 2. ~~Live aircraft from the OpenSky Network API as a Feed~~ (done). Polling pauses
-   while no browser is connected. Follow-up: show live feed health (paused,
-   rate limited, failing) in the UI rather than only `/healthz`.
+   while no browser is connected, viewport mode polls only what's on screen,
+   and the status bar says when the feed is rate limited or failing.
 3. Live ships from AISStream.io over WebSocket (free API key in `.env`).
 4. Geofences drawn on the map, with entry and exit alerts.
 5. Operator tagging of affiliation.
