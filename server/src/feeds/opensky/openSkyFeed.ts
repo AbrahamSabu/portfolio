@@ -1,7 +1,7 @@
 import type { BBox, FeedStatus } from '@watchfloor/shared';
 import { createLogger, type Logger } from '../../log';
 import type { Feed, TrackSink } from '../feed';
-import { PollScheduler } from '../pollScheduler';
+import { PollScheduler, polledFeedStatus, type PolledStatusInput } from '../pollScheduler';
 import { Backoff } from './backoff';
 import { covers, describePlan, planCost, planCoverage, type Plan } from './coverage';
 import { mapState, parseStatesResponse } from './mapState';
@@ -336,34 +336,9 @@ export class OpenSkyFeed implements Feed {
   }
 }
 
-/** What the feed knows about itself, for openSkyStatus(). */
-export interface OpenSkyStatusInput {
-  now: number;
-  lastSuccessAt: number | null;
-  pausedUntil: number | null;
-  failures: number;
-  lastError: string | null;
-  nextPollAt: number | null;
-}
+export type OpenSkyStatusInput = PolledStatusInput;
 
-/**
- * The viewer-facing state, derived from what the feed already tracks. Pure,
- * so each case is tested directly. A rate limit outranks a failure: it says
- * exactly when things resume.
- */
+/** OpenSky's viewer-facing state; see polledFeedStatus. */
 export function openSkyStatus(s: OpenSkyStatusInput): FeedStatus {
-  const base = { feed: 'opensky', label: 'OpenSky' };
-  if (s.pausedUntil !== null && s.pausedUntil > s.now) {
-    return { ...base, state: 'rate-limited', until: s.pausedUntil };
-  }
-  if (s.failures > 0) {
-    return {
-      ...base,
-      state: 'failing',
-      ...(s.lastError ? { detail: s.lastError } : {}),
-      ...(s.nextPollAt !== null ? { until: s.nextPollAt } : {}),
-    };
-  }
-  if (s.lastSuccessAt === null) return { ...base, state: 'starting' };
-  return { ...base, state: 'ok' };
+  return polledFeedStatus('opensky', 'OpenSky', s);
 }

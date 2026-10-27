@@ -1,3 +1,4 @@
+import type { FeedStatus } from '@watchfloor/shared';
 import type { Logger } from '../log';
 
 /** What a polled feed tells the scheduler. */
@@ -148,3 +149,36 @@ export class PollScheduler {
     this.maybePollEarly();
   }
 }
+
+/** What a polled feed knows about itself, for polledFeedStatus(). */
+export interface PolledStatusInput {
+  now: number;
+  lastSuccessAt: number | null;
+  /** Until when the provider asked us to wait (429), if it did. */
+  pausedUntil: number | null;
+  failures: number;
+  lastError: string | null;
+  nextPollAt: number | null;
+}
+
+/**
+ * The viewer-facing state of a polled feed. A rate limit outranks a failure,
+ * because it says exactly when things resume.
+ */
+export function polledFeedStatus(feed: string, label: string, s: PolledStatusInput): FeedStatus {
+  const base = { feed, label };
+  if (s.pausedUntil !== null && s.pausedUntil > s.now) {
+    return { ...base, state: 'rate-limited', until: s.pausedUntil };
+  }
+  if (s.failures > 0) {
+    return {
+      ...base,
+      state: 'failing',
+      ...(s.lastError ? { detail: s.lastError } : {}),
+      ...(s.nextPollAt !== null ? { until: s.nextPollAt } : {}),
+    };
+  }
+  if (s.lastSuccessAt === null) return { ...base, state: 'starting' };
+  return { ...base, state: 'ok' };
+}
+
