@@ -17,7 +17,6 @@ const json = (body: string, init: ResponseInit = {}) =>
 function setup(...responses: Response[]) {
   let now = 1_793_121_200_000;
   const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
-  const sleeps: number[] = [];
   const timers: number[] = [];
   let latest: () => void = () => {};
   const upserts: Array<{ id: string; provider?: string }> = [];
@@ -32,7 +31,6 @@ function setup(...responses: Response[]) {
     }) as typeof fetch,
     now: () => now,
     random: () => 1,
-    sleep: async (ms) => void sleeps.push(ms),
     setTimer: (fn, ms) => {
       timers.push(ms);
       latest = fn;
@@ -46,7 +44,7 @@ function setup(...responses: Response[]) {
     latest();
     for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
   };
-  return { feed, calls, sleeps, timers, upserts, removals, fire, advance: (ms: number) => (now += ms) };
+  return { feed, calls, timers, upserts, removals, fire, advance: (ms: number) => (now += ms) };
 }
 
 describe('AdsbLolFeed', () => {
@@ -64,12 +62,38 @@ describe('AdsbLolFeed', () => {
     expect(feed.status().state).toBe('ok');
   });
 
-  it('spaces requests within a poll a second apart', async () => {
-    const { feed, calls, sleeps, fire } = setup(json(cairo), json(cairo));
-    feed.setAreas([HIGHVELD_TO_DURBAN]);
-    await fire();
-    expect(calls).toHaveLength(2);
-    expect(sleeps).toEqual([1000]);
+  it('fetches at most two circles at once, and pushes each as it answers', async () => {
+    let inFlight = 0;
+    let most = 0;
+    const releases: Array<() => void> = [];
+    const pushedAtRelease: number[] = [];
+    const upserts: unknown[] = [];
+    const feed = new AdsbLolFeed({
+      pollMs: POLL_MS,
+      fetch: (async () => {
+        inFlight++;
+        most = Math.max(most, inFlight);
+        await new Promise<void>((r) => releases.push(r));
+        inFlight--;
+        return json(cairo);
+      }) as typeof fetch,
+      now: () => 1_793_121_200_000,
+      setTimer: (fn) => void setTimeout(fn, 0),
+      clearTimer: () => {},
+      log: silent,
+    });
+    feed.start({ upsert: (r) => upserts.push(r), remove: () => {} });
+    feed.setAreas([{ south: -31, west: 22, north: -24, east: 32 }]); // four circles
+    const tick = () => new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < 4; i++) {
+      while (releases.length === 0) await tick();
+      releases.shift()!();
+      await tick();
+      pushedAtRelease.push(upserts.length);
+    }
+    feed.stop();
+    expect(most).toBe(2);
+    expect(pushedAtRelease).toEqual([37, 74, 111, 148]);
   });
 
   it('stands aside for views wider than a region, and says so', () => {
