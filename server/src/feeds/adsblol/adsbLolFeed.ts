@@ -26,11 +26,13 @@ const REQUEST_GAP_MS = 1_200;
 const MAX_BACKOFF_MS = 5 * 60_000;
 /**
  * The request budget: polls are at least this far apart per circle, so at
- * most 12 requests a minute however many circles a view needs. Measured: 7
- * circles every 10 s (42 a minute) drew 429s within seconds; 6 every 30 s
- * never did. One circle (the home area) still updates every 10 s.
+ * most 7.5 requests a minute however many circles a view needs. adsb.lol
+ * publishes no limit (its README calls limits dynamic). Measured, Oct 2026:
+ * 7 circles every 10 s (42 a minute) drew 429s within seconds, and even 12 a
+ * minute, paced, drew one 429 (Retry-After 10-12 s) about every minute.
+ * One circle (the home area) still updates every 10 s.
  */
-const MIN_MS_PER_CIRCLE = 5_000;
+const MIN_MS_PER_CIRCLE = 8_000;
 
 export interface AdsbLolOptions {
   /** Interval while someone is watching. */

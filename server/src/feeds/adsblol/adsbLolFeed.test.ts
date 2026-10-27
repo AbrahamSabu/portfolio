@@ -194,7 +194,7 @@ describe('AdsbLolFeed', () => {
       expect(timers.at(-1)).toBe(10_000); // home only: 1 circle
       feed.setAreas([{ south: -34.5, west: 18, north: -33.5, east: 19 }, { south: -30.5, west: 30.5, north: -29.5, east: 31.5 }]);
       await fire();
-      expect(timers.at(-1)).toBe(15_000); // home, Cape Town and Durban: 3 circles x 5 s
+      expect(timers.at(-1)).toBe(24_000); // home, Cape Town and Durban: 3 circles x 8 s
     });
 
     it('spaces requests 1.2 s apart, so a wide view is never a burst', async () => {
