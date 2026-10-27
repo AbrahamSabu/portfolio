@@ -10,6 +10,7 @@ import {
 import { loadConfig, trafficKind } from './config';
 import type { Feed } from './feeds/feed';
 import { AdsbLolFeed } from './feeds/adsblol/adsbLolFeed';
+import { WORLD } from './feeds/ais/areas';
 import { AisStreamFeed } from './feeds/ais/aisStreamFeed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
@@ -20,7 +21,6 @@ import { getScenario } from './scenarios';
 import { TrackStore } from './trackStore';
 
 const log = createLogger('main');
-const WORLD = { south: -90, west: -180, north: 90, east: 180 };
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -69,7 +69,9 @@ async function main(): Promise<void> {
         feeds.push(
           new AisStreamFeed({
             apiKey: config.ais.apiKey,
-            boxes: [config.ais.area === 'world' ? WORLD : scenario.bounds],
+            // Viewport mode starts with nothing and follows the browsers' views.
+            boxes: config.ais.area === 'viewport' ? [] : [config.ais.area === 'world' ? WORLD : scenario.bounds],
+            viewport: config.ais.area === 'viewport',
             ...(config.ais.url ? { url: config.ais.url } : {}),
           }),
         );

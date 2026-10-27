@@ -35,8 +35,11 @@ export interface Config {
   ais: {
     /** AISStream API key. Without one the feed runs but only reports that it's missing. */
     apiKey?: string;
-    /** 'scenario' streams the scenario's bounding box; 'world' streams everywhere. */
-    area: 'scenario' | 'world';
+    /**
+     * 'scenario' streams the scenario's bounding box; 'world' streams
+     * everywhere; 'viewport' streams only what browsers are looking at.
+     */
+    area: 'scenario' | 'world' | 'viewport';
     /** Stream URL; set only to point at a local stub. */
     url?: string;
   };
@@ -105,8 +108,8 @@ function adsbLolConfig(): Config['adsblol'] {
 function aisConfig(): Config['ais'] {
   const apiKey = process.env.AISSTREAM_API_KEY?.trim() || undefined;
   const area = (process.env.AIS_AREA || 'scenario').trim().toLowerCase();
-  if (area !== 'scenario' && area !== 'world') {
-    throw new Error(`AIS_AREA must be scenario or world (got "${area}")`);
+  if (area !== 'scenario' && area !== 'world' && area !== 'viewport') {
+    throw new Error(`AIS_AREA must be scenario, world or viewport (got "${area}")`);
   }
   const url = process.env.AISSTREAM_URL?.trim() || undefined;
   if (url) {

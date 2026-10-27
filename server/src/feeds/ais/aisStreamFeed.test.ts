@@ -253,3 +253,72 @@ describe('AisStreamFeed', () => {
     expect(t.sockets).toHaveLength(1);
   });
 });
+
+describe('AisStreamFeed in viewport mode', () => {
+  const DOVER = { south: 50.6, west: 0.9, north: 51.3, east: 1.9 };
+  const SOLENT = { south: 50.6, west: -1.6, north: 50.9, east: -1.0 };
+  const boxesSent = (s: FakeSocket) => s.sent.map((m) => (m as { BoundingBoxes: unknown }).BoundingBoxes);
+
+  it('waits for a view, then subscribes to it, snapped to whole degrees', () => {
+    const t = harness({ boxes: [], viewport: true });
+    t.feed.start(t.sink);
+    expect(t.sockets).toHaveLength(0);
+    t.feed.setAreas([DOVER]);
+    t.last().h.onOpen();
+    expect(boxesSent(t.last())).toEqual([
+      [
+        [
+          [50, 0],
+          [52, 2],
+        ],
+      ],
+    ]);
+  });
+
+  it('resubscribes on the open connection, at most once every 2 s, with the latest view', () => {
+    const t = harness({ boxes: [], viewport: true });
+    t.feed.start(t.sink);
+    t.feed.setAreas([DOVER]);
+    t.last().accept();
+    t.feed.setAreas([{ ...DOVER, west: 1.1 }]); // same whole degrees: nothing to send
+    t.feed.setAreas([SOLENT]);
+    t.feed.setAreas([SOLENT, DOVER]);
+    expect(t.last().sent).toHaveLength(1);
+    t.advance(2_000);
+    expect(t.sockets).toHaveLength(1);
+    expect(boxesSent(t.last())[1]).toEqual([
+      [
+        [50, -2],
+        [51, -1],
+      ],
+      [
+        [50, 0],
+        [52, 2],
+      ],
+    ]);
+    // Long after the last one, a change goes out at once.
+    t.advance(10_000);
+    t.feed.setAreas([DOVER]);
+    expect(t.last().sent).toHaveLength(3);
+  });
+
+  it('keeps the last subscription when the views go away', () => {
+    const t = harness({ boxes: [], viewport: true });
+    t.feed.start(t.sink);
+    t.feed.setAreas([DOVER]);
+    t.last().accept();
+    t.feed.setAreas([]);
+    t.advance(10_000);
+    expect(t.last().terminated).toBe(false);
+    expect(t.last().sent).toHaveLength(1);
+  });
+
+  it('ignores views when it streams a fixed area', () => {
+    const t = harness();
+    t.feed.start(t.sink);
+    t.last().accept();
+    t.feed.setAreas([SOLENT]);
+    t.advance(5_000);
+    expect(t.last().sent).toHaveLength(1);
+  });
+});

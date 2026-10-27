@@ -2,6 +2,7 @@ import type { BBox, FeedStatus } from '@watchfloor/shared';
 import { WebSocket, type RawData } from 'ws';
 import { createLogger, type Logger } from '../../log';
 import { Backoff } from '../backoff';
+import { describeBoxes, planAisBoxes } from './areas';
 import type { Feed, TrackSink } from '../feed';
 import { mapAisMessage, parseStreamMessage, SUBSCRIBED_TYPES, type AisSkipReason } from './mapAis';
 import { ShipRegistry } from './ships';
@@ -28,6 +29,12 @@ const CONFIRM_TIMEOUT_MS = 15_000;
 const PING_EVERY_MS = 30_000;
 /** With nobody watching, keep streaming this long in case they come back (a reload, say). */
 const IDLE_GRACE_MS = 2 * 60_000;
+/**
+ * Least time between subscription messages on one connection. AISStream
+ * closes a connection that updates more than once a second; twice the limit
+ * leaves room for timer jitter.
+ */
+const RESUBSCRIBE_GAP_MS = 2_000;
 
 /** The little of a WebSocket the feed uses, so tests can hand it a fake. */
 export interface AisSocket {
@@ -52,6 +59,8 @@ export interface AisStreamOptions {
   apiKey: string | undefined;
   /** Areas to subscribe to. Empty means there is nothing to stream yet. */
   boxes: BBox[];
+  /** Follow what browsers are looking at (setAreas) instead of fixed boxes. */
+  viewport?: boolean;
   /** Stream URL, e.g. a local stub for rehearsing failures. Defaults to AISStream's. */
   url?: string;
   // Injectable for tests, so nothing touches the network or real time.
@@ -100,6 +109,8 @@ export class AisStreamFeed implements Feed {
   private retryAt: number | null = null;
   private watchdogTimer: unknown = null;
   private idleTimer: unknown = null;
+  private resubscribeTimer: unknown = null;
+  private lastSubscribedAt = -Infinity;
 
   // Exposed through status() and health().
   private failures = 0;
@@ -151,6 +162,24 @@ export class AisStreamFeed implements Feed {
     }
   }
 
+  /**
+   * Viewport mode: subscribe to what browsers are looking at. AISStream takes
+   * a new subscription on the open connection (it replaces the old one), so
+   * a pan costs one small message, not a reconnect. No views (everyone left)
+   * keeps the last subscription: the idle grace decides when to disconnect.
+   * There is no replay, so ships in a newly covered area appear as they next
+   * report: seconds for ships underway, up to 3 minutes for moored ones.
+   */
+  setAreas(views: BBox[]): void {
+    if (!this.opts.viewport) return;
+    const boxes = planAisBoxes(views);
+    if (boxes.length === 0 || describeBoxes(boxes) === describeBoxes(this.boxes)) return;
+    this.boxes = boxes;
+    this.log.info('area changed', { boxes: describeBoxes(boxes) });
+    if (this.socket && this.opened) this.resubscribe();
+    else this.reconcile();
+  }
+
   status(): FeedStatus {
     const base = { feed: this.name, label: 'AISStream' };
     if (!this.opts.apiKey) {
@@ -175,7 +204,7 @@ export class AisStreamFeed implements Feed {
       connected: this.socket !== null && this.opened,
       subscribed: this.confirmedAt !== null,
       compression: this.compression,
-      boxes: this.boxes.length,
+      boxes: describeBoxes(this.boxes),
       connections: this.connections,
       messages: this.messages,
       messagesPerSecond: this.rateWindow.perSecond,
@@ -206,7 +235,7 @@ export class AisStreamFeed implements Feed {
         if (this.socket !== socket) return;
         this.opened = true;
         // AISStream closes a connection with no subscription after 3 s.
-        socket.send(JSON.stringify(this.subscription()));
+        this.sendSubscription(socket);
       },
       onMessage: (text) => {
         if (this.socket === socket) this.onMessage(text);
@@ -228,6 +257,28 @@ export class AisStreamFeed implements Feed {
         : "Couldn't connect to AISStream (timed out)";
       socket.terminate();
     });
+  }
+
+  private sendSubscription(socket: AisSocket): void {
+    socket.send(JSON.stringify(this.subscription()));
+    this.lastSubscribedAt = this.now();
+  }
+
+  /** Send the current boxes on the open connection, no more than once per RESUBSCRIBE_GAP_MS. */
+  private resubscribe(): void {
+    if (this.resubscribeTimer !== null) return; // already due, and it sends the latest boxes
+    const send = () => {
+      if (this.socket && this.opened) this.sendSubscription(this.socket);
+    };
+    const wait = this.lastSubscribedAt + RESUBSCRIBE_GAP_MS - this.now();
+    if (wait <= 0) {
+      send();
+      return;
+    }
+    this.resubscribeTimer = this.setTimer(() => {
+      this.resubscribeTimer = null;
+      send();
+    }, wait);
   }
 
   private subscription(): Record<string, unknown> {
@@ -315,6 +366,8 @@ export class AisStreamFeed implements Feed {
   /** Close on purpose: no failure, no retry. */
   private disconnect(): void {
     this.clearWatchdog();
+    if (this.resubscribeTimer !== null) this.clearTimer(this.resubscribeTimer);
+    this.resubscribeTimer = null;
     const socket = this.socket;
     this.socket = null;
     this.confirmedAt = null;
