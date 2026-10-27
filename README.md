@@ -4,11 +4,11 @@ A real-time **common operating picture (COP)**: live air and sea tracks on a tac
 
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
-By default Watchfloor runs on a built-in traffic simulator over the English Channel, so it works offline. It can also show live aircraft from the [OpenSky Network](https://opensky-network.org), on their own or alongside the simulation. Every feed plugs into the same pipeline, so nothing downstream knows or cares where a track came from.
+By default Watchfloor runs on a built-in traffic simulator over the English Channel, so it works offline. It can also show live aircraft from the [OpenSky Network](https://opensky-network.org) and live ships from [AISStream](https://aisstream.io), on their own or alongside the simulation. Every feed plugs into the same pipeline, so nothing downstream knows or cares where a track came from.
 
 ## What it does
 
-- Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, filled in from a second network (adsb.lol) where you're zoomed in, or simulated traffic, and always says which
+- Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, filled in from a second network (adsb.lol) where you're zoomed in, real ships streamed from AISStream, or simulated traffic, and always says which
 - Streams a live picture to the browser over WebSockets, sending only what changed each second
 - Draws each contact with its MIL-STD-2525C symbol, callsign label and a speed leader showing where it's heading, or as a small identity-coloured dot when zoomed out to a continent or the world
 - Moves symbols smoothly between reports using dead reckoning, so tracks glide instead of jumping
@@ -73,6 +73,12 @@ Those figures are for the Channel box. A worldwide poll costs 4 credits, so anon
 
 Polling pauses while no browser is connected, so credits are only spent while someone is watching; a page reload doesn't pause it or trigger an extra poll. Change the interval with `OPENSKY_POLL_S`. When the credits run out, OpenSky returns 429 with the time to wait; Watchfloor waits exactly that long, the status bar says when polling resumes, the tracks fade and drop, and polling resumes by itself. `/healthz` shows credits remaining and the last error. To rehearse failures without spending credits, point `OPENSKY_API_URL` at a local stub.
 
+### Live ships
+
+Add `ais` to `FEEDS` (for example `FEEDS=opensky,ais`) for real ships from [AISStream](https://aisstream.io), which relays AIS, the radio messages ships broadcast about their position and identity. It's free but needs an API key: sign in at aisstream.io, create a key on the Account page and set `AISSTREAM_API_KEY` in `.env`. Without a key the feed doesn't connect and the status bar says "AISStream off" instead of claiming live traffic.
+
+`AIS_AREA` picks what to stream: the scenario's area (default), `world` (every ship AISStream's coastal receivers hear), or `viewport` (only what browsers are looking at). AISStream pushes messages as its receivers hear them, so there's nothing to poll: one WebSocket stays open while someone is watching and closes two minutes after the last browser leaves. AIS has no replay, so ships appear as they next report: within seconds for ships underway, up to three minutes for moored ones. A key allows three connections at once. To rehearse failures without using one, point `AISSTREAM_URL` at a local stub.
+
 ## Architecture
 
 ```mermaid
@@ -80,7 +86,8 @@ flowchart LR
   subgraph Server [Node.js server]
     SIM[Simulator feed] --> SINK
     ADSB[OpenSky feed - ADS-B] --> SINK
-    AIS[AIS feed - planned] -.-> SINK
+    ADSBLOL[adsb.lol feed - ADS-B] --> SINK
+    AIS[AISStream feed - AIS] --> SINK
     SINK[Validation] --> STORE[Track store]
     STORE -->|changes, once per tick| HUB[WebSocket hub]
     STORE --- HIST[Trail history]
@@ -141,7 +148,17 @@ client/   MapLibre map, symbology, UI
 
 **Measure the wait, then cut the biggest part.** Panning used to take 6 to 8 seconds to show new aircraft. Timing each step showed where it went: the browser and server each waited for the view to settle, the server only read views once a second, and adsb.lol's circles were fetched one after another although each takes 1 to 3.5 seconds to answer. Views are now reported within 100 ms, the free provider settles faster, and its circles are fetched two at a time with each pushed as it lands. Measured in headless Chrome, a pan now shows new aircraft in about 3 seconds; most of what's left is adsb.lol's own response time. When the map is empty only because the view is too wide for adsb.lol and nothing else is delivering, the status bar says to zoom in.
 
-**Say what's real.** The server tells the browser whether the picture is live, simulated or both, and the top bar says so. A simulated contact must never be mistaken for a real one. Likewise, when a live feed is rate limited or down, the status bar says so ("OpenSky rate limited, resumes 270000Z") instead of letting aircraft fade without explanation; a healthy feed says nothing. Feed status rides on the next delta only when it changes, so the per-second message stays small.
+**A stream needs looking after, not scheduling.** OpenSky and adsb.lol are polled; AISStream is one long-lived WebSocket. The feed sends its subscription the moment the socket opens (AISStream closes a connection that hasn't subscribed within 3 seconds), reconnects with jittered exponential backoff, and only resets the backoff after a connection has stayed healthy for 30 seconds, so a server that accepts and immediately drops can't cause a tight loop. Silence isn't a failure: an empty stretch of sea can be quiet for minutes, so liveness comes from WebSocket pings, not from message gaps. AISStream rejects a bad key by dropping the socket without a word (recorded: close code 1006 about 600 ms after subscribing), so a close before the subscription is confirmed waits at least 30 seconds and the status bar suggests checking the key. The connection negotiates permessage-deflate, because AISStream drops messages over a bandwidth limit on uncompressed connections. Socket, clock and timers are injected, so tests script drops, dead connections and rejected keys without the network.
+
+**Ships report at their own pace.** A ship's AIS rate follows what it's doing: every 2 to 10 seconds underway, every 3 minutes at anchor. The sea default of fading after 90 seconds would fade every moored ship between reports, so live AIS gets its own rule through the per-source staleness overrides: fade after two missed 3-minute reports plus a margin, drop after about six. Moving ships report so often that they rarely get near either.
+
+**Half a timestamp.** An AIS position report carries only the UTC *second* of its fix, not the date or minute. The feed rebuilds the full time from AISStream's receive time: the latest moment at or before receipt that falls on that second. A fix a few seconds "after" receipt is treated as the ship's clock running ahead, not as nearly a minute of latency. Codes 60 to 63 mean "no time stamp" and fall back to the receive time. The other "not available" codes (latitude 91, speed 102.3 knots, course 360, heading 511) are skipped rather than drawn, and a moving ship with no course is skipped instead of being dead-reckoned due north.
+
+**Identity arrives separately.** Positions come every few seconds, names and ship types every six minutes in separate static messages (Class B ships split even those into two parts). A small registry per MMSI remembers the static half, so every position report carries the best known name and type. It's bounded, dropping the least recently heard ship, because a world subscription hears tens of thousands of ships a day. Ship types map to platforms (fishing, passenger, cargo, tanker, leisure); type 35, a ship declaring military operations, becomes a warship symbol but never an affiliation, which stays the operator's call. Coast stations, aids to navigation and distress beacons have MMSIs that aren't ships' and are left out.
+
+**A pan costs one message.** In viewport mode the views are split at the antimeridian and snapped outward to whole degrees, as for OpenSky. But AISStream's cost is message volume, which grows with area, not a price per box, so separate views stay separate boxes. A new subscription replaces the old one on the open connection, so panning sends one small message instead of reconnecting. AISStream closes a connection that updates more than once a second, so updates go at most once every 2 seconds, always with the latest view.
+
+**Say what's real.** The server tells the browser whether the picture is live, simulated or both, and the top bar says so. A simulated contact must never be mistaken for a real one. Likewise, when a live feed is rate limited or down, the status bar says so ("OpenSky rate limited, resumes 270000Z") instead of letting aircraft fade without explanation; a healthy feed says nothing. A feed with no API key is "off", not "not responding", and doesn't count towards "live traffic". Feed status rides on the next delta only when it changes, so the per-second message stays small.
 
 **Server time, not browser time.** Track ages and dead reckoning compare server timestamps with "now". The client estimates its clock offset from every message, so a browser clock that's a few seconds off doesn't make tracks look stale.
 
@@ -152,7 +169,7 @@ client/   MapLibre map, symbology, UI
 - [x] Simulator, WebSocket pipeline, symbology, selection and details
 - [x] Track history trails and a sortable, filterable track list
 - [x] Live aircraft from the OpenSky Network API, filled in from adsb.lol
-- [ ] Live ships from AISStream.io
+- [x] Live ships from AISStream.io
 - [ ] Geofences with entry and exit alerts
 - [ ] Operator tagging of affiliation (friend, neutral, unknown and so on)
 - [ ] Recording and a replay timeline
@@ -163,5 +180,6 @@ client/   MapLibre map, symbology, UI
 - Symbols: [milsymbol](https://github.com/spatialillusions/milsymbol)
 - Map rendering: [MapLibre GL JS](https://maplibre.org/)
 - Live aircraft: [The OpenSky Network](https://opensky-network.org) and [adsb.lol](https://adsb.lol) (data under the [ODbL](https://opendatacommons.org/licenses/odbl/))
+- Live ships: [AISStream](https://aisstream.io)
 
-All simulated traffic is invented, including callsigns and vessel names. Live aircraft come from crowd-sourced receivers (OpenSky, adsb.lol) and can be delayed, incomplete or missing; empty areas often mean no receivers, not no aircraft. This is a portfolio project and must not be used for navigation.
+All simulated traffic is invented, including callsigns and vessel names. Live aircraft and ships come from crowd-sourced receivers (OpenSky, adsb.lol, AISStream) and can be delayed, incomplete or missing; empty areas often mean no receivers, not no traffic. AIS is self-reported: a ship's name, type and position are what it broadcasts, not an identification. This is a portfolio project and must not be used for navigation.

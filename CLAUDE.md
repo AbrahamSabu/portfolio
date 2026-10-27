@@ -4,7 +4,8 @@ A real-time common operating picture (COP): a defence-style tactical map of
 live air and sea tracks drawn with NATO MIL-STD-2525C symbols. It is a
 portfolio project, so code quality, structure, tests and the README matter as
 much as features. It runs on a built-in traffic simulator by default, and can
-show live aircraft from the OpenSky Network; live AIS (ships) comes next.
+show live aircraft from the OpenSky Network and adsb.lol, and live ships from
+AISStream.
 
 ## Commands
 
@@ -12,7 +13,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (217 tests after the loading-speed work).
+- `npm test`: Vitest from the root config (257 tests after live AIS).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -25,7 +26,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   `TrailHistory` (`trail.ts`) and `sanitizeTrack` validation (`validate.ts`).
 - `server/`: Node plus `ws`, bundled with esbuild for production. `trackStore.ts`,
   `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface, `pollScheduler.ts`, `sim/`, `opensky/`,
-  `adsblol/`, shared `adsb/category.ts`) and
+  `adsblol/`, `ais/`, shared `adsb/category.ts` and `backoff.ts`) and
   `scenarios/`.
 - `client/`: Vite, MapLibre GL JS v6 and milsymbol v3 in plain TypeScript, with no
   UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl, symbols,
@@ -42,7 +43,8 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   An optional `health()` adds feed state to `/healthz`, and an optional
   `status()` returns a viewer-facing `FeedStatus` (shared/feedStatus.ts: ok,
   starting, rate-limited with `until`, failing with `detail`, standing-aside
-  when the view is wider than the feed covers). An optional
+  when the view is wider than the feed covers, unconfigured when it can't
+  run without a missing API key: "AISStream off: ..."). An optional
   `setDemand(watched)` hint (may be called before `start`) is driven by the
   Hub's `onClientsChanged(count)`; `index.ts` calls `setDemand(false)` before
   starting feeds, because nobody is connected yet. An optional
@@ -71,7 +73,7 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 7`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 8`, v8 added feed state `unconfigured`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -86,7 +88,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   and are **always** looked up with `ruleFor(track, rules)` (server store,
   browser store, track layer). Domain defaults: air stale 30 s / drop 120 s,
   sea stale 90 s / drop 10 min. `index.ts` sets `bySource.adsb` from
-  `polledStaleness(pollMs)` when OpenSky runs (60 s poll gives 145 s / 360 s).
+  `polledStaleness(pollMs)` when OpenSky runs (60 s poll gives 145 s / 360 s),
+  and `bySource.ais` to `AIS_STALENESS` (6.5 min / 20 min: moored ships
+  report every 3 min, so the sea default would fade them between reports).
 - `hello.traffic` is `simulated | live | mixed` (from `trafficKind(feeds)`);
   the top bar labels the picture from it. Never present sim traffic as live.
 - Trails (`shared/src/trail.ts`): `TrailHistory` keeps reported positions as
@@ -199,7 +203,44 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
   polls only what browsers show (1 credit at zoom 8+, 2 at the Channel's
   zoom 7, 4 for the world). `FEEDS` may include `adsblol` (`ADSBLOL_POLL_S`,
   default 30; `ADSBLOL_API_URL`); the shared adsb staleness rule uses the
-  slower of the two poll intervals.
+  slower of the two poll intervals. `FEEDS` may include `ais`:
+  `AISSTREAM_API_KEY` (missing key = feed runs, reports `unconfigured`, and
+  doesn't count towards `traffic` or map credits), `AIS_AREA` (scenario,
+  world or viewport) and `AISSTREAM_URL` (ws(s), for a local stub).
+- AISStream (`server/src/feeds/ais/`), one WebSocket (`ws` client, already a
+  dependency: permessage-deflate, ping/pong):
+  - Docs (Oct 2026): `wss://stream.aisstream.io/v0/stream`; subscribe within
+    3 s with `{APIKey, BoundingBoxes: [[[lat, lon], [lat, lon]]], FilterMessageTypes}`
+    (**latitude first**, the reverse of our BBox); resending replaces the
+    subscription, but more than 1 update/s closes the connection. 3
+    connections per key, 3 per IP. Uncompressed connections get bandwidth
+    limits (since Sep 2026) and over-limit messages are dropped; so are a slow
+    reader's. No replay. Frames are binary UTF-8 JSON.
+  - `mapAis.ts` is pure: envelope parse (`SubscriptionConfirmation`,
+    `{error}`, AIS), Class A/B positions and both static types.
+    ITU-R M.1371 "not available" values (lat 91, lon 181, Sog 102.3, Cog
+    360, heading 511) are skipped; a moving ship without course is skipped.
+    `fixTime` rebuilds observedAt from `MetaData.time_utc` (receive time)
+    and the report's UTC second (60-63 = no stamp); up to 5 s "ahead" is
+    clock skew. Only MMSIs starting 2-7 are ships. Type 35 = warship
+    platform, never an affiliation (always `unknown`).
+  - `ShipRegistry` (ships.ts) caches name/type per MMSI (LRU, 50k), merged
+    into each position; `MetaData.ShipName` is the fallback name. Tracks are
+    `ais:<MMSI>`, `provider: 'aisstream'` ("AIS via AISStream").
+  - `aisStreamFeed.ts`: connect, socket, clock, timers and random are
+    injected. Backoff 1 s to 2 min, reset only after 30 s healthy. A close
+    after open but before confirmation is a likely rejected key or 4th
+    connection (**AISStream says nothing: recorded close 1006 ~600 ms after
+    subscribing**), so it waits >= 30 s. 15 s to open and confirm; then a
+    ping every 30 s, and a missed pong drops the connection (silence alone
+    isn't failure: empty sea is quiet). No viewers: disconnect after 2 min
+    grace; retries are scheduled regardless so a reload can't skip backoff.
+    Recording (roadmap 6) must count as demand.
+  - `AIS_AREA=viewport`: `areas.ts` reuses coverage.ts's antimeridian split
+    and whole-degree snap but keeps separate boxes (cost is volume, i.e.
+    area; one union only past 16 boxes). Changes go out on the open
+    connection at most every 2 s with the latest view; empty views keep the
+    last subscription.
 
 ## Gotchas already solved (do not undo)
 
@@ -236,6 +277,9 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 - Another session may already be running the dev server on 8080/5173. Don't
   kill it; verify with `npm run build`, then from `server/`
   `PORT=8090 FEEDS=opensky node dist/index.js` (env vars override `.env`).
+- Each running AIS server holds one of the key's 3 AISStream connections; a
+  fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
+  `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.
@@ -262,7 +306,8 @@ show live aircraft from the OpenSky Network; live AIS (ships) comes next.
 2. ~~Live aircraft from the OpenSky Network API as a Feed~~ (done). Polling pauses
    while no browser is connected, viewport mode polls only what's on screen,
    and the status bar says when the feed is rate limited or failing.
-3. Live ships from AISStream.io over WebSocket (free API key in `.env`).
+3. ~~Live ships from AISStream.io over WebSocket~~ (done). Free API key in
+   `.env`; scenario, world or viewport areas; "off" without a key.
 4. Geofences drawn on the map, with entry and exit alerts.
 5. Operator tagging of affiliation.
 6. Recording and a replay timeline.
