@@ -15,6 +15,13 @@ export type Affiliation = 'friend' | 'hostile' | 'neutral' | 'unknown' | 'pendin
 /** Where a report came from. Prefixes the track id so ids never collide across feeds. */
 export type TrackSource = 'sim' | 'adsb' | 'ais';
 
+/**
+ * Which service delivered a report, when a source has several (ADS-B comes
+ * from OpenSky or adsb.lol). Tracks merge by id across providers; this says
+ * where the latest report came from, for the details panel and credits.
+ */
+export type Provider = 'opensky' | 'adsb.lol';
+
 /** What kind of platform this is, as far as we know. A closed list keeps symbology predictable. */
 export type Platform =
   // air
@@ -54,6 +61,8 @@ export interface Track {
   speedMps: number;
   /** When this position was observed, ms since epoch (source time, not receive time). */
   observedAt: number;
+  /** Service that delivered this report, for sources with more than one. */
+  provider?: Provider;
 }
 
 export function makeTrackId(source: TrackSource, nativeId: string): string {

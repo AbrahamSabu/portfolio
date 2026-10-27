@@ -6,7 +6,7 @@ import type { TrackStore } from '../state/trackStore';
 import {
   AFFILIATION_LABEL,
   PLATFORM_LABEL,
-  SOURCE_LABEL,
+  formatSource,
   formatAge,
   formatAltitude,
   formatCourse,
@@ -90,7 +90,7 @@ export class DetailsPanel {
     this.set('altitude', formatAltitude(track.altitudeM));
     this.altitudeRow.hidden = track.domain !== 'air';
     this.set('age', formatAge(age));
-    this.set('source', SOURCE_LABEL[track.source]);
+    this.set('source', formatSource(track));
     this.set('id', track.id);
 
     this.staleNote.hidden = !stale;

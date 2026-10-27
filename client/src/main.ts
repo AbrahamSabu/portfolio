@@ -2,6 +2,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import { createMap } from './map/createMap';
+import { DataCredits } from './map/dataCredits';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { loadTrailMode, TrailControl } from './map/trailControl';
@@ -125,6 +126,7 @@ async function main(): Promise<void> {
     viewTimer = window.setTimeout(sendView, 500);
   });
 
+  const credits = new DataCredits(map);
   const connection = new Connection(defaultSocketUrl(), {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
@@ -138,6 +140,7 @@ async function main(): Promise<void> {
           }
           framed = true;
           status.setFeeds(message.feeds);
+          credits.set(message.feeds.map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           break;
         case 'snapshot':

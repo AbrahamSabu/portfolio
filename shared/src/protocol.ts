@@ -25,8 +25,9 @@ import type { TrailPoint } from './trail';
  *      feed can poll only the watched areas
  *   5  hello carries `feeds` (each live feed's status); a delta carries
  *      `feeds` only in the tick where one changed
+ *   6  tracks may carry `provider` (which service delivered the report)
  */
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 export interface HelloMessage {
   type: 'hello';

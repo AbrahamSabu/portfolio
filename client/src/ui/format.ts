@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type TrackSource, type FeedStatus, type TrafficKind } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type TrafficKind } from '@watchfloor/shared';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   airliner: 'Airliner',
@@ -27,7 +27,7 @@ export const AFFILIATION_LABEL: Record<Affiliation, string> = {
 
 export const SOURCE_LABEL: Record<TrackSource, string> = {
   sim: 'Simulator',
-  adsb: 'ADS-B (OpenSky)',
+  adsb: 'ADS-B',
   ais: 'AIS',
 };
 
@@ -47,6 +47,17 @@ export function describeFeedStatus(s: FeedStatus): string | null {
     case 'failing':
       return `${s.label} not responding${s.detail ? ` (${s.detail})` : ''}, retrying`;
   }
+}
+
+export const PROVIDER_LABEL: Record<Provider, string> = {
+  opensky: 'OpenSky',
+  'adsb.lol': 'adsb.lol',
+};
+
+/** "ADS-B via adsb.lol": the kind of data, and which service delivered the latest report. */
+export function formatSource(track: Pick<Track, 'source' | 'provider'>): string {
+  const kind = SOURCE_LABEL[track.source];
+  return track.provider ? `${kind} via ${PROVIDER_LABEL[track.provider]}` : kind;
 }
 
 const TRAFFIC_LABEL: Record<TrafficKind, string> = {

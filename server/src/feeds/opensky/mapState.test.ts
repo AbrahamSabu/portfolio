@@ -47,6 +47,7 @@ describe('mapState on a recorded response (English Channel, 26 Oct 2026)', () =>
         courseDeg: 10.74,
         speedMps: 201.59,
         observedAt: 1792975612_000,
+        provider: 'opensky',
       },
     });
   });

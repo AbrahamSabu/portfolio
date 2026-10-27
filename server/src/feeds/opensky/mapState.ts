@@ -69,6 +69,7 @@ export function mapState(row: unknown): MapOutcome {
     courseDeg,
     speedMps,
     observedAt: seconds * 1000,
+    provider: 'opensky',
   };
   // Geometric (GNSS) altitude first: barometric altitude assumes standard
   // pressure (1013.25 hPa) and can be hundreds of metres off true height.

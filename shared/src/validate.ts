@@ -1,5 +1,5 @@
 import { normalizeDeg } from './geo';
-import type { Affiliation, Domain, Platform, Track, TrackSource } from './track';
+import type { Affiliation, Domain, Platform, Provider, Track, TrackSource } from './track';
 
 const DOMAINS: ReadonlySet<Domain> = new Set(['air', 'sea']);
 const SOURCES: ReadonlySet<TrackSource> = new Set(['sim', 'adsb', 'ais']);
@@ -26,6 +26,8 @@ const PLATFORMS: ReadonlySet<Platform> = new Set([
   'warship',
   'vessel',
 ]);
+
+const PROVIDERS: ReadonlySet<Provider> = new Set(['opensky', 'adsb.lol']);
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
@@ -70,6 +72,7 @@ export function sanitizeTrack(input: unknown): Track | null {
     const callsign = t.callsign.trim().slice(0, 32);
     if (callsign) track.callsign = callsign;
   }
+  if (PROVIDERS.has(t.provider as Provider)) track.provider = t.provider as Provider;
   if (track.domain === 'air' && isFiniteNumber(t.altitudeM)) {
     track.altitudeM = t.altitudeM;
   }

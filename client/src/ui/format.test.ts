@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   describeFeedStatus,
+  formatSource,
   trafficLabel,
   formatAge,
   formatAltitude,
@@ -77,6 +78,17 @@ describe('describeFeedStatus', () => {
   it('copes without the optional details', () => {
     expect(describeFeedStatus({ ...opensky, state: 'rate-limited' })).toBe('OpenSky rate limited');
     expect(describeFeedStatus({ ...opensky, state: 'failing' })).toBe('OpenSky not responding, retrying');
+  });
+});
+
+describe('formatSource', () => {
+  it('names the provider when a source has several', () => {
+    expect(formatSource({ source: 'adsb', provider: 'adsb.lol' })).toBe('ADS-B via adsb.lol');
+    expect(formatSource({ source: 'adsb', provider: 'opensky' })).toBe('ADS-B via OpenSky');
+  });
+
+  it('is just the kind of data otherwise', () => {
+    expect(formatSource({ source: 'sim' })).toBe('Simulator');
   });
 });
 
