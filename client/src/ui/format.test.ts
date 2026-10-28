@@ -118,6 +118,13 @@ describe('describeFeeds', () => {
     ).toBe('OpenSky rate limited, resumes 281701Z; Zoom in to see aircraft from adsb.lol');
   });
 
+  it('names both ADS-B networks in one hint when both stand aside', () => {
+    const adsbfi = { feed: 'adsbfi', label: 'adsb.fi' };
+    expect(describeFeeds([{ ...adsblol, state: 'standing-aside' }, { ...adsbfi, state: 'standing-aside' }])).toBe(
+      'Zoom in to see aircraft from adsb.lol and adsb.fi',
+    );
+  });
+
   it('joins several problems', () => {
     expect(describeFeeds([{ ...opensky, state: 'failing', detail: 'HTTP 503' }, { ...adsblol, state: 'starting' }])).toBe(
       'OpenSky not responding (HTTP 503), retrying; Waiting for adsb.lol',

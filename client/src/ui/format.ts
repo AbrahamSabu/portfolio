@@ -63,7 +63,8 @@ export function describeFeeds(feeds: FeedStatus[]): string {
   // Ships on the map don't explain missing aircraft, so AIS doesn't count.
   const delivering = feeds.some((f) => f.feed !== 'ais' && (f.state === 'ok' || f.state === 'starting'));
   if (!delivering) {
-    for (const f of feeds) if (f.state === 'standing-aside') lines.push(`Zoom in to see aircraft from ${f.label}`);
+    const aside = feeds.filter((f) => f.state === 'standing-aside').map((f) => f.label);
+    if (aside.length) lines.push(`Zoom in to see aircraft from ${aside.join(' and ')}`);
   }
   return lines.join('; ');
 }
@@ -71,6 +72,7 @@ export function describeFeeds(feeds: FeedStatus[]): string {
 export const PROVIDER_LABEL: Record<Provider, string> = {
   opensky: 'OpenSky',
   'adsb.lol': 'adsb.lol',
+  'adsb.fi': 'adsb.fi',
   aisstream: 'AISStream',
 };
 
