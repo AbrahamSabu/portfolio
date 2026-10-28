@@ -17,6 +17,7 @@
     "build": "npm run build -w @watchfloor/client && npm run build -w @watchfloor/server",
     "start": "npm run start -w @watchfloor/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "aircraft-db": "npm run aircraft-db -w @watchfloor/server --",
     "test": "vitest run",
     "test:watch": "vitest"
   },
