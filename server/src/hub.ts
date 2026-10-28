@@ -144,7 +144,12 @@ export class Hub {
       feeds: this.opts.feedStatus?.() ?? [],
     };
     client.ws.send(encodeServerMessage(hello));
-    this.sendSnapshot(client);
+    // Build the snapshot on the next turn of the event loop, so the hello goes
+    // out first. Encoding a world snapshot takes a few hundred ms, and the
+    // hello lets the page frame the map and send its view meanwhile.
+    setImmediate(() => {
+      if (this.clients.has(client)) this.sendSnapshot(client);
+    });
   }
 
   private sendSnapshot(client: Client): void {
