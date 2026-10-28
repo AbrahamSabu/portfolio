@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { AIS_STALENESS, DEFAULT_STALENESS, type StalenessRules, type Track } from '@watchfloor/shared';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
 import { TrackStore } from './trackStore';
@@ -17,7 +17,17 @@ function ship(id: string, observedAt: number, lon = -8.3): Track {
 }
 const simShip = (): Track => ({ ...ship('x', NOW), id: 'sim:sea-0001', source: 'sim', provider: undefined });
 
-const tempFile = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'wf-picture-')), 'nested', 'picture.json');
+// Each test writes under its own temp directory; all are removed afterwards
+// (they used to pile up in the system temp folder, one per test per run).
+const tempDirs: string[] = [];
+const tempFile = () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-picture-'));
+  tempDirs.push(dir);
+  return path.join(dir, 'nested', 'picture.json');
+};
+afterAll(() => {
+  for (const dir of tempDirs) fs.rmSync(dir, { recursive: true, force: true });
+});
 
 describe('picture cache', () => {
   it('saves live tracks and trails, and restores them after a restart', async () => {
