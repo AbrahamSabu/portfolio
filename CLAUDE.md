@@ -18,7 +18,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (310 tests after the aircraft database).
+- `npm test`: Vitest from the root config (312 tests after the visual pass).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -413,6 +413,20 @@ that could have been fetched before they arrived.
 - Map controls sit top left; the right side is reserved for the details panel,
   which becomes a bottom sheet under 640 px.
 - Respect `prefers-reduced-motion`. Motion only responds to user actions.
+- Zoomed out (dots, below zoom 5): aircraft are filled dots, ships are
+  rings (`DOT_PAINT` in trackLayer.ts), so domains differ by shape, never
+  colour. Symbols scale with zoom (`icon-size` 0.5 at 5, 0.7 at 7, 1 at 10);
+  leaders thin and fade below zoom 9.
+- HoverCard (`ui/hoverCard.ts`, mouse/pen only via `(hover: hover)`): name,
+  model or type, altitude, speed; uses `TrackLayer.trackAt()`, the same
+  hit-test as clicks. Text via textContent only (names come from feeds).
+- KeyDialog (`ui/keyDialog.ts`, `?` or the top bar button): a modal
+  `<dialog>`; symbols drawn with `symbolSvg()` (same options as the map's
+  canvas symbols), so the key can't drift. While it's open the global key
+  handler returns early. The details header shows the track's symbol too.
+- `cleanCallsign` (shared/validate.ts) strips padding (`-.,:;_*~`, spaces)
+  and drops names with no letter or digit or all zeros; it runs at
+  validation, so restored pictures are cleaned on restart.
 
 ## Roadmap (next up first)
 

@@ -15,6 +15,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Fades tracks that stop reporting, then removes them after a timeout that depends on the track type and how often its source reports, and says in the status bar when a live feed is rate limited or not responding
 - Shows where each track has been with a history trail, for all tracks, only the selected one, or none
 - Lists every track, all 7,000+ of them worldwide, in a sortable table you can filter by air or sea and search by callsign; selecting a row selects the track on the map, and the other way round
+- Names any track you point at in a small card (callsign, model, altitude, speed), at every zoom, and explains every colour, symbol and line in a map key (?)
 - Filters the whole picture (map, trails, list and counts) by vehicle type, from airliner and helicopter to tanker and warship, by data source, and by whether stale tracks show, with a live count beside each choice (F)
 - Lets you select a track to see its position, course, speed, altitude and report age, and follow it across the map
 - Survives network trouble: automatic reconnect with backoff, a heartbeat watchdog, and resync for slow clients
@@ -55,6 +56,7 @@ Keyboard shortcuts:
 | `↑` `↓` `Enter` | Move through the list and select a track |
 | `T` | Cycle trails: all tracks, selected only, off |
 | `F` | Open or close the filter |
+| `?` | Open the map key: what colours, symbols, dots, rings and lines mean |
 | `Esc` | Close the filter, or clear the selection |
 
 Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator, `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
