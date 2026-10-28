@@ -18,7 +18,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (289 tests after the compact wire format).
+- `npm test`: Vitest from the root config (297 tests after the picture filter).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -123,6 +123,17 @@ that could have been fetched before they arrived.
     "heads" source joins the last report to the symbol at 10 Hz. Its mode
     (all, selected or off) is cycled by TrailControl or the T key and saved in
     localStorage.
+  - PictureFilter (`state/pictureFilter.ts`): hidden vehicle types
+    (grouped by `PLATFORMS_BY_DOMAIN`), hidden sources (provider, or `sim`)
+    and `showStale`; saved in localStorage (`watchfloor.filter`, parsed
+    with unknown values dropped). `passes(track, stale)` is checked by
+    TrackLayer (selected track always drawn), TrailLayer, TrackList (its
+    domain buttons and search narrow further) and StatusBar (counts are of
+    shown tracks, plus "N filtered out"). FilterControl (funnel under the
+    trail toggle, dot when active, F key; Escape closes it first) opens
+    FilterPanel (`ui/filterPanel.ts`: rows built once, counts of the whole
+    picture refreshed 1/s while open). Measured: ~90% of world aircraft are
+    OpenSky's uncategorised 'aircraft', ~half the ships 'vessel'.
   - TrackList is a left drawer (L key; `/` focuses search), or a bottom sheet
     under 640 px. Its filter and sort are pure functions in `state/trackQuery.ts`.
     Rows are reused per id and only moved when the order changes, and they use
