@@ -27,8 +27,8 @@ import type { TrailPoint } from './trail';
 
 /**
  * [id, source, domain, platform, affiliation, lat, lon, courseDeg, speedMps,
- * ageMs, altitudeM, callsign, provider]. The last three may be null when
- * absent, and trailing nulls are left off.
+ * ageMs, altitudeM, callsign, provider, typeCode, model]. The last five may
+ * be null when absent, and trailing nulls are left off.
  */
 export type TrackTuple = (string | number | null)[];
 
@@ -76,6 +76,8 @@ export function encodeTrack(t: Track, serverTime: number): TrackTuple {
     t.altitudeM === undefined ? null : Math.round(t.altitudeM),
     t.callsign ?? null,
     t.provider === undefined ? null : code('provider', t.provider),
+    t.typeCode ?? null,
+    t.model ?? null,
   ];
   while (tuple.at(-1) === null) tuple.pop();
   return tuple;
@@ -98,6 +100,8 @@ export function decodeTrack(w: TrackTuple, serverTime: number): Track {
   if (typeof w[10] === 'number') track.altitudeM = w[10];
   if (typeof w[11] === 'string') track.callsign = w[11];
   if (typeof w[12] === 'number') track.provider = TRACK_VALUES.provider[w[12]]!;
+  if (typeof w[13] === 'string') track.typeCode = w[13];
+  if (typeof w[14] === 'string') track.model = w[14];
   return track;
 }
 

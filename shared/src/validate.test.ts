@@ -49,3 +49,20 @@ describe('sanitizeTrack', () => {
     expect(t?.altitudeM).toBeUndefined();
   });
 });
+
+describe('sanitizeTrack: aircraft type', () => {
+  it('keeps a type designator and a printable, bounded model for aircraft', () => {
+    const t = sanitizeTrack({ ...good, typeCode: 'B748', model: 'BOEING 747-8\u0007' + 'X'.repeat(60) });
+    expect(t?.typeCode).toBe('B748');
+    expect(t?.model).toMatch(/^BOEING 747-8X+$/);
+    expect(t?.model).toHaveLength(48);
+  });
+
+  it('drops malformed designators, and type fields on ships', () => {
+    expect(sanitizeTrack({ ...good, typeCode: 'b748' })?.typeCode).toBeUndefined();
+    expect(sanitizeTrack({ ...good, typeCode: 'TOOLONG' })?.typeCode).toBeUndefined();
+    const ship = sanitizeTrack({ ...good, id: 'ais:1', source: 'ais', domain: 'sea', platform: 'cargo', typeCode: 'B748', model: 'x' });
+    expect(ship?.typeCode).toBeUndefined();
+    expect(ship?.model).toBeUndefined();
+  });
+});

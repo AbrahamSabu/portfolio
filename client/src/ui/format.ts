@@ -8,6 +8,8 @@ export const PLATFORM_LABEL: Record<Platform, string> = {
   'maritime-patrol': 'Maritime patrol aircraft',
   uav: 'Uncrewed aircraft',
   aircraft: 'Aircraft',
+  'business-jet': 'Business jet',
+  'military-aircraft': 'Military aircraft',
   cargo: 'Cargo ship',
   tanker: 'Tanker',
   passenger: 'Passenger ferry',

@@ -32,6 +32,8 @@ export type Platform =
   | 'maritime-patrol'
   | 'uav'
   | 'aircraft' // known to be airborne, type unknown
+  | 'business-jet'
+  | 'military-aircraft' // military fixed wing that isn't patrol or a drone
   // sea
   | 'cargo'
   | 'tanker'
@@ -63,6 +65,9 @@ export interface Track {
   observedAt: number;
   /** Service that delivered this report, for sources with more than one. */
   provider?: Provider;
+  /** Aircraft only, from the aircraft database: ICAO type designator (B748) and model ("BOEING 747-8"). */
+  typeCode?: string;
+  model?: string;
 }
 
 /**
@@ -82,6 +87,7 @@ export const TRACK_VALUES: {
   platform: [
     'airliner', 'light-aircraft', 'helicopter', 'military-helicopter', 'maritime-patrol', 'uav', 'aircraft',
     'cargo', 'tanker', 'passenger', 'fishing', 'leisure', 'warship', 'vessel',
+    'business-jet', 'military-aircraft',
   ],
   affiliation: ['friend', 'hostile', 'neutral', 'unknown', 'pending'],
   provider: ['opensky', 'adsb.lol', 'adsb.fi', 'aisstream'],

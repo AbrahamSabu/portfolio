@@ -32,8 +32,10 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *   9  provider `adsb.fi`
  *  10  tracks and trails travel compact (wire.ts): tuples, codes, steps;
  *      snapshot trails are a list aligned with its tracks
+ *  11  platforms `business-jet` and `military-aircraft`; aircraft tracks may
+ *      carry `typeCode` and `model` from the aircraft database
  */
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 
 export interface HelloMessage {
   type: 'hello';

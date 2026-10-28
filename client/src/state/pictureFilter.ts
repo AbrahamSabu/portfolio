@@ -21,7 +21,10 @@ export const DEFAULT_FILTER: FilterState = { hiddenPlatforms: [], hiddenSources:
 
 /** Vehicle types grouped the way the panel shows them, most common first. */
 export const PLATFORMS_BY_DOMAIN: Record<Domain, readonly Platform[]> = {
-  air: ['airliner', 'light-aircraft', 'helicopter', 'military-helicopter', 'maritime-patrol', 'uav', 'aircraft'],
+  air: [
+    'airliner', 'business-jet', 'light-aircraft', 'helicopter',
+    'military-aircraft', 'military-helicopter', 'maritime-patrol', 'uav', 'aircraft',
+  ],
   sea: ['cargo', 'tanker', 'passenger', 'fishing', 'leisure', 'warship', 'vessel'],
 };
 

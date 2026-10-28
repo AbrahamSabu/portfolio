@@ -34,6 +34,12 @@ describe('encodeTrack / decodeTrack', () => {
     expect(decodeTrack(encodeTrack(named, NOW), NOW)).toEqual(named);
   });
 
+  it("carries an aircraft's type designator and model", () => {
+    const typed = { ...jet, typeCode: 'B748', model: 'BOEING 747-8' };
+    expect(encodeTrack(typed, NOW).slice(13)).toEqual(['B748', 'BOEING 747-8']);
+    expect(decodeTrack(encodeTrack(typed, NOW), NOW)).toMatchObject({ typeCode: 'B748', model: 'BOEING 747-8' });
+  });
+
   it('prints short decimals, with no float noise', () => {
     const json = JSON.stringify(encodeTrack({ ...ship, lat: 0.1 + 0.2, speedMps: 0.1 + 0.2 }, NOW));
     expect(json).toContain(',0.3,');

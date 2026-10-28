@@ -30,6 +30,8 @@ const PLATFORM_CODE: Record<Platform, { dimension: 'A' | 'S'; fn: string }> = {
   'maritime-patrol': { dimension: 'A', fn: 'MFP---' }, // military fixed wing, patrol
   uav: { dimension: 'A', fn: 'MFQ---' }, // drone
   aircraft: { dimension: 'A', fn: '------' },
+  'business-jet': { dimension: 'A', fn: 'CF----' }, // civilian fixed wing, as airliners
+  'military-aircraft': { dimension: 'A', fn: 'MF----' }, // military fixed wing
   cargo: { dimension: 'S', fn: 'XMC---' }, // non-combatant, merchant, cargo
   tanker: { dimension: 'S', fn: 'XMO---' },
   passenger: { dimension: 'S', fn: 'XMP---' },
