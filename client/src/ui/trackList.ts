@@ -1,6 +1,7 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { Track } from '@watchfloor/shared';
-import { AFFILIATION_COLOR, type TrackLayer } from '../map/trackLayer';
+import { AFFILIATION_COLOR } from '../map/colors';
+import type { TrackLayer } from '../map/trackLayer';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { PictureFilter } from '../state/pictureFilter';

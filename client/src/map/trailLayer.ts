@@ -4,7 +4,8 @@ import type { Track } from '@watchfloor/shared';
 import type { PictureFilter } from '../state/pictureFilter';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
-import { AFFILIATION_LINE_COLOR, LOWEST_TRACK_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
+import { AFFILIATION_LINE_COLOR } from './colors';
+import { LOWEST_TRACK_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
 import { inViewBox } from './viewBox';
 
 /** Which tracks show their history. */
