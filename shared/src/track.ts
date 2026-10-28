@@ -65,6 +65,28 @@ export interface Track {
   provider?: Provider;
 }
 
+/**
+ * Every allowed value of each enumerated Track field: what validation accepts,
+ * and, by position, the codes the wire format sends (wire.ts). **Append only:**
+ * reordering or removing a value changes the protocol.
+ */
+export const TRACK_VALUES: {
+  readonly source: readonly TrackSource[];
+  readonly domain: readonly Domain[];
+  readonly platform: readonly Platform[];
+  readonly affiliation: readonly Affiliation[];
+  readonly provider: readonly Provider[];
+} = {
+  source: ['sim', 'adsb', 'ais'],
+  domain: ['air', 'sea'],
+  platform: [
+    'airliner', 'light-aircraft', 'helicopter', 'military-helicopter', 'maritime-patrol', 'uav', 'aircraft',
+    'cargo', 'tanker', 'passenger', 'fishing', 'leisure', 'warship', 'vessel',
+  ],
+  affiliation: ['friend', 'hostile', 'neutral', 'unknown', 'pending'],
+  provider: ['opensky', 'adsb.lol', 'adsb.fi', 'aisstream'],
+};
+
 export function makeTrackId(source: TrackSource, nativeId: string): string {
   return `${source}:${nativeId}`;
 }

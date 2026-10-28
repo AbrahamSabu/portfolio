@@ -1,33 +1,11 @@
 import { normalizeDeg } from './geo';
-import type { Affiliation, Domain, Platform, Provider, Track, TrackSource } from './track';
+import { TRACK_VALUES, type Affiliation, type Domain, type Platform, type Provider, type Track, type TrackSource } from './track';
 
-const DOMAINS: ReadonlySet<Domain> = new Set(['air', 'sea']);
-const SOURCES: ReadonlySet<TrackSource> = new Set(['sim', 'adsb', 'ais']);
-const AFFILIATIONS: ReadonlySet<Affiliation> = new Set([
-  'friend',
-  'hostile',
-  'neutral',
-  'unknown',
-  'pending',
-]);
-const PLATFORMS: ReadonlySet<Platform> = new Set([
-  'airliner',
-  'light-aircraft',
-  'helicopter',
-  'military-helicopter',
-  'maritime-patrol',
-  'uav',
-  'aircraft',
-  'cargo',
-  'tanker',
-  'passenger',
-  'fishing',
-  'leisure',
-  'warship',
-  'vessel',
-]);
-
-const PROVIDERS: ReadonlySet<Provider> = new Set(['opensky', 'adsb.lol', 'adsb.fi', 'aisstream']);
+const DOMAINS: ReadonlySet<Domain> = new Set(TRACK_VALUES.domain);
+const SOURCES: ReadonlySet<TrackSource> = new Set(TRACK_VALUES.source);
+const AFFILIATIONS: ReadonlySet<Affiliation> = new Set(TRACK_VALUES.affiliation);
+const PLATFORMS: ReadonlySet<Platform> = new Set(TRACK_VALUES.platform);
+const PROVIDERS: ReadonlySet<Provider> = new Set(TRACK_VALUES.provider);
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
