@@ -5,3 +5,4 @@ export * from './trail';
 export * from './validate';
 export * from './feedStatus';
 export * from './protocol';
+export * from './wire';

@@ -3,6 +3,7 @@ import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
 import type { Track } from './track';
 import type { TrailPoint } from './trail';
+import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, type TrailTuple } from './wire';
 
 /**
  * Messages the server sends to browsers over the WebSocket.
@@ -29,8 +30,10 @@ import type { TrailPoint } from './trail';
  *   7  feed state `standing-aside`
  *   8  feed state `unconfigured`
  *   9  provider `adsb.fi`
+ *  10  tracks and trails travel compact (wire.ts): tuples, codes, steps;
+ *      snapshot trails are a list aligned with its tracks
  */
-export const PROTOCOL_VERSION = 9;
+export const PROTOCOL_VERSION = 10;
 
 export interface HelloMessage {
   type: 'hello';
@@ -77,7 +80,50 @@ export interface ScenarioInfo {
   zoom: number;
 }
 
-/** Narrow parse of an incoming message. Track contents are trusted (the server sanitized them). */
+/** Snapshot and delta as sent: tracks as tuples, trails aligned with the snapshot's tracks. */
+interface WireSnapshot {
+  type: 'snapshot';
+  serverTime: number;
+  tracks: TrackTuple[];
+  trails: TrailTuple[];
+}
+interface WireDelta {
+  type: 'delta';
+  serverTime: number;
+  upserts: TrackTuple[];
+  removals: string[];
+  feeds?: FeedStatus[];
+}
+
+/** The JSON text the server sends for a message, in the compact wire form. */
+export function encodeServerMessage(message: ServerMessage): string {
+  switch (message.type) {
+    case 'hello':
+      return JSON.stringify(message);
+    case 'snapshot': {
+      const { serverTime, tracks, trails } = message;
+      const wire: WireSnapshot = {
+        type: 'snapshot',
+        serverTime,
+        tracks: tracks.map((t) => encodeTrack(t, serverTime)),
+        // By position, so ids aren't sent twice; a track without one gets [].
+        trails: tracks.map((t) => encodeTrail(trails[t.id] ?? [], serverTime)),
+      };
+      return JSON.stringify(wire);
+    }
+    case 'delta': {
+      const { upserts, ...rest } = message;
+      const wire: WireDelta = { ...rest, upserts: upserts.map((t) => encodeTrack(t, message.serverTime)) };
+      return JSON.stringify(wire);
+    }
+  }
+}
+
+/**
+ * Narrow parse of an incoming message, decoding the compact wire form back
+ * into Tracks and trail points. Track contents are trusted (the server
+ * sanitized them); only the message's shape is checked.
+ */
 export function parseServerMessage(raw: string): ServerMessage | null {
   let data: unknown;
   try {
@@ -91,14 +137,29 @@ export function parseServerMessage(raw: string): ServerMessage | null {
   switch (m.type) {
     case 'hello':
       return typeof m.protocol === 'number' ? (m as unknown as HelloMessage) : null;
-    case 'snapshot':
-      return Array.isArray(m.tracks) && typeof m.trails === 'object' && m.trails !== null
-        ? (m as unknown as SnapshotMessage)
-        : null;
-    case 'delta':
-      return Array.isArray(m.upserts) && Array.isArray(m.removals)
-        ? (m as unknown as DeltaMessage)
-        : null;
+    case 'snapshot': {
+      if (!Array.isArray(m.tracks) || !Array.isArray(m.trails) || !m.tracks.every(Array.isArray)) return null;
+      const w = m as unknown as WireSnapshot;
+      const tracks = w.tracks.map((t) => decodeTrack(t, w.serverTime));
+      const trails: Record<string, TrailPoint[]> = {};
+      tracks.forEach((t, i) => {
+        const trail = w.trails[i];
+        if (Array.isArray(trail) && trail.length > 0) trails[t.id] = decodeTrail(trail, w.serverTime);
+      });
+      return { type: 'snapshot', serverTime: w.serverTime, tracks, trails };
+    }
+    case 'delta': {
+      if (!Array.isArray(m.upserts) || !Array.isArray(m.removals) || !m.upserts.every(Array.isArray)) return null;
+      const w = m as unknown as WireDelta;
+      const delta: DeltaMessage = {
+        type: 'delta',
+        serverTime: w.serverTime,
+        upserts: w.upserts.map((t) => decodeTrack(t, w.serverTime)),
+        removals: w.removals,
+      };
+      if (w.feeds) delta.feeds = w.feeds;
+      return delta;
+    }
     default:
       return null;
   }

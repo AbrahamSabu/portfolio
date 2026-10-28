@@ -1,10 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { parseClientMessage, parseServerMessage } from './protocol';
+import { encodeServerMessage, parseClientMessage, parseServerMessage, type DeltaMessage, type SnapshotMessage } from './protocol';
+import type { Track } from './track';
+
+const NOW = Date.parse('2026-10-28T14:00:00Z');
+const jet: Track = {
+  id: 'adsb:3c4b2a', source: 'adsb', domain: 'air', platform: 'airliner', affiliation: 'unknown',
+  callsign: 'DLH499', lat: 51.0921, lon: -3.2552, altitudeM: 11598, courseDeg: 93.9, speedMps: 273.3,
+  observedAt: NOW - 4_000, provider: 'opensky',
+};
+const ship: Track = {
+  id: 'ais:235000001', source: 'ais', domain: 'sea', platform: 'vessel', affiliation: 'unknown',
+  lat: 51.8, lon: -8.3, courseDeg: 0, speedMps: 0, observedAt: NOW - 60_000,
+};
 
 describe('parseServerMessage', () => {
-  it('accepts a v2 snapshot with trails', () => {
-    const raw = JSON.stringify({ type: 'snapshot', serverTime: 1, tracks: [], trails: { 'sim:a': [[0, 50, 1]] } });
-    expect(parseServerMessage(raw)?.type).toBe('snapshot');
+  it('reads back a snapshot as sent, trails matched to their tracks by position', () => {
+    const snapshot: SnapshotMessage = {
+      type: 'snapshot', serverTime: NOW, tracks: [jet, ship],
+      trails: { 'ais:235000001': [[-8.30012, 51.79988, NOW - 120_000], [-8.3, 51.8, NOW - 60_000]] },
+    };
+    expect(parseServerMessage(encodeServerMessage(snapshot))).toEqual(snapshot);
+  });
+
+  it('reads back a delta as sent, with feeds only when present', () => {
+    const delta: DeltaMessage = { type: 'delta', serverTime: NOW, upserts: [jet], removals: ['ais:1'] };
+    expect(parseServerMessage(encodeServerMessage(delta))).toEqual(delta);
+    const feeds = [{ feed: 'opensky', label: 'OpenSky', state: 'ok' as const }];
+    expect(parseServerMessage(encodeServerMessage({ ...delta, feeds }))).toEqual({ ...delta, feeds });
+  });
+
+  it('rejects the v9 shape, with track objects and trails keyed by id', () => {
+    const raw = JSON.stringify({ type: 'snapshot', serverTime: 1, tracks: [jet], trails: { 'sim:a': [[0, 50, 1]] } });
+    expect(parseServerMessage(raw)).toBeNull();
   });
 
   it('rejects a snapshot without trails (a v1 server)', () => {

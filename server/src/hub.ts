@@ -3,6 +3,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import {
   PROTOCOL_VERSION,
   parseClientMessage,
+  encodeServerMessage,
   type BBox,
   type DeltaMessage,
   type FeedStatus,
@@ -142,7 +143,7 @@ export class Hub {
       traffic: this.opts.traffic,
       feeds: this.opts.feedStatus?.() ?? [],
     };
-    client.ws.send(JSON.stringify(hello));
+    client.ws.send(encodeServerMessage(hello));
     this.sendSnapshot(client);
   }
 
@@ -156,7 +157,7 @@ export class Hub {
     client.snapshotInFlight = true;
     client.needsResync = false;
     // The callback fires once ws has written the message, or on error.
-    client.ws.send(JSON.stringify(snapshot), () => (client.snapshotInFlight = false));
+    client.ws.send(encodeServerMessage(snapshot), () => (client.snapshotInFlight = false));
   }
 
   private sendDelta(client: Client, payload: string): void {
@@ -188,7 +189,7 @@ export class Hub {
       delta.feeds = feeds;
       this.sentFeeds = feedsJson;
     }
-    const payload = JSON.stringify(delta);
+    const payload = encodeServerMessage(delta);
 
     for (const client of this.clients) {
       if (client.ws.readyState !== WebSocket.OPEN) continue;
