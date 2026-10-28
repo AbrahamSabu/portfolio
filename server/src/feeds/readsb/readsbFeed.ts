@@ -279,11 +279,18 @@ export class ReadsbFeed implements Feed {
     return airborne;
   }
 
-  /** 429: wait as long as Retry-After says (in seconds), or back off if it doesn't say. */
+  /**
+   * 429: wait as long as Retry-After says (in seconds), or back off if it
+   * doesn't say. Either way it's a rate limit, not an outage, and the viewer
+   * is told when the next try is (adsb.lol sends no Retry-After when it
+   * refuses an address for hours).
+   */
   private throttled(res: Response): number {
     const seconds = Number(res.headers.get('Retry-After'));
     if (!res.headers.has('Retry-After') || !Number.isFinite(seconds) || seconds < 0) {
-      return this.fail('429 rate limited (no retry-after)');
+      const delay = this.fail('429 rate limited');
+      this.pausedUntil = this.now() + delay;
+      return delay;
     }
     const delay = Math.max(this.opts.pollMs, seconds * 1000);
     this.pausedUntil = this.now() + delay;

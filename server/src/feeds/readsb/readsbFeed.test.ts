@@ -124,6 +124,16 @@ describe('ReadsbFeed', () => {
     expect(feed.status().state).toBe('rate-limited');
   });
 
+  it('treats a 429 without Retry-After as a rate limit, backing off longer each time', async () => {
+    const { feed, timers, fire } = setup(json('', { status: 429 }), json('', { status: 429 }));
+    feed.setAreas([JOHANNESBURG]);
+    await fire();
+    const first = timers.at(-1)!;
+    expect(feed.status()).toMatchObject({ state: 'rate-limited', until: 1_793_121_200_000 + first });
+    await fire();
+    expect(timers.at(-1)!).toBeGreaterThan(first);
+  });
+
   it('keeps what earlier circles returned when a later one fails, and backs off', async () => {
     const { feed, fire, upserts, timers } = setup(json(cairo), json('', { status: 503 }));
     feed.setAreas([HIGHVELD_TO_DURBAN]);
