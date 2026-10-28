@@ -18,7 +18,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (297 tests after the picture filter).
+- `npm test`: Vitest from the root config (310 tests after the aircraft database).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -78,7 +78,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 10`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 11`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -132,8 +132,9 @@ that could have been fetched before they arrived.
     shown tracks, plus "N filtered out"). FilterControl (funnel under the
     trail toggle, dot when active, F key; Escape closes it first) opens
     FilterPanel (`ui/filterPanel.ts`: rows built once, counts of the whole
-    picture refreshed 1/s while open). Measured: ~90% of world aircraft are
-    OpenSky's uncategorised 'aircraft', ~half the ships 'vessel'.
+    picture refreshed 1/s while open). Without the aircraft database ~90%
+    of world aircraft are OpenSky's uncategorised 'aircraft'; with it 91 of
+    11,720 (Oct 2026). About half the ships stay 'vessel' (no static report yet).
   - TrackList is a left drawer (L key; `/` focuses search), or a bottom sheet
     under 640 px. Its filter and sort are pure functions in `state/trackQuery.ts`.
     Rows are reused per id and only moved when the order changes, and they use
@@ -232,6 +233,22 @@ that could have been fetched before they arrived.
   few restarts, close stale tabs.**
   Categories go through `feeds/adsb/category.ts` (codes like 'A3' to
   OpenSky's numbers). Fixtures are ODbL-credited.
+- Aircraft database (`server/src/feeds/adsb/aircraftDb.ts`): tar1090-db
+  (Mictronics/wiedehopf; **no licence stated, never commit it**) fetched by
+  `npm run aircraft-db` (`server/src/tools/fetchAircraftDb.ts`) into
+  `.cache/aircraft-db/` as `aircraft.bin` (16-byte header `WFAC` v1, then
+  sorted Uint32 ICAO24s, Uint16 type indexes, Uint8 flags; bit 0 =
+  military) plus `types.json` ([code, model, ICAO class, WTC]). Refuses to
+  write fewer than 100k aircraft. `AIRCRAFT_DB` (default
+  `../.cache/aircraft-db`, `off`). `classifyType` (pure): UAV designators
+  (Q1/Q4/Q9/Q25/Q28/HRON/HRM9) or class D -> uav; H/R/T -> (military-)
+  helicopter; G -> light; non-L/S/A -> null (keep report); P8/P3/P1/IL38 ->
+  maritime-patrol; military flag -> military-aircraft; business-jet name
+  families; WTC L -> light, M/H/J -> airliner. Applied by TrackStore's
+  `identify` hook (after sanitize, before merge; restores too), for
+  `source: 'adsb'` only; DB platform beats the emitter category. Tracks gain
+  `typeCode`/`model` (aircraft only, validated). Registration and owner are
+  never read (LADD/PIA privacy). 494,975 aircraft, 1,869 types, 3.5 MB.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
   runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`, `adsbfi`,
