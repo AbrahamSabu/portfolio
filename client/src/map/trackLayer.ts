@@ -1,12 +1,16 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { CircleLayerSpecification, DataDrivenPropertyValueSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
+import type { CircleLayerSpecification, ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { deadReckon, destination, ruleFor, type Domain, type LatLon } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
 import type { PictureFilter } from '../state/pictureFilter';
 import type { Selection } from '../state/selection';
+import type { SymbolStyleSetting } from '../state/symbolStyle';
 import type { TrackStore } from '../state/trackStore';
 import { renderIntervalMs } from './renderRate';
 import { inViewBox, padViewBox, type ViewBox } from './viewBox';
+import { AFFILIATION_LINE_COLOR } from './colors';
+import { labelImageId, parseLabelImageId, renderLabel } from './labels';
+import { parseShapeImageId, renderShape, shapeFor, shapeImageId } from './shapes';
 import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symbols';
 
 /**
@@ -22,6 +26,8 @@ const ids = (domain: Domain) => ({
   /** Small dots for the zoomed-out view, where thousands of full symbols would just be a smear. */
   dots: `track-dots-${domain}`,
   symbols: `track-symbols-${domain}`,
+  /** Callsigns beside vehicle shapes; tactical symbols carry theirs inside the image. */
+  labels: `track-labels-${domain}`,
 });
 /** The layers a pointer can hit: symbols and dots, both domains. */
 const HIT_LAYERS = DOMAINS.flatMap((d) => [ids(d).symbols, ids(d).dots]);
@@ -45,24 +51,8 @@ const ICON_PROPS_MIN_ZOOM = SYMBOL_MIN_ZOOM - 1;
 /** Callsign labels appear from this zoom level in. */
 const LABEL_MIN_ZOOM = 8;
 
-/** Matches milsymbol's "Light" fills, so leader lines share their symbol's colour. */
-export const AFFILIATION_COLOR = {
-  friend: '#80E0FF',
-  hostile: '#FF8080',
-  neutral: '#AAFFAA',
-  unknown: '#FFFF80',
-  pending: '#FFFF80',
-} as const;
-
-/** Line colour from a feature's `affiliation` property. Shared by leaders and trails. */
-export const AFFILIATION_LINE_COLOR: DataDrivenPropertyValueSpecification<string> = [
-  'match',
-  ['get', 'affiliation'],
-  'friend', AFFILIATION_COLOR.friend,
-  'hostile', AFFILIATION_COLOR.hostile,
-  'neutral', AFFILIATION_COLOR.neutral,
-  AFFILIATION_COLOR.unknown,
-];
+/** A feature's `scale` (vehicle shapes: a Cessna smaller than a 777), or 1. */
+const SCALE: ExpressionSpecification = ['coalesce', ['get', 'scale'], 1];
 
 /**
  * Zoomed out, aircraft are filled dots and ships are rings, so the two
@@ -109,6 +99,7 @@ export class TrackLayer {
     private readonly clock: ServerClock,
     private readonly selection: Selection,
     private readonly filter: PictureFilter,
+    private readonly style: SymbolStyleSetting,
   ) {
     map.setMissingStyleImageResolver((id) => this.resolveImage(id));
     // Re-add sources and layers whenever the style is (re)loaded, e.g. after the offline fallback.
@@ -121,6 +112,7 @@ export class TrackLayer {
     store.subscribe(() => (this.forced.air = true));
     selection.subscribe(() => this.forceAll());
     filter.subscribe(() => this.forceAll());
+    style.subscribe(() => this.forceAll());
     // Crossing the symbol zoom changes whether leaders are computed, and a
     // finished pan or zoom brings new tracks into the drawn area.
     map.on('moveend', () => this.forceAll());
@@ -187,11 +179,14 @@ export class TrackLayer {
         source: id.source,
         minzoom: SYMBOL_MIN_ZOOM,
         layout: {
-          'icon-image': ['step', ['zoom'], ['get', 'icon'], LABEL_MIN_ZOOM, ['get', 'iconLabeled']],
+          'icon-image': ['step', ['zoom'], ['get', 'icon'], LABEL_MIN_ZOOM, ['coalesce', ['get', 'iconLabeled'], ['get', 'icon']]],
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
           // Smaller at regional zoom, so a busy sky reads as traffic instead of a solid mass.
-          'icon-size': ['interpolate', ['linear'], ['zoom'], SYMBOL_MIN_ZOOM, 0.5, 7, 0.7, 10, 1],
+          'icon-size': ['interpolate', ['linear'], ['zoom'], SYMBOL_MIN_ZOOM, ['*', 0.5, SCALE], 7, ['*', 0.7, SCALE], 10, SCALE],
+          // Shapes point along their course; tactical symbols carry no rotation and stay upright.
+          'icon-rotate': ['coalesce', ['get', 'rotation'], 0],
+          'icon-rotation-alignment': 'map',
           // Higher keys draw on top: the selected track over the rest of its layer.
           'symbol-sort-key': ['get', 'sortKey'],
         },
@@ -200,14 +195,38 @@ export class TrackLayer {
         },
       });
     }
+    // Labels above every track, so a ship's name isn't hidden under an aircraft.
+    for (const domain of DOMAINS) {
+      const id = ids(domain);
+      if (map.getLayer(id.labels)) continue;
+      map.addLayer({
+        id: id.labels,
+        type: 'symbol',
+        source: id.source,
+        minzoom: LABEL_MIN_ZOOM,
+        filter: ['has', 'label'],
+        layout: {
+          'icon-image': ['get', 'label'],
+          'icon-anchor': 'left',
+          'icon-offset': [10, 9],
+          // Unlike the shapes, labels give way to each other, so a busy airport
+          // shows some names cleanly instead of all of them on top of each other.
+          // The lowest key is placed first: the selected track's name always shows.
+          'symbol-sort-key': ['-', 0, ['get', 'sortKey']],
+        },
+        paint: {
+          'icon-opacity': ['case', ['==', ['get', 'stale'], 1], 0.5, 1],
+        },
+      });
+    }
     for (const domain of DOMAINS) this.render(domain);
     this.notifyFrame();
   }
 
   private resolveImage(id: string): void {
-    const parsed = parseSymbolImageId(id);
-    if (!parsed || this.map.hasImage(id)) return;
-    const rendered = renderSymbol(parsed.sidc, parsed.label, Math.min(window.devicePixelRatio || 1, 3));
+    if (this.map.hasImage(id)) return;
+    const ratio = Math.min(window.devicePixelRatio || 1, 3);
+    const rendered = renderImage(id, ratio);
     if (rendered) this.map.addImage(id, rendered.image, { pixelRatio: rendered.pixelRatio });
   }
 
@@ -274,6 +293,7 @@ export class TrackLayer {
     const zoom = this.map.getZoom();
     const withLeaders = zoom >= SYMBOL_MIN_ZOOM;
     const withIcons = zoom >= ICON_PROPS_MIN_ZOOM;
+    const shapes = this.style.value === 'shapes';
     const view = this.viewBox();
 
     for (const track of this.store.all()) {
@@ -296,10 +316,16 @@ export class TrackLayer {
         // Hit-testing compares across layers too, preferring aircraft over ships.
         sortKey: (track.id === selectedId ? 10 : 0) + (track.domain === 'air' ? 1 : 0),
       };
-      if (withIcons) {
+      if (withIcons && shapes) {
+        const { shape, scale } = shapeFor(track);
+        properties.icon = shapeImageId(shape, track.affiliation);
+        properties.rotation = Math.round(track.courseDeg);
+        if (scale !== 1) properties.scale = scale;
+        if (track.callsign) properties.label = labelImageId(track.callsign);
+      } else if (withIcons) {
         const sidc = sidcFor(track);
         properties.icon = symbolImageId(sidc);
-        properties.iconLabeled = track.callsign ? symbolImageId(sidc, track.callsign) : properties.icon;
+        if (track.callsign) properties.iconLabeled = symbolImageId(sidc, track.callsign);
       }
       points.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [pos.lon, pos.lat] }, properties });
 
@@ -331,6 +357,16 @@ export class TrackLayer {
       leaderSource.setData({ type: 'FeatureCollection', features: leaders });
     }
   }
+}
+
+/** Draw any image the layers ask for, from its id alone: a tactical symbol, a vehicle shape or a label. */
+function renderImage(id: string, pixelRatio: number): { image: ImageData; pixelRatio: number } | null {
+  const symbol = parseSymbolImageId(id);
+  if (symbol) return renderSymbol(symbol.sidc, symbol.label, pixelRatio);
+  const shape = parseShapeImageId(id);
+  if (shape) return renderShape(shape.shape, shape.affiliation, pixelRatio);
+  const label = parseLabelImageId(id);
+  return label ? renderLabel(label, pixelRatio) : null;
 }
 
 function emptyCollection(): FeatureCollection {

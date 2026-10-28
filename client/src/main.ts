@@ -6,12 +6,14 @@ import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
+import { StyleControl } from './map/styleControl';
 import { loadTrailMode, TrailControl } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
+import { loadSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
 import { Selection } from './state/selection';
 import { TrackStore } from './state/trackStore';
 import { DetailsPanel } from './ui/detailsPanel';
@@ -55,16 +57,19 @@ async function main(): Promise<void> {
   const filter = new PictureFilter(loadFilterState());
   filter.subscribe(() => saveFilterState(filter.state));
 
-  const layer = new TrackLayer(map, store, clock, selection, filter);
+  const style = new SymbolStyleSetting(loadSymbolStyle());
+
+  const layer = new TrackLayer(map, store, clock, selection, filter, style);
   const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
   map.addControl(trailControl, 'top-left');
+  map.addControl(new StyleControl(style), 'top-left');
   const filterPanel = new FilterPanel(el('filter-panel'), filter, store, clock, () => filterControl.update());
   const filterControl = new FilterControl(filterPanel, filter);
   map.addControl(filterControl, 'top-left');
   const reticle = new Reticle(map);
   new HoverCard(map, store, clock, layer);
-  const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement);
-  new DetailsPanel(el('details'), store, clock, layer, selection);
+  const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
+  new DetailsPanel(el('details'), store, clock, layer, selection, style);
   const list = new TrackList(
     el('track-list'),
     el('list-toggle') as HTMLButtonElement,
@@ -121,6 +126,7 @@ async function main(): Promise<void> {
     if (event.key === 't' || event.key === 'T') trailControl.cycle();
     if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
     if (event.key === 'f' || event.key === 'F') filterControl.toggle();
+    if (event.key === 's' || event.key === 'S') style.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box

@@ -760,7 +760,8 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   filter: invert(0.88);
 }
 
-.trail-toggle {
+.trail-toggle,
+.style-toggle {
   display: grid;
   place-items: center;
   color: var(--ink);

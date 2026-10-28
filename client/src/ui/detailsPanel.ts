@@ -1,8 +1,9 @@
 import type { Track } from '@watchfloor/shared';
-import { sidcFor, symbolSvg } from '../map/symbols';
+import { trackIconKey, trackIconSvg } from '../map/trackIcon';
 import type { TrackLayer } from '../map/trackLayer';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
+import type { SymbolStyleSetting } from '../state/symbolStyle';
 import type { TrackStore } from '../state/trackStore';
 import {
   AFFILIATION_LABEL,
@@ -25,8 +26,8 @@ export class DetailsPanel {
   private readonly staleNote: HTMLElement;
   private readonly followButton: HTMLButtonElement;
   private readonly symbol: HTMLElement;
-  /** The SIDC last drawn, so the SVG is only rebuilt when the symbol changes, not every refresh. */
-  private symbolSidc = '';
+  /** The icon last drawn, so the SVG is only rebuilt when the icon changes, not every refresh. */
+  private iconKey = '';
 
   constructor(
     private readonly root: HTMLElement,
@@ -34,6 +35,7 @@ export class DetailsPanel {
     private readonly clock: ServerClock,
     private readonly layer: TrackLayer,
     private readonly selection: Selection,
+    private readonly style: SymbolStyleSetting,
   ) {
     const q = <T extends HTMLElement>(sel: string) => {
       const el = root.querySelector<T>(sel);
@@ -53,6 +55,7 @@ export class DetailsPanel {
     q('[data-close]').addEventListener('click', () => selection.select(null));
     this.followButton.addEventListener('click', () => selection.setFollow(!selection.follow));
 
+    style.subscribe(() => this.update());
     selection.subscribe((id, previous) => {
       this.root.hidden = id === null;
       if (id !== previous) this.root.classList.remove('details-enter');
@@ -88,10 +91,10 @@ export class DetailsPanel {
       'identity',
       `${PLATFORM_LABEL[track.platform]}, ${AFFILIATION_LABEL[track.affiliation].toLowerCase()}`,
     );
-    const sidc = sidcFor(track);
-    if (sidc !== this.symbolSidc) {
-      this.symbol.innerHTML = symbolSvg(sidc, 34);
-      this.symbolSidc = sidc;
+    const iconKey = trackIconKey(track, this.style.value);
+    if (iconKey !== this.iconKey) {
+      this.symbol.innerHTML = trackIconSvg(track, this.style.value, 34);
+      this.iconKey = iconKey;
     }
     this.set('lat', formatLat(pos.lat));
     this.set('lon', formatLon(pos.lon));
