@@ -3,7 +3,7 @@ import type { GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from '
 import type { Track } from '@watchfloor/shared';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
-import { AFFILIATION_LINE_COLOR, LEADER_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
+import { AFFILIATION_LINE_COLOR, LOWEST_TRACK_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
 import { inViewBox } from './viewBox';
 
 /** Which tracks show their history. */
@@ -75,7 +75,7 @@ export class TrailLayer {
       if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: emptyCollection() });
     }
     // Under the speed leaders, which are under the symbols.
-    const beforeId = map.getLayer(LEADER_LAYER) ? LEADER_LAYER : undefined;
+    const beforeId = map.getLayer(LOWEST_TRACK_LAYER) ? LOWEST_TRACK_LAYER : undefined;
     for (const [id, source] of [
       [TRAILS_LAYER, TRAILS_SOURCE],
       [HEADS_LAYER, HEADS_SOURCE],

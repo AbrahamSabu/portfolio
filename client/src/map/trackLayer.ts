@@ -8,12 +8,22 @@ import { renderIntervalMs } from './renderRate';
 import { inViewBox, padViewBox, type ViewBox } from './viewBox';
 import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symbols';
 
-const TRACKS_SOURCE = 'tracks';
-const LEADERS_SOURCE = 'track-leaders';
-export const SYMBOL_LAYER = 'track-symbols';
-/** Small dots for the zoomed-out view, where thousands of full symbols would just be a smear. */
-export const DOT_LAYER = 'track-dots';
-export const LEADER_LAYER = 'track-leaders';
+/**
+ * Each domain has its own sources and layers, so aircraft and ships can be
+ * redrawn on their own schedules (renderRate.ts): every update copies a
+ * source's whole feature list to MapLibre's worker. Ships are drawn first, so
+ * aircraft sit on top.
+ */
+const DOMAINS: readonly Domain[] = ['sea', 'air'];
+const ids = (domain: Domain) => ({
+  source: `tracks-${domain}`,
+  leaders: `track-leaders-${domain}`,
+  /** Small dots for the zoomed-out view, where thousands of full symbols would just be a smear. */
+  dots: `track-dots-${domain}`,
+  symbols: `track-symbols-${domain}`,
+});
+/** The lowest of the track layers, so trails can go under all of them. */
+export const LOWEST_TRACK_LAYER = ids('sea').leaders;
 
 /** Speed leaders show where a track will be after this long. Ships are slow, so theirs look further ahead. */
 const LEADER_SECONDS: Record<Domain, number> = { air: 60, sea: 600 };
@@ -64,10 +74,10 @@ export interface DisplayPosition extends LatLon {
  * fades, so the operator can see it's no longer reliable.
  */
 export class TrackLayer {
-  private readonly positions = new Map<string, DisplayPosition>();
-  private lastRender = 0;
-  /** Set when data or selection changed, so the next frame renders whatever the zoom-based interval says. */
-  private needsRender = true;
+  private readonly positions: Record<Domain, Map<string, DisplayPosition>> = { air: new Map(), sea: new Map() };
+  private readonly lastRender: Record<Domain, number> = { air: 0, sea: 0 };
+  /** Set to redraw a domain on the next frame, whatever its interval says. */
+  private readonly forced: Record<Domain, boolean> = { air: true, sea: true };
   private readonly frameListeners = new Set<() => void>();
 
   constructor(
@@ -81,17 +91,24 @@ export class TrackLayer {
     map.on('style.load', () => this.install());
     if (map.isStyleLoaded()) this.install();
     this.bindInteraction();
-    store.subscribe(() => (this.needsRender = true));
-    selection.subscribe(() => (this.needsRender = true));
+    // New reports show at once for aircraft. Ships wait for their own
+    // interval: zoomed out, a ship's new report moves it far less than a
+    // pixel, and AIS changes the store every second.
+    store.subscribe(() => (this.forced.air = true));
+    selection.subscribe(() => this.forceAll());
     // Crossing the symbol zoom changes whether leaders are computed, and a
     // finished pan or zoom brings new tracks into the drawn area.
-    map.on('moveend', () => (this.needsRender = true));
+    map.on('moveend', () => this.forceAll());
     requestAnimationFrame(this.loop);
   }
 
   /** Where a track is currently drawn (dead-reckoned), for the reticle, follow mode and details. */
   positionOf(id: string): DisplayPosition | undefined {
-    return this.positions.get(id);
+    return this.positions.air.get(id) ?? this.positions.sea.get(id);
+  }
+
+  private forceAll(): void {
+    for (const domain of DOMAINS) this.forced[domain] = true;
   }
 
   /** The screen plus a margin: tracks outside it are positioned but not drawn. */
@@ -108,17 +125,19 @@ export class TrackLayer {
 
   private install(): void {
     const map = this.map;
-    if (!map.getSource(TRACKS_SOURCE)) {
-      map.addSource(TRACKS_SOURCE, { type: 'geojson', data: emptyCollection() });
+    for (const domain of DOMAINS) {
+      const id = ids(domain);
+      if (!map.getSource(id.source)) map.addSource(id.source, { type: 'geojson', data: emptyCollection() });
+      if (!map.getSource(id.leaders)) map.addSource(id.leaders, { type: 'geojson', data: emptyCollection() });
     }
-    if (!map.getSource(LEADERS_SOURCE)) {
-      map.addSource(LEADERS_SOURCE, { type: 'geojson', data: emptyCollection() });
-    }
-    if (!map.getLayer(LEADER_LAYER)) {
+    // All leaders under all dots and symbols; within each kind, ships under aircraft.
+    for (const domain of DOMAINS) {
+      const id = ids(domain);
+      if (map.getLayer(id.leaders)) continue;
       map.addLayer({
-        id: LEADER_LAYER,
+        id: id.leaders,
         type: 'line',
-        source: LEADERS_SOURCE,
+        source: id.leaders,
         minzoom: SYMBOL_MIN_ZOOM,
         layout: { 'line-cap': 'round' },
         paint: {
@@ -128,11 +147,13 @@ export class TrackLayer {
         },
       });
     }
-    if (!map.getLayer(DOT_LAYER)) {
+    for (const domain of DOMAINS) {
+      const id = ids(domain);
+      if (map.getLayer(id.dots)) continue;
       map.addLayer({
-        id: DOT_LAYER,
+        id: id.dots,
         type: 'circle',
-        source: TRACKS_SOURCE,
+        source: id.source,
         maxzoom: SYMBOL_MIN_ZOOM,
         paint: {
           'circle-color': AFFILIATION_LINE_COLOR,
@@ -141,17 +162,19 @@ export class TrackLayer {
         },
       });
     }
-    if (!map.getLayer(SYMBOL_LAYER)) {
+    for (const domain of DOMAINS) {
+      const id = ids(domain);
+      if (map.getLayer(id.symbols)) continue;
       map.addLayer({
-        id: SYMBOL_LAYER,
+        id: id.symbols,
         type: 'symbol',
-        source: TRACKS_SOURCE,
+        source: id.source,
         minzoom: SYMBOL_MIN_ZOOM,
         layout: {
           'icon-image': ['step', ['zoom'], ['get', 'icon'], LABEL_MIN_ZOOM, ['get', 'iconLabeled']],
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
-          // Higher keys draw on top: selected track first, then aircraft over ships.
+          // Higher keys draw on top: the selected track over the rest of its layer.
           'symbol-sort-key': ['get', 'sortKey'],
         },
         paint: {
@@ -159,7 +182,8 @@ export class TrackLayer {
         },
       });
     }
-    this.render();
+    for (const domain of DOMAINS) this.render(domain);
+    this.notifyFrame();
   }
 
   private resolveImage(id: string): void {
@@ -171,9 +195,9 @@ export class TrackLayer {
 
   private bindInteraction(): void {
     const map = this.map;
-    const layers = [SYMBOL_LAYER, DOT_LAYER];
+    const layers = DOMAINS.flatMap((d) => [ids(d).symbols, ids(d).dots]);
     map.on('click', (event) => {
-      if (!map.getLayer(SYMBOL_LAYER)) return;
+      if (!layers.every((layer) => map.getLayer(layer))) return;
       const { x, y } = event.point;
       const pad = 6; // forgiving hit area, especially on touch screens
       const hits = map.queryRenderedFeatures(
@@ -197,15 +221,27 @@ export class TrackLayer {
   private readonly loop = (time: number): void => {
     requestAnimationFrame(this.loop);
     if (document.hidden) return;
-    const interval = renderIntervalMs(this.map.getZoom(), this.map.getCenter().lat);
-    if (!this.needsRender && time - this.lastRender < interval) return;
-    this.lastRender = time;
-    this.needsRender = false;
-    this.render();
+    const zoom = this.map.getZoom();
+    const lat = this.map.getCenter().lat;
+    let rendered = false;
+    for (const domain of DOMAINS) {
+      if (!this.forced[domain] && time - this.lastRender[domain] < renderIntervalMs(zoom, lat, domain)) continue;
+      this.lastRender[domain] = time;
+      this.forced[domain] = false;
+      this.render(domain);
+      rendered = true;
+    }
+    if (rendered) this.notifyFrame();
   };
 
-  private render(): void {
+  private notifyFrame(): void {
+    for (const listener of this.frameListeners) listener();
+  }
+
+  /** Dead-reckon one domain's tracks and hand them to its sources. */
+  private render(domain: Domain): void {
     const now = this.clock.now();
+    const positions = this.positions[domain];
     const selectedId = this.selection.id;
     const points: Feature<Point>[] = [];
     const leaders: Feature<LineString>[] = [];
@@ -217,12 +253,13 @@ export class TrackLayer {
     const view = this.viewBox();
 
     for (const track of this.store.all()) {
+      if (track.domain !== domain) continue;
       const rule = ruleFor(track, this.store.staleness);
       const age = now - track.observedAt;
       const stale = age > rule.staleAfterMs;
       // Dead-reckon up to the stale threshold, then hold the last estimate.
       const pos = deadReckon(track, track.courseDeg, track.speedMps, Math.min(age, rule.staleAfterMs));
-      this.positions.set(track.id, { lat: pos.lat, lon: pos.lon, stale });
+      positions.set(track.id, { lat: pos.lat, lon: pos.lon, stale });
       seen.add(track.id);
       // Everything gets a position (reticle, follow, details); only what's near the screen gets a feature.
       if (track.id !== selectedId && !inViewBox(view, pos.lon, pos.lat)) continue;
@@ -231,6 +268,7 @@ export class TrackLayer {
         id: track.id,
         affiliation: track.affiliation,
         stale: stale ? 1 : 0,
+        // Hit-testing compares across layers too, preferring aircraft over ships.
         sortKey: (track.id === selectedId ? 10 : 0) + (track.domain === 'air' ? 1 : 0),
       };
       if (withIcons) {
@@ -256,17 +294,17 @@ export class TrackLayer {
       }
     }
 
-    for (const id of this.positions.keys()) {
-      if (!seen.has(id)) this.positions.delete(id);
+    for (const id of positions.keys()) {
+      if (!seen.has(id)) positions.delete(id);
     }
 
-    const trackSource = this.map.getSource<GeoJSONSource>(TRACKS_SOURCE);
-    const leaderSource = this.map.getSource<GeoJSONSource>(LEADERS_SOURCE);
+    const id = ids(domain);
+    const trackSource = this.map.getSource<GeoJSONSource>(id.source);
+    const leaderSource = this.map.getSource<GeoJSONSource>(id.leaders);
     if (trackSource && leaderSource) {
       trackSource.setData({ type: 'FeatureCollection', features: points });
       leaderSource.setData({ type: 'FeatureCollection', features: leaders });
     }
-    for (const listener of this.frameListeners) listener();
   }
 }
 

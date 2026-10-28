@@ -34,3 +34,20 @@ describe('renderIntervalMs', () => {
     }
   });
 });
+
+describe('renderIntervalMs for ships', () => {
+  it('waits up to 5 s zoomed out, where a ship takes minutes to cross a pixel', () => {
+    expect(renderIntervalMs(2, 30, 'sea')).toBe(5000);
+    expect(renderIntervalMs(5, 50, 'sea')).toBe(5000);
+  });
+
+  it('keeps a 25 m/s ship within half a pixel per redraw zoomed in, down to the 10 Hz floor', () => {
+    const ms = renderIntervalMs(10, 50, 'sea');
+    expect((25 * ms) / 1000).toBeCloseTo(metresPerPixel(10, 50) / 2, 6);
+    expect(renderIntervalMs(16, 50, 'sea')).toBe(100);
+  });
+
+  it('is never more frequent than for aircraft', () => {
+    for (let z = 0; z < 20; z++) expect(renderIntervalMs(z, 45, 'sea')).toBeGreaterThanOrEqual(renderIntervalMs(z, 45, 'air'));
+  });
+});
