@@ -1,6 +1,7 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { ConnectionState } from '../net/connection';
 import type { ServerClock } from '../state/clock';
+import type { PictureFilter } from '../state/pictureFilter';
 import type { TrackStore } from '../state/trackStore';
 import type { FeedStatus } from '@watchfloor/shared';
 import { describeFeeds, formatLat, formatLon } from './format';
@@ -14,6 +15,7 @@ export class StatusBar {
   private readonly seaEl: HTMLElement;
   private readonly staleEl: HTMLElement;
   private readonly staleWrap: HTMLElement;
+  private readonly filteredEl: HTMLElement;
   private readonly cursorEl: HTMLElement;
   private readonly feedEl: HTMLElement;
   private state: ConnectionState = { status: 'connecting' };
@@ -23,6 +25,7 @@ export class StatusBar {
     map: MapLibreMap,
     private readonly store: TrackStore,
     private readonly clock: ServerClock,
+    private readonly filter: PictureFilter,
     onRetry: () => void,
   ) {
     const q = <T extends HTMLElement>(sel: string) => {
@@ -37,6 +40,7 @@ export class StatusBar {
     this.seaEl = q('[data-count-sea]');
     this.staleEl = q('[data-count-stale]');
     this.staleWrap = q('[data-stale-wrap]');
+    this.filteredEl = q('[data-filtered]');
     this.cursorEl = q('[data-cursor]');
     this.feedEl = q('[data-feed]');
 
@@ -48,6 +52,7 @@ export class StatusBar {
     map.getCanvasContainer().addEventListener('mouseleave', () => (this.cursorEl.textContent = ''));
 
     window.setInterval(() => this.refresh(), 1000);
+    filter.subscribe(() => this.refresh());
     this.refresh();
   }
 
@@ -70,11 +75,20 @@ export class StatusBar {
     let air = 0;
     let sea = 0;
     let stale = 0;
+    let hidden = 0;
+    // Counts are of what's shown, so they match the map; the note says when that isn't everything.
     for (const track of this.store.all()) {
+      const isStale = this.store.status(track, now) === 'stale';
+      if (!this.filter.passes(track, isStale)) {
+        hidden++;
+        continue;
+      }
       if (track.domain === 'air') air++;
       else sea++;
-      if (this.store.status(track, now) === 'stale') stale++;
+      if (isStale) stale++;
     }
+    this.filteredEl.hidden = hidden === 0;
+    this.filteredEl.textContent = `${hidden} filtered out`;
     this.airEl.textContent = String(air);
     this.seaEl.textContent = String(sea);
     this.staleEl.textContent = String(stale);

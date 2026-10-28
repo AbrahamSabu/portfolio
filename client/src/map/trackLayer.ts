@@ -2,6 +2,7 @@ import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { DataDrivenPropertyValueSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { deadReckon, destination, ruleFor, type Domain, type LatLon } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
+import type { PictureFilter } from '../state/pictureFilter';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
 import { renderIntervalMs } from './renderRate';
@@ -85,6 +86,7 @@ export class TrackLayer {
     private readonly store: TrackStore,
     private readonly clock: ServerClock,
     private readonly selection: Selection,
+    private readonly filter: PictureFilter,
   ) {
     map.setMissingStyleImageResolver((id) => this.resolveImage(id));
     // Re-add sources and layers whenever the style is (re)loaded, e.g. after the offline fallback.
@@ -96,6 +98,7 @@ export class TrackLayer {
     // pixel, and AIS changes the store every second.
     store.subscribe(() => (this.forced.air = true));
     selection.subscribe(() => this.forceAll());
+    filter.subscribe(() => this.forceAll());
     // Crossing the symbol zoom changes whether leaders are computed, and a
     // finished pan or zoom brings new tracks into the drawn area.
     map.on('moveend', () => this.forceAll());
@@ -262,7 +265,8 @@ export class TrackLayer {
       positions.set(track.id, { lat: pos.lat, lon: pos.lon, stale });
       seen.add(track.id);
       // Everything gets a position (reticle, follow, details); only what's near the screen gets a feature.
-      if (track.id !== selectedId && !inViewBox(view, pos.lon, pos.lat)) continue;
+      // The selected track stays drawn even if the filter would hide it.
+      if (track.id !== selectedId && (!this.filter.passes(track, stale) || !inViewBox(view, pos.lon, pos.lat))) continue;
 
       const properties: Record<string, string | number> = {
         id: track.id,

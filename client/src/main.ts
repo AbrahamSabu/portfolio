@@ -3,6 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
+import { FilterControl } from './map/filterControl';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { loadTrailMode, TrailControl } from './map/trailControl';
@@ -10,9 +11,11 @@ import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
+import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
 import { Selection } from './state/selection';
 import { TrackStore } from './state/trackStore';
 import { DetailsPanel } from './ui/detailsPanel';
+import { FilterPanel } from './ui/filterPanel';
 import { formatDtg, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
@@ -46,9 +49,16 @@ async function main(): Promise<void> {
   const { map, userHasMoved } = createMap(el('map'));
   await waitForFonts();
 
-  const layer = new TrackLayer(map, store, clock, selection);
-  const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, loadTrailMode()));
+  // What the operator has chosen to see, remembered per browser.
+  const filter = new PictureFilter(loadFilterState());
+  filter.subscribe(() => saveFilterState(filter.state));
+
+  const layer = new TrackLayer(map, store, clock, selection, filter);
+  const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
   map.addControl(trailControl, 'top-left');
+  const filterPanel = new FilterPanel(el('filter-panel'), filter, store, clock, () => filterControl.update());
+  const filterControl = new FilterControl(filterPanel, filter);
+  map.addControl(filterControl, 'top-left');
   const reticle = new Reticle(map);
   new DetailsPanel(el('details'), store, clock, layer, selection);
   const list = new TrackList(
@@ -59,6 +69,7 @@ async function main(): Promise<void> {
     layer,
     selection,
     map,
+    filter,
   );
 
   // Reticle and follow mode track the dead-reckoned position, not the last report.
@@ -94,11 +105,16 @@ async function main(): Promise<void> {
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') selection.select(null);
+    if (event.key === 'Escape') {
+      // Close the filter first if it's open; a second Escape clears the selection.
+      if (filterPanel.open) filterPanel.setOpen(false);
+      else selection.select(null);
+    }
     // Single-letter shortcuts must not fire while the operator is typing.
     if (isTyping(event) || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 't' || event.key === 'T') trailControl.cycle();
     if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
+    if (event.key === 'f' || event.key === 'F') filterControl.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
       list.focusSearch();
@@ -168,7 +184,7 @@ async function main(): Promise<void> {
     },
   });
 
-  const status = new StatusBar(el('statusbar'), map, store, clock, () => connection.retryNow());
+  const status = new StatusBar(el('statusbar'), map, store, clock, filter, () => connection.retryNow());
   connection.start();
 }
 

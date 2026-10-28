@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, LineString } from 'geojson';
 import type { GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from 'maplibre-gl';
 import type { Track } from '@watchfloor/shared';
+import type { PictureFilter } from '../state/pictureFilter';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
 import { AFFILIATION_LINE_COLOR, LOWEST_TRACK_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
@@ -46,6 +47,7 @@ export class TrailLayer {
     private readonly store: TrackStore,
     private readonly tracks: TrackLayer,
     private readonly selection: Selection,
+    private readonly filter: PictureFilter,
     mode: TrailMode,
   ) {
     this.currentMode = mode;
@@ -53,6 +55,7 @@ export class TrailLayer {
     if (map.isStyleLoaded()) this.install();
     store.subscribe(() => this.renderTrails());
     selection.subscribe(() => this.renderTrails());
+    filter.subscribe(() => this.renderTrails());
     tracks.onFrame(() => this.renderHeads());
     // Trails are culled to the view, so a finished pan or zoom needs a rebuild.
     map.on('moveend', () => this.renderTrails());
@@ -101,7 +104,8 @@ export class TrailLayer {
       const view = this.tracks.viewBox();
       for (const track of this.store.all()) {
         const pos = this.tracks.positionOf(track.id);
-        if (track.id === this.selection.id || (pos && inViewBox(view, pos.lon, pos.lat))) yield track;
+        if (track.id === this.selection.id) yield track;
+        else if (pos && this.filter.passes(track, pos.stale) && inViewBox(view, pos.lon, pos.lat)) yield track;
       }
     } else if (this.currentMode !== 'off' && this.selection.id) {
       const track = this.store.get(this.selection.id);

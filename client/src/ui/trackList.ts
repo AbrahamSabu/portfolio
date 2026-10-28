@@ -3,6 +3,7 @@ import type { Track } from '@watchfloor/shared';
 import { AFFILIATION_COLOR, type TrackLayer } from '../map/trackLayer';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
+import type { PictureFilter } from '../state/pictureFilter';
 import { DEFAULT_QUERY, nextSort, queryTracks, type DomainFilter, type SortKey, type TrackQuery } from '../state/trackQuery';
 import type { TrackStore } from '../state/trackStore';
 import { PLATFORM_LABEL, formatAltitude, formatDuration, formatSpeed } from './format';
@@ -69,6 +70,7 @@ export class TrackList {
     private readonly layer: TrackLayer,
     private readonly selection: Selection,
     private readonly map: MapLibreMap,
+    private readonly filter: PictureFilter,
   ) {
     const q = <T extends HTMLElement>(sel: string) => {
       const el = root.querySelector<T>(sel);
@@ -120,6 +122,7 @@ export class TrackList {
     this.tbody.addEventListener('keydown', (event) => this.onKey(event));
 
     store.subscribe(() => this.render());
+    filter.subscribe(() => this.render());
     selection.subscribe(() => this.syncSelection(true));
     window.setInterval(() => this.render(), REFRESH_MS);
   }
@@ -163,7 +166,7 @@ export class TrackList {
   private render(): void {
     if (this.root.hidden) return;
     const now = this.clock.now();
-    const tracks = queryTracks(this.store.all(), this.query, now);
+    const tracks = queryTracks(this.shown(now), this.query, now);
     this.ordered = tracks;
     this.indexOf.clear();
     tracks.forEach((track, index) => this.indexOf.set(track.id, index));
@@ -174,6 +177,13 @@ export class TrackList {
     this.table.setAttribute('aria-rowcount', String(tracks.length + 1)); // plus the header row
     this.renderControls();
     this.renderWindow(now);
+  }
+
+  /** The tracks the picture filter leaves on the map; the list's own buttons and search narrow these. */
+  private *shown(now: number): Iterable<Track> {
+    for (const track of this.store.all()) {
+      if (this.filter.passes(track, this.store.status(track, now) === 'stale')) yield track;
+    }
   }
 
   private viewport(): Viewport {

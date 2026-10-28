@@ -242,6 +242,11 @@ button {
   color: var(--warn);
 }
 
+/* Some of the picture is hidden on purpose: say so, so a thin map isn't read as an empty sky. */
+.counts-filtered {
+  color: var(--accent);
+}
+
 /* A live feed that isn't delivering. One line: long text is cut off, full text in the title. */
 .feed-status {
   min-width: 0;
@@ -754,6 +759,143 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   filter: invert(0.85);
 }
 
+/* ------------------------------------------------------------- filter */
+
+.filter-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+/* A dot while anything is filtered. */
+.filter-toggle[data-active]::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Beside the map controls, which sit top left. */
+.filter-panel {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--topbar-h) + var(--safe-top) + 10px);
+  left: 56px;
+  width: 260px;
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(3 8 11 / 0.45);
+}
+
+body[data-list-open] .filter-panel {
+  left: calc(var(--list-w) + 56px);
+}
+
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 8px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.filter-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.text-button {
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.text-button:hover {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.filter-body {
+  overflow-y: auto;
+  padding: 4px 0 8px;
+}
+
+.filter-group {
+  margin: 0;
+  padding: 6px 0 2px;
+  border: 0;
+}
+
+.filter-group + .filter-group {
+  border-top: 1px solid var(--rule);
+}
+
+.filter-group legend {
+  padding: 0;
+  width: 100%;
+}
+
+.filter-group-title {
+  display: block;
+  padding: 4px 14px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 14px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.filter-row[hidden] {
+  display: none;
+}
+
+.filter-row:hover {
+  background: var(--surface-raised);
+}
+
+/* A group's own box sits in the heading, in the heading's colour. */
+.filter-group-title.filter-row {
+  color: var(--ink-muted);
+}
+
+.filter-row input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.filter-label {
+  flex: 1;
+}
+
+.filter-count {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------------------- small screens */
 
 @media (max-width: 640px) {
@@ -783,6 +925,16 @@ body[data-list-open] .maplibregl-ctrl-top-left {
 
   body[data-list-open] .maplibregl-ctrl-top-left {
     left: 0;
+  }
+
+  .filter-panel,
+  body[data-list-open] .filter-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--statusbar-h) + var(--safe-bottom) + 8px);
+    width: auto;
+    max-height: 60%;
   }
 
   .topbar-button span {
