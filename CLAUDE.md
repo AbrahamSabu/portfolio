@@ -221,7 +221,7 @@ that could have been fetched before they arrived.
   OpenSky's numbers). Fixtures are ODbL-credited.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
-  runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`,
+  runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`, `adsbfi`,
   `ais`; default `adsblol,adsbfi,ais`) picks the feeds; `SCENARIO` (old name
   `SIM_SCENARIO`; default `cork`) picks the area for all of them. `cork` is
   live-only (empty simulator geography): `FEEDS=sim` with it fails at
