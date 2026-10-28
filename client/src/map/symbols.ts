@@ -68,6 +68,30 @@ const SYMBOL_SIZE = 20;
 const OUTLINE = 'rgba(9, 16, 21, 0.92)';
 const FONT = '"IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif';
 
+const SYMBOL_OPTIONS = {
+  size: SYMBOL_SIZE,
+  colorMode: 'Light',
+  // 2525 draws civilian platforms in purple. Turned off so colour always means
+  // identity (neutral green, friend cyan…) and never competes with the selection accent.
+  civilianColor: false,
+  outlineWidth: 3,
+  outlineColor: OUTLINE,
+  infoColor: '#E4ECF0',
+  infoOutlineColor: OUTLINE,
+  infoOutlineWidth: 4,
+  infoSize: 46,
+  fontfamily: FONT,
+} as const;
+
+/**
+ * The same symbol as SVG markup, for the details panel and the key, so the
+ * UI shows exactly what the map draws. Built from a SIDC we generate, never
+ * from track text, so it's safe to insert as markup.
+ */
+export function symbolSvg(sidc: string, size = 30): string {
+  return new ms.Symbol(sidc, { ...SYMBOL_OPTIONS, size }).asSVG();
+}
+
 /**
  * Draw a symbol into ImageData with its anchor exactly at the centre, so the
  * map can position every icon with the default centre anchor regardless of
@@ -78,21 +102,7 @@ export function renderSymbol(
   label: string | undefined,
   pixelRatio: number,
 ): { image: ImageData; pixelRatio: number } | null {
-  const symbol = new ms.Symbol(sidc, {
-    size: SYMBOL_SIZE,
-    colorMode: 'Light',
-    // 2525 draws civilian platforms in purple. Turned off so colour always means
-    // identity (neutral green, friend cyan…) and never competes with the selection accent.
-    civilianColor: false,
-    outlineWidth: 3,
-    outlineColor: OUTLINE,
-    infoColor: '#E4ECF0',
-    infoOutlineColor: OUTLINE,
-    infoOutlineWidth: 4,
-    infoSize: 46,
-    fontfamily: FONT,
-    ...(label ? { uniqueDesignation: label } : {}),
-  });
+  const symbol = new ms.Symbol(sidc, { ...SYMBOL_OPTIONS, ...(label ? { uniqueDesignation: label } : {}) });
 
   const source = symbol.asCanvas(pixelRatio);
   const { width, height } = symbol.getSize();

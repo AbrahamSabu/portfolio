@@ -1,5 +1,6 @@
 import type { Track } from '@watchfloor/shared';
-import { AFFILIATION_COLOR, type TrackLayer } from '../map/trackLayer';
+import { sidcFor, symbolSvg } from '../map/symbols';
+import type { TrackLayer } from '../map/trackLayer';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
@@ -23,7 +24,9 @@ export class DetailsPanel {
   private readonly typeRow: HTMLElement;
   private readonly staleNote: HTMLElement;
   private readonly followButton: HTMLButtonElement;
-  private readonly swatch: HTMLElement;
+  private readonly symbol: HTMLElement;
+  /** The SIDC last drawn, so the SVG is only rebuilt when the symbol changes, not every refresh. */
+  private symbolSidc = '';
 
   constructor(
     private readonly root: HTMLElement,
@@ -45,7 +48,7 @@ export class DetailsPanel {
     this.typeRow = q('[data-type-row]');
     this.staleNote = q('[data-stale-note]');
     this.followButton = q<HTMLButtonElement>('[data-follow]');
-    this.swatch = q('[data-swatch]');
+    this.symbol = q('[data-symbol]');
 
     q('[data-close]').addEventListener('click', () => selection.select(null));
     this.followButton.addEventListener('click', () => selection.setFollow(!selection.follow));
@@ -85,7 +88,11 @@ export class DetailsPanel {
       'identity',
       `${PLATFORM_LABEL[track.platform]}, ${AFFILIATION_LABEL[track.affiliation].toLowerCase()}`,
     );
-    this.swatch.style.background = AFFILIATION_COLOR[track.affiliation];
+    const sidc = sidcFor(track);
+    if (sidc !== this.symbolSidc) {
+      this.symbol.innerHTML = symbolSvg(sidc, 34);
+      this.symbolSidc = sidc;
+    }
     this.set('lat', formatLat(pos.lat));
     this.set('lon', formatLon(pos.lon));
     this.set('course', formatCourse(track.courseDeg));

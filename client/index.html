@@ -37,8 +37,24 @@
             <span class="brand-scenario" id="scenario-name">Connecting to server</span>
           </div>
         </div>
-        <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
+        <div class="topbar-end">
+          <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
+          <button class="topbar-button topbar-icon" id="key-toggle" type="button" aria-haspopup="dialog" aria-controls="key-dialog" title="Map key (?)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.4M8 11.6v.1" /></svg>
+            <span class="visually-hidden">Map key</span>
+          </button>
+        </div>
       </header>
+
+      <dialog class="key-dialog" id="key-dialog" aria-labelledby="key-title">
+        <header class="key-head">
+          <h2 class="key-title" id="key-title">Map key</h2>
+          <button class="icon-button" type="button" data-close aria-label="Close map key">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="key-body" data-body></div>
+      </dialog>
 
       <div class="map" id="map" role="region" aria-label="Tactical map"></div>
 
@@ -62,7 +78,7 @@
             class="search"
             type="search"
             data-search
-            placeholder="Search callsign"
+            placeholder="Search callsign or type"
             aria-label="Search by callsign or track id (/)"
             autocomplete="off"
             spellcheck="false"
@@ -99,11 +115,11 @@
 
       <aside class="details" id="details" hidden aria-labelledby="details-title">
         <header class="details-head">
-          <p class="details-identity">
-            <span class="swatch" data-swatch aria-hidden="true"></span>
-            <span data-field="identity"></span>
-          </p>
-          <h2 class="details-title" id="details-title" data-field="title"></h2>
+          <div class="details-symbol" data-symbol aria-hidden="true"></div>
+          <div class="details-heading">
+            <p class="details-identity" data-field="identity"></p>
+            <h2 class="details-title" id="details-title" data-field="title"></h2>
+          </div>
           <button class="icon-button details-close" type="button" data-close aria-label="Close track details">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
           </button>

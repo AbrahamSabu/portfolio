@@ -16,6 +16,8 @@ import { Selection } from './state/selection';
 import { TrackStore } from './state/trackStore';
 import { DetailsPanel } from './ui/detailsPanel';
 import { FilterPanel } from './ui/filterPanel';
+import { HoverCard } from './ui/hoverCard';
+import { KeyDialog } from './ui/keyDialog';
 import { formatDtg, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
@@ -60,6 +62,8 @@ async function main(): Promise<void> {
   const filterControl = new FilterControl(filterPanel, filter);
   map.addControl(filterControl, 'top-left');
   const reticle = new Reticle(map);
+  new HoverCard(map, store, clock, layer);
+  const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement);
   new DetailsPanel(el('details'), store, clock, layer, selection);
   const list = new TrackList(
     el('track-list'),
@@ -105,6 +109,8 @@ async function main(): Promise<void> {
   });
 
   document.addEventListener('keydown', (event) => {
+    // The key is a modal dialog: it handles its own Escape, and nothing behind it should react.
+    if (keyDialog.open) return;
     if (event.key === 'Escape') {
       // Close the filter first if it's open; a second Escape clears the selection.
       if (filterPanel.open) filterPanel.setOpen(false);
@@ -115,6 +121,7 @@ async function main(): Promise<void> {
     if (event.key === 't' || event.key === 'T') trailControl.cycle();
     if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
     if (event.key === 'f' || event.key === 'F') filterControl.toggle();
+    if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
       list.focusSearch();
