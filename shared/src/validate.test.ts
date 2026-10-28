@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeTrack } from './validate';
+import { cleanCallsign, sanitizeTrack } from './validate';
 
 const good = {
   id: 'adsb:4ca7b3',
@@ -64,5 +64,20 @@ describe('sanitizeTrack: aircraft type', () => {
     const ship = sanitizeTrack({ ...good, id: 'ais:1', source: 'ais', domain: 'sea', platform: 'cargo', typeCode: 'B748', model: 'x' });
     expect(ship?.typeCode).toBeUndefined();
     expect(ship?.model).toBeUndefined();
+  });
+});
+
+describe('cleanCallsign', () => {
+  it('strips padding punctuation and keeps real names, apostrophes included', () => {
+    expect(cleanCallsign('-NANUUK-')).toBe('NANUUK');
+    expect(cleanCallsign('  ...VEGA  ')).toBe('VEGA');
+    expect(cleanCallsign(':GMS ANTARO')).toBe('GMS ANTARO');
+    expect(cleanCallsign("'T SMIDTJE")).toBe("'T SMIDTJE");
+    expect(cleanCallsign('ORLANDO   DANIELA')).toBe('ORLANDO DANIELA');
+  });
+
+  it('drops placeholders that carry no name', () => {
+    for (const junk of ['00000000', ',', '-', ' . ', '***']) expect(cleanCallsign(junk)).toBeUndefined();
+    expect(cleanCallsign('0 P')).toBe('0 P'); // short, but it has a letter
   });
 });

@@ -7,6 +7,21 @@ const AFFILIATIONS: ReadonlySet<Affiliation> = new Set(TRACK_VALUES.affiliation)
 const PLATFORMS: ReadonlySet<Platform> = new Set(TRACK_VALUES.platform);
 const PROVIDERS: ReadonlySet<Provider> = new Set(TRACK_VALUES.provider);
 
+/**
+ * Callsigns and ship names as transmitted carry filler: padding punctuation
+ * ("-NANUUK-", "...VEGA", ":GMS ANTARO"), or placeholders with no name in them ("00000000",
+ * ",", "-"). Left in, they sort to the top of the list and label the map
+ * with noise. Apostrophes and quotes stay: they're part of real names ('T SMIDTJE).
+ */
+export function cleanCallsign(raw: string): string | undefined {
+  const s = raw
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s\-.,:;_*~]+|[\s\-.,:;_*~]+$/g, '')
+    .slice(0, 32);
+  if (!/[A-Za-z0-9]/.test(s) || /^0+$/.test(s)) return undefined;
+  return s;
+}
+
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /**
@@ -47,7 +62,7 @@ export function sanitizeTrack(input: unknown): Track | null {
   };
 
   if (typeof t.callsign === 'string') {
-    const callsign = t.callsign.trim().slice(0, 32);
+    const callsign = cleanCallsign(t.callsign);
     if (callsign) track.callsign = callsign;
   }
   if (PROVIDERS.has(t.provider as Provider)) track.provider = t.provider as Provider;
