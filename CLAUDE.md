@@ -18,7 +18,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (275 tests after the world default).
+- `npm test`: Vitest from the root config (278 tests after the world default).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -342,6 +342,16 @@ that could have been fetched before they arrived.
   `styledataloading`). Don't go back to `map.isStyleLoaded()`: it's false
   while tiles load, so a hello arriving then (the worldwide page) never
   installed the credit.
+- Client cost with the whole world loaded (Oct 2026, ~37k tracks): each
+  domain has its own source and layers (`tracks-sea`/`tracks-air`, ships
+  below), redrawn on its own pace (`renderRate.ts` PACE: air ceiling 1 s,
+  sea 5 s); store changes force only the air redraw. Below zoom 5 'all'
+  trails draw only the selected track, and below zoom 4 dots carry no
+  symbol ids. Every setData copies the whole source to MapLibre's worker
+  (its serialiser was the top profile entry). **When measuring long tasks
+  over CDP, call `Page.enable` before `addScriptToEvaluateOnNewDocument`,
+  or the observer never installs and reports zero.** Verify with a
+  deliberate 120 ms busy loop. World snapshot: 13.6 MB, map fills ~4.5 s.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.
