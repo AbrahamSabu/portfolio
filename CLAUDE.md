@@ -3,9 +3,11 @@
 A real-time common operating picture (COP): a defence-style tactical map of
 live air and sea tracks drawn with NATO MIL-STD-2525C symbols. It is a
 portfolio project, so code quality, structure, tests and the README matter as
-much as features. By default it opens on Cork with live aircraft from adsb.lol
-and adsb.fi and live ships from AISStream; it can add the OpenSky Network, or run offline
-on a built-in simulator over the English Channel.
+much as features. By default it opens on the live world: OpenSky aircraft
+and AISStream ships everywhere (`OPENSKY_AREA`/`AIS_AREA` default `world`),
+with adsb.lol and adsb.fi filling in aircraft where you zoom in and keeping
+Cork (the home scenario) warm. It can run offline on a built-in simulator
+over the English Channel.
 **The user wants it to feel like Flightradar24: open the page and everything
 is already there.** Keep the picture warm; never make a viewer wait for data
 that could have been fetched before they arrived.
@@ -16,7 +18,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (275 tests after adsb.fi).
+- `npm test`: Vitest from the root config (275 tests after the world default).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -229,7 +231,7 @@ that could have been fetched before they arrived.
   `../.cache/picture.json` from server/, `off` to disable) holds the saved
   picture. `SIM_ENABLED` is gone and errors if set.
   `OPENSKY_CLIENT_ID`/`OPENSKY_CLIENT_SECRET` (both or neither) and
-  `OPENSKY_POLL_S` (default 60 anonymous, 15 with an account).
+  `OPENSKY_POLL_S` (default 60; 15 only with an account and `OPENSKY_AREA=scenario`, since a world poll costs 4 credits).
   `OPENSKY_AREA=world` polls globally (4 credits, ~7,000 aircraft, ~1.1 MB);
   with only live worldwide traffic, hello frames and names the map
   "Worldwide", otherwise the scenario keeps it. `OPENSKY_AREA=viewport`
