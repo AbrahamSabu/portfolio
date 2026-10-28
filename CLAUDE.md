@@ -18,7 +18,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (278 tests after the world default).
+- `npm test`: Vitest from the root config (289 tests after the compact wire format).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -78,7 +78,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 9`, v8 added feed state `unconfigured`, v9 provider `adsb.fi`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 10`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -308,9 +308,22 @@ that could have been fetched before they arrived.
 - `.gitattributes` pins LF line endings because the user's global `core.autocrlf=true`.
 - npm 11 blocks esbuild's postinstall script. That is harmless, because the
   platform binary arrives as an optional dependency and both builds work.
-- Snapshot size: about 90 KB after 3 minutes of simulation; worldwide about
-  2.5 MB raw / 0.5 MB deflated, with a 1.4 MB raw / 214 KB deflated delta
-  after each poll. `permessage-deflate` is on (threshold 1 KB).
+- Wire format (`shared/src/wire.ts`, v10): tracks travel as tuples
+  `[id, source, domain, platform, affiliation, lat, lon, course, speed,
+  ageMs, alt?, callsign?, provider?]` (codes = index in `TRACK_VALUES`,
+  track.ts, which validation also uses: **append only**), trailing nulls
+  trimmed; observedAt as ms before serverTime; lat/lon 1e-5, course and
+  speed 0.1, altitude 1 m. Trails: one flat integer list per track
+  (first point, then steps; lossless), aligned by position with the
+  snapshot's tracks. `encodeServerMessage` (hub) / `parseServerMessage`
+  (client) convert, so in-memory types are unchanged. Measured with ~37k
+  tracks: snapshot 13.8 MB -> 4.7 MB raw (1.95 MB deflated), OpenSky's
+  minute delta 2.55 -> 0.78 MB, browser parse ~0.25 -> ~0.13 s, tracks
+  drawn 3.5-3.9 s -> 1.8-2.1 s after navigation (User Timing:
+  `wf:snapshot-parse`, `wf:snapshot-apply`, `wf:first-tracks`). The hub
+  sends hello, then builds the snapshot in `setImmediate`, and compresses
+  at zlib level 1 (threshold 1 KB): about twice as fast for 12% more bytes.
+  The hello itself is compressed (>1 KB with feed statuses).
 - Headless SwiftShader is GPU-bound when zoomed in close (about 6 fps with the
   main thread 94% idle). Judge client performance by Performance.getMetrics
   script and task time over CDP, not fps alone.
@@ -351,7 +364,8 @@ that could have been fetched before they arrived.
   (its serialiser was the top profile entry). **When measuring long tasks
   over CDP, call `Page.enable` before `addScriptToEvaluateOnNewDocument`,
   or the observer never installs and reports zero.** Verify with a
-  deliberate 120 ms busy loop. World snapshot: 13.6 MB, map fills ~4.5 s.
+  deliberate 120 ms busy loop. The status bar's counts refresh once a
+  second, so time page opening from the User Timing entries, not them.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.
