@@ -78,6 +78,13 @@ async function main(): Promise<void> {
     reticle.setStale(pos.stale);
     if (selection.follow && !map.isMoving()) map.jumpTo({ center: [pos.lon, pos.lat] });
   });
+  // How long the page took to show the picture (User Timing, for DevTools and measurements).
+  const stopFirstDraw = layer.onFrame(() => {
+    if (store.size === 0) return;
+    performance.mark('wf:first-tracks');
+    stopFirstDraw();
+  });
+
   // Dragging the map is a clear sign the operator wants control back.
   map.on('dragstart', () => selection.setFollow(false));
 
@@ -144,9 +151,12 @@ async function main(): Promise<void> {
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           break;
-        case 'snapshot':
+        case 'snapshot': {
+          const applyStart = performance.now();
           store.applySnapshot(message.tracks, message.trails);
+          performance.measure('wf:snapshot-apply', { start: applyStart });
           break;
+        }
         case 'delta':
           store.applyDelta(message.upserts, message.removals, message.serverTime);
           if (message.feeds) status.setFeeds(message.feeds);

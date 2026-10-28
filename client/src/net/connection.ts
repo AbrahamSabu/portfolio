@@ -83,8 +83,11 @@ export class Connection {
       const receivedAt = Date.now();
       this.armWatchdog();
       if (typeof event.data !== 'string') return;
+      const parseStart = performance.now();
       const message = parseServerMessage(event.data);
       if (!message) return;
+      // User Timing entries, visible in DevTools' Performance panel and to the headless measurements.
+      if (message.type === 'snapshot') performance.measure('wf:snapshot-parse', { start: parseStart });
 
       if (message.type === 'hello') {
         if (message.protocol !== PROTOCOL_VERSION) {
