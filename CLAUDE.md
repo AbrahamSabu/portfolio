@@ -4,7 +4,7 @@ A real-time common operating picture (COP): a defence-style tactical map of
 live air and sea tracks drawn with NATO MIL-STD-2525C symbols. It is a
 portfolio project, so code quality, structure, tests and the README matter as
 much as features. By default it opens on Cork with live aircraft from adsb.lol
-and live ships from AISStream; it can add the OpenSky Network, or run offline
+and adsb.fi and live ships from AISStream; it can add the OpenSky Network, or run offline
 on a built-in simulator over the English Channel.
 **The user wants it to feel like Flightradar24: open the page and everything
 is already there.** Keep the picture warm; never make a viewer wait for data
@@ -16,7 +16,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (268 tests after the warm Cork picture).
+- `npm test`: Vitest from the root config (275 tests after adsb.fi).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -29,7 +29,7 @@ that could have been fetched before they arrived.
   `TrailHistory` (`trail.ts`) and `sanitizeTrack` validation (`validate.ts`).
 - `server/`: Node plus `ws`, bundled with esbuild for production. `trackStore.ts`,
   `hub.ts`, `http.ts`, `config.ts`, `feeds/` (Feed interface, `pollScheduler.ts`, `sim/`, `opensky/`,
-  `adsblol/`, `ais/`, shared `adsb/category.ts` and `backoff.ts`) and
+  `readsb/` (adsb.lol and adsb.fi), `ais/`, shared `adsb/category.ts` and `backoff.ts`) and
   `scenarios/`.
 - `client/`: Vite, MapLibre GL JS v6 and milsymbol v3 in plain TypeScript, with no
   UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl, symbols,
@@ -60,7 +60,7 @@ that could have been fetched before they arrived.
   (same `adsb:<icao24>` id): newest report wins, but `keepKnownIdentity`
   keeps a known callsign and never lets a generic platform ('aircraft',
   'vessel') replace a specific one. Kinematics always come from the newest.
-- `Track.provider` ('opensky' | 'adsb.lol', protocol v6) says who delivered
+- `Track.provider` ('opensky' | 'adsb.lol' | 'adsb.fi' | 'aisstream'; v6, adsb.fi v9) says who delivered
   the latest report: details panel "ADS-B via adsb.lol"; the map's
   attribution credits running live feeds (`map/dataCredits.ts`, an empty
   source carrying the attribution).
@@ -76,7 +76,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 8`, v8 added feed state `unconfigured`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 9`, v8 added feed state `unconfigured`, v9 provider `adsb.fi`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -180,7 +180,19 @@ that could have been fetched before they arrived.
   polled feed: pause with no viewers, resume at nextDueAt, the bounded
   early-poll debounce. Feeds supply hooks: run, isActive, wantsEarlyPoll,
   isWaiting, describe. Don't re-implement scheduling in a feed.
-- adsb.lol (`server/src/feeds/adsblol/`): readsb/ADSBx v2 JSON. `mapAircraft`
+- adsb.lol and adsb.fi (`server/src/feeds/readsb/`): readsb/ADSBx v2 JSON.
+  One `ReadsbFeed` class per service (`services.ts`: feed name, label,
+  provider, URL pattern, `requestGapMs`, `minMsPerCircle`); `mapAircraft`
+  takes the provider. Both run by default and feed the same `adsb:` tracks,
+  so either alone keeps aircraft up (added after adsb.lol refused us for
+  hours). adsb.fi (github.com/adsbfi/opendata): `/v3/lat/../lon/../dist/..`,
+  1 req/s documented, 4xx count toward a temporary IP ban, attribution with
+  a link required (map credit), personal non-commercial use; budget 1.2 s
+  gap, 2 s per circle; `ADSBFI_POLL_S` 5, `ADSBFI_WARM_POLL_S` 30,
+  `ADSBFI_API_URL`. A 429 without Retry-After is reported `rate-limited`
+  with `until` = next try (backoff), not `failing`. airplanes.live (same
+  API) now answers 403 "contact us" without prior approval: not used.
+  The rest of this section was written for adsb.lol and applies to both. `mapAircraft`
   times reports from the response's `now` minus `seen_pos`, feet to metres,
   knots to m/s, skips '~' non-ICAO hexes. `circlesFor` tiles views with
   snapped circles of up to 250 nm; more than 6 (about a region, roughly
@@ -210,7 +222,7 @@ that could have been fetched before they arrived.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
   runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`,
-  `ais`; default `adsblol,ais`) picks the feeds; `SCENARIO` (old name
+  `ais`; default `adsblol,adsbfi,ais`) picks the feeds; `SCENARIO` (old name
   `SIM_SCENARIO`; default `cork`) picks the area for all of them. `cork` is
   live-only (empty simulator geography): `FEEDS=sim` with it fails at
   startup and says to use `english-channel`. `PICTURE_FILE` (default
