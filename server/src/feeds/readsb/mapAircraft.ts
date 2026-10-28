@@ -1,9 +1,9 @@
-import { makeTrackId, type Track } from '@watchfloor/shared';
+import { makeTrackId, type Provider, type Track } from '@watchfloor/shared';
 import { categoryFromCode, platformFor } from '../adsb/category';
 import type { MapOutcome } from '../opensky/mapState';
 
 /**
- * Translating adsb.lol aircraft (the readsb / ADSBx v2 JSON schema) into our
+ * Translating readsb / ADSBx v2 JSON aircraft (adsb.lol, adsb.fi) into our
  * Track shape. Pure, so every rule is tested against recorded responses.
  * Field reference: https://github.com/wiedehopf/readsb/blob/dev/README-json.md
  */
@@ -12,8 +12,11 @@ const KNOTS_TO_MPS = 1852 / 3600;
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-/** @param nowMs the response's own `now`, so timing is the source's, not ours. */
-export function mapAircraft(ac: unknown, nowMs: number): MapOutcome {
+/**
+ * @param nowMs the response's own `now`, so timing is the source's, not ours.
+ * @param provider the network that answered.
+ */
+export function mapAircraft(ac: unknown, nowMs: number, provider: Provider): MapOutcome {
   if (typeof ac !== 'object' || ac === null) return { kind: 'skip', reason: 'malformed' };
   const a = ac as Record<string, unknown>;
   // A leading '~' marks a non-ICAO address (TIS-B and similar): not a stable
@@ -47,7 +50,7 @@ export function mapAircraft(ac: unknown, nowMs: number): MapOutcome {
     courseDeg,
     speedMps: gs * KNOTS_TO_MPS,
     observedAt: Math.round(nowMs - age * 1000),
-    provider: 'adsb.lol',
+    provider,
   };
   // Geometric before barometric, as for OpenSky. Both are in feet here.
   const altFt = num(a.alt_geom) ?? num(a.alt_baro);

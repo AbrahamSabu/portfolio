@@ -11,7 +11,7 @@ function fixture(name: string) {
 
 describe('mapAircraft on recorded responses (27 Oct 2026, 17:13 UTC)', () => {
   const cairo = fixture('cairo-2026-10-27.json');
-  const outcomes = cairo.ac.map((ac) => mapAircraft(ac, cairo.now));
+  const outcomes = cairo.ac.map((ac) => mapAircraft(ac, cairo.now, 'adsb.lol'));
 
   it('splits airborne aircraft, aircraft on the ground, and incomplete reports', () => {
     expect(outcomes).toHaveLength(42);
@@ -48,7 +48,7 @@ describe('mapAircraft on recorded responses (27 Oct 2026, 17:13 UTC)', () => {
 
   it('maps all of Johannesburg', () => {
     const jnb = fixture('johannesburg-2026-10-27.json');
-    expect(jnb.ac.map((ac) => mapAircraft(ac, jnb.now)).filter((o) => o.kind === 'airborne')).toHaveLength(13);
+    expect(jnb.ac.map((ac) => mapAircraft(ac, jnb.now, 'adsb.lol')).filter((o) => o.kind === 'airborne')).toHaveLength(13);
   });
 });
 
@@ -57,29 +57,29 @@ describe('mapAircraft edge cases', () => {
   const base = { hex: 'abc123', lat: 50, lon: 0, gs: 400, track: 90, seen_pos: 1, category: 'A3' };
 
   it('skips non-ICAO addresses, which cannot merge across providers', () => {
-    expect(mapAircraft({ ...base, hex: '~abc123' }, now)).toEqual({ kind: 'skip', reason: 'malformed' });
+    expect(mapAircraft({ ...base, hex: '~abc123' }, now, 'adsb.lol')).toEqual({ kind: 'skip', reason: 'malformed' });
   });
 
   it('skips reports without a position, a position age, or a velocity', () => {
-    expect(mapAircraft({ ...base, lat: undefined }, now)).toMatchObject({ reason: 'no-position' });
-    expect(mapAircraft({ ...base, gs: undefined }, now)).toMatchObject({ reason: 'no-velocity' });
-    expect(mapAircraft({ ...base, track: undefined }, now)).toMatchObject({ reason: 'no-velocity' });
+    expect(mapAircraft({ ...base, lat: undefined }, now, 'adsb.lol')).toMatchObject({ reason: 'no-position' });
+    expect(mapAircraft({ ...base, gs: undefined }, now, 'adsb.lol')).toMatchObject({ reason: 'no-velocity' });
+    expect(mapAircraft({ ...base, track: undefined }, now, 'adsb.lol')).toMatchObject({ reason: 'no-velocity' });
   });
 
   it('falls back to seen when seen_pos is missing, and skips when both are', () => {
-    const o = mapAircraft({ ...base, seen_pos: undefined, seen: 3 }, now);
+    const o = mapAircraft({ ...base, seen_pos: undefined, seen: 3 }, now, 'adsb.lol');
     expect(o.kind === 'airborne' && o.report.observedAt).toBe(now - 3000);
-    expect(mapAircraft({ ...base, seen_pos: undefined, seen: undefined }, now)).toMatchObject({ reason: 'no-position' });
+    expect(mapAircraft({ ...base, seen_pos: undefined, seen: undefined }, now, 'adsb.lol')).toMatchObject({ reason: 'no-position' });
   });
 
   it('skips ground vehicles and uses barometric altitude when that is all there is', () => {
-    expect(mapAircraft({ ...base, category: 'C1' }, now)).toMatchObject({ reason: 'not-aircraft' });
-    const o = mapAircraft({ ...base, alt_baro: 10000 }, now);
+    expect(mapAircraft({ ...base, category: 'C1' }, now, 'adsb.lol')).toMatchObject({ reason: 'not-aircraft' });
+    const o = mapAircraft({ ...base, alt_baro: 10000 }, now, 'adsb.lol');
     expect(o.kind === 'airborne' && o.report.altitudeM).toBe(3048);
   });
 
   it('treats alt_baro "ground" as on the ground', () => {
-    expect(mapAircraft({ ...base, alt_baro: 'ground' }, now)).toEqual({ kind: 'on-ground', id: 'adsb:abc123' });
+    expect(mapAircraft({ ...base, alt_baro: 'ground' }, now, 'adsb.lol')).toEqual({ kind: 'on-ground', id: 'adsb:abc123' });
   });
 });
 
@@ -88,5 +88,18 @@ describe('parseAircraftResponse', () => {
     expect(parseAircraftResponse({ ac: [] })).toBeNull();
     expect(parseAircraftResponse({ now: 1 })).toBeNull();
     expect(parseAircraftResponse('nope')).toBeNull();
+  });
+});
+
+describe('mapAircraft on an adsb.fi response (Cork, 28 Oct 2026, 09:47 UTC)', () => {
+  // adsb.fi's v3 point query answers in the same readsb schema as adsb.lol.
+  const cork = fixture('cork-adsbfi-2026-10-28.json');
+  const outcomes = cork.ac.map((ac) => mapAircraft(ac, cork.now, 'adsb.fi'));
+
+  it('maps every aircraft, credited to adsb.fi and timed by its clock', () => {
+    const airborne = outcomes.flatMap((o) => (o.kind === 'airborne' ? [o.report] : []));
+    expect(airborne).toHaveLength(25);
+    expect(airborne.every((t) => t.provider === 'adsb.fi' && t.observedAt <= cork.now)).toBe(true);
+    expect(airborne.every((t) => sanitizeTrack(t) !== null)).toBe(true);
   });
 });

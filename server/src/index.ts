@@ -9,8 +9,9 @@ import {
 } from '@watchfloor/shared';
 import { loadConfig, trafficKind } from './config';
 import type { Feed } from './feeds/feed';
-import { AdsbLolFeed } from './feeds/adsblol/adsbLolFeed';
-import { circlesFor } from './feeds/adsblol/circles';
+import { circlesFor } from './feeds/readsb/circles';
+import { ReadsbFeed } from './feeds/readsb/readsbFeed';
+import { ADSB_FI, ADSB_LOL } from './feeds/readsb/services';
 import { WORLD } from './feeds/ais/areas';
 import { AisStreamFeed } from './feeds/ais/aisStreamFeed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
@@ -29,11 +30,12 @@ const PICTURE_SAVE_MS = 30_000;
 async function main(): Promise<void> {
   const config = loadConfig();
   // Polled feeds deliver reports in bursts, so their tracks get windows sized
-  // to the poll interval instead of the transponder-rate defaults. Both ADS-B
-  // providers feed the same 'adsb' tracks, so the slower interval sets the rule.
+  // to the poll interval instead of the transponder-rate defaults. All ADS-B
+  // providers feed the same 'adsb' tracks, so the slowest interval sets the rule.
   const adsbPollMs = Math.max(
     config.feeds.includes('opensky') ? config.opensky.pollMs : 0,
     config.feeds.includes('adsblol') ? config.adsblol.pollMs : 0,
+    config.feeds.includes('adsbfi') ? config.adsbfi.pollMs : 0,
   );
   // AIS ships report at rates set by what they're doing (minutes apart when
   // moored), so they get their own rule too.
@@ -49,7 +51,7 @@ async function main(): Promise<void> {
     // Live-only areas (Cork) have no lanes or routes, so simulated ships would have nowhere to go.
     throw new Error(`The simulator has no traffic for ${scenario.name}. Use SCENARIO=english-channel with FEEDS=sim.`);
   }
-  // The areas of the live feeds that have one (adsb.lol only follows views).
+  // The areas of the live feeds that have one (adsb.lol and adsb.fi only follow views).
   const areas = [
     ...(config.feeds.includes('opensky') ? [config.opensky.area] : []),
     ...(config.feeds.includes('ais') ? [config.ais.area] : []),
@@ -85,16 +87,20 @@ async function main(): Promise<void> {
         );
         break;
       case 'adsblol':
+      case 'adsbfi': {
+        const settings = config[name];
         feeds.push(
-          new AdsbLolFeed({
-            pollMs: config.adsblol.pollMs,
+          new ReadsbFeed({
+            service: name === 'adsblol' ? ADSB_LOL : ADSB_FI,
+            pollMs: settings.pollMs,
             // Always poll the scenario's area, so the picture is there before anyone looks.
             home: circlesFor([scenario.bounds]) ?? [],
-            warmPollMs: config.adsblol.warmPollMs,
-            ...(config.adsblol.apiUrl ? { apiUrl: config.adsblol.apiUrl } : {}),
+            warmPollMs: settings.warmPollMs,
+            ...(settings.apiUrl ? { apiUrl: settings.apiUrl } : {}),
           }),
         );
         break;
+      }
       case 'opensky':
         feeds.push(
           new OpenSkyFeed({

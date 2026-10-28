@@ -16,11 +16,11 @@ export type Affiliation = 'friend' | 'hostile' | 'neutral' | 'unknown' | 'pendin
 export type TrackSource = 'sim' | 'adsb' | 'ais';
 
 /**
- * Which service delivered a report (ADS-B comes from OpenSky or adsb.lol,
+ * Which service delivered a report (ADS-B comes from OpenSky, adsb.lol or adsb.fi,
  * AIS from AISStream). Tracks merge by id across providers; this says where
  * the latest report came from, for the details panel and credits.
  */
-export type Provider = 'opensky' | 'adsb.lol' | 'aisstream';
+export type Provider = 'opensky' | 'adsb.lol' | 'adsb.fi' | 'aisstream';
 
 /** What kind of platform this is, as far as we know. A closed list keeps symbology predictable. */
 export type Platform =

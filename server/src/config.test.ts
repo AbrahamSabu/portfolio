@@ -3,8 +3,8 @@ import { parseFeeds, trafficKind } from './config';
 
 describe('parseFeeds', () => {
   it('defaults to live aircraft and ships', () => {
-    expect(parseFeeds(undefined)).toEqual(['adsblol', 'ais']);
-    expect(parseFeeds('  ')).toEqual(['adsblol', 'ais']);
+    expect(parseFeeds(undefined)).toEqual(['adsblol', 'adsbfi', 'ais']);
+    expect(parseFeeds('  ')).toEqual(['adsblol', 'adsbfi', 'ais']);
   });
 
   it('accepts a list, ignoring case, spaces and duplicates', () => {
@@ -12,10 +12,11 @@ describe('parseFeeds', () => {
     expect(parseFeeds('opensky,sim')).toEqual(['sim', 'opensky']);
     expect(parseFeeds('adsblol, opensky')).toEqual(['opensky', 'adsblol']);
     expect(parseFeeds('ais,sim')).toEqual(['sim', 'ais']);
+    expect(parseFeeds('adsbfi,adsblol')).toEqual(['adsblol', 'adsbfi']);
   });
 
   it('rejects unknown feeds with the list of valid ones', () => {
-    expect(() => parseFeeds('sim,radar')).toThrow(/unknown feed "radar".*Available: sim, opensky, adsblol, ais/);
+    expect(() => parseFeeds('sim,radar')).toThrow(/unknown feed "radar".*Available: sim, opensky, adsblol, adsbfi, ais/);
   });
 
   it('rejects a list with no names', () => {

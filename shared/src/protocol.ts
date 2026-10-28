@@ -28,8 +28,9 @@ import type { TrailPoint } from './trail';
  *   6  tracks may carry `provider` (which service delivered the report)
  *   7  feed state `standing-aside`
  *   8  feed state `unconfigured`
+ *   9  provider `adsb.fi`
  */
-export const PROTOCOL_VERSION = 8;
+export const PROTOCOL_VERSION = 9;
 
 export interface HelloMessage {
   type: 'hello';

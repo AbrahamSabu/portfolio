@@ -3,7 +3,8 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 /**
  * Credits for the live data on the map, shown in MapLibre's attribution
  * control next to the basemap's. adsb.lol's data is ODbL, which requires
- * attribution with the licence; OpenSky and AISStream are credited too.
+ * attribution with the licence; adsb.fi's terms require a credit with a link
+ * to its home page; OpenSky and AISStream are credited too.
  *
  * The attribution control collects credits from sources that visible layers
  * use, so the credits ride on an empty source with an empty layer. It is
@@ -19,6 +20,7 @@ const CREDITS: Record<string, { kind: 'Aircraft' | 'Ships'; html: string }> = {
     kind: 'Aircraft',
     html: '<a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)',
   },
+  adsbfi: { kind: 'Aircraft', html: '<a href="https://adsb.fi" target="_blank" rel="noopener">adsb.fi</a>' },
   ais: { kind: 'Ships', html: '<a href="https://aisstream.io" target="_blank" rel="noopener">AISStream</a>' },
 };
 

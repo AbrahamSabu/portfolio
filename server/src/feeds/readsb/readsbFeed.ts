@@ -5,36 +5,22 @@ import { Backoff } from '../backoff';
 import { PollScheduler, polledFeedStatus } from '../pollScheduler';
 import { circleContains, circlesCover, circlesFor, type Circle } from './circles';
 import { mapAircraft, parseAircraftResponse } from './mapAircraft';
+import type { ReadsbService } from './services';
 
-export const DEFAULT_ADSBLOL_URL = 'https://api.adsb.lol';
-/** adsb.lol is free and run by volunteers: say who we are. */
+/** These networks are free and run by volunteers: say who we are. */
 const USER_AGENT = 'Watchfloor/1.0 (open-source, non-commercial portfolio project)';
 const REQUEST_TIMEOUT_MS = 15_000;
 /**
- * Circles fetched at once within a poll. adsb.lol takes 1 to 3.5 s to answer
+ * Circles fetched at once within a poll. adsb.lol took 1 to 3.5 s to answer
  * each one, so one at a time made a two-circle view wait for the sum; two at
  * once waits for the slower. It stays a light load on a free service.
  */
 const CONCURRENCY = 2;
-/**
- * Least time between request starts. adsb.lol limits bursts: measured, six
- * requests within about a second succeeded and the seventh drew a 429, while
- * ten spaced a second apart all succeeded. Circles now answer in about 0.2 s,
- * so without pacing a wide view's poll was exactly such a burst.
- */
-const REQUEST_GAP_MS = 1_200;
 const MAX_BACKOFF_MS = 5 * 60_000;
-/**
- * The request budget: polls are at least this far apart per circle, so at
- * most 7.5 requests a minute however many circles a view needs. adsb.lol
- * publishes no limit (its README calls limits dynamic). Measured, Oct 2026:
- * 7 circles every 10 s (42 a minute) drew 429s within seconds, and even 12 a
- * minute, paced, drew one 429 (Retry-After 10-12 s) about every minute.
- * One circle (the home area) still updates every 10 s.
- */
-const MIN_MS_PER_CIRCLE = 8_000;
 
-export interface AdsbLolOptions {
+export interface ReadsbOptions {
+  /** Which network: its URL, name and request budget. */
+  service: ReadsbService;
   /** Interval while someone is watching. */
   pollMs: number;
   /**
@@ -45,7 +31,7 @@ export interface AdsbLolOptions {
   home?: Circle[];
   /** Interval for the home area while nobody is watching. Defaults to pollMs. */
   warmPollMs?: number;
-  /** API base, e.g. a local stub for testing. Defaults to adsb.lol's. */
+  /** API base, e.g. a local stub for testing. Defaults to the service's. */
   apiUrl?: string;
   // Injectable for tests, so nothing touches the network or real time.
   fetch?: typeof fetch;
@@ -59,19 +45,20 @@ export interface AdsbLolOptions {
 }
 
 /**
- * Live aircraft from adsb.lol, a second ADS-B network, to fill in what
- * OpenSky's receivers miss where the user is zoomed in.
+ * Live aircraft from a community ADS-B network (adsb.lol, adsb.fi; see
+ * services.ts).
  *
- * Reports use the same `adsb:<icao24>` ids as OpenSky, so the store merges
- * the two providers: the newest report wins, and known identity (callsign,
- * platform) is kept. adsb.lol only answers point-and-radius queries, so it
- * follows what browsers are looking at, and stands aside for views wider
- * than a region. Circles are fetched two at a time, and each one's aircraft
+ * Reports use the same `adsb:<icao24>` ids as OpenSky and each other, so the
+ * store merges providers: the newest report wins, and known identity
+ * (callsign, platform) is kept. These networks only answer point-and-radius
+ * queries, so the feed polls a home area always and follows what browsers
+ * are looking at, standing aside for views wider than a region. Circles are fetched two at a time, and each one's aircraft
  * are pushed as soon as it answers. Scheduling (pausing with no viewers, debounced early polls
  * when the view moves) is PollScheduler's, as for OpenSky.
  */
-export class AdsbLolFeed implements Feed {
-  readonly name = 'adsblol';
+export class ReadsbFeed implements Feed {
+  readonly name: string;
+  private readonly service: ReadsbService;
 
   private readonly fetch: typeof fetch;
   private readonly sleep: (ms: number) => Promise<void>;
@@ -94,11 +81,13 @@ export class AdsbLolFeed implements Feed {
   private pausedUntil: number | null = null;
   private aircraft = 0;
 
-  constructor(private readonly opts: AdsbLolOptions) {
+  constructor(private readonly opts: ReadsbOptions) {
+    this.service = opts.service;
+    this.name = opts.service.feed;
     this.fetch = opts.fetch ?? globalThis.fetch;
     this.sleep = opts.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.now = opts.now ?? Date.now;
-    this.log = opts.log ?? createLogger('adsblol');
+    this.log = opts.log ?? createLogger(opts.service.feed);
     this.home = opts.home ?? [];
     this.plan = this.home;
     this.backoff = new Backoff(opts.pollMs, Math.max(MAX_BACKOFF_MS, opts.pollMs), opts.random);
@@ -117,7 +106,7 @@ export class AdsbLolFeed implements Feed {
         setTimer: opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms)),
         clearTimer: opts.clearTimer ?? ((h) => clearTimeout(h as NodeJS.Timeout)),
         log: this.log,
-        // adsb.lol is free, so a moved view is fetched sooner than OpenSky's
+        // These networks are free, so a moved view is fetched sooner than OpenSky's
         // (2 s settle, 10 s gap), whose every poll costs credits.
         settleMs: 1_000,
         minEarlyGapMs: 3_000,
@@ -168,9 +157,10 @@ export class AdsbLolFeed implements Feed {
 
   status(): FeedStatus {
     // Standing aside for a wide view isn't a fault; the UI mentions it only if nothing else is delivering.
-    if (this.tooWide) return { feed: 'adsblol', label: 'adsb.lol', state: 'standing-aside' };
-    if (this.plan.length === 0) return { feed: 'adsblol', label: 'adsb.lol', state: 'ok' };
-    return polledFeedStatus('adsblol', 'adsb.lol', {
+    const { feed, label } = this.service;
+    if (this.tooWide) return { feed, label, state: 'standing-aside' };
+    if (this.plan.length === 0) return { feed, label, state: 'ok' };
+    return polledFeedStatus(feed, label, {
       now: this.now(),
       lastSuccessAt: this.lastSuccessAt,
       pausedUntil: this.pausedUntil,
@@ -207,7 +197,7 @@ export class AdsbLolFeed implements Feed {
 
   private async poll(): Promise<number> {
     const plan = this.plan;
-    const base = this.opts.apiUrl ?? DEFAULT_ADSBLOL_URL;
+    const base = this.opts.apiUrl ?? this.service.defaultUrl;
     const results: CircleResult[] = [];
     let next = 0;
     // A small worker pool: each worker takes the next circle until none are left.
@@ -237,14 +227,14 @@ export class AdsbLolFeed implements Feed {
     this.lastError = null;
     this.lastSuccessAt = this.now();
     const interval = this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
-    return Math.max(interval, plan.length * MIN_MS_PER_CIRCLE);
+    return Math.max(interval, plan.length * this.service.minMsPerCircle);
   }
 
   /** Wait for this request's slot. The slot is taken before waiting, so concurrent workers queue in turn. */
   private async pace(): Promise<void> {
     const now = this.now();
     const wait = this.nextRequestAt - now;
-    this.nextRequestAt = Math.max(now, this.nextRequestAt) + REQUEST_GAP_MS;
+    this.nextRequestAt = Math.max(now, this.nextRequestAt) + this.service.requestGapMs;
     if (wait > 0) await this.sleep(wait);
   }
 
@@ -252,7 +242,7 @@ export class AdsbLolFeed implements Feed {
   private async fetchCircle(base: string, c: Circle): Promise<CircleResult> {
     let res: Response;
     try {
-      res = await this.fetch(`${base}/v2/point/${c.lat}/${c.lon}/${c.radiusNm}`, {
+      res = await this.fetch(`${base}${this.service.pointPath(c)}`, {
         headers: { 'User-Agent': USER_AGENT },
         signal: AbortSignal.any([this.stopController.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
       });
@@ -278,7 +268,7 @@ export class AdsbLolFeed implements Feed {
     if (!sink) return 0;
     let airborne = 0;
     for (const ac of list) {
-      const outcome = mapAircraft(ac, nowMs);
+      const outcome = mapAircraft(ac, nowMs, this.service.provider);
       if (outcome.kind === 'airborne') {
         sink.upsert(outcome.report);
         airborne++;

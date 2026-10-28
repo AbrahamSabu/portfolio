@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Logger } from '../../log';
 import type { TrackSink } from '../feed';
-import { AdsbLolFeed, type AdsbLolOptions } from './adsbLolFeed';
+import { ReadsbFeed, type ReadsbOptions } from './readsbFeed';
+import { ADSB_FI, ADSB_LOL } from './services';
 
 const POLL_MS = 30_000;
 const cairo = readFileSync(new URL('./fixtures/cairo-2026-10-27.json', import.meta.url), 'utf8');
@@ -19,14 +20,15 @@ function setup(...responses: Response[]) {
 }
 
 /** `watched: false` mimics index.ts, which tells feeds nobody is connected before starting them. */
-function setupWith(extra: Partial<AdsbLolOptions> & { watched?: boolean }, ...responses: Response[]) {
+function setupWith(extra: Partial<ReadsbOptions> & { watched?: boolean }, ...responses: Response[]) {
   let now = 1_793_121_200_000;
   const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
   const timers: number[] = [];
   let latest: () => void = () => {};
   const upserts: Array<{ id: string; provider?: string }> = [];
   const removals: string[] = [];
-  const feed = new AdsbLolFeed({
+  const feed = new ReadsbFeed({
+    service: ADSB_LOL,
     pollMs: POLL_MS,
     fetch: (async (input: string | URL | Request, init?: RequestInit) => {
       calls.push({ url: String(input), init });
@@ -55,7 +57,7 @@ function setupWith(extra: Partial<AdsbLolOptions> & { watched?: boolean }, ...re
   return { feed, calls, timers, upserts, removals, fire, advance: (ms: number) => (now += ms) };
 }
 
-describe('AdsbLolFeed', () => {
+describe('ReadsbFeed', () => {
   it('waits for a view, then polls its circle politely and pushes merged-ready reports', async () => {
     const { feed, calls, timers, fire, upserts, removals } = setup(json(cairo));
     expect(timers).toEqual([]);
@@ -76,7 +78,8 @@ describe('AdsbLolFeed', () => {
     const releases: Array<() => void> = [];
     const pushedAtRelease: number[] = [];
     const upserts: unknown[] = [];
-    const feed = new AdsbLolFeed({
+    const feed = new ReadsbFeed({
+      service: ADSB_LOL,
       pollMs: POLL_MS,
       fetch: (async () => {
         inFlight++;
@@ -206,6 +209,29 @@ describe('AdsbLolFeed', () => {
       await fire();
       // The clock stands still here, so each later request waits one more gap.
       expect(sleeps).toEqual([1_200, 2_400, 3_600]);
+    });
+  });
+
+  describe('on adsb.fi', () => {
+    const HOME = [{ lat: 51.5, lon: -8.5, radiusNm: 125 }];
+
+    it("asks adsb.fi's v3 point query and credits its aircraft to adsb.fi", async () => {
+      const { feed, calls, fire, upserts } = setupWith({ service: ADSB_FI, home: HOME, watched: false }, json(cairo));
+      await fire();
+      expect(calls[0]!.url).toBe('https://opendata.adsb.fi/api/v3/lat/51.5/lon/-8.5/dist/125');
+      expect(upserts.every((u) => u.provider === 'adsb.fi')).toBe(true);
+      expect(feed.name).toBe('adsbfi');
+      expect(feed.status()).toMatchObject({ feed: 'adsbfi', label: 'adsb.fi', state: 'ok' });
+    });
+
+    it('allows a wide view more often than adsb.lol: its documented limit is 1 request a second', async () => {
+      const r = () => json(cairo);
+      const { feed, timers, fire } = setupWith({ service: ADSB_FI, home: HOME, pollMs: 5_000, watched: true }, r(), r(), r(), r(), r(), r(), r());
+      await fire();
+      expect(timers.at(-1)).toBe(5_000);
+      feed.setAreas([{ south: -31, west: 22, north: -24, east: 32 }]); // four more circles
+      await fire();
+      expect(timers.at(-1)).toBe(10_000); // 5 circles x 2 s, where adsb.lol would wait 40 s
     });
   });
 });

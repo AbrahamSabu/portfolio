@@ -7,6 +7,10 @@ describe('creditsFor', () => {
     expect(html).toMatch(/^Aircraft: .*OpenSky Network.*adsb\.lol.*ODbL/);
   });
 
+  it('credits adsb.fi with a link to its home page, as its terms ask', () => {
+    expect(creditsFor(['adsblol', 'adsbfi'])).toMatch(/^Aircraft: .*adsb\.lol.*, <a href="https:\/\/adsb\.fi"[^>]*>adsb\.fi<\/a>$/);
+  });
+
   it('groups aircraft and ship credits', () => {
     expect(creditsFor(['ais'])).toMatch(/^Ships: .*aisstream\.io.*AISStream<\/a>$/);
     expect(creditsFor(['sim', 'ais', 'opensky'])).toMatch(/^Aircraft: .*OpenSky Network.*; Ships: .*AISStream/);

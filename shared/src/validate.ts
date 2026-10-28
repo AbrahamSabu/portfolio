@@ -27,7 +27,7 @@ const PLATFORMS: ReadonlySet<Platform> = new Set([
   'vessel',
 ]);
 
-const PROVIDERS: ReadonlySet<Provider> = new Set(['opensky', 'adsb.lol', 'aisstream']);
+const PROVIDERS: ReadonlySet<Provider> = new Set(['opensky', 'adsb.lol', 'adsb.fi', 'aisstream']);
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 

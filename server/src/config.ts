@@ -11,8 +11,8 @@ export interface Config {
   /** Where the live picture is saved between restarts; null to keep nothing. */
   pictureFile: string | null;
   /**
-   * Which feeds run. Defaults to live aircraft from adsb.lol (free, no key)
-   * and live ships from AISStream; `sim` runs the offline simulator.
+   * Which feeds run. Defaults to live aircraft from adsb.lol and adsb.fi
+   * (free, no key) and live ships from AISStream; `sim` runs the offline simulator.
    */
   feeds: FeedName[];
   /** The area every feed covers: the simulator's geography and live feeds' bounding box. */
@@ -40,6 +40,8 @@ export interface Config {
     /** The scenario's area while nobody is watching, so the picture is ready when someone opens the page. */
     warmPollMs: number;
   };
+  /** adsb.fi: the same kind of network, with a documented limit (1 request a second). */
+  adsbfi: Config['adsblol'];
   ais: {
     /** AISStream API key. Without one the feed runs but only reports that it's missing. */
     apiKey?: string;
@@ -53,12 +55,12 @@ export interface Config {
   };
 }
 
-export const FEED_NAMES = ['sim', 'opensky', 'adsblol', 'ais'] as const;
+export const FEED_NAMES = ['sim', 'opensky', 'adsblol', 'adsbfi', 'ais'] as const;
 export type FeedName = (typeof FEED_NAMES)[number];
 
 /** Parse a comma-separated feed list such as "sim,opensky". Order and duplicates don't matter. */
 export function parseFeeds(raw: string | undefined): FeedName[] {
-  if (raw === undefined || raw.trim() === '') return ['adsblol', 'ais'];
+  if (raw === undefined || raw.trim() === '') return ['adsblol', 'adsbfi', 'ais'];
   const names = raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   for (const name of names) {
     if (!(FEED_NAMES as readonly string[]).includes(name)) {
@@ -113,6 +115,20 @@ function adsbLolConfig(): Config['adsblol'] {
     ...(apiUrl ? { apiUrl } : {}),
     pollMs: int('ADSBLOL_POLL_S', 10, 5, 600) * 1000,
     warmPollMs: int('ADSBLOL_WARM_POLL_S', 30, 10, 3600) * 1000,
+  };
+}
+
+/**
+ * adsb.fi settings. Its documented limit is 1 request a second, so it can be
+ * asked every 5 s while someone watches: with adsb.lol every 10 s, the
+ * picture refreshes every few seconds, and either one alone keeps it alive.
+ */
+function adsbFiConfig(): Config['adsbfi'] {
+  const apiUrl = httpUrl('ADSBFI_API_URL');
+  return {
+    ...(apiUrl ? { apiUrl } : {}),
+    pollMs: int('ADSBFI_POLL_S', 5, 2, 600) * 1000,
+    warmPollMs: int('ADSBFI_WARM_POLL_S', 30, 10, 3600) * 1000,
   };
 }
 
@@ -203,6 +219,7 @@ export function loadConfig(): Config {
     },
     opensky: openSkyConfig(),
     adsblol: adsbLolConfig(),
+    adsbfi: adsbFiConfig(),
     ais: aisConfig(),
   };
 }
