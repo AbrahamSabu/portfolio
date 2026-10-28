@@ -1,6 +1,6 @@
 # Watchfloor
 
-A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn with NATO-standard MIL-STD-2525 symbols.
+A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn as vehicle shapes or as NATO-standard MIL-STD-2525 symbols.
 
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
@@ -10,7 +10,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 
 - Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, filled in from a second network (adsb.lol) where you're zoomed in, real ships streamed from AISStream, or simulated traffic, and always says which
 - Streams a live picture to the browser over WebSockets, sending only what changed each second
-- Draws each contact with its MIL-STD-2525C symbol, callsign label and a speed leader showing where it's heading, or as a small identity-coloured dot when zoomed out to a continent or the world
+- Draws each contact as a top-down shape of what it is (airliner, business jet, helicopter, drone, tanker, fishing boat...), pointing along its course and roughly to size, or as its MIL-STD-2525C symbol (`S` switches), with a callsign label and a speed leader showing where it's heading, or as a small identity-coloured dot when zoomed out to a continent or the world
 - Moves symbols smoothly between reports using dead reckoning, so tracks glide instead of jumping
 - Fades tracks that stop reporting, then removes them after a timeout that depends on the track type and how often its source reports, and says in the status bar when a live feed is rate limited or not responding
 - Shows where each track has been with a history trail, for all tracks, only the selected one, or none
@@ -56,6 +56,7 @@ Keyboard shortcuts:
 | `↑` `↓` `Enter` | Move through the list and select a track |
 | `T` | Cycle trails: all tracks, selected only, off |
 | `F` | Open or close the filter |
+| `S` | Switch between vehicle shapes and MIL-STD-2525C symbols |
 | `?` | Open the map key: what colours, symbols, dots, rings and lines mean |
 | `Esc` | Close the filter, or clear the selection |
 
@@ -183,6 +184,8 @@ client/   MapLibre map, symbology, UI
 **Ships report at their own pace.** A ship's AIS rate follows what it's doing: every 2 to 10 seconds underway, every 3 minutes at anchor. The sea default of fading after 90 seconds would fade every moored ship between reports, so live AIS gets its own rule through the per-source staleness overrides: fade after two missed 3-minute reports plus a margin, drop after about six. Moving ships report so often that they rarely get near either.
 
 **Half a timestamp.** An AIS position report carries only the UTC *second* of its fix, not the date or minute. The feed rebuilds the full time from AISStream's receive time: the latest moment at or before receipt that falls on that second. A fix a few seconds "after" receipt is treated as the ship's clock running ahead, not as nearly a minute of latency. That isn't hypothetical: in a recorded two minutes of Channel traffic, 8% of fixes were stamped 1 or 2 seconds ahead of AISStream's receive time, and without the allowance they'd have been dated almost a minute too early. Codes 60 to 63 mean "no time stamp" and fall back to the receive time. The other "not available" codes (latitude 91, speed 102.3 knots, course 360, heading 511) are skipped rather than drawn, and a moving ship with no course is skipped instead of being dead-reckoned due north.
+
+**Two ways to read a picture.** MIL-STD-2525C is the standard a defence operator expects, but at map size its type marks are a few pixels inside a frame, so an airliner, a helicopter and a fishing boat look the same, and nothing shows heading without the speed leader. The default is now a top-down outline per vehicle type, the way Flightradar24 reads: 15 shapes drawn for this project (`map/shapes.ts`), rotated to the course, and scaled by type, with wide-bodies picked out by ICAO designator (a 777 is drawn bigger than an A320, a Cessna smaller still). Colour still means identity only; detail lines such as container bays or a gun mount are drawn in the outline colour, so type is told by outline alone. One image per shape and identity (60 at most) keeps memory flat with 37,000 tracks, and measured main-thread cost is the same as the symbols'. Shapes rotate, so their callsigns can't be baked in the way 2525 labels are; they're a separate layer of label images in the app's typeface (no glyph server, so the offline map works), and unlike the shapes they give way to each other, so a busy airport shows some names cleanly instead of all of them overlapping. The details panel and map key draw with the same code in whichever style is on.
 
 **Identity arrives separately.** Positions come every few seconds, names and ship types every six minutes in separate static messages (Class B ships split even those into two parts). A small registry per MMSI remembers the static half, so every position report carries the best known name and type. It's bounded, dropping the least recently heard ship, because a world subscription hears tens of thousands of ships a day. Ship types map to platforms (fishing, passenger, cargo, tanker, leisure); type 35, a ship declaring military operations, becomes a warship symbol but never an affiliation, which stays the operator's call. Coast stations, aids to navigation and distress beacons have MMSIs that aren't ships' and are left out.
 

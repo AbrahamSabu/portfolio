@@ -1,7 +1,8 @@
 # Watchfloor
 
 A real-time common operating picture (COP): a defence-style tactical map of
-live air and sea tracks drawn with NATO MIL-STD-2525C symbols. It is a
+live air and sea tracks drawn as top-down vehicle shapes (default) or NATO
+MIL-STD-2525C symbols (S key). It is a
 portfolio project, so code quality, structure, tests and the README matter as
 much as features. By default it opens on the live world: OpenSky aircraft
 and AISStream ships everywhere (`OPENSKY_AREA`/`AIS_AREA` default `world`),
@@ -18,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (312 tests after the visual pass).
+- `npm test`: Vitest from the root config (319 tests after vehicle shapes).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -116,9 +117,23 @@ that could have been fetched before they arrived.
     (`track-dots`) replaces symbols and leaders aren't computed. Trails and
     heads use the same view cull.
   - Speed leaders look 60 s ahead for air and 600 s for sea.
-  - Symbols come from `map.setMissingStyleImageResolver`, with ids
-    `sym:<15-char SIDC>` or `sym:<SIDC>:<label>`. The labelled version appears
-    from zoom 8.
+  - Images come from `map.setMissingStyleImageResolver` (`renderImage` in
+    trackLayer.ts), drawn from the id alone: `sym:<15-char SIDC>` or
+    `sym:<SIDC>:<label>` (tactical; labelled from zoom 8), `veh:<shape>:<affiliation>`
+    (vehicle shapes, `map/shapes.ts`) and `lbl:<callsign>` (`map/labels.ts`).
+  - SymbolStyle (`state/symbolStyle.ts`, localStorage `watchfloor.symbolStyle`):
+    'shapes' (default) or 'tactical'; StyleControl button under the trail
+    toggle and the S key. Shapes: 15 top-down outlines on a 64-unit square,
+    nose north, rotated by `icon-rotate` = course (`icon-rotation-alignment: map`),
+    sized by a `scale` feature property (`shapeFor`: per platform, 1.0 for
+    wide-bodies by ICAO type code). Fill = identity colour, detail lines in
+    the outline colour. Their callsigns are a separate `track-labels-<domain>`
+    layer of label images (no glyph server needed), above all tracks, which
+    collide with each other (selected placed first); shapes still ignore
+    placement. Tactical features carry no rotation/scale/label. Measured at
+    regional zoom: same main-thread cost as tactical. `trackIconSvg`
+    (`map/trackIcon.ts`) gives the details header and key the current style.
+  - Identity colours live in `map/colors.ts`.
   - TrailLayer rebuilds trail lines only on store or selection change. A separate
     "heads" source joins the last report to the symbol at 10 Hz. Its mode
     (all, selected or off) is cycled by TrailControl or the T key and saved in
