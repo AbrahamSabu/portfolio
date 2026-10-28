@@ -108,6 +108,19 @@ describe('TrackStore', () => {
     expect(removals).toEqual([]);
   });
 
+  it('lets an identify hook fill in each validated report before it is merged', () => {
+    const seen: string[] = [];
+    const store = new TrackStore(DEFAULT_STALENESS, undefined, (t) => {
+      seen.push(t.id);
+      if (t.source === 'adsb') Object.assign(t, { platform: 'business-jet', typeCode: 'C56X' });
+    });
+    const report = track('adsb:4ca7b3', NOW, { source: 'adsb', domain: 'air', platform: 'aircraft' });
+    expect(store.ingest(report, NOW)).toBe(true);
+    expect(store.get('adsb:4ca7b3')).toMatchObject({ platform: 'business-jet', typeCode: 'C56X' });
+    expect(store.ingest({ junk: true }, NOW)).toBe(false);
+    expect(seen).toEqual(['adsb:4ca7b3']); // never called for a rejected report
+  });
+
   describe('trails', () => {
     it('keeps every accepted report, even ones coalesced out of the delta', () => {
       const store = new TrackStore(DEFAULT_STALENESS);

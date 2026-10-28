@@ -8,6 +8,7 @@ import {
   type TrackSource,
 } from '@watchfloor/shared';
 import { loadConfig, trafficKind } from './config';
+import { readAircraftDb } from './feeds/adsb/aircraftDb';
 import type { Feed } from './feeds/feed';
 import { circlesFor } from './feeds/readsb/circles';
 import { ReadsbFeed } from './feeds/readsb/readsbFeed';
@@ -43,7 +44,15 @@ async function main(): Promise<void> {
   if (adsbPollMs > 0) bySource.adsb = polledStaleness(adsbPollMs, DEFAULT_STALENESS.byDomain.air);
   if (config.feeds.includes('ais')) bySource.ais = AIS_STALENESS;
   const staleness: StalenessRules = { ...DEFAULT_STALENESS, bySource };
-  const store = new TrackStore(staleness);
+  // What each aircraft is, from the database `npm run aircraft-db` downloads.
+  // Without it, aircraft keep the types their reports give (often none).
+  const aircraftDb = config.aircraftDb ? readAircraftDb(config.aircraftDb) : null;
+  if (aircraftDb) {
+    log.info('aircraft database loaded', { aircraft: aircraftDb.db.size, fetchedAt: aircraftDb.meta.fetchedAt });
+  } else if (config.aircraftDb) {
+    log.info('no aircraft database; run `npm run aircraft-db` to type aircraft', { looked: config.aircraftDb });
+  }
+  const store = new TrackStore(staleness, undefined, aircraftDb ? (t) => aircraftDb.db.enrich(t) : undefined);
   const startedAt = Date.now();
 
   const scenario = getScenario(config.scenario);

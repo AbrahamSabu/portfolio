@@ -10,6 +10,8 @@ export interface Config {
   staticDir: string;
   /** Where the live picture is saved between restarts; null to keep nothing. */
   pictureFile: string | null;
+  /** The aircraft database index (`npm run aircraft-db`); null to use reported types only. */
+  aircraftDb: string | null;
   /**
    * Which feeds run. Defaults to the live world: aircraft from OpenSky
    * everywhere, filled in from adsb.lol and adsb.fi (free, no key) where
@@ -217,6 +219,10 @@ export function loadConfig(): Config {
       process.env.PICTURE_FILE?.trim().toLowerCase() === 'off'
         ? null
         : path.resolve(process.cwd(), process.env.PICTURE_FILE || '../.cache/picture.json'),
+    aircraftDb:
+      process.env.AIRCRAFT_DB?.trim().toLowerCase() === 'off'
+        ? null
+        : path.resolve(process.cwd(), process.env.AIRCRAFT_DB || '../.cache/aircraft-db'),
     feeds: parseFeeds(process.env.FEEDS),
     // SIM_SCENARIO is the old name, kept so existing .env files still work.
     scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'cork',

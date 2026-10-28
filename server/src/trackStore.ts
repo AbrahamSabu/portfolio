@@ -36,9 +36,15 @@ export class TrackStore {
   private readonly trails: TrailHistory;
   private rejectedCount = 0;
 
+  /**
+   * @param identify fills in what a report doesn't say about itself (the
+   *   aircraft database's types), after validation and before merging, so
+   *   restored pictures get it too.
+   */
   constructor(
     private readonly staleness: StalenessRules,
     trailRules?: TrailRules,
+    private readonly identify?: (track: Track) => void,
   ) {
     this.trails = new TrailHistory(trailRules);
   }
@@ -62,6 +68,7 @@ export class TrackStore {
       this.rejectedCount++;
       return false;
     }
+    this.identify?.(track);
     if (track.observedAt > now + MAX_FUTURE_MS) {
       this.rejectedCount++;
       return false;
