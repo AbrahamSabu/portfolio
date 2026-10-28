@@ -3,8 +3,8 @@ import { parseFeeds, trafficKind } from './config';
 
 describe('parseFeeds', () => {
   it('defaults to live aircraft and ships', () => {
-    expect(parseFeeds(undefined)).toEqual(['adsblol', 'adsbfi', 'ais']);
-    expect(parseFeeds('  ')).toEqual(['adsblol', 'adsbfi', 'ais']);
+    expect(parseFeeds(undefined)).toEqual(['opensky', 'adsblol', 'adsbfi', 'ais']);
+    expect(parseFeeds('  ')).toEqual(['opensky', 'adsblol', 'adsbfi', 'ais']);
   });
 
   it('accepts a list, ignoring case, spaces and duplicates', () => {

@@ -11,8 +11,9 @@ export interface Config {
   /** Where the live picture is saved between restarts; null to keep nothing. */
   pictureFile: string | null;
   /**
-   * Which feeds run. Defaults to live aircraft from adsb.lol and adsb.fi
-   * (free, no key) and live ships from AISStream; `sim` runs the offline simulator.
+   * Which feeds run. Defaults to the live world: aircraft from OpenSky
+   * everywhere, filled in from adsb.lol and adsb.fi (free, no key) where
+   * you're zoomed in, and ships from AISStream; `sim` runs the offline simulator.
    */
   feeds: FeedName[];
   /** The area every feed covers: the simulator's geography and live feeds' bounding box. */
@@ -22,8 +23,9 @@ export interface Config {
   };
   opensky: {
     /**
-     * 'scenario' polls the scenario's bounding box; 'world' polls everywhere
-     * (4 credits a poll); 'viewport' polls only what browsers are looking at.
+     * 'world' (default) polls everywhere (4 credits a poll), so panning
+     * anywhere finds aircraft already there; 'scenario' polls the scenario's
+     * bounding box; 'viewport' polls only what browsers are looking at.
      */
     area: 'scenario' | 'world' | 'viewport';
     /** REST API base; set only to point at a proxy or a local stub. */
@@ -46,8 +48,9 @@ export interface Config {
     /** AISStream API key. Without one the feed runs but only reports that it's missing. */
     apiKey?: string;
     /**
-     * 'scenario' streams the scenario's bounding box; 'world' streams
-     * everywhere; 'viewport' streams only what browsers are looking at.
+     * 'world' (default) streams everywhere AISStream hears; 'scenario' streams
+     * the scenario's bounding box; 'viewport' streams only what browsers are
+     * looking at.
      */
     area: 'scenario' | 'world' | 'viewport';
     /** Stream URL; set only to point at a local stub. */
@@ -60,7 +63,7 @@ export type FeedName = (typeof FEED_NAMES)[number];
 
 /** Parse a comma-separated feed list such as "sim,opensky". Order and duplicates don't matter. */
 export function parseFeeds(raw: string | undefined): FeedName[] {
-  if (raw === undefined || raw.trim() === '') return ['adsblol', 'adsbfi', 'ais'];
+  if (raw === undefined || raw.trim() === '') return ['opensky', 'adsblol', 'adsbfi', 'ais'];
   const names = raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   for (const name of names) {
     if (!(FEED_NAMES as readonly string[]).includes(name)) {
@@ -138,7 +141,7 @@ function adsbFiConfig(): Config['adsbfi'] {
  */
 function aisConfig(): Config['ais'] {
   const apiKey = process.env.AISSTREAM_API_KEY?.trim() || undefined;
-  const area = (process.env.AIS_AREA || 'scenario').trim().toLowerCase();
+  const area = (process.env.AIS_AREA || 'world').trim().toLowerCase();
   if (area !== 'scenario' && area !== 'world' && area !== 'viewport') {
     throw new Error(`AIS_AREA must be scenario, world or viewport (got "${area}")`);
   }
@@ -169,11 +172,14 @@ function openSkyConfig(): Config['opensky'] {
     throw new Error('Set both OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET, or neither to poll anonymously');
   }
   const authed = Boolean(clientId);
-  const pollS = int('OPENSKY_POLL_S', authed ? 15 : 60, authed ? 5 : 10, 3600);
-  const area = (process.env.OPENSKY_AREA || 'scenario').trim().toLowerCase();
+  const area = (process.env.OPENSKY_AREA || 'world').trim().toLowerCase();
   if (area !== 'scenario' && area !== 'world' && area !== 'viewport') {
     throw new Error(`OPENSKY_AREA must be scenario, world or viewport (got "${area}")`);
   }
+  // A world poll costs 4 credits, so even an account's 4,000 a day last only
+  // about 4 h at 15 s; 60 s stretches them to 16.7 h of viewing. A scenario
+  // box costs 1, so an account can afford 15 s there.
+  const pollS = int('OPENSKY_POLL_S', authed && area === 'scenario' ? 15 : 60, authed ? 5 : 10, 3600);
   const apiUrl = httpUrl('OPENSKY_API_URL');
   return {
     area,
