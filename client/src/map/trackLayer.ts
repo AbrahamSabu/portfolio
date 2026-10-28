@@ -1,5 +1,5 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import type { DataDrivenPropertyValueSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
+import type { CircleLayerSpecification, DataDrivenPropertyValueSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { deadReckon, destination, ruleFor, type Domain, type LatLon } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
 import type { PictureFilter } from '../state/pictureFilter';
@@ -23,6 +23,8 @@ const ids = (domain: Domain) => ({
   dots: `track-dots-${domain}`,
   symbols: `track-symbols-${domain}`,
 });
+/** The layers a pointer can hit: symbols and dots, both domains. */
+const HIT_LAYERS = DOMAINS.flatMap((d) => [ids(d).symbols, ids(d).dots]);
 /** The lowest of the track layers, so trails can go under all of them. */
 export const LOWEST_TRACK_LAYER = ids('sea').leaders;
 
@@ -61,6 +63,26 @@ export const AFFILIATION_LINE_COLOR: DataDrivenPropertyValueSpecification<string
   'neutral', AFFILIATION_COLOR.neutral,
   AFFILIATION_COLOR.unknown,
 ];
+
+/**
+ * Zoomed out, aircraft are filled dots and ships are rings, so the two
+ * domains stay apart without spending colour, which means identity only.
+ */
+type CirclePaint = NonNullable<CircleLayerSpecification['paint']>;
+const DOT_PAINT: Record<Domain, CirclePaint> = {
+  air: {
+    'circle-color': AFFILIATION_LINE_COLOR,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 1.4, 5, 2.8],
+    'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.9],
+  },
+  sea: {
+    'circle-color': 'rgba(0, 0, 0, 0)',
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 1.6, 5, 3],
+    'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 1, 0.8, 5, 1.2],
+    'circle-stroke-color': AFFILIATION_LINE_COLOR,
+    'circle-stroke-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.85],
+  },
+};
 
 export interface DisplayPosition extends LatLon {
   stale: boolean;
@@ -145,25 +167,16 @@ export class TrackLayer {
         layout: { 'line-cap': 'round' },
         paint: {
           'line-color': AFFILIATION_LINE_COLOR,
-          'line-width': 1.5,
-          'line-opacity': 0.7,
+          // Faint and thin at regional zoom, where hundreds overlap; full strength close in.
+          'line-width': ['interpolate', ['linear'], ['zoom'], SYMBOL_MIN_ZOOM, 0.75, 9, 1.5],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], SYMBOL_MIN_ZOOM, 0.3, 9, 0.7],
         },
       });
     }
     for (const domain of DOMAINS) {
       const id = ids(domain);
       if (map.getLayer(id.dots)) continue;
-      map.addLayer({
-        id: id.dots,
-        type: 'circle',
-        source: id.source,
-        maxzoom: SYMBOL_MIN_ZOOM,
-        paint: {
-          'circle-color': AFFILIATION_LINE_COLOR,
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 1.5, SYMBOL_MIN_ZOOM, 3],
-          'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.9],
-        },
-      });
+      map.addLayer({ id: id.dots, type: 'circle', source: id.source, maxzoom: SYMBOL_MIN_ZOOM, paint: DOT_PAINT[domain] });
     }
     for (const domain of DOMAINS) {
       const id = ids(domain);
@@ -177,6 +190,8 @@ export class TrackLayer {
           'icon-image': ['step', ['zoom'], ['get', 'icon'], LABEL_MIN_ZOOM, ['get', 'iconLabeled']],
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
+          // Smaller at regional zoom, so a busy sky reads as traffic instead of a solid mass.
+          'icon-size': ['interpolate', ['linear'], ['zoom'], SYMBOL_MIN_ZOOM, 0.5, 7, 0.7, 10, 1],
           // Higher keys draw on top: the selected track over the rest of its layer.
           'symbol-sort-key': ['get', 'sortKey'],
         },
@@ -196,26 +211,32 @@ export class TrackLayer {
     if (rendered) this.map.addImage(id, rendered.image, { pixelRatio: rendered.pixelRatio });
   }
 
+  /**
+   * The track drawn at a screen point, if any: the topmost within a few
+   * pixels (forgiving, especially on touch screens). Clicks and the hover
+   * card both use it, so they always agree on which track is under the pointer.
+   */
+  trackAt(point: { x: number; y: number }, pad = 6): string | null {
+    const map = this.map;
+    const layers = HIT_LAYERS.filter((layer) => map.getLayer(layer));
+    if (layers.length === 0) return null;
+    const hits = map.queryRenderedFeatures(
+      [
+        [point.x - pad, point.y - pad],
+        [point.x + pad, point.y + pad],
+      ],
+      { layers },
+    );
+    // Prefer whatever is drawn on top.
+    hits.sort((a, b) => Number(b.properties.sortKey) - Number(a.properties.sortKey));
+    const id = hits[0]?.properties.id;
+    return typeof id === 'string' ? id : null;
+  }
+
   private bindInteraction(): void {
     const map = this.map;
-    const layers = DOMAINS.flatMap((d) => [ids(d).symbols, ids(d).dots]);
-    map.on('click', (event) => {
-      if (!layers.every((layer) => map.getLayer(layer))) return;
-      const { x, y } = event.point;
-      const pad = 6; // forgiving hit area, especially on touch screens
-      const hits = map.queryRenderedFeatures(
-        [
-          [x - pad, y - pad],
-          [x + pad, y + pad],
-        ],
-        { layers },
-      );
-      // Prefer whatever is drawn on top.
-      hits.sort((a, b) => Number(b.properties.sortKey) - Number(a.properties.sortKey));
-      const id = hits[0]?.properties.id;
-      this.selection.select(typeof id === 'string' ? id : null);
-    });
-    for (const layer of layers) {
+    map.on('click', (event) => this.selection.select(this.trackAt(event.point)));
+    for (const layer of HIT_LAYERS) {
       map.on('mouseenter', layer, () => (map.getCanvas().style.cursor = 'pointer'));
       map.on('mouseleave', layer, () => (map.getCanvas().style.cursor = ''));
     }
