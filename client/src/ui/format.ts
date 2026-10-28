@@ -84,6 +84,12 @@ export function formatSource(track: Pick<Track, 'source' | 'provider'>): string 
   return track.provider ? `${kind} via ${PROVIDER_LABEL[track.provider]}` : kind;
 }
 
+/** "BOEING 747-8 (B748)", or just the designator when the model isn't known; empty for no type. */
+export function formatAircraftType(track: Pick<Track, 'typeCode' | 'model'>): string {
+  if (!track.typeCode) return '';
+  return track.model ? `${track.model} (${track.typeCode})` : track.typeCode;
+}
+
 const TRAFFIC_LABEL: Record<TrafficKind, string> = {
   simulated: 'simulated traffic',
   live: 'live traffic',

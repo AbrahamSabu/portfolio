@@ -8,6 +8,7 @@ import {
   PLATFORM_LABEL,
   formatSource,
   formatAge,
+  formatAircraftType,
   formatAltitude,
   formatCourse,
   formatLat,
@@ -19,6 +20,7 @@ import {
 export class DetailsPanel {
   private readonly fields: Record<string, HTMLElement>;
   private readonly altitudeRow: HTMLElement;
+  private readonly typeRow: HTMLElement;
   private readonly staleNote: HTMLElement;
   private readonly followButton: HTMLButtonElement;
   private readonly swatch: HTMLElement;
@@ -40,6 +42,7 @@ export class DetailsPanel {
       this.fields[el.dataset.field!] = el;
     }
     this.altitudeRow = q('[data-altitude-row]');
+    this.typeRow = q('[data-type-row]');
     this.staleNote = q('[data-stale-note]');
     this.followButton = q<HTMLButtonElement>('[data-follow]');
     this.swatch = q('[data-swatch]');
@@ -89,6 +92,9 @@ export class DetailsPanel {
     this.set('speed', formatSpeed(track.speedMps));
     this.set('altitude', formatAltitude(track.altitudeM));
     this.altitudeRow.hidden = track.domain !== 'air';
+    const aircraftType = formatAircraftType(track);
+    this.set('aircraft-type', aircraftType);
+    this.typeRow.hidden = aircraftType === '';
     this.set('age', formatAge(age));
     this.set('source', formatSource(track));
     this.set('id', track.id);

@@ -20,7 +20,7 @@ function track(id: string, extra: Partial<Track> = {}): Track {
   };
 }
 
-const jet = track('sim:air-1', { domain: 'air', platform: 'airliner', callsign: 'BAW12', speedMps: 230, altitudeM: 11000 });
+const jet = track('sim:air-1', { domain: 'air', platform: 'airliner', callsign: 'BAW12', speedMps: 230, altitudeM: 11000, typeCode: 'B748', model: 'BOEING 747-8' });
 const heli = track('sim:air-2', { domain: 'air', platform: 'helicopter', callsign: 'RESCUE 9', speedMps: 60, altitudeM: 300 });
 const ship = track('sim:sea-1', { callsign: 'NORDIC STAR', speedMps: 7, observedAt: NOW - 30_000 });
 const dark = track('sim:sea-2', { speedMps: 7, observedAt: NOW - 5000 }); // no callsign
@@ -37,6 +37,11 @@ describe('track list query', () => {
   it('searches callsigns case-insensitively, ignoring extra spaces', () => {
     expect(ids({ search: '  rescue   9 ' })).toEqual(['sim:air-2']);
     expect(ids({ search: 'baw' })).toEqual(['sim:air-1']);
+  });
+
+  it('also searches aircraft type designators and models', () => {
+    expect(ids({ search: 'b748' })).toEqual(['sim:air-1']);
+    expect(ids({ search: 'boeing 747' })).toEqual(['sim:air-1']);
   });
 
   it('also searches track ids, so tracks without a callsign can be found', () => {

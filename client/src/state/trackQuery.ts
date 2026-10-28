@@ -38,12 +38,17 @@ function normalize(text: string): string {
   return text.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-/** Domain filter plus a case-insensitive substring search on callsign or track id. */
+/** Domain filter plus a case-insensitive substring search on callsign, track id, or aircraft type and model. */
 export function matchesQuery(track: Track, query: TrackQuery): boolean {
   if (query.domain !== 'all' && track.domain !== query.domain) return false;
   const needle = normalize(query.search);
   if (!needle) return true;
-  return normalize(track.callsign ?? '').includes(needle) || track.id.toLowerCase().includes(needle);
+  return (
+    normalize(track.callsign ?? '').includes(needle) ||
+    track.id.toLowerCase().includes(needle) ||
+    (track.typeCode?.toLowerCase().includes(needle) ?? false) ||
+    normalize(track.model ?? '').includes(needle)
+  );
 }
 
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
