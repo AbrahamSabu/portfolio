@@ -20,7 +20,15 @@ const LEADER_SECONDS: Record<Domain, number> = { air: 60, sea: 600 };
 /** Margin around the screen, as a fraction of its size, within which tracks are still drawn. */
 const VIEW_MARGIN = 0.5;
 /** Full symbols and speed leaders from this zoom in; dots below it. */
-const SYMBOL_MIN_ZOOM = 5;
+export const SYMBOL_MIN_ZOOM = 5;
+/**
+ * Below this zoom, features carry only what the dots need. Zoomed out to the
+ * world, every track in view is copied to MapLibre's worker on each update
+ * (36,000 at once, measured, Oct 2026), so symbol ids nobody draws are pure
+ * cost. One level of margin above it, so symbols are ready while a zoom-in
+ * animation crosses SYMBOL_MIN_ZOOM, before moveend rebuilds.
+ */
+const ICON_PROPS_MIN_ZOOM = SYMBOL_MIN_ZOOM - 1;
 /** Callsign labels appear from this zoom level in. */
 const LABEL_MIN_ZOOM = 8;
 
@@ -203,7 +211,9 @@ export class TrackLayer {
     const leaders: Feature<LineString>[] = [];
     const seen = new Set<string>();
     // Leaders aren't drawn below the symbol zoom, so don't compute thousands of them.
-    const withLeaders = this.map.getZoom() >= SYMBOL_MIN_ZOOM;
+    const zoom = this.map.getZoom();
+    const withLeaders = zoom >= SYMBOL_MIN_ZOOM;
+    const withIcons = zoom >= ICON_PROPS_MIN_ZOOM;
     const view = this.viewBox();
 
     for (const track of this.store.all()) {
@@ -217,20 +227,18 @@ export class TrackLayer {
       // Everything gets a position (reticle, follow, details); only what's near the screen gets a feature.
       if (track.id !== selectedId && !inViewBox(view, pos.lon, pos.lat)) continue;
 
-      const sidc = sidcFor(track);
-      const icon = symbolImageId(sidc);
-      points.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [pos.lon, pos.lat] },
-        properties: {
-          id: track.id,
-          icon,
-          iconLabeled: track.callsign ? symbolImageId(sidc, track.callsign) : icon,
-          affiliation: track.affiliation,
-          stale: stale ? 1 : 0,
-          sortKey: (track.id === selectedId ? 10 : 0) + (track.domain === 'air' ? 1 : 0),
-        },
-      });
+      const properties: Record<string, string | number> = {
+        id: track.id,
+        affiliation: track.affiliation,
+        stale: stale ? 1 : 0,
+        sortKey: (track.id === selectedId ? 10 : 0) + (track.domain === 'air' ? 1 : 0),
+      };
+      if (withIcons) {
+        const sidc = sidcFor(track);
+        properties.icon = symbolImageId(sidc);
+        properties.iconLabeled = track.callsign ? symbolImageId(sidc, track.callsign) : properties.icon;
+      }
+      points.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [pos.lon, pos.lat] }, properties });
 
       if (withLeaders && !stale && track.speedMps > 0.5) {
         const tip = destination(pos, track.courseDeg, track.speedMps * LEADER_SECONDS[track.domain]);

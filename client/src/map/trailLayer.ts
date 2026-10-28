@@ -3,7 +3,7 @@ import type { GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from '
 import type { Track } from '@watchfloor/shared';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
-import { AFFILIATION_LINE_COLOR, LEADER_LAYER, type TrackLayer } from './trackLayer';
+import { AFFILIATION_LINE_COLOR, LEADER_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
 import { inViewBox } from './viewBox';
 
 /** Which tracks show their history. */
@@ -32,6 +32,11 @@ const PAINT: LineLayerSpecification['paint'] = {
  * - The "head" joins the last report to the symbol, which moves at 10 Hz.
  *   It is one short segment per track, in its own small source, so the
  *   frequent update stays cheap however long the trails get.
+ *
+ * Zoomed out to dots, "all" draws only the selected track's trail. A ship's
+ * 30-minute trail is about a pixel long at world zoom, and rebuilding tens of
+ * thousands of them every second (each delta changes the store) was most of
+ * the main thread's work with the whole world loaded.
  */
 export class TrailLayer {
   private currentMode: TrailMode;
@@ -92,13 +97,13 @@ export class TrailLayer {
 
   /** The tracks whose trails are visible in the current mode, and near enough the screen to draw. */
   private *visibleTracks(): Iterable<Track> {
-    if (this.currentMode === 'all') {
+    if (this.currentMode === 'all' && this.map.getZoom() >= SYMBOL_MIN_ZOOM) {
       const view = this.tracks.viewBox();
       for (const track of this.store.all()) {
         const pos = this.tracks.positionOf(track.id);
         if (track.id === this.selection.id || (pos && inViewBox(view, pos.lon, pos.lat))) yield track;
       }
-    } else if (this.currentMode === 'selected' && this.selection.id) {
+    } else if (this.currentMode !== 'off' && this.selection.id) {
       const track = this.store.get(this.selection.id);
       if (track) yield track;
     }
