@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (355 tests after flight paths).
+- `npm test`: Vitest from the root config (382 tests after vehicle details).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -79,7 +79,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 12`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 13`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -264,6 +264,11 @@ that could have been fetched before they arrived.
   `source: 'adsb'` only; DB platform beats the emitter category. Tracks gain
   `typeCode`/`model` (aircraft only, validated). Registration and owner are
   never read (LADD/PIA privacy). 494,975 aircraft, 1,869 types, 3.5 MB.
+  Format v2 (Oct 2026) adds flag bit 1 = private (PIA or LADD: tar1090's
+  flag digits are military, interesting, PIA, LADD, readsb dbFlags 1/2/4/8);
+  a v1 file reads as missing, so rerun `npm run aircraft-db`. The same
+  command writes `airlines.json` (OpenFlights airlines.dat, ODbL, ~5,800
+  ICAO designators, a 2012-era snapshot: `feeds/adsb/airlines.ts`).
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
   runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`, `adsbfi`,
@@ -412,6 +417,32 @@ that could have been fetched before they arrived.
     searches the earliest point (then a fraction of the segment before it)
     that still fits at minZoom. Details row "Since 1402Z (2 h 13 min) ·
     start from OpenSky".
+- Details (selected track; `server/src/details/trackDetails.ts`, pure):
+  the browser's `{type:'track', id}` (sent on selection and after each
+  hello) gets the path replies and one `details` reply: `country` (aircraft:
+  `registrationCountry` from ICAO Annex 10 address blocks; ships:
+  `flagCountry` from the MMSI's MID; tables generated into
+  `shared/src/countryTables.ts`, an older Annex edition with names
+  modernised and Yugoslavia's block given to Serbia), `airline` (callsign
+  `^[A-Z]{3}\d` -> OpenFlights), `military` (DB flag or a military
+  platform), `private` (no photo, no airline) and `ship` (AIS static data
+  the ShipRegistry now keeps: IMO, call sign, destination, ETA
+  "MM-DDTHH:MMZ", length/beam from Dimension A+B/C+D, draught; "not
+  available" values dropped). The registry is in memory, so after a restart
+  ships regain these only as static reports arrive (every ~6 min).
+  - Photos: `client/src/net/photos.ts` asks Planespotters.net's public API
+    (`/pub/photos/hex/<hex>`) from the browser, only for the selected
+    aircraft, once per page load, never when `private`. Terms: photographer
+    credit beside the image, a plain link to the photo page (no nofollow),
+    the browser's own Origin; free, no key. **It refuses headless Chrome**
+    (and curl: "Server User-Agent strings must include a contact URL"), so
+    check photos in a real browser (the app's browser pane works).
+    `parsePhotoResponse` only accepts https images and planespotters.net links.
+  - Panel: photo (3:2) or, without one, a large drawing of the vehicle
+    shape (hidden on phones, where it would repeat the header icon); rows
+    Operator, Registered in / Flag, Destination, Size, IMO number, Radio
+    call sign, each hidden when empty; an OpenFlights credit when an airline
+    shows.
 - Picture cache (`server/src/pictureCache.ts`): the store's live tracks and
   trails (never `sim:`) are saved every 30 s and on shutdown (temp file +
   rename) and restored at startup through `TrackStore.restore` (re-validated,
