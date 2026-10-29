@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (319 tests after vehicle shapes).
+- `npm test`: Vitest from the root config (355 tests after flight paths).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -79,7 +79,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 11`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 12`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -384,6 +384,34 @@ that could have been fetched before they arrived.
 - Each running AIS server holds one of the key's 3 AISStream connections; a
   fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
   `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
+- Paths (selected track's whole history; `server/src/paths/`):
+  - `PathHistory` (in TrackStore as `store.paths`, recorded on every accepted
+    report): flat number arrays per track, online thinning (`redundant`: the
+    old tail goes if the line past it stays within tolerance and it isn't a
+    turning point), air 12 h / 300 m / a point at least every 5 min / 1,500
+    max, sea 24 h / 30 m / 15 min. `backfill` per track: unset (not asked),
+    'none', 'opensky'. Not in the snapshot.
+  - Browser sends `{type:'path', id}` on selection and after each hello
+    (hub ignores requests < 200 ms apart per client); `PathService` replies
+    at once (`backfill: 'pending'` if a lookup started), then again after.
+  - Backfill: `OpenSkyFeed.flightTrack(icao24)` = `/tracks/all?icao24=&time=0`
+    (OpenSky calls it experimental; 4 credits from a bucket separate from
+    /states). Only for `adsb:` aircraft whose path doesn't start near the
+    ground (< 600 m first altitude), once per aircraft, shared between
+    browsers, 60/hour cap, 10 min wait after a failure, pause on 429.
+    Without OpenSky in FEEDS, no backfill. Only points older than ours are
+    merged. /healthz `paths` has counts and lookups in the last hour.
+  - Saved in the picture as `paths` (encodeTrail tuples relative to savedAt,
+    optional so old files load): 2.7 MB after 7 minutes worldwide, mostly
+    one point per track; grows over hours.
+  - Client: `state/selectedPath.ts` (load keeps newer delta points, extend
+    from deltas, `splitAtGaps`: > 20 min air / 60 min sea is drawn dashed),
+    `map/pathLayer.ts` (orchid accent, dark casing, start ring, above
+    trails, below tracks). "Show whole path" fits it beside the details
+    panel; minZoom 3 means long-haul flights can't fit, so `fit()` binary
+    searches the earliest point (then a fraction of the segment before it)
+    that still fits at minZoom. Details row "Since 1402Z (2 h 13 min) ·
+    start from OpenSky".
 - Picture cache (`server/src/pictureCache.ts`): the store's live tracks and
   trails (never `sim:`) are saved every 30 s and on shutdown (temp file +
   rename) and restored at startup through `TrackStore.restore` (re-validated,
