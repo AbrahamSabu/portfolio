@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (382 tests after vehicle details).
+- `npm test`: Vitest from the root config (394 tests after ship details).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -428,8 +428,22 @@ that could have been fetched before they arrived.
   platform), `private` (no photo, no airline) and `ship` (AIS static data
   the ShipRegistry now keeps: IMO, call sign, destination, ETA
   "MM-DDTHH:MMZ", length/beam from Dimension A+B/C+D, draught; "not
-  available" values dropped). The registry is in memory, so after a restart
-  ships regain these only as static reports arrive (every ~6 min).
+  available" values dropped) plus `aisType` (20-99, `formatShipType` names
+  it: "Tug", "Cargo ship, hazardous category A"). The registry's entries
+  for live ships are saved with the picture (`ships`, validated by
+  `parseSavedShip` on load; anything heard since starting wins), since
+  static reports come only every ~6 min.
+  - Ships (`client/src/net/shipInfo.ts`, browser, once per selected ship
+    after its details arrive): one SPARQL query to query.wikidata.org by IMO
+    (P458, trusted) or MMSI (P587, only if `sameName` agrees with the AIS
+    name: MMSIs get reassigned) for photo P18, operator P137 (never a human,
+    P31 Q5 filtered), class P289, year from P571/P729; then the Commons API
+    for a 420 px thumbnail, author (HTML -> `plainText`) and licence. URLs
+    checked (upload.wikimedia.org, commons.wikimedia.org). **Don't run
+    per-ship Wikidata search API loops**: haswbstatement searches got this IP
+    "You are making too many requests" within ~60 calls; batch with one
+    SPARQL VALUES query instead. Coverage (Oct 2026): of 400 random ships,
+    191 with static data, 53 on Wikidata, 29 with a photo.
   - Photos: `client/src/net/photos.ts` asks Planespotters.net's public API
     (`/pub/photos/hex/<hex>`) from the browser, only for the selected
     aircraft, once per page load, never when `private`. Terms: photographer
@@ -438,11 +452,12 @@ that could have been fetched before they arrived.
     (and curl: "Server User-Agent strings must include a contact URL"), so
     check photos in a real browser (the app's browser pane works).
     `parsePhotoResponse` only accepts https images and planespotters.net links.
-  - Panel: photo (3:2) or, without one, a large drawing of the vehicle
-    shape (hidden on phones, where it would repeat the header icon); rows
-    Operator, Registered in / Flag, Destination, Size, IMO number, Radio
-    call sign, each hidden when empty; an OpenFlights credit when an airline
-    shows.
+  - Panel: photo (3:2, caption "Photo: <credit> / <source>") or, without
+    one, a large drawing of the vehicle shape (hidden on phones, where it
+    would repeat the header icon); rows Ship type, Class, Operator,
+    Registered in / Flag, Built, Destination, Size, IMO number, Radio call
+    sign, each hidden when empty; OpenFlights and Wikidata credits when
+    their data shows.
 - Picture cache (`server/src/pictureCache.ts`): the store's live tracks and
   trails (never `sim:`) are saved every 30 s and on shutdown (temp file +
   rename) and restored at startup through `TrackStore.restore` (re-validated,
