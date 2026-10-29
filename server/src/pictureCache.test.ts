@@ -60,6 +60,22 @@ describe('picture cache', () => {
     expect(after.paths.info('ais:1')?.backfill).toBe('none');
   });
 
+  it("saves what the AIS feed knows about each live ship, and only those", async () => {
+    const store = new TrackStore(RULES);
+    store.ingest(ship('235000001', NOW - 60_000), NOW);
+    const asked: string[][] = [];
+    const file = tempFile();
+    await savePicture(
+      file,
+      pictureOf(store, 'cork', NOW, (mmsis) => {
+        asked.push(mmsis);
+        return { '235000001': { destination: 'PORTLAND' } };
+      }),
+    );
+    expect(asked).toEqual([['235000001']]);
+    expect(loadPicture(file)?.ships).toEqual({ '235000001': { destination: 'PORTLAND' } });
+  });
+
   it('still loads a picture saved before paths existed', () => {
     const file = tempFile();
     fs.mkdirSync(path.dirname(file), { recursive: true });

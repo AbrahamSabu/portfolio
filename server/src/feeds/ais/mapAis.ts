@@ -154,8 +154,10 @@ function identity(name: unknown, type: unknown, body: Record<string, unknown>): 
   const id: ShipIdentity = shipDetails(body);
   const n = cleanName(name);
   if (n) id.name = n;
-  const p = platformForShipType(num(type));
+  const t = num(type);
+  const p = platformForShipType(t);
   if (p) id.platform = p;
+  if (t !== null && Number.isInteger(t) && t >= 20 && t <= 99) id.aisType = t;
   return id;
 }
 

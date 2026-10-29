@@ -188,13 +188,18 @@ async function main(): Promise<void> {
   // key includes the area settings, so a worldwide picture never lands on Cork.
   const pictureKey = `${config.scenario}|ais:${config.ais.area}|opensky:${config.opensky.area}`;
   if (config.pictureFile) {
-    const restored = restorePicture(store, loadPicture(config.pictureFile), pictureKey, Date.now());
-    if (restored > 0) log.info('restored the saved picture', { tracks: restored });
+    const picture = loadPicture(config.pictureFile);
+    const restored = restorePicture(store, picture, pictureKey, Date.now());
+    if (restored > 0) {
+      const ships = picture?.ships && ais ? ais.restoreShips(picture.ships) : 0;
+      log.info('restored the saved picture', { tracks: restored, shipDetails: ships });
+    }
   }
   const savePictureNow = async () => {
     if (!config.pictureFile) return;
     try {
-      await savePicture(config.pictureFile, pictureOf(store, pictureKey, Date.now()));
+      const shipsOf = ais ? (mmsis: string[]) => ais!.savedShips(mmsis) : undefined;
+      await savePicture(config.pictureFile, pictureOf(store, pictureKey, Date.now(), shipsOf));
     } catch (err) {
       log.warn('could not save the picture', { error: err instanceof Error ? err.message : String(err) });
     }

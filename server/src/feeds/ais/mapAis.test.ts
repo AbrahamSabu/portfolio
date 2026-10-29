@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import edge from './fixtures/edge-cases.json';
 import { cleanName, fixTime, mapAisMessage, parseStreamMessage, parseTimeUtc, platformForShipType, shipDetails } from './mapAis';
-import { ShipRegistry } from './ships';
+import { parseSavedShip, ShipRegistry } from './ships';
 
 type Name = keyof typeof edge.messages;
 
@@ -94,10 +94,10 @@ describe('mapAisMessage', () => {
     expect(map('shipStatic')).toEqual({
       kind: 'static',
       mmsi: '235000001',
-      identity: { name: 'TEST CARRIER', platform: 'cargo', callSign: 'MABC1', destination: 'ROTTERDAM', lengthM: 180, beamM: 24 },
+      identity: { name: 'TEST CARRIER', platform: 'cargo', aisType: 71, callSign: 'MABC1', destination: 'ROTTERDAM', lengthM: 180, beamM: 24 },
     });
     expect(map('staticPartA')).toEqual({ kind: 'static', mmsi: '235000010', identity: { name: 'LITTLE AUK' } });
-    expect(map('staticPartB')).toEqual({ kind: 'static', mmsi: '235000010', identity: { platform: 'leisure', callSign: '2ABC3' } });
+    expect(map('staticPartB')).toEqual({ kind: 'static', mmsi: '235000010', identity: { platform: 'leisure', aisType: 36, callSign: '2ABC3' } });
     expect(map('classBExtended')).toMatchObject({ kind: 'position', identity: { name: 'SEA SPRITE', platform: 'leisure' } });
   });
 });
@@ -144,13 +144,38 @@ describe('field helpers', () => {
 });
 
 describe('ShipRegistry', () => {
+  it('saves its entries and brings them back after a restart, newer news winning', () => {
+    const before = new ShipRegistry();
+    before.learn('235000001', { name: 'TEST CARRIER', platform: 'cargo', destination: 'ROTTERDAM', lengthM: 180 });
+    before.learn('235000002', {}); // heard, but no static data yet: nothing to save
+    const saved = JSON.parse(JSON.stringify(before.toRecord(['235000001', '235000002', '235999999'])));
+    expect(Object.keys(saved)).toEqual(['235000001']);
+
+    const after = new ShipRegistry();
+    after.learn('235000001', { destination: 'ANTWERP' }); // heard since starting
+    expect(after.load(saved)).toBe(1);
+    expect(after.details('235000001')).toEqual({ destination: 'ANTWERP', lengthM: 180 });
+  });
+
+  it('keeps only well-formed saved fields', () => {
+    expect(parseSavedShip({ name: 'OK', platform: 'spaceship', imo: 12, eta: 'soon', lengthM: -1 })).toEqual({ name: 'OK' });
+    expect(parseSavedShip({ platform: 'tanker', aisType: 80, eta: '09-22T19:00Z' })).toEqual({
+      platform: 'tanker',
+      aisType: 80,
+      eta: '09-22T19:00Z',
+    });
+    expect(parseSavedShip({ nonsense: true })).toBeNull();
+    expect(parseSavedShip('x')).toBeNull();
+    expect(new ShipRegistry().load({ notAnMmsi: { name: 'X' }, '235000001': 'junk' })).toBe(0);
+  });
+
   it('keeps voyage details for the details panel, apart from name and type', () => {
     const ships = new ShipRegistry();
     expect(ships.details('235000001')).toBeUndefined();
     const stat = map('shipStatic');
     if (stat.kind !== 'static') throw new Error('expected static');
     ships.learn(stat.mmsi, stat.identity);
-    expect(ships.details('235000001')).toEqual({ callSign: 'MABC1', destination: 'ROTTERDAM', lengthM: 180, beamM: 24 });
+    expect(ships.details('235000001')).toEqual({ aisType: 71, callSign: 'MABC1', destination: 'ROTTERDAM', lengthM: 180, beamM: 24 });
     ships.learn('235000002', { name: 'NAMED ONLY' });
     expect(ships.details('235000002')).toBeUndefined();
   });

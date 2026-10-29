@@ -152,6 +152,16 @@ export class AisStreamFeed implements Feed {
    * There is no replay, so ships in a newly covered area appear as they next
    * report: seconds for ships underway, up to 3 minutes for moored ones.
    */
+  /** What we know about these ships (by MMSI), to save with the picture. */
+  savedShips(mmsis: Iterable<string>): Record<string, unknown> {
+    return this.ships.toRecord(mmsis);
+  }
+
+  /** Bring back ships saved with the picture; returns how many were kept. */
+  restoreShips(saved: unknown): number {
+    return this.ships.load(saved);
+  }
+
   /** What a ship has broadcast about its voyage and hull, for the details panel. */
   shipDetails(mmsi: string): ShipDetails | undefined {
     return this.ships.details(mmsi);

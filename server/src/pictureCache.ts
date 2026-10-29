@@ -26,6 +26,13 @@ export interface SavedPicture {
    * for tens of thousands of tracks would otherwise double the file.
    */
   paths?: Record<string, SavedPath>;
+  /**
+   * What the AIS feed knows about each saved ship, by MMSI (optional too):
+   * static data arrives every six minutes, so a restart would otherwise lose
+   * every ship's voyage details until it next sends them. Validated by the
+   * ship registry when it loads them.
+   */
+  ships?: Record<string, unknown>;
 }
 
 export interface SavedPath {
@@ -34,8 +41,13 @@ export interface SavedPath {
   backfill?: Backfill;
 }
 
-/** What to save: the live tracks and their trails. */
-export function pictureOf(store: TrackStore, scenario: string, now: number): SavedPicture {
+/** What to save: the live tracks, their trails and paths, and what the AIS feed knows about the ships. */
+export function pictureOf(
+  store: TrackStore,
+  scenario: string,
+  now: number,
+  shipsOf?: (mmsis: string[]) => Record<string, unknown>,
+): SavedPicture {
   const tracks = store.snapshot().filter((t) => t.source !== 'sim');
   const all = store.trailSnapshot();
   const trails: Record<string, TrailPoint[]> = {};
@@ -47,7 +59,9 @@ export function pictureOf(store: TrackStore, scenario: string, now: number): Sav
   for (const [id, path] of Object.entries(store.paths.toRecord(tracks.map((t) => t.id)))) {
     paths[id] = { points: encodeTrail(path.points, now), ...(path.backfill ? { backfill: path.backfill } : {}) };
   }
-  return { version: 1, scenario, savedAt: now, tracks, trails, paths };
+  const picture: SavedPicture = { version: 1, scenario, savedAt: now, tracks, trails, paths };
+  if (shipsOf) picture.ships = shipsOf(tracks.filter((t) => t.source === 'ais').map((t) => t.id.slice('ais:'.length)));
+  return picture;
 }
 
 /** Write atomically (temp file, then rename), so a crash mid-write never leaves half a file. */
@@ -91,7 +105,9 @@ export function loadPicture(file: string): SavedPicture | null {
       if (backfill === 'opensky' || backfill === 'none') paths[id].backfill = backfill;
     }
   }
-  return { version: 1, scenario: p.scenario, savedAt: p.savedAt, tracks: p.tracks as Track[], trails, paths };
+  const picture: SavedPicture = { version: 1, scenario: p.scenario, savedAt: p.savedAt, tracks: p.tracks as Track[], trails, paths };
+  if (typeof p.ships === 'object' && p.ships !== null) picture.ships = p.ships as Record<string, unknown>;
+  return picture;
 }
 
 function isTrailPoint(v: unknown): v is TrailPoint {

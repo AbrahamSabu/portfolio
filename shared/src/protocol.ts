@@ -120,6 +120,8 @@ export interface TrackDetails {
 
 /** What a ship broadcasts about its voyage and hull (AIS static data). */
 export interface ShipDetails {
+  /** AIS ship and cargo type (ITU-R M.1371, 20-99): finer than the platform, e.g. 52 tug, 50 pilot vessel. */
+  aisType?: number;
   imo?: number;
   callSign?: string;
   /** Free text, as the crew typed it. */
