@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type TrafficKind } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type PathBackfill, type TrafficKind } from '@watchfloor/shared';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   airliner: 'Airliner',
@@ -155,4 +155,30 @@ export function formatDtg(ms: number): string {
   const d = new Date(ms);
   const p = (n: number) => String(n).padStart(2, '0');
   return `${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}Z ${MONTHS[d.getUTCMonth()]} ${p(d.getUTCFullYear() % 100)}`;
+}
+
+/** "1402Z": the time of day of a DTG, for times within the last day. */
+export function formatZuluTime(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getUTCHours())}${p(d.getUTCMinutes())}Z`;
+}
+
+/**
+ * How far back the selected track's path goes, and where its start came from:
+ * "Since 1402Z (2 h 13 min) · start from OpenSky".
+ */
+export function formatPathSpan(
+  path: { loaded: boolean; points: readonly (readonly [number, number, number])[]; backfill: PathBackfill },
+  now: number,
+): string {
+  if (!path.loaded) return 'Loading';
+  const first = path.points[0];
+  if (!first || path.points.length < 2) return 'Only the latest report so far';
+  const minutes = Math.max(0, Math.round((now - first[2]) / 60_000));
+  const span = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  const text = `Since ${formatZuluTime(first[2])} (${span})`;
+  if (path.backfill === 'pending') return `${text} · asking OpenSky for earlier`;
+  if (path.backfill === 'opensky') return `${text} · start from OpenSky`;
+  return text;
 }

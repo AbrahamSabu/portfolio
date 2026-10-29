@@ -682,7 +682,18 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   cursor: pointer;
 }
 
-.button:hover {
+.details-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.button:hover:not(:disabled) {
   border-color: var(--ink-muted);
 }
 

@@ -159,12 +159,19 @@
             <dd data-field="source"></dd>
           </div>
           <div class="readout-row readout-wide">
+            <dt>Path</dt>
+            <dd data-field="path"></dd>
+          </div>
+          <div class="readout-row readout-wide">
             <dt>Track ID</dt>
             <dd class="readout-id" data-field="id"></dd>
           </div>
         </dl>
 
-        <button class="button" type="button" data-follow aria-pressed="false">Follow on map</button>
+        <div class="details-actions">
+          <button class="button" type="button" data-fit-path>Show whole path</button>
+          <button class="button" type="button" data-follow aria-pressed="false">Follow on map</button>
+        </div>
       </aside>
 
       <footer class="statusbar" id="statusbar">

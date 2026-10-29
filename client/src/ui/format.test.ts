@@ -8,6 +8,7 @@ import {
   formatAltitude,
   formatCourse,
   formatDtg,
+  formatPathSpan,
   formatDuration,
   formatLat,
   formatLon,
@@ -132,3 +133,27 @@ describe('describeFeeds', () => {
   });
 });
 
+
+describe('formatPathSpan', () => {
+  const now = Date.UTC(2026, 9, 28, 16, 15);
+  const since = Date.UTC(2026, 9, 28, 14, 2);
+  const path = (backfill: 'none' | 'pending' | 'opensky', loaded = true) => ({
+    loaded,
+    backfill,
+    points: [
+      [0, 50, since],
+      [1, 50, now],
+    ] as [number, number, number][],
+  });
+
+  it('says how far back the path goes and where its start came from', () => {
+    expect(formatPathSpan(path('none'), now)).toBe('Since 1402Z (2 h 13 min)');
+    expect(formatPathSpan(path('pending'), now)).toBe('Since 1402Z (2 h 13 min) · asking OpenSky for earlier');
+    expect(formatPathSpan(path('opensky'), now)).toBe('Since 1402Z (2 h 13 min) · start from OpenSky');
+  });
+
+  it('says so while loading or with a single report', () => {
+    expect(formatPathSpan(path('none', false), now)).toBe('Loading');
+    expect(formatPathSpan({ loaded: true, backfill: 'none', points: [[0, 50, now]] }, now)).toBe('Only the latest report so far');
+  });
+});

@@ -6,6 +6,7 @@ import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
+import { PathLayer } from './map/pathLayer';
 import { StyleControl } from './map/styleControl';
 import { loadTrailMode, TrailControl } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
@@ -13,6 +14,7 @@ import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
+import { SelectedPath } from './state/selectedPath';
 import { loadSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
 import { Selection } from './state/selection';
 import { TrackStore } from './state/trackStore';
@@ -62,6 +64,9 @@ async function main(): Promise<void> {
   const layer = new TrackLayer(map, store, clock, selection, filter, style);
   const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
   map.addControl(trailControl, 'top-left');
+  // After the trails, so the selected path draws above them (and below the tracks).
+  const path = new SelectedPath();
+  const pathLayer = new PathLayer(map, store, path);
   map.addControl(new StyleControl(style), 'top-left');
   const filterPanel = new FilterPanel(el('filter-panel'), filter, store, clock, () => filterControl.update());
   const filterControl = new FilterControl(filterPanel, filter);
@@ -69,7 +74,7 @@ async function main(): Promise<void> {
   const reticle = new Reticle(map);
   new HoverCard(map, store, clock, layer);
   const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
-  new DetailsPanel(el('details'), store, clock, layer, selection, style);
+  new DetailsPanel(el('details'), store, clock, layer, selection, style, path, () => pathLayer.fit());
   const list = new TrackList(
     el('track-list'),
     el('list-toggle') as HTMLButtonElement,
@@ -80,6 +85,13 @@ async function main(): Promise<void> {
     map,
     filter,
   );
+
+  // A newly selected track's path comes from the server: it holds hours of history the browser doesn't.
+  selection.subscribe((id) => {
+    if (id === path.id) return;
+    path.select(id);
+    if (id) connection.send({ type: 'path', id });
+  });
 
   // Reticle and follow mode track the dead-reckoned position, not the last report.
   selection.subscribe((id, previous) => {
@@ -179,6 +191,7 @@ async function main(): Promise<void> {
           // A feed that can't run (no API key) shows no data, so it gets no credit.
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
+          if (selection.id) connection.send({ type: 'path', id: selection.id }); // a fresh answer after reconnecting
           break;
         case 'snapshot': {
           const applyStart = performance.now();
@@ -188,7 +201,11 @@ async function main(): Promise<void> {
         }
         case 'delta':
           store.applyDelta(message.upserts, message.removals, message.serverTime);
+          path.extend(message.upserts);
           if (message.feeds) status.setFeeds(message.feeds);
+          break;
+        case 'path':
+          path.load(message);
           break;
       }
     },

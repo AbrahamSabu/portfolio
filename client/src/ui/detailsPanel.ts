@@ -2,12 +2,14 @@ import type { Track } from '@watchfloor/shared';
 import { trackIconKey, trackIconSvg } from '../map/trackIcon';
 import type { TrackLayer } from '../map/trackLayer';
 import type { ServerClock } from '../state/clock';
+import type { SelectedPath } from '../state/selectedPath';
 import type { Selection } from '../state/selection';
 import type { SymbolStyleSetting } from '../state/symbolStyle';
 import type { TrackStore } from '../state/trackStore';
 import {
   AFFILIATION_LABEL,
   PLATFORM_LABEL,
+  formatPathSpan,
   formatSource,
   formatAge,
   formatAircraftType,
@@ -25,6 +27,7 @@ export class DetailsPanel {
   private readonly typeRow: HTMLElement;
   private readonly staleNote: HTMLElement;
   private readonly followButton: HTMLButtonElement;
+  private readonly fitButton: HTMLButtonElement;
   private readonly symbol: HTMLElement;
   /** The icon last drawn, so the SVG is only rebuilt when the icon changes, not every refresh. */
   private iconKey = '';
@@ -36,6 +39,8 @@ export class DetailsPanel {
     private readonly layer: TrackLayer,
     private readonly selection: Selection,
     private readonly style: SymbolStyleSetting,
+    private readonly path: SelectedPath,
+    fitPath: () => void,
   ) {
     const q = <T extends HTMLElement>(sel: string) => {
       const el = root.querySelector<T>(sel);
@@ -56,6 +61,9 @@ export class DetailsPanel {
     this.followButton.addEventListener('click', () => selection.setFollow(!selection.follow));
 
     style.subscribe(() => this.update());
+    path.subscribe(() => this.update());
+    this.fitButton = q<HTMLButtonElement>('[data-fit-path]');
+    this.fitButton.addEventListener('click', fitPath);
     selection.subscribe((id, previous) => {
       this.root.hidden = id === null;
       if (id !== previous) this.root.classList.remove('details-enter');
@@ -100,6 +108,8 @@ export class DetailsPanel {
     this.set('lon', formatLon(pos.lon));
     this.set('course', formatCourse(track.courseDeg));
     this.set('speed', formatSpeed(track.speedMps));
+    this.set('path', formatPathSpan(this.path, now));
+    this.fitButton.disabled = this.path.points.length < 2;
     this.set('altitude', formatAltitude(track.altitudeM));
     this.altitudeRow.hidden = track.domain !== 'air';
     const aircraftType = formatAircraftType(track);
