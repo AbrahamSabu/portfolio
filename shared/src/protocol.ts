@@ -35,7 +35,7 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *  11  platforms `business-jet` and `military-aircraft`; aircraft tracks may
  *      carry `typeCode` and `model` from the aircraft database
  */
-export const PROTOCOL_VERSION = 11;
+export const PROTOCOL_VERSION = 12;
 
 export interface HelloMessage {
   type: 'hello';
@@ -72,7 +72,24 @@ export interface DeltaMessage {
   feeds?: FeedStatus[];
 }
 
-export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage;
+/**
+ * One track's longer path, in answer to a browser's `path` request. Sent once
+ * with what the server has, and again if earlier history arrives (OpenSky's
+ * record of the flight since takeoff). The browser extends it from deltas.
+ */
+export interface PathMessage {
+  type: 'path';
+  serverTime: number;
+  id: string;
+  /** Oldest first. */
+  points: TrailPoint[];
+  /** Where the earlier part came from: 'pending' while it's being fetched. */
+  backfill: PathBackfill;
+}
+
+export type PathBackfill = 'none' | 'pending' | 'opensky';
+
+export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage;
 
 /** Where the picture is centred, so the client can frame the map on first load. */
 export interface ScenarioInfo {
@@ -88,6 +105,13 @@ interface WireSnapshot {
   serverTime: number;
   tracks: TrackTuple[];
   trails: TrailTuple[];
+}
+interface WirePath {
+  type: 'path';
+  serverTime: number;
+  id: string;
+  points: TrailTuple;
+  backfill: PathBackfill;
 }
 interface WireDelta {
   type: 'delta';
@@ -111,6 +135,10 @@ export function encodeServerMessage(message: ServerMessage): string {
         // By position, so ids aren't sent twice; a track without one gets [].
         trails: tracks.map((t) => encodeTrail(trails[t.id] ?? [], serverTime)),
       };
+      return JSON.stringify(wire);
+    }
+    case 'path': {
+      const wire: WirePath = { ...message, points: encodeTrail(message.points, message.serverTime) };
       return JSON.stringify(wire);
     }
     case 'delta': {
@@ -162,6 +190,11 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       if (w.feeds) delta.feeds = w.feeds;
       return delta;
     }
+    case 'path': {
+      if (typeof m.id !== 'string' || !Array.isArray(m.points) || typeof m.backfill !== 'string') return null;
+      const w = m as unknown as WirePath;
+      return { type: 'path', serverTime: w.serverTime, id: w.id, points: decodeTrail(w.points, w.serverTime), backfill: w.backfill };
+    }
     default:
       return null;
   }
@@ -177,7 +210,16 @@ export interface ViewMessage {
   bbox: BBox;
 }
 
-export type ClientMessage = ViewMessage;
+/** Ask for one track's path: sent when a track is selected, and again after reconnecting. */
+export interface PathRequestMessage {
+  type: 'path';
+  id: string;
+}
+
+export type ClientMessage = ViewMessage | PathRequestMessage;
+
+/** As validation allows track ids: 1-128 characters, here printable ASCII only. */
+const TRACK_ID = /^[!-~]{1,128}$/;
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
@@ -194,6 +236,7 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   }
   if (typeof data !== 'object' || data === null) return null;
   const m = data as Record<string, unknown>;
+  if (m.type === 'path') return typeof m.id === 'string' && TRACK_ID.test(m.id) ? { type: 'path', id: m.id } : null;
   if (m.type !== 'view' || typeof m.bbox !== 'object' || m.bbox === null) return null;
   const { south, west, north, east } = m.bbox as Record<string, unknown>;
   if (!finite(south) || !finite(west) || !finite(north) || !finite(east)) return null;

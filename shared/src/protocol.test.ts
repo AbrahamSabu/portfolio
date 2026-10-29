@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeServerMessage, parseClientMessage, parseServerMessage, type DeltaMessage, type SnapshotMessage } from './protocol';
+import { encodeServerMessage, parseClientMessage, parseServerMessage, type DeltaMessage, type PathMessage, type SnapshotMessage } from './protocol';
 import type { Track } from './track';
 
 const NOW = Date.parse('2026-10-28T14:00:00Z');
@@ -71,5 +71,29 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage(view({ south: 0, west: 5, north: 1, east: 1 }))).toBeNull();
     expect(parseClientMessage(view({ south: -91, west: 0, north: 1, east: 1 }))).toBeNull();
     expect(parseClientMessage(view({ south: 0, west: -1000, north: 1, east: 1 }))).toBeNull();
+  });
+});
+
+describe('path messages', () => {
+  it('round-trips a path through the wire form', () => {
+    const message: PathMessage = {
+      type: 'path',
+      serverTime: NOW,
+      id: 'adsb:4ca7b3',
+      points: [
+        [-6.27, 53.42, NOW - 3_600_000],
+        [-1.5, 52.1, NOW - 60_000],
+      ],
+      backfill: 'opensky',
+    };
+    expect(parseServerMessage(encodeServerMessage(message))).toEqual(message);
+  });
+
+  it('accepts a path request for a plausible track id only', () => {
+    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 'adsb:4ca7b3' }))).toEqual({ type: 'path', id: 'adsb:4ca7b3' });
+    expect(parseClientMessage(JSON.stringify({ type: 'path', id: '' }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 'x'.repeat(129) }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 'has space' }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 42 }))).toBeNull();
   });
 });

@@ -1,10 +1,11 @@
-import type { BBox, FeedStatus } from '@watchfloor/shared';
+import type { BBox, FeedStatus, TrailPoint } from '@watchfloor/shared';
 import { createLogger, type Logger } from '../../log';
 import type { Feed, TrackSink } from '../feed';
 import { PollScheduler, polledFeedStatus, type PolledStatusInput } from '../pollScheduler';
 import { Backoff } from '../backoff';
 import { covers, describePlan, planCost, planCoverage, type Plan } from './coverage';
 import { mapState, parseStatesResponse } from './mapState';
+import { parseTrackResponse } from './mapTrack';
 
 export const DEFAULT_API_URL = 'https://opensky-network.org/api';
 const TOKEN_URL = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
@@ -301,6 +302,38 @@ export class OpenSkyFeed implements Feed {
     return AbortSignal.any([this.stopController.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]);
   }
 
+  /**
+   * One aircraft's current flight since takeoff, from OpenSky's tracks
+   * endpoint, to fill in a path from before we were watching. OpenSky calls
+   * the endpoint experimental, so every failure is an answer, never a throw.
+   * Its credits come from a bucket separate from /states, so lookups never
+   * cost the map a poll. Rate and caching are the caller's (PathService).
+   */
+  async flightTrack(icao24: string): Promise<FlightTrackResult> {
+    try {
+      const headers: Record<string, string> = {};
+      const token = await this.getToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const query = new URLSearchParams({ icao24, time: '0' });
+      const res = await this.fetch(`${this.opts.apiUrl ?? DEFAULT_API_URL}/tracks/all?${query}`, {
+        headers,
+        signal: this.signal(),
+      });
+      if (res.status === 404) return { kind: 'none' };
+      if (res.status === 429) {
+        const seconds = Number(res.headers.get('X-Rate-Limit-Retry-After-Seconds'));
+        return { kind: 'limited', retryAfterMs: Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 3_600_000 };
+      }
+      if (res.status === 401 && token) this.token = null;
+      if (!res.ok) return { kind: 'failed', detail: `HTTP ${res.status}` };
+      const points = parseTrackResponse(await res.json());
+      if (!points) return { kind: 'failed', detail: 'unexpected response' };
+      return points.length > 0 ? { kind: 'ok', points } : { kind: 'none' };
+    } catch (err) {
+      return { kind: 'failed', detail: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   /** A bearer token, or null to poll anonymously. Cached until shortly before it expires. */
   private async getToken(): Promise<string | null> {
     const creds = this.credentials;
@@ -335,6 +368,13 @@ export class OpenSkyFeed implements Feed {
     return this.token.value;
   }
 }
+
+/** What a flight-track lookup found. */
+export type FlightTrackResult =
+  | { kind: 'ok'; points: TrailPoint[] }
+  | { kind: 'none' } // no current flight known for this aircraft
+  | { kind: 'limited'; retryAfterMs: number }
+  | { kind: 'failed'; detail: string };
 
 export type OpenSkyStatusInput = PolledStatusInput;
 

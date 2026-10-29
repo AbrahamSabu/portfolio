@@ -18,6 +18,7 @@ import { AisStreamFeed } from './feeds/ais/aisStreamFeed';
 import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
+import { PathService } from './paths/pathService';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
@@ -79,6 +80,7 @@ async function main(): Promise<void> {
 
   // Every feed pushes into the same store; nothing downstream knows which ran.
   const feeds: Feed[] = [];
+  let openSky: OpenSkyFeed | undefined;
   for (const name of config.feeds) {
     switch (name) {
       case 'sim':
@@ -112,17 +114,23 @@ async function main(): Promise<void> {
       }
       case 'opensky':
         feeds.push(
-          new OpenSkyFeed({
+          (openSky = new OpenSkyFeed({
             bounds: config.opensky.area === 'scenario' ? scenario.bounds : null,
             viewport: config.opensky.area === 'viewport',
             pollMs: config.opensky.pollMs,
             ...(config.opensky.apiUrl ? { apiUrl: config.opensky.apiUrl } : {}),
             ...(config.opensky.credentials ? { credentials: config.opensky.credentials } : {}),
-          }),
+          })),
         );
         break;
     }
   }
+
+  // Paths for selected tracks; OpenSky fills in flights from before we saw them, when it runs.
+  const paths = new PathService({
+    store,
+    ...(openSky ? { lookup: (icao24: string) => openSky!.flightTrack(icao24) } : {}),
+  });
 
   let hub: Hub | undefined;
   const server = createHttpServer({
@@ -132,11 +140,13 @@ async function main(): Promise<void> {
       tracks: store.size,
       rejectedReports: store.rejected,
       clients: hub?.clientCount ?? 0,
+      paths: { tracks: store.paths.size, points: store.paths.points, openSkyLookupsLastHour: paths.lookupsLastHour },
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
     }),
   });
 
   hub = new Hub({
+    onPathRequest: (id, send) => paths.request(id, send),
     server,
     path: '/ws',
     store,
