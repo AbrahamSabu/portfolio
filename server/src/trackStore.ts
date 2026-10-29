@@ -8,6 +8,7 @@ import {
   type TrailPoint,
   type TrailRules,
 } from '@watchfloor/shared';
+import { PathHistory, type PathRule, type SavedPathEntry } from './paths/pathHistory';
 
 export interface StoreChanges {
   upserts: Track[];
@@ -34,6 +35,8 @@ export class TrackStore {
   private readonly dirty = new Set<string>();
   private readonly removed = new Set<string>();
   private readonly trails: TrailHistory;
+  /** Hours of thinned history per track, sent only to a browser that selects it. */
+  readonly paths: PathHistory;
   private rejectedCount = 0;
 
   /**
@@ -45,8 +48,10 @@ export class TrackStore {
     private readonly staleness: StalenessRules,
     trailRules?: TrailRules,
     private readonly identify?: (track: Track) => void,
+    pathRules?: Record<Track['domain'], PathRule>,
   ) {
     this.trails = new TrailHistory(trailRules);
+    this.paths = new PathHistory(pathRules);
   }
 
   get size(): number {
@@ -83,6 +88,7 @@ export class TrackStore {
 
     this.tracks.set(track.id, track);
     this.trails.record(track);
+    this.paths.record(track);
     this.dirty.add(track.id);
     this.removed.delete(track.id);
     return true;
@@ -93,18 +99,26 @@ export class TrackStore {
    * through ingest(), so anything invalid or past its drop window stays out,
    * and trails are kept only for tracks that made it in.
    */
-  restore(tracks: unknown[], trails: Record<string, TrailPoint[]>, now = Date.now()): number {
+  restore(
+    tracks: unknown[],
+    trails: Record<string, TrailPoint[]>,
+    now = Date.now(),
+    paths: Record<string, SavedPathEntry> = {},
+  ): number {
     let restored = 0;
     for (const track of tracks) if (this.ingest(track, now)) restored++;
     // A saved trail replaces the single point ingest() just recorded; without one, that point stays.
     this.trails.load({ ...this.trails.toRecord(), ...trails }, this.tracks.values());
     this.trails.prune(now);
+    this.paths.load(paths, this.tracks.values());
+    this.paths.prune(now);
     return restored;
   }
 
   remove(id: string): boolean {
     if (!this.tracks.delete(id)) return false;
     this.trails.remove(id);
+    this.paths.remove(id);
     this.dirty.delete(id);
     this.removed.add(id);
     return true;
@@ -123,6 +137,7 @@ export class TrackStore {
       }
     }
     this.trails.prune(now);
+    this.paths.prune(now);
     return count;
   }
 

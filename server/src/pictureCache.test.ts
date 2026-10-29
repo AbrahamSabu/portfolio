@@ -46,6 +46,29 @@ describe('picture cache', () => {
     expect(fs.existsSync(`${file}.tmp`)).toBe(false);
   });
 
+  it('saves the longer paths too, with where their start came from', async () => {
+    const before = new TrackStore(RULES);
+    before.ingest(ship('1', NOW - 20 * 60_000, -8.5), NOW);
+    before.ingest(ship('1', NOW - 10 * 60_000, -8.4), NOW);
+    before.paths.markNoBackfill('ais:1');
+    const file = tempFile();
+    await savePicture(file, pictureOf(before, 'cork', NOW));
+
+    const after = new TrackStore(RULES);
+    restorePicture(after, loadPicture(file), 'cork', NOW + 30_000);
+    expect(after.paths.get('ais:1')).toEqual(before.paths.get('ais:1'));
+    expect(after.paths.info('ais:1')?.backfill).toBe('none');
+  });
+
+  it('still loads a picture saved before paths existed', () => {
+    const file = tempFile();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({ version: 1, scenario: 'cork', savedAt: NOW, tracks: [ship('1', NOW)], trails: {} }));
+    const store = new TrackStore(RULES);
+    expect(restorePicture(store, loadPicture(file), 'cork', NOW)).toBe(1);
+    expect(store.paths.get('ais:1')).toHaveLength(1);
+  });
+
   it('leaves out tracks that went past their drop window while the server was down', async () => {
     const before = new TrackStore(RULES);
     before.ingest(ship('old', NOW - 19 * 60_000), NOW);

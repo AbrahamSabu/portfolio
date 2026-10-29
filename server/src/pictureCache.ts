@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Track, TrailPoint } from '@watchfloor/shared';
+import { decodeTrail, encodeTrail, type Track, type TrailPoint, type TrailTuple } from '@watchfloor/shared';
+import type { Backfill } from './paths/pathHistory';
 import type { TrackStore } from './trackStore';
 
 /**
@@ -19,6 +20,18 @@ export interface SavedPicture {
   savedAt: number;
   tracks: Track[];
   trails: Record<string, TrailPoint[]>;
+  /**
+   * Longer, thinned paths (added after version 1 shipped; optional, so older
+   * files still load), as compact integer deltas keyed by id: hours of history
+   * for tens of thousands of tracks would otherwise double the file.
+   */
+  paths?: Record<string, SavedPath>;
+}
+
+export interface SavedPath {
+  /** encodeTrail() relative to savedAt. */
+  points: TrailTuple;
+  backfill?: Backfill;
 }
 
 /** What to save: the live tracks and their trails. */
@@ -30,7 +43,11 @@ export function pictureOf(store: TrackStore, scenario: string, now: number): Sav
     const points = all[t.id];
     if (points) trails[t.id] = points;
   }
-  return { version: 1, scenario, savedAt: now, tracks, trails };
+  const paths: Record<string, SavedPath> = {};
+  for (const [id, path] of Object.entries(store.paths.toRecord(tracks.map((t) => t.id)))) {
+    paths[id] = { points: encodeTrail(path.points, now), ...(path.backfill ? { backfill: path.backfill } : {}) };
+  }
+  return { version: 1, scenario, savedAt: now, tracks, trails, paths };
 }
 
 /** Write atomically (temp file, then rename), so a crash mid-write never leaves half a file. */
@@ -64,7 +81,17 @@ export function loadPicture(file: string): SavedPicture | null {
       if (Array.isArray(points) && points.every(isTrailPoint)) trails[id] = points;
     }
   }
-  return { version: 1, scenario: p.scenario, savedAt: p.savedAt, tracks: p.tracks as Track[], trails };
+  const paths: Record<string, SavedPath> = {};
+  if (typeof p.paths === 'object' && p.paths !== null) {
+    for (const [id, path] of Object.entries(p.paths as Record<string, unknown>)) {
+      const { points, backfill } = (path ?? {}) as Record<string, unknown>;
+      const valid = Array.isArray(points) && points.length % 3 === 0 && points.every((n) => Number.isInteger(n));
+      if (!valid) continue;
+      paths[id] = { points: points as TrailTuple };
+      if (backfill === 'opensky' || backfill === 'none') paths[id].backfill = backfill;
+    }
+  }
+  return { version: 1, scenario: p.scenario, savedAt: p.savedAt, tracks: p.tracks as Track[], trails, paths };
 }
 
 function isTrailPoint(v: unknown): v is TrailPoint {
@@ -78,5 +105,11 @@ export function restorePicture(store: TrackStore, picture: SavedPicture | null, 
     picture.tracks.filter((t) => typeof t === 'object' && t !== null && t.source !== 'sim'),
     picture.trails,
     now,
+    Object.fromEntries(
+      Object.entries(picture.paths ?? {}).map(([id, path]) => [
+        id,
+        { points: decodeTrail(path.points, picture.savedAt), ...(path.backfill ? { backfill: path.backfill } : {}) },
+      ]),
+    ),
   );
 }
