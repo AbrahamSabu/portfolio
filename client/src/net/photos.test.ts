@@ -21,7 +21,8 @@ describe('parsePhotoResponse', () => {
       width: 420,
       height: 280,
       link: 'https://www.planespotters.net/photo/1979452/g-ezws-easyjet-airbus-a320-214-wl?utm_source=api',
-      photographer: 'Pascal Weste',
+      credit: 'Pascal Weste',
+      source: 'Planespotters.net',
     });
   });
 

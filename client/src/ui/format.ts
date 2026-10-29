@@ -214,3 +214,44 @@ export function formatShipSize(ship: ShipDetails | undefined): string {
   if (ship.draughtM) parts.push(`draught ${ship.draughtM} m`);
   return parts.join(', ');
 }
+
+/** AIS ship types with a name of their own (ITU-R M.1371, table 53). */
+const AIS_TYPE_NAME: Record<number, string> = {
+  30: 'Fishing vessel',
+  31: 'Towing vessel',
+  32: 'Towing vessel, large tow',
+  33: 'Dredging or underwater operations',
+  34: 'Diving operations',
+  35: 'Military operations',
+  36: 'Sailing vessel',
+  37: 'Pleasure craft',
+  50: 'Pilot vessel',
+  51: 'Search and rescue vessel',
+  52: 'Tug',
+  53: 'Port tender',
+  54: 'Anti-pollution vessel',
+  55: 'Law enforcement vessel',
+  58: 'Medical transport',
+  59: 'Noncombatant ship',
+};
+
+/** The rest are families by first digit, the second giving a hazardous cargo category. */
+const AIS_TYPE_FAMILY: Record<number, string> = {
+  2: 'Wing-in-ground craft',
+  4: 'High-speed craft',
+  6: 'Passenger ship',
+  7: 'Cargo ship',
+  8: 'Tanker',
+  9: 'Other type of ship',
+};
+
+/** A ship's AIS type in words: "Tug", "Cargo ship, hazardous category A". Empty when unknown. */
+export function formatShipType(aisType: number | undefined): string {
+  if (aisType === undefined) return '';
+  const named = AIS_TYPE_NAME[aisType];
+  if (named) return named;
+  const family = AIS_TYPE_FAMILY[Math.floor(aisType / 10)];
+  if (!family) return '';
+  const category = 'ABCD'[(aisType % 10) - 1];
+  return (aisType % 10) >= 1 && (aisType % 10) <= 4 ? `${family}, hazardous category ${category}` : family;
+}

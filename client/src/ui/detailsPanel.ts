@@ -1,7 +1,8 @@
-import type { Track } from '@watchfloor/shared';
+import type { Track, TrackDetails } from '@watchfloor/shared';
 import { shapeSvg, shapeFor } from '../map/shapes';
 import { trackIconKey, trackIconSvg } from '../map/trackIcon';
-import { aircraftPhoto, type AircraftPhoto } from '../net/photos';
+import { aircraftPhoto, type Photo } from '../net/photos';
+import { commonsPhoto, shipInfo, type ShipInfo } from '../net/shipInfo';
 import type { SelectedDetails } from '../state/selectedDetails';
 import type { TrackLayer } from '../map/trackLayer';
 import type { ServerClock } from '../state/clock';
@@ -16,6 +17,7 @@ import {
   formatOperator,
   formatPathSpan,
   formatShipSize,
+  formatShipType,
   formatSource,
   formatAge,
   formatAircraftType,
@@ -45,11 +47,14 @@ export class DetailsPanel {
   private readonly drawing: HTMLElement;
   private readonly privateNote: HTMLElement;
   private readonly airlineCredit: HTMLElement;
+  private readonly wikidataCredit: HTMLElement;
+  private readonly photoSource: HTMLElement;
   /** The drawing last made (shape and colour), like iconKey. */
   private drawingKey = '';
-  /** The track whose photo was asked for, so each selection asks once. */
-  private photoFor: string | null = null;
-  private photo: AircraftPhoto | null = null;
+  /** The track whose photo and facts were asked for, so each selection asks once. */
+  private lookedUpFor: string | null = null;
+  private photo: Photo | null = null;
+  private shipFacts: ShipInfo | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -84,6 +89,8 @@ export class DetailsPanel {
     this.drawing = q('[data-drawing]');
     this.privateNote = q('[data-private-note]');
     this.airlineCredit = q('[data-airline-credit]');
+    this.wikidataCredit = q('[data-wikidata-credit]');
+    this.photoSource = q('[data-photo-source]');
 
     q('[data-close]').addEventListener('click', () => selection.select(null));
     this.followButton.addEventListener('click', () => selection.setFollow(!selection.follow));
@@ -168,35 +175,58 @@ export class DetailsPanel {
   private renderDetails(track: Track): void {
     const details = this.details.id === track.id ? this.details.details : undefined;
     const ship = details?.ship;
-    const operator = formatOperator(details);
-    this.setRow('operator', operator);
+    const facts = this.lookedUpFor === track.id ? this.shipFacts : null;
+    this.setRow('ship-type', track.domain === 'sea' ? formatShipType(ship?.aisType) : '');
+    this.setRow('class', facts?.shipClass ?? '');
+    this.setRow('operator', facts?.operator ?? formatOperator(details));
     this.set('country-label', track.domain === 'sea' ? 'Flag' : 'Registered in');
     this.setRow('country', details?.country ?? '');
+    this.setRow('built', facts?.built ? String(facts.built) : '');
     this.setRow('destination', formatDestination(ship));
     this.setRow('size', formatShipSize(ship));
     this.setRow('imo', ship?.imo ? String(ship.imo) : '');
     this.setRow('call-sign', ship?.callSign ?? '');
     this.privateNote.hidden = !details?.private;
     this.airlineCredit.hidden = !details?.airline;
+    this.wikidataCredit.hidden = !(facts && (facts.shipClass || facts.operator || facts.built));
 
-    // A photo only once the server has said the aircraft isn't private.
-    const hex = /^adsb:([0-9a-f]{6})$/.exec(track.id)?.[1];
-    if (track.id !== this.photoFor) {
+    if (track.id !== this.lookedUpFor) {
       this.photo = null;
-      this.photoFor = null;
+      this.shipFacts = null;
+      this.lookedUpFor = null;
     }
-    if (hex && details && !details.private && this.photoFor === null) {
-      this.photoFor = track.id;
-      void aircraftPhoto(hex).then((photo) => {
-        if (this.photoFor !== track.id) return; // selection moved on
-        this.photo = photo;
-        this.update();
-      });
+    // Look up once the server has answered: it says whether an aircraft is
+    // private, and gives a ship's IMO number, the surest way to find it.
+    if (details && this.lookedUpFor === null) {
+      this.lookedUpFor = track.id;
+      void this.lookUp(track, details);
     }
     this.renderPicture(track);
   }
 
-  /** The aircraft's photo when there is one, else a large drawing of its shape. */
+  /** An aircraft's photo from Planespotters; a ship's facts and photo from Wikidata and Commons. */
+  private async lookUp(track: Track, details: TrackDetails): Promise<void> {
+    const native = track.id.slice(track.id.indexOf(':') + 1);
+    const current = () => this.lookedUpFor === track.id; // the selection may move on meanwhile
+    if (track.source === 'adsb' && !details.private) {
+      const photo = await aircraftPhoto(native);
+      if (!current()) return;
+      this.photo = photo;
+    } else if (track.source === 'ais') {
+      const facts = await shipInfo(native, details.ship?.imo, track.callsign);
+      if (!current()) return;
+      this.shipFacts = facts;
+      this.update();
+      const photo = facts?.image ? await commonsPhoto(facts.image) : null;
+      if (!current()) return;
+      this.photo = photo;
+    } else {
+      return;
+    }
+    this.update();
+  }
+
+  /** The vehicle's photo when there is one, else a large drawing of its shape. */
   private renderPicture(track: Track): void {
     const photo = this.photo;
     this.photoLink.hidden = !photo;
@@ -209,9 +239,11 @@ export class DetailsPanel {
         this.photoImg.height = photo.height;
         this.photoLink.href = photo.link;
         this.photoCreditLink.href = photo.link;
-        this.photoCreditLink.textContent = photo.photographer;
+        this.photoCreditLink.textContent = photo.credit;
+        this.photoSource.textContent = photo.source;
       }
-      this.photoImg.alt = `Photo of ${track.model ?? 'this aircraft'}`;
+      const name = track.domain === 'sea' ? (this.shipFacts?.name ?? track.callsign ?? 'this ship') : (track.model ?? 'this aircraft');
+      this.photoImg.alt = `Photo of ${name}`;
       return;
     }
     // Always the top-down shape, whatever the map style: it's a picture, not a symbol.

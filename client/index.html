@@ -135,7 +135,7 @@
           </a>
           <div class="details-drawing" data-drawing aria-hidden="true"></div>
           <figcaption class="details-credit" data-photo-credit hidden>
-            Photo © <a data-photo-credit-link target="_blank"></a> / Planespotters.net
+            Photo: <a data-photo-credit-link target="_blank"></a> / <span data-photo-source></span>
           </figcaption>
         </figure>
         <p class="details-note" data-private-note hidden>
@@ -147,6 +147,14 @@
             <dt>Aircraft type</dt>
             <dd data-field="aircraft-type"></dd>
           </div>
+          <div class="readout-row readout-wide" data-row="ship-type" hidden>
+            <dt>Ship type</dt>
+            <dd data-field="ship-type"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="class" hidden>
+            <dt>Class</dt>
+            <dd data-field="class"></dd>
+          </div>
           <div class="readout-row readout-wide" data-row="operator" hidden>
             <dt>Operator</dt>
             <dd data-field="operator"></dd>
@@ -154,6 +162,10 @@
           <div class="readout-row readout-wide" data-row="country" hidden>
             <dt data-field="country-label">Registered in</dt>
             <dd data-field="country"></dd>
+          </div>
+          <div class="readout-row" data-row="built" hidden>
+            <dt>Built</dt>
+            <dd data-field="built"></dd>
           </div>
           <div class="readout-row readout-wide" data-row="destination" hidden>
             <dt>Destination</dt>
@@ -211,6 +223,9 @@
         </div>
         <p class="details-credit" data-airline-credit hidden>
           Airline names from <a href="https://openflights.org/data.php" target="_blank">OpenFlights</a> (ODbL).
+        </p>
+        <p class="details-credit" data-wikidata-credit hidden>
+          Class, operator and year from <a href="https://www.wikidata.org" target="_blank">Wikidata</a>.
         </p>
       </aside>
 

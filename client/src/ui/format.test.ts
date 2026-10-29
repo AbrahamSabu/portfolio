@@ -3,6 +3,7 @@ import {
   formatDestination,
   formatOperator,
   formatShipSize,
+  formatShipType,
   describeFeedStatus,
   describeFeeds,
   formatSource,
@@ -174,6 +175,15 @@ describe('vehicle details', () => {
     expect(formatDestination({ destination: 'PORTLAND', eta: '09-22T19:00Z' })).toBe('PORTLAND · ETA 22 Sep 1900Z');
     expect(formatDestination({ destination: 'ROTTERDAM' })).toBe('ROTTERDAM');
     expect(formatDestination({ eta: '09-22T19:00Z' })).toBe('');
+  });
+
+  it("names a ship's AIS type", () => {
+    expect(formatShipType(52)).toBe('Tug');
+    expect(formatShipType(71)).toBe('Cargo ship, hazardous category A');
+    expect(formatShipType(70)).toBe('Cargo ship');
+    expect(formatShipType(89)).toBe('Tanker');
+    expect(formatShipType(56)).toBe('');
+    expect(formatShipType(undefined)).toBe('');
   });
 
   it('gives a ship\'s size', () => {
