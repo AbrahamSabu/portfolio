@@ -629,6 +629,63 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   font-size: var(--text-sm);
 }
 
+.details-photo {
+  margin: 14px 0 0;
+}
+
+/* Planespotters' large thumbnails are 420 × 280: hold that shape so nothing jumps when one arrives. */
+.details-photo-link {
+  display: block;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.details-photo-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--surface-raised);
+}
+
+.details-drawing {
+  display: grid;
+  place-items: center;
+  height: 112px;
+  border-radius: 3px;
+  background: rgb(220 230 235 / 0.04);
+}
+
+.details-drawing svg {
+  display: block;
+  width: 88px;
+  height: 88px;
+}
+
+/* The bottom sheet is short: there the drawing would only repeat the header's icon. */
+@media (max-width: 640px) {
+  .details-drawing {
+    display: none;
+  }
+}
+
+.details-credit {
+  margin: 6px 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.details-credit a {
+  color: inherit;
+}
+
+.details-note {
+  margin: 10px 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
 .details-stale .readout dd {
   color: var(--ink-muted);
 }

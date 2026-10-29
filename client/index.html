@@ -129,10 +129,47 @@
           No recent reports. The position shown is the last estimate.
         </p>
 
+        <figure class="details-photo" data-photo>
+          <a class="details-photo-link" data-photo-link target="_blank" hidden>
+            <img data-photo-img alt="" decoding="async" />
+          </a>
+          <div class="details-drawing" data-drawing aria-hidden="true"></div>
+          <figcaption class="details-credit" data-photo-credit hidden>
+            Photo © <a data-photo-credit-link target="_blank"></a> / Planespotters.net
+          </figcaption>
+        </figure>
+        <p class="details-note" data-private-note hidden>
+          The owner has asked for this aircraft not to be tracked publicly, so no photo or operator is shown.
+        </p>
+
         <dl class="readout">
           <div class="readout-row readout-wide" data-type-row hidden>
             <dt>Aircraft type</dt>
             <dd data-field="aircraft-type"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="operator" hidden>
+            <dt>Operator</dt>
+            <dd data-field="operator"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="country" hidden>
+            <dt data-field="country-label">Registered in</dt>
+            <dd data-field="country"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="destination" hidden>
+            <dt>Destination</dt>
+            <dd data-field="destination"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="size" hidden>
+            <dt>Size</dt>
+            <dd data-field="size"></dd>
+          </div>
+          <div class="readout-row" data-row="imo" hidden>
+            <dt>IMO number</dt>
+            <dd data-field="imo"></dd>
+          </div>
+          <div class="readout-row" data-row="call-sign" hidden>
+            <dt>Radio call sign</dt>
+            <dd data-field="call-sign"></dd>
           </div>
           <div class="readout-row readout-wide">
             <dt>Position</dt>
@@ -172,6 +209,9 @@
           <button class="button" type="button" data-fit-path>Show whole path</button>
           <button class="button" type="button" data-follow aria-pressed="false">Follow on map</button>
         </div>
+        <p class="details-credit" data-airline-credit hidden>
+          Airline names from <a href="https://openflights.org/data.php" target="_blank">OpenFlights</a> (ODbL).
+        </p>
       </aside>
 
       <footer class="statusbar" id="statusbar">

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatDestination,
+  formatOperator,
+  formatShipSize,
   describeFeedStatus,
   describeFeeds,
   formatSource,
@@ -155,5 +158,27 @@ describe('formatPathSpan', () => {
   it('says so while loading or with a single report', () => {
     expect(formatPathSpan(path('none', false), now)).toBe('Loading');
     expect(formatPathSpan({ loaded: true, backfill: 'none', points: [[0, 50, now]] }, now)).toBe('Only the latest report so far');
+  });
+});
+
+describe('vehicle details', () => {
+  it('names the operator: the airline, else whose military', () => {
+    expect(formatOperator({ airline: 'Aer Lingus', country: 'Ireland' })).toBe('Aer Lingus');
+    expect(formatOperator({ military: true, country: 'United States' })).toBe('United States military');
+    expect(formatOperator({ military: true })).toBe('Military');
+    expect(formatOperator({ country: 'Ireland' })).toBe('');
+    expect(formatOperator(undefined)).toBe('');
+  });
+
+  it('reads a ship\'s destination and ETA', () => {
+    expect(formatDestination({ destination: 'PORTLAND', eta: '09-22T19:00Z' })).toBe('PORTLAND · ETA 22 Sep 1900Z');
+    expect(formatDestination({ destination: 'ROTTERDAM' })).toBe('ROTTERDAM');
+    expect(formatDestination({ eta: '09-22T19:00Z' })).toBe('');
+  });
+
+  it('gives a ship\'s size', () => {
+    expect(formatShipSize({ lengthM: 180, beamM: 24, draughtM: 4.8 })).toBe('180 × 24 m, draught 4.8 m');
+    expect(formatShipSize({ lengthM: 22 })).toBe('22 m long');
+    expect(formatShipSize({})).toBe('');
   });
 });

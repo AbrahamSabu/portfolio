@@ -19,6 +19,8 @@ import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { PathService } from './paths/pathService';
+import { trackDetails } from './details/trackDetails';
+import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
@@ -81,6 +83,7 @@ async function main(): Promise<void> {
   // Every feed pushes into the same store; nothing downstream knows which ran.
   const feeds: Feed[] = [];
   let openSky: OpenSkyFeed | undefined;
+  let ais: AisStreamFeed | undefined;
   for (const name of config.feeds) {
     switch (name) {
       case 'sim':
@@ -88,13 +91,13 @@ async function main(): Promise<void> {
         break;
       case 'ais':
         feeds.push(
-          new AisStreamFeed({
+          (ais = new AisStreamFeed({
             apiKey: config.ais.apiKey,
             // Viewport mode starts with nothing and follows the browsers' views.
             boxes: config.ais.area === 'viewport' ? [] : [config.ais.area === 'world' ? WORLD : scenario.bounds],
             viewport: config.ais.area === 'viewport',
             ...(config.ais.url ? { url: config.ais.url } : {}),
-          }),
+          })),
         );
         break;
       case 'adsblol':
@@ -132,6 +135,14 @@ async function main(): Promise<void> {
     ...(openSky ? { lookup: (icao24: string) => openSky!.flightTrack(icao24) } : {}),
   });
 
+  // Reference data for the details panel; each part is optional.
+  const airlines = config.aircraftDb ? readAirlines(config.aircraftDb) : null;
+  const detailSources = {
+    ...(aircraftDb ? { aircraft: (icao24: string) => aircraftDb.db.lookup(icao24) } : {}),
+    ...(airlines ? { airlines } : {}),
+    ...(ais ? { ships: (mmsi: string) => ais!.shipDetails(mmsi) } : {}),
+  };
+
   let hub: Hub | undefined;
   const server = createHttpServer({
     staticDir: config.staticDir,
@@ -146,7 +157,11 @@ async function main(): Promise<void> {
   });
 
   hub = new Hub({
-    onPathRequest: (id, send) => paths.request(id, send),
+    onTrackRequest: (id, send) => {
+      paths.request(id, send);
+      const track = store.get(id);
+      if (track) send({ type: 'details', serverTime: Date.now(), id, details: trackDetails(track, detailSources) });
+    },
     server,
     path: '/ws',
     store,

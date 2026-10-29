@@ -1,4 +1,4 @@
-import { makeTrackId, type Track } from '@watchfloor/shared';
+import { makeTrackId, type ShipDetails, type Track } from '@watchfloor/shared';
 import type { AisOutcome, ShipIdentity } from './mapAis';
 
 type Position = Extract<AisOutcome, { kind: 'position' }>;
@@ -33,6 +33,14 @@ export class ShipRegistry {
       const oldest = this.ships.keys().next().value;
       if (oldest !== undefined) this.ships.delete(oldest);
     }
+  }
+
+  /** A ship's voyage and hull details for the details panel, if it has sent any. */
+  details(mmsi: string): ShipDetails | undefined {
+    const known = this.ships.get(mmsi);
+    if (!known) return undefined;
+    const { name: _name, platform: _platform, ...details } = known;
+    return Object.keys(details).length > 0 ? details : undefined;
   }
 
   /** A position report as a Track, with the best identity we have. */

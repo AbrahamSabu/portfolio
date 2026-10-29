@@ -1,4 +1,4 @@
-import type { BBox, FeedStatus } from '@watchfloor/shared';
+import type { BBox, FeedStatus, ShipDetails } from '@watchfloor/shared';
 import { WebSocket, type RawData } from 'ws';
 import { createLogger, type Logger } from '../../log';
 import { Backoff } from '../backoff';
@@ -152,6 +152,11 @@ export class AisStreamFeed implements Feed {
    * There is no replay, so ships in a newly covered area appear as they next
    * report: seconds for ships underway, up to 3 minutes for moored ones.
    */
+  /** What a ship has broadcast about its voyage and hull, for the details panel. */
+  shipDetails(mmsi: string): ShipDetails | undefined {
+    return this.ships.details(mmsi);
+  }
+
   setAreas(views: BBox[]): void {
     if (!this.opts.viewport) return;
     const boxes = planAisBoxes(views);

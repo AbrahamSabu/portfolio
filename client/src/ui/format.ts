@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type PathBackfill, type TrafficKind } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type PathBackfill, type TrafficKind, type ShipDetails, type TrackDetails } from '@watchfloor/shared';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   airliner: 'Airliner',
@@ -181,4 +181,36 @@ export function formatPathSpan(
   if (path.backfill === 'pending') return `${text} · asking OpenSky for earlier`;
   if (path.backfill === 'opensky') return `${text} · start from OpenSky`;
   return text;
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Who flies an aircraft: the airline its callsign names, or else whose
+ * military it is ("United States military"). Empty when we can't say.
+ */
+export function formatOperator(details: TrackDetails | undefined): string {
+  if (!details) return '';
+  if (details.airline) return details.airline;
+  if (details.military) return details.country ? `${details.country} military` : 'Military';
+  return '';
+}
+
+/** A ship's destination and ETA as broadcast: "PORTLAND · ETA 22 Sep 1900Z". */
+export function formatDestination(ship: ShipDetails | undefined): string {
+  if (!ship?.destination) return '';
+  const eta = ship.eta && /^(\d\d)-(\d\d)T(\d\d):(\d\d)Z$/.exec(ship.eta);
+  if (!eta) return ship.destination;
+  const [, month, day, hour, minute] = eta;
+  return `${ship.destination} · ETA ${Number(day)} ${MONTH_NAMES[Number(month) - 1]} ${hour}${minute}Z`;
+}
+
+/** Length, beam and draught: "180 × 24 m, draught 4.8 m". */
+export function formatShipSize(ship: ShipDetails | undefined): string {
+  if (!ship) return '';
+  const parts: string[] = [];
+  if (ship.lengthM && ship.beamM) parts.push(`${ship.lengthM} × ${ship.beamM} m`);
+  else if (ship.lengthM) parts.push(`${ship.lengthM} m long`);
+  if (ship.draughtM) parts.push(`draught ${ship.draughtM} m`);
+  return parts.join(', ');
 }

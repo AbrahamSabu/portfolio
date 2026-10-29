@@ -34,8 +34,10 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *      snapshot trails are a list aligned with its tracks
  *  11  platforms `business-jet` and `military-aircraft`; aircraft tracks may
  *      carry `typeCode` and `model` from the aircraft database
+ *  12  `path` request and reply: a selected track's whole path
+ *  13  the request is `track`, answered with `path` and `details`
  */
-export const PROTOCOL_VERSION = 12;
+export const PROTOCOL_VERSION = 13;
 
 export interface HelloMessage {
   type: 'hello';
@@ -89,7 +91,47 @@ export interface PathMessage {
 
 export type PathBackfill = 'none' | 'pending' | 'opensky';
 
-export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage;
+/**
+ * More about one track than every browser needs for the map: who flies it,
+ * where it's from, what a ship has said about its voyage. Sent in answer to a
+ * `track` request, so the snapshot stays small.
+ */
+export interface DetailsMessage {
+  type: 'details';
+  serverTime: number;
+  id: string;
+  details: TrackDetails;
+}
+
+export interface TrackDetails {
+  /** State of registry (aircraft, from its ICAO address) or flag (ships, from the MMSI). */
+  country?: string;
+  /** The airline named by the callsign's ICAO designator. */
+  airline?: string;
+  /** Flown by a military, by the aircraft database's flag or the platform. */
+  military?: boolean;
+  /**
+   * The owner asked not to be tracked publicly (FAA LADD), or the aircraft
+   * flies a privacy address (PIA): show nothing that identifies it, no photo.
+   */
+  private?: boolean;
+  ship?: ShipDetails;
+}
+
+/** What a ship broadcasts about its voyage and hull (AIS static data). */
+export interface ShipDetails {
+  imo?: number;
+  callSign?: string;
+  /** Free text, as the crew typed it. */
+  destination?: string;
+  /** "MM-DDTHH:MMZ": AIS sends no year. */
+  eta?: string;
+  lengthM?: number;
+  beamM?: number;
+  draughtM?: number;
+}
+
+export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage | DetailsMessage;
 
 /** Where the picture is centred, so the client can frame the map on first load. */
 export interface ScenarioInfo {
@@ -125,6 +167,7 @@ interface WireDelta {
 export function encodeServerMessage(message: ServerMessage): string {
   switch (message.type) {
     case 'hello':
+    case 'details':
       return JSON.stringify(message);
     case 'snapshot': {
       const { serverTime, tracks, trails } = message;
@@ -195,6 +238,10 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       const w = m as unknown as WirePath;
       return { type: 'path', serverTime: w.serverTime, id: w.id, points: decodeTrail(w.points, w.serverTime), backfill: w.backfill };
     }
+    case 'details': {
+      if (typeof m.id !== 'string' || typeof m.details !== 'object' || m.details === null) return null;
+      return m as unknown as DetailsMessage;
+    }
     default:
       return null;
   }
@@ -210,13 +257,16 @@ export interface ViewMessage {
   bbox: BBox;
 }
 
-/** Ask for one track's path: sent when a track is selected, and again after reconnecting. */
-export interface PathRequestMessage {
-  type: 'path';
+/**
+ * Ask about one track: its whole path and its details. Sent when a track is
+ * selected, and again after reconnecting.
+ */
+export interface TrackRequestMessage {
+  type: 'track';
   id: string;
 }
 
-export type ClientMessage = ViewMessage | PathRequestMessage;
+export type ClientMessage = ViewMessage | TrackRequestMessage;
 
 /** As validation allows track ids: 1-128 characters, here printable ASCII only. */
 const TRACK_ID = /^[!-~]{1,128}$/;
@@ -236,7 +286,7 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   }
   if (typeof data !== 'object' || data === null) return null;
   const m = data as Record<string, unknown>;
-  if (m.type === 'path') return typeof m.id === 'string' && TRACK_ID.test(m.id) ? { type: 'path', id: m.id } : null;
+  if (m.type === 'track') return typeof m.id === 'string' && TRACK_ID.test(m.id) ? { type: 'track', id: m.id } : null;
   if (m.type !== 'view' || typeof m.bbox !== 'object' || m.bbox === null) return null;
   const { south, west, north, east } = m.bbox as Record<string, unknown>;
   if (!finite(south) || !finite(west) || !finite(north) || !finite(east)) return null;

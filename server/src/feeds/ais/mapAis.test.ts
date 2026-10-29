@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import edge from './fixtures/edge-cases.json';
-import { cleanName, fixTime, mapAisMessage, parseStreamMessage, parseTimeUtc, platformForShipType } from './mapAis';
+import { cleanName, fixTime, mapAisMessage, parseStreamMessage, parseTimeUtc, platformForShipType, shipDetails } from './mapAis';
 import { ShipRegistry } from './ships';
 
 type Name = keyof typeof edge.messages;
@@ -68,10 +68,36 @@ describe('mapAisMessage', () => {
     expect(map('sart')).toEqual({ kind: 'skip', reason: 'not-a-ship' });
   });
 
+  it('reads voyage and hull details, leaving out "not available" values', () => {
+    expect(
+      shipDetails({
+        CallSign: 'MIRQ9  ',
+        ImoNumber: 9875848,
+        Destination: 'PORTLAND:@@@@',
+        Eta: { Month: 9, Day: 22, Hour: 19, Minute: 0 },
+        Dimension: { A: 11, B: 11, C: 9, D: 2 },
+        MaximumStaticDraught: 4.8,
+      }),
+    ).toEqual({ callSign: 'MIRQ9', imo: 9875848, destination: 'PORTLAND:', eta: '09-22T19:00Z', lengthM: 22, beamM: 11, draughtM: 4.8 });
+    expect(
+      shipDetails({
+        CallSign: '@@@@@@@',
+        ImoNumber: 0,
+        Eta: { Month: 0, Day: 0, Hour: 24, Minute: 60 },
+        Dimension: { A: 0, B: 0, C: 63, D: 63 },
+        MaximumStaticDraught: 0,
+      }),
+    ).toEqual({});
+  });
+
   it('reads identity from static data and Class B extended reports', () => {
-    expect(map('shipStatic')).toEqual({ kind: 'static', mmsi: '235000001', identity: { name: 'TEST CARRIER', platform: 'cargo' } });
+    expect(map('shipStatic')).toEqual({
+      kind: 'static',
+      mmsi: '235000001',
+      identity: { name: 'TEST CARRIER', platform: 'cargo', callSign: 'MABC1', destination: 'ROTTERDAM', lengthM: 180, beamM: 24 },
+    });
     expect(map('staticPartA')).toEqual({ kind: 'static', mmsi: '235000010', identity: { name: 'LITTLE AUK' } });
-    expect(map('staticPartB')).toEqual({ kind: 'static', mmsi: '235000010', identity: { platform: 'leisure' } });
+    expect(map('staticPartB')).toEqual({ kind: 'static', mmsi: '235000010', identity: { platform: 'leisure', callSign: '2ABC3' } });
     expect(map('classBExtended')).toMatchObject({ kind: 'position', identity: { name: 'SEA SPRITE', platform: 'leisure' } });
   });
 });
@@ -118,6 +144,17 @@ describe('field helpers', () => {
 });
 
 describe('ShipRegistry', () => {
+  it('keeps voyage details for the details panel, apart from name and type', () => {
+    const ships = new ShipRegistry();
+    expect(ships.details('235000001')).toBeUndefined();
+    const stat = map('shipStatic');
+    if (stat.kind !== 'static') throw new Error('expected static');
+    ships.learn(stat.mmsi, stat.identity);
+    expect(ships.details('235000001')).toEqual({ callSign: 'MABC1', destination: 'ROTTERDAM', lengthM: 180, beamM: 24 });
+    ships.learn('235000002', { name: 'NAMED ONLY' });
+    expect(ships.details('235000002')).toBeUndefined();
+  });
+
   it('names a ship from static data heard before its position', () => {
     const ships = new ShipRegistry();
     const stat = map('shipStatic');

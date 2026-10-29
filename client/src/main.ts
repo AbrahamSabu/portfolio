@@ -14,6 +14,7 @@ import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
+import { SelectedDetails } from './state/selectedDetails';
 import { SelectedPath } from './state/selectedPath';
 import { loadSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
 import { Selection } from './state/selection';
@@ -74,7 +75,8 @@ async function main(): Promise<void> {
   const reticle = new Reticle(map);
   new HoverCard(map, store, clock, layer);
   const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
-  new DetailsPanel(el('details'), store, clock, layer, selection, style, path, () => pathLayer.fit());
+  const details = new SelectedDetails();
+  new DetailsPanel(el('details'), store, clock, layer, selection, style, path, details, () => pathLayer.fit());
   const list = new TrackList(
     el('track-list'),
     el('list-toggle') as HTMLButtonElement,
@@ -86,11 +88,13 @@ async function main(): Promise<void> {
     filter,
   );
 
-  // A newly selected track's path comes from the server: it holds hours of history the browser doesn't.
+  // A newly selected track's path and details come from the server: it holds
+  // hours of history and reference data the browser doesn't.
   selection.subscribe((id) => {
     if (id === path.id) return;
     path.select(id);
-    if (id) connection.send({ type: 'path', id });
+    details.select(id);
+    if (id) connection.send({ type: 'track', id });
   });
 
   // Reticle and follow mode track the dead-reckoned position, not the last report.
@@ -191,7 +195,7 @@ async function main(): Promise<void> {
           // A feed that can't run (no API key) shows no data, so it gets no credit.
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
-          if (selection.id) connection.send({ type: 'path', id: selection.id }); // a fresh answer after reconnecting
+          if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
           break;
         case 'snapshot': {
           const applyStart = performance.now();
@@ -206,6 +210,9 @@ async function main(): Promise<void> {
           break;
         case 'path':
           path.load(message);
+          break;
+        case 'details':
+          details.load(message);
           break;
       }
     },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeServerMessage, parseClientMessage, parseServerMessage, type DeltaMessage, type PathMessage, type SnapshotMessage } from './protocol';
+import { encodeServerMessage, parseClientMessage, parseServerMessage, type DeltaMessage, type DetailsMessage, type PathMessage, type SnapshotMessage } from './protocol';
 import type { Track } from './track';
 
 const NOW = Date.parse('2026-10-28T14:00:00Z');
@@ -89,11 +89,21 @@ describe('path messages', () => {
     expect(parseServerMessage(encodeServerMessage(message))).toEqual(message);
   });
 
-  it('accepts a path request for a plausible track id only', () => {
-    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 'adsb:4ca7b3' }))).toEqual({ type: 'path', id: 'adsb:4ca7b3' });
-    expect(parseClientMessage(JSON.stringify({ type: 'path', id: '' }))).toBeNull();
-    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 'x'.repeat(129) }))).toBeNull();
-    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 'has space' }))).toBeNull();
-    expect(parseClientMessage(JSON.stringify({ type: 'path', id: 42 }))).toBeNull();
+  it("round-trips a track's details", () => {
+    const message: DetailsMessage = {
+      type: 'details',
+      serverTime: NOW,
+      id: 'ais:235000001',
+      details: { country: 'United Kingdom', ship: { imo: 9875848, destination: 'PORTLAND', eta: '09-22T19:00Z', lengthM: 22 } },
+    };
+    expect(parseServerMessage(encodeServerMessage(message))).toEqual(message);
+  });
+
+  it('accepts a track request for a plausible track id only', () => {
+    expect(parseClientMessage(JSON.stringify({ type: 'track', id: 'adsb:4ca7b3' }))).toEqual({ type: 'track', id: 'adsb:4ca7b3' });
+    expect(parseClientMessage(JSON.stringify({ type: 'track', id: '' }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: 'track', id: 'x'.repeat(129) }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: 'track', id: 'has space' }))).toBeNull();
+    expect(parseClientMessage(JSON.stringify({ type: 'track', id: 42 }))).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import type { Platform } from '@watchfloor/shared';
+import type { Platform, ShipDetails } from '@watchfloor/shared';
 
 /**
  * Translating AISStream messages into positions and ship identities. Pure, so
@@ -26,7 +26,7 @@ export type AisSkipReason =
   | 'unhandled-type';
 
 /** What a ship says about itself, as far as it's known. */
-export interface ShipIdentity {
+export interface ShipIdentity extends ShipDetails {
   name?: string;
   platform?: Platform;
 }
@@ -96,12 +96,12 @@ export function mapAisMessage(msg: Extract<StreamMessage, { kind: 'ais' }>): Ais
     case 'ExtendedClassBPositionReport':
       return mapPosition(mmsi, msg);
     case 'ShipStaticData':
-      return { kind: 'static', mmsi, identity: identity(body.Name, body.Type) };
+      return { kind: 'static', mmsi, identity: identity(body.Name, body.Type, body) };
     case 'StaticDataReport': {
       // Class B static data arrives in two parts: A has the name, B the type.
       const a = isObject(body.ReportA) && body.ReportA.Valid !== false ? body.ReportA : null;
       const b = isObject(body.ReportB) && body.ReportB.Valid !== false ? body.ReportB : null;
-      return { kind: 'static', mmsi, identity: identity(a?.Name, b?.ShipType) };
+      return { kind: 'static', mmsi, identity: identity(a?.Name, b?.ShipType, b ?? {}) };
     }
     default:
       return { kind: 'skip', reason: 'unhandled-type' };
@@ -141,7 +141,7 @@ function mapPosition(mmsi: string, msg: Extract<StreamMessage, { kind: 'ais' }>)
   };
   const metaName = cleanName(meta.ShipName);
   if (metaName) outcome.metaName = metaName;
-  if (msg.type === 'ExtendedClassBPositionReport') outcome.identity = identity(body.Name, body.Type);
+  if (msg.type === 'ExtendedClassBPositionReport') outcome.identity = identity(body.Name, body.Type, body);
   return outcome;
 }
 
@@ -150,13 +150,50 @@ function mmsiOf(v: unknown): string | null {
   return /^\d{9}$/.test(s) ? s : null;
 }
 
-function identity(name: unknown, type: unknown): ShipIdentity {
-  const id: ShipIdentity = {};
+function identity(name: unknown, type: unknown, body: Record<string, unknown>): ShipIdentity {
+  const id: ShipIdentity = shipDetails(body);
   const n = cleanName(name);
   if (n) id.name = n;
   const p = platformForShipType(num(type));
   if (p) id.platform = p;
   return id;
+}
+
+/**
+ * The voyage and hull details a static message carries, when they're there:
+ * Class A static data has them all, Class B only call sign and size. Each
+ * "not available" value (0, or the field's maximum) is left out.
+ */
+export function shipDetails(body: Record<string, unknown>): ShipDetails {
+  const d: ShipDetails = {};
+  const callSign = cleanName(body.CallSign);
+  if (callSign) d.callSign = callSign;
+  const imo = num(body.ImoNumber);
+  // IMO numbers are seven digits; many small ships send 0 or junk.
+  if (imo !== null && Number.isInteger(imo) && imo >= 1_000_000 && imo <= 9_999_999) d.imo = imo;
+  const destination = cleanName(body.Destination);
+  if (destination) d.destination = destination;
+  const eta = etaOf(body.Eta);
+  if (eta) d.eta = eta;
+  if (isObject(body.Dimension)) {
+    // Distances from the GPS antenna to bow (A), stern (B), port (C) and starboard (D).
+    const [a, b, c, dd] = ['A', 'B', 'C', 'D'].map((k) => num((body.Dimension as Record<string, unknown>)[k]) ?? 0);
+    if (a! > 0 && b! > 0 && a! < 511 && b! < 511) d.lengthM = a! + b!;
+    if (c! > 0 && dd! > 0 && c! < 63 && dd! < 63) d.beamM = c! + dd!;
+  }
+  const draught = num(body.MaximumStaticDraught);
+  if (draught !== null && draught > 0 && draught < 25.5) d.draughtM = draught;
+  return d;
+}
+
+/** The ETA as sent: month, day, hour and minute in UTC, with no year. Unset parts mean none. */
+function etaOf(v: unknown): string | undefined {
+  if (!isObject(v)) return undefined;
+  const [month, day, hour, minute] = [v.Month, v.Day, v.Hour, v.Minute].map(num);
+  if (!month || !day || month > 12 || day > 31) return undefined;
+  if (hour == null || minute == null || hour > 23 || minute > 59) return undefined;
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${two(month)}-${two(day)}T${two(hour)}:${two(minute)}Z`;
 }
 
 /** AIS text is padded with '@' (the 6-bit "no character") and spaces. */

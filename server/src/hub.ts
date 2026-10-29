@@ -8,6 +8,7 @@ import {
   type DeltaMessage,
   type FeedStatus,
   type HelloMessage,
+  type DetailsMessage,
   type PathMessage,
   type ScenarioInfo,
   type SnapshotMessage,
@@ -50,12 +51,12 @@ interface Client {
   /** The area this browser last said it was looking at, if it has said. */
   view: BBox | null;
   address: string;
-  /** When this browser last asked for a path; requests closer together are ignored. */
-  lastPathRequestAt: number;
+  /** When this browser last asked about a track; requests closer together are ignored. */
+  lastTrackRequestAt: number;
 }
 
-/** A browser selects tracks by hand: more than a few path requests a second is a bug or abuse. */
-const PATH_REQUEST_GAP_MS = 200;
+/** A browser selects tracks by hand: more than a few track requests a second is a bug or abuse. */
+const TRACK_REQUEST_GAP_MS = 200;
 
 export interface HubOptions {
   server: Server;
@@ -77,8 +78,8 @@ export interface HubOptions {
   onViewsChanged?: (views: BBox[]) => void;
   /** Current status of each feed that can fail; sent in hello and whenever it changes. */
   feedStatus?: () => FeedStatus[];
-  /** Answers a browser's request for one track's path; `send` may be called more than once. */
-  onPathRequest?: (id: string, send: (message: PathMessage) => void) => void;
+  /** Answers a browser's question about one track (its path, its details); `send` may be called more than once. */
+  onTrackRequest?: (id: string, send: (message: PathMessage | DetailsMessage) => void) => void;
 }
 
 /**
@@ -136,7 +137,7 @@ export class Hub {
       return;
     }
 
-    const client: Client = { ws, alive: true, needsResync: false, backlog: 0, snapshotInFlight: false, view: null, address, lastPathRequestAt: 0 };
+    const client: Client = { ws, alive: true, needsResync: false, backlog: 0, snapshotInFlight: false, view: null, address, lastTrackRequestAt: 0 };
     this.addClient(client);
 
     ws.on('pong', () => (client.alive = true));
@@ -243,11 +244,11 @@ export class Hub {
       log.debug('ignored client message', { address: client.address });
       return;
     }
-    if (message.type === 'path') {
+    if (message.type === 'track') {
       const now = Date.now();
-      if (now - client.lastPathRequestAt < PATH_REQUEST_GAP_MS) return;
-      client.lastPathRequestAt = now;
-      this.opts.onPathRequest?.(message.id, (reply) => {
+      if (now - client.lastTrackRequestAt < TRACK_REQUEST_GAP_MS) return;
+      client.lastTrackRequestAt = now;
+      this.opts.onTrackRequest?.(message.id, (reply) => {
         if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(reply));
       });
       return;
