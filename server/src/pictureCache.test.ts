@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
-import { AIS_STALENESS, DEFAULT_STALENESS, type StalenessRules, type Track } from '@watchfloor/shared';
+import { AIS_STALENESS, DEFAULT_STALENESS, encodeTrack, type StalenessRules, type Track } from '@watchfloor/shared';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
 import { TrackStore } from './trackStore';
 
@@ -36,7 +37,7 @@ describe('picture cache', () => {
     before.ingest(ship('1', NOW - 10_000, -8.3), NOW);
     before.ingest(simShip(), NOW);
     const file = tempFile();
-    await savePicture(file, pictureOf(before, 'cork', NOW));
+    await savePicture(file, await pictureOf(before, 'cork', NOW));
 
     const after = new TrackStore(RULES);
     expect(restorePicture(after, loadPicture(file), 'cork', NOW + 30_000)).toBe(1);
@@ -46,13 +47,38 @@ describe('picture cache', () => {
     expect(fs.existsSync(`${file}.tmp`)).toBe(false);
   });
 
+  it('writes the compact version 2: gzip, tracks and trails in wire form', async () => {
+    const store = new TrackStore(RULES);
+    store.ingest(ship('1', NOW - 60_000, -8.4), NOW);
+    store.ingest(ship('1', NOW - 10_000, -8.3), NOW);
+    const file = tempFile();
+    await savePicture(file, await pictureOf(store, 'cork', NOW));
+    const bytes = fs.readFileSync(file);
+    expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
+    const saved = JSON.parse(zlib.gunzipSync(bytes).toString('utf8'));
+    expect(saved).toMatchObject({ version: 2, scenario: 'cork', savedAt: NOW });
+    expect(Array.isArray(saved.tracks[0])).toBe(true);
+    expect(saved.trails[0]).toHaveLength(6); // two points, three integers each
+  });
+
+  it('drops rows of a version 2 file that are not tracks', () => {
+    const file = tempFile();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const good = encodeTrack(ship('1', NOW), NOW);
+    const v2 = { version: 2, scenario: 'cork', savedAt: NOW, tracks: [good, { junk: true }, [42]], trails: [[1, 2, 'x']], paths: {} };
+    fs.writeFileSync(file, zlib.gzipSync(JSON.stringify(v2)));
+    const store = new TrackStore(RULES);
+    expect(restorePicture(store, loadPicture(file), 'cork', NOW)).toBe(1);
+    expect(store.get('ais:1')).toMatchObject({ callsign: 'SHIP 1', platform: 'cargo' });
+  });
+
   it('saves the longer paths too, with where their start came from', async () => {
     const before = new TrackStore(RULES);
     before.ingest(ship('1', NOW - 20 * 60_000, -8.5), NOW);
     before.ingest(ship('1', NOW - 10 * 60_000, -8.4), NOW);
     before.paths.markNoBackfill('ais:1');
     const file = tempFile();
-    await savePicture(file, pictureOf(before, 'cork', NOW));
+    await savePicture(file, await pictureOf(before, 'cork', NOW));
 
     const after = new TrackStore(RULES);
     restorePicture(after, loadPicture(file), 'cork', NOW + 30_000);
@@ -67,7 +93,7 @@ describe('picture cache', () => {
     const file = tempFile();
     await savePicture(
       file,
-      pictureOf(store, 'cork', NOW, (mmsis) => {
+      await pictureOf(store, 'cork', NOW, (mmsis) => {
         asked.push(mmsis);
         return { '235000001': { destination: 'PORTLAND' } };
       }),
@@ -90,7 +116,7 @@ describe('picture cache', () => {
     before.ingest(ship('old', NOW - 19 * 60_000), NOW);
     before.ingest(ship('new', NOW - 60_000), NOW);
     const file = tempFile();
-    await savePicture(file, pictureOf(before, 'cork', NOW));
+    await savePicture(file, await pictureOf(before, 'cork', NOW));
     const after = new TrackStore(RULES);
     expect(restorePicture(after, loadPicture(file), 'cork', NOW + 5 * 60_000)).toBe(1);
     expect(after.get('ais:new')).toBeDefined();
@@ -100,11 +126,11 @@ describe('picture cache', () => {
     const before = new TrackStore(RULES);
     before.ingest(ship('1', NOW), NOW);
     const file = tempFile();
-    await savePicture(file, pictureOf(before, 'english-channel', NOW));
+    await savePicture(file, await pictureOf(before, 'english-channel', NOW));
     expect(restorePicture(new TrackStore(RULES), loadPicture(file), 'cork', NOW)).toBe(0);
   });
 
-  it('treats a missing or corrupt file as no picture, and drops malformed trails', () => {
+  it('still reads version 1 files; treats a missing or corrupt file as no picture, and drops malformed trails', () => {
     const file = tempFile();
     expect(loadPicture(file)).toBeNull();
     fs.mkdirSync(path.dirname(file), { recursive: true });

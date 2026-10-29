@@ -199,7 +199,7 @@ async function main(): Promise<void> {
     if (!config.pictureFile) return;
     try {
       const shipsOf = ais ? (mmsis: string[]) => ais!.savedShips(mmsis) : undefined;
-      await savePicture(config.pictureFile, pictureOf(store, pictureKey, Date.now(), shipsOf));
+      await savePicture(config.pictureFile, await pictureOf(store, pictureKey, Date.now(), shipsOf));
     } catch (err) {
       log.warn('could not save the picture', { error: err instanceof Error ? err.message : String(err) });
     }

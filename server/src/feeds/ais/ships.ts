@@ -44,12 +44,12 @@ export class ShipRegistry {
   }
 
   /** What we know about these ships, to save with the picture. */
-  toRecord(mmsis: Iterable<string>): Record<string, ShipIdentity> {
-    const saved: Record<string, ShipIdentity> = {};
+  toRecord(mmsis: Iterable<string>): Record<string, SavedShip> {
+    const saved: Record<string, SavedShip> = {};
     for (const mmsi of mmsis) {
       const known = this.ships.get(mmsi);
       // Most entries are empty: a ship is remembered from its first position, static data or not.
-      if (known && Object.keys(known).length > 0) saved[mmsi] = known;
+      if (known && Object.keys(known).length > 0) saved[mmsi] = toSavedShip(known);
     }
     return saved;
   }
@@ -64,7 +64,8 @@ export class ShipRegistry {
     if (typeof saved !== 'object' || saved === null) return 0;
     let count = 0;
     for (const [mmsi, value] of Object.entries(saved)) {
-      const identity = parseSavedShip(value);
+      // Value lists since the picture's version 2; objects before.
+      const identity = parseSavedShip(Array.isArray(value) ? fromSavedShip(value) : value);
       if (!/^\d{9}$/.test(mmsi) || !identity) continue;
       if (this.ships.size >= this.maxShips) break;
       this.ships.set(mmsi, { ...identity, ...this.ships.get(mmsi) });
@@ -95,6 +96,35 @@ export class ShipRegistry {
     if (name) track.callsign = name;
     return track;
   }
+}
+
+/**
+ * A ship as saved: its fields' values in this order, trailing gaps trimmed.
+ * Field names repeated for 20,000 ships were half the bytes. Append only.
+ */
+const SAVED_SHIP_FIELDS = [
+  'name',
+  'platform',
+  'aisType',
+  'imo',
+  'callSign',
+  'destination',
+  'eta',
+  'lengthM',
+  'beamM',
+  'draughtM',
+] as const satisfies readonly (keyof ShipIdentity)[];
+
+export type SavedShip = (string | number | null)[];
+
+export function toSavedShip(ship: ShipIdentity): SavedShip {
+  const values: SavedShip = SAVED_SHIP_FIELDS.map((key) => ship[key] ?? null);
+  while (values.length > 0 && values.at(-1) === null) values.pop();
+  return values;
+}
+
+function fromSavedShip(values: unknown[]): Record<string, unknown> {
+  return Object.fromEntries(SAVED_SHIP_FIELDS.map((key, i) => [key, values[i] ?? undefined]));
 }
 
 const text = (v: unknown, max: number): string | undefined =>

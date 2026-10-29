@@ -167,6 +167,10 @@ describe('ShipRegistry', () => {
     expect(parseSavedShip({ nonsense: true })).toBeNull();
     expect(parseSavedShip('x')).toBeNull();
     expect(new ShipRegistry().load({ notAnMmsi: { name: 'X' }, '235000001': 'junk' })).toBe(0);
+    // Saved before value lists: objects.
+    const old = new ShipRegistry();
+    expect(old.load({ '235000001': { name: 'OLD FORM', lengthM: 50 } })).toBe(1);
+    expect(old.details('235000001')).toEqual({ lengthM: 50 });
   });
 
   it('keeps voyage details for the details panel, apart from name and type', () => {

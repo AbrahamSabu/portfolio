@@ -145,6 +145,11 @@ export class TrackStore {
     return Array.from(this.tracks.values());
   }
 
+  /** One track's recent history (empty if none). */
+  trailOf(id: string): readonly TrailPoint[] {
+    return this.trails.get(id);
+  }
+
   /** Recent history for every current track, keyed by id. */
   trailSnapshot(): Record<string, TrailPoint[]> {
     return this.trails.toRecord();
