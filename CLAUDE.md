@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (394 tests after ship details).
+- `npm test`: Vitest from the root config (396 tests after the compact picture).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -465,6 +465,16 @@ that could have been fetched before they arrived.
   file is keyed by scenario plus AIS/OpenSky area modes, so a world picture
   never lands on Cork. Measured: after a restart, aircraft and ships show at
   ~1.9 s (page load 0.7 s) instead of trickling in.
+  - File version 2 (Oct 2026): gzip (async, thread pool) of JSON with
+    tracks/trails in wire form (`encodeTrack`/`encodeTrail`, trails aligned
+    by position), paths as before, ships as value lists (`SAVED_SHIP_FIELDS`
+    in ships.ts, append only). Version 1 (plain JSON objects) is still
+    read. `pictureOf` is async: it gathers and `savePicture` serialises
+    2,000 tracks at a time with `setImmediate` between pieces. **Don't go
+    back to one big JSON.stringify**: measured on a 37k-track world picture,
+    v1 was 20.5 MB and stalled the event loop ~300 ms per save (every 30
+    s); v2 is 4.1 MB with a longest stall of 30-60 ms. Startup load and
+    restore takes ~0.9 s.
 - A browser tab left open on a test port reconnects to the next server
   started there and counts as a viewer with its old (possibly wide) view.
   That tab is what drove adsb.lol into 429s; close it or use a fresh port.
