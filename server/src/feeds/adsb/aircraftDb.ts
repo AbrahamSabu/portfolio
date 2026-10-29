@@ -58,17 +58,21 @@ export function classifyType(type: AircraftType, military: boolean): Platform | 
   return null;
 }
 
-/** One aircraft: its ICAO24 address as a number, its type's index, and the military flag. */
+/** One aircraft: its ICAO24 address as a number, its type's index, and two flags. */
 export interface AircraftRecord {
   icao: number;
   type: number;
   military: boolean;
+  /** The owner asked for privacy (FAA LADD) or the address is a PIA one: show nothing that identifies it. */
+  private: boolean;
 }
 
 export interface AircraftInfo {
   platform: Platform | null;
   typeCode: string;
   model?: string;
+  military: boolean;
+  private: boolean;
 }
 
 /**
@@ -126,26 +130,38 @@ export class AircraftDb {
     const t = this.typeIndex[i]!;
     const type = this.types[t]!;
     const military = (this.flags[i]! & FLAG_MILITARY) !== 0;
-    const info: AircraftInfo = { platform: this.platforms[t]![military ? 1 : 0], typeCode: type.code };
+    const info: AircraftInfo = {
+      platform: this.platforms[t]![military ? 1 : 0],
+      typeCode: type.code,
+      military,
+      private: (this.flags[i]! & FLAG_PRIVATE) !== 0,
+    };
     if (type.name) info.model = type.name;
     return info;
   }
 }
 
 const FLAG_MILITARY = 1;
+const FLAG_PRIVATE = 2;
 
 /**
  * The tar1090 CSV: `hex;registration;type;flags;description;year;owner;`,
- * where flags is a string of 0/1 whose first digit is "military". Only hex,
- * type and that flag are kept: registration and owner are left out on
- * purpose (owners can ask for privacy through FAA LADD and PIA).
+ * where flags is a string of 0/1 digits: military, interesting, PIA, LADD
+ * (readsb's dbFlags bits 1, 2, 4, 8). Only hex, type, military and privacy
+ * (PIA or LADD) are kept: registration and owner are left out on purpose,
+ * and privacy keeps photos off aircraft whose owners asked not to be tracked.
  */
 export function parseTar1090Csv(text: string, typeIndexOf: (code: string) => number): AircraftRecord[] {
   const records: AircraftRecord[] = [];
   for (const line of text.split('\n')) {
     const [hex, , code, flags] = line.split(';');
     if (!hex || !code || !/^[0-9a-f]{6}$/i.test(hex) || !/^[A-Z0-9]{1,4}$/.test(code)) continue;
-    records.push({ icao: parseInt(hex, 16), type: typeIndexOf(code), military: flags?.[0] === '1' });
+    records.push({
+      icao: parseInt(hex, 16),
+      type: typeIndexOf(code),
+      military: flags?.[0] === '1',
+      private: flags?.[2] === '1' || flags?.[3] === '1',
+    });
   }
   records.sort((a, b) => a.icao - b.icao);
   // One entry per address (the search assumes it): a later duplicate line wins.
@@ -196,7 +212,7 @@ function fromRecords(types: AircraftType[], records: AircraftRecord[]): Aircraft
   records.forEach((r, i) => {
     icao[i] = r.icao;
     typeIndex[i] = r.type;
-    flags[i] = r.military ? FLAG_MILITARY : 0;
+    flags[i] = (r.military ? FLAG_MILITARY : 0) | (r.private ? FLAG_PRIVATE : 0);
   });
   return new AircraftDb(types, icao, typeIndex, flags);
 }
@@ -207,7 +223,7 @@ function fromRecords(types: AircraftType[], records: AircraftRecord[]): Aircraft
  * so loading takes milliseconds instead of parsing a 30 MB CSV at startup.
  */
 const MAGIC = 0x43414657; // "WFAC", little-endian
-const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 2; // 2: flag bit 1 = private (PIA or LADD)
 const HEADER_BYTES = 16;
 
 export interface AircraftDbMeta {

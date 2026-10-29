@@ -72,7 +72,13 @@ describe('AircraftDb', () => {
 
   it('looks aircraft up by ICAO24 address, in either case', () => {
     expect(db.size).toBe(4);
-    expect(db.lookup('ae1234')).toEqual({ platform: 'military-aircraft', typeCode: 'C17', model: 'BOEING C-17 Globemaster 3' });
+    expect(db.lookup('ae1234')).toEqual({
+      platform: 'military-aircraft',
+      typeCode: 'C17',
+      model: 'BOEING C-17 Globemaster 3',
+      military: true,
+      private: false,
+    });
     expect(db.lookup('4CA7B3')?.platform).toBe('business-jet');
     expect(db.lookup('3c4b2a')?.typeCode).toBe('A320');
     expect(db.lookup('ffffff')).toBeUndefined();
@@ -80,7 +86,12 @@ describe('AircraftDb', () => {
   });
 
   it('keeps a designator the table lacks, with no model and no platform', () => {
-    expect(db.lookup('400001')).toEqual({ platform: null, typeCode: 'ZZ9' });
+    expect(db.lookup('400001')).toEqual({ platform: null, typeCode: 'ZZ9', military: false, private: false });
+  });
+
+  it('marks aircraft whose owners asked for privacy (LADD) or that fly a PIA address', () => {
+    expect(db.lookup('4ca7b3')?.private).toBe(true); // flags 0001: LADD
+    expect(db.lookup('3c4b2a')?.private).toBe(false);
   });
 
   it('fills in ADS-B tracks only, and keeps the report platform when the type is unknown', () => {
