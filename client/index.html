@@ -8,17 +8,33 @@
     <title>Watchfloor</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23101C23'/%3E%3Cpath d='M7 12V7h5M20 7h5v5M25 20v5h-5M12 25H7v-5' fill='none' stroke='%23C9A0FF' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2380E0FF'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306121F'/%3E%3Cpath d='M7 12V7h5M20 7h5v5M25 20v5h-5M12 25H7v-5' fill='none' stroke='%233FB6FF' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2380E0FF'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap"
     />
   </head>
   <body>
-    <div class="app">
+    <div class="boot" id="boot" aria-hidden="true">
+      <div class="boot-core">
+        <svg viewBox="-84 -84 168 168">
+          <circle class="boot-ring" r="78" pathLength="100" stroke-width="1.5" />
+          <g class="boot-spin"><circle r="64" stroke-width="3" stroke-dasharray="40 18 8 18" opacity="0.8" /></g>
+          <circle class="boot-ring boot-ring-2" r="50" pathLength="100" stroke-width="1" />
+          <circle class="boot-ring boot-ring-3" r="30" pathLength="100" stroke-width="6" stroke-dasharray="12 6" opacity="0.9" />
+          <circle r="10" stroke-width="2" />
+        </svg>
+        <ul class="boot-lines">
+          <li>WATCHFLOOR</li>
+          <li>ESTABLISHING LINK</li>
+          <li>DISPLAY ONLINE</li>
+        </ul>
+      </div>
+    </div>
+    <div class="app booting">
       <header class="topbar">
         <div class="topbar-start">
           <button
@@ -42,7 +58,10 @@
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z" /></svg>
             <span class="visually-hidden">News</span>
           </button>
-          <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
+          <span class="dtg-wrap">
+            <span class="dtg-ring" id="dtg-ring" aria-hidden="true"></span>
+            <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
+          </span>
           <button class="topbar-button topbar-icon" id="key-toggle" type="button" aria-haspopup="dialog" aria-controls="key-dialog" title="Map key (?)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.4M8 11.6v.1" /></svg>
             <span class="visually-hidden">Map key</span>

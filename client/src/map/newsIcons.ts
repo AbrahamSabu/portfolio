@@ -20,7 +20,7 @@ const PATHS: Record<NewsKind, string> = {
 };
 
 export const NEWS_INK = '#F2F6F8';
-const NEWS_FILL = 'rgba(16, 28, 35, 0.85)';
+const NEWS_FILL = 'rgba(4, 17, 31, 0.85)';
 
 export const NEWS_KIND_LABEL: Record<NewsKind, string> = {
   conflict: 'Conflict',

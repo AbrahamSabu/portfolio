@@ -1,6 +1,7 @@
 // MapLibre's stylesheet first, so ours can override it.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
+import './hud.css';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
@@ -52,7 +53,16 @@ async function waitForFonts(): Promise<void> {
   }
 }
 
+/** The opening sequence (hud.css) runs once; afterwards its overlay goes, so nothing is left over the map. */
+function endBootSequence(): void {
+  window.setTimeout(() => {
+    document.getElementById('boot')?.remove();
+    document.querySelector('.app')?.classList.remove('booting');
+  }, 2600);
+}
+
 async function main(): Promise<void> {
+  endBootSequence();
   const store = new TrackStore();
   const clock = new ServerClock();
   const selection = new Selection();
@@ -169,9 +179,11 @@ async function main(): Promise<void> {
 
   // Top bar clock, in server time.
   const dtg = el('dtg');
+  const dtgRing = el('dtg-ring');
   const tickClock = () => {
     const now = clock.now();
     dtg.textContent = formatDtg(now);
+    dtgRing.style.setProperty('--sec', String(new Date(now).getUTCSeconds()));
     dtg.setAttribute('datetime', new Date(now).toISOString());
   };
   tickClock();
