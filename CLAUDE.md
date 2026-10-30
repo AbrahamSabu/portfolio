@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (422 tests after the news layer).
+- `npm test`: Vitest from the root config (426 tests after the holographic restyle).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -535,13 +535,30 @@ that could have been fetched before they arrived.
 
 ## Design system (`client/src/styles.css`)
 
-- Quiet slate-blue chrome (surface #101C23, rule #26404C, ink #DCE6EB, muted
-  #8FA3AE), so symbol colours are the brightest things on screen: friend
-  #80E0FF, neutral #AAFFAA, hostile #FF8080, unknown #FFFF80.
+- Holographic display (Oct 2026, the user asked for an Iron Man-style HUD;
+  an original look, no film names or assets): deep navy glass (surface
+  rgb(4 15 28 / 0.8), solid #06121F, ink #D8F1FF, muted #82A9C2) with the
+  interface drawn in glowing `--hud` #3FB6FF lines. `--hud` is deliberately
+  deeper and bluer than friend cyan and only ever lights lines, never fills
+  a track, so symbol colours stay the most saturated things on screen:
+  friend #80E0FF, neutral #AAFFAA, hostile #FF8080, unknown #FFFF80. The
+  effects live in `client/src/hud.css` (corner brackets as eight gradients
+  on every panel, glow, scan lines on `.app::after`, the opening sequence:
+  `#boot` overlay plus `.app.booting`, removed by `endBootSequence` in
+  main.ts after 2.6 s, never blocking clicks or data). Basemap recoloured at
+  `style.load` by `map/holoBasemap.ts` (`holoPaint`, pure; basemap layers
+  only, never our GeoJSON ones; adds `holo-coast` glow lines on the water
+  layer). Reticle: three turning SVG rings (`map/reticle.ts`). **SVG
+  `transform-box: view-box` origins are in user units**: with a viewBox
+  centred on 0,0 use `transform-origin: 0 0`, not 50% 50% (that span the
+  rings around the wrong point). Read-aloud prefers a British voice
+  (`ui/voice.ts`, `pickBritishVoice`).
 - One accent, orchid #C9A0FF, used only for selection and focus. It is
   deliberately outside the symbology palette.
-- One typeface: IBM Plex Sans Condensed with tabular numbers. UI text is
-  sentence case; callsigns and the date-time group are upper case.
+- IBM Plex Sans Condensed with tabular numbers for text; Rajdhani
+  (`--font-display`, Google Fonts) for headings, labels, the brand and the
+  clock. UI text is sentence case; callsigns and the date-time group are
+  upper case. The clock has a ring that fills with the minute's seconds.
 - The top bar has a military DTG clock (`251432Z OCT 26`). The bottom status bar
   shows link state, air/sea/stale counts and the cursor position in degrees and
   decimal minutes.
