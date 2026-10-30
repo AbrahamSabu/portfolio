@@ -48,7 +48,7 @@ describe('NewsService', () => {
       'lastupdate.txt',
       '20261030121500.export.CSV.zip',
       '20261030121500.gkg.csv.zip',
-      '20261030120000.export.CSV.zip', // 404: missing, and not asked for again
+      '20261030120000.export.CSV.zip', // 404s: tried again next round
       '20261030114500.export.CSV.zip',
     ]);
     // Every request after the first waited for the gap (the fake clock stands still).
@@ -59,7 +59,17 @@ describe('NewsService', () => {
 
     gdelt.asked.length = 0;
     await news.check();
-    expect(gdelt.asked).toEqual(['lastupdate.txt']);
+    expect(gdelt.asked).toEqual(['lastupdate.txt', '20261030120000.export.CSV.zip', '20261030114500.export.CSV.zip']);
+  });
+
+  it('gives up on a batch still missing an hour after a newer one', async () => {
+    const gdelt = fakeGdelt();
+    const news = new NewsService({ fetch: gdelt.fetch, now: () => NOW, setTimer: fakeTimers().setTimer, backfill: 5 });
+    await news.check();
+    gdelt.asked.length = 0;
+    await news.check();
+    // 12:00 to 11:15 are retried; 11:00 (75 minutes before 12:15) was given up.
+    expect(gdelt.asked).toEqual(['lastupdate.txt', ...['1200', '1145', '1130', '1115'].map((t) => `20261030${t}00.export.CSV.zip`)]);
   });
 
   it('backs off when GDELT fails, and tries the batch again', async () => {

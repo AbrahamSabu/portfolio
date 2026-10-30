@@ -7,6 +7,7 @@ import {
   BATCH_MS,
   LAST_UPDATE_URL,
   batchUrls,
+  type GdeltArticle,
   parseArticles,
   parseEvents,
   parseLastUpdate,
@@ -29,6 +30,8 @@ export const KEEP_MS = 24 * 3_600_000;
 /** A day is about 96 batches of 30-60 stories; keep the most political of each. */
 const MAX_PER_BATCH = 40;
 const MAX_ITEMS = 2_000;
+/** A batch still missing this long after a newer one appeared isn't coming. */
+const MISSING_GIVE_UP_MS = 60 * 60_000;
 
 export interface SavedNews {
   /** Batches already read (or missing at GDELT), so a restart doesn't fetch them again. */
@@ -140,14 +143,20 @@ export class NewsService {
     const urls = batchUrls(stamp);
     const events = await this.get(urls.events, true);
     const articles = events && (await this.get(urls.articles, true));
-    this.done.add(stamp);
     if (!events || !articles) {
-      log.info('GDELT batch missing', { stamp });
+      // lastupdate.txt can name a batch before its files are there (seen:
+      // still 404 a few minutes on), and now and then one never comes. Try a
+      // recent one again next round; give up on one over an hour old.
+      if (this.newest && stampTime(this.newest) - stampTime(stamp) > MISSING_GIVE_UP_MS) {
+        this.done.add(stamp);
+        log.info('GDELT batch missing', { stamp });
+      }
       return;
     }
+    this.done.add(stamp);
     const stories = selectStories(
       parseEvents((await firstZipEntry(events)).toString('utf8')),
-      parseArticles((await firstZipEntry(articles)).toString('utf8')),
+      await parseArticlesInPieces((await firstZipEntry(articles)).toString('utf8')),
       stampTime(stamp),
     )
       .slice(0, MAX_PER_BATCH)
@@ -192,6 +201,20 @@ export class NewsService {
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url.slice(url.lastIndexOf('/') + 1)}`);
     return Buffer.from(await res.arrayBuffer());
   }
+}
+
+/** Article rows per piece: a batch's ~1,100 rows took 130-170 ms in one go, measured. */
+const ARTICLE_ROWS_PER_PIECE = 150;
+
+/** parseArticles a piece at a time, letting the hub's ticks run in between. */
+async function parseArticlesInPieces(tsv: string): Promise<Map<string, GdeltArticle>> {
+  const lines = tsv.split('\n');
+  const articles = new Map<string, GdeltArticle>();
+  for (let i = 0; i < lines.length; i += ARTICLE_ROWS_PER_PIECE) {
+    if (i > 0) await new Promise<void>((resolve) => setImmediate(resolve));
+    for (const [url, article] of parseArticles(lines.slice(i, i + ARTICLE_ROWS_PER_PIECE).join('\n'))) articles.set(url, article);
+  }
+  return articles;
 }
 
 /** A batch stamp for a time, for comparing with stamps as strings. */
