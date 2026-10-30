@@ -9,6 +9,12 @@ import { formatAge, formatDtg, formatNewsPlace, newsSpeech } from './format';
 const DWELL_MS = 9_000;
 /** A story the operator opened stays until closed, or this long. */
 const PINNED_MS = 45_000;
+/**
+ * Pointing at a card holds it, but not for ever: a mouse left resting where
+ * cards appear would otherwise freeze the rotation, new stories and all
+ * (it did, in testing).
+ */
+const MAX_HOLD_MS = 30_000;
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -25,6 +31,7 @@ export class NewsCards {
   private shownId: string | undefined;
   private pinnedUntil = 0;
   private hovering = false;
+  private hoverSince = 0;
   private timer: number | undefined;
 
   constructor(
@@ -60,7 +67,8 @@ export class NewsCards {
       if (!settings.voice) window.speechSynthesis?.cancel();
     });
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && !this.shownId) this.advance();
+      // Back in front: put up what arrived meanwhile now, not at the next turn.
+      if (!document.hidden) this.advance();
     });
     this.schedule(DWELL_MS);
   }
@@ -86,7 +94,8 @@ export class NewsCards {
   private advance(): void {
     // Wait while the operator reads a card, the page is hidden, or a story is being read aloud.
     const speaking = this.settings.voice && window.speechSynthesis?.speaking;
-    if (!this.settings.shown || document.hidden || this.hovering || this.pinned() || speaking) {
+    const reading = this.hovering && this.now() - this.hoverSince < MAX_HOLD_MS;
+    if (!this.settings.shown || document.hidden || reading || this.pinned() || speaking) {
       this.schedule(speaking ? 1_000 : DWELL_MS);
       return;
     }
@@ -99,7 +108,10 @@ export class NewsCards {
 
   private show(story: NewsItem): void {
     const card = buildCard(story, this.now());
-    card.addEventListener('pointerenter', () => (this.hovering = true));
+    card.addEventListener('pointerenter', () => {
+      this.hovering = true;
+      this.hoverSince = this.now();
+    });
     card.addEventListener('pointerleave', () => (this.hovering = false));
     this.hovering = false;
     this.shownId = story.id;
