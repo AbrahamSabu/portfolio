@@ -4,6 +4,7 @@ import './styles.css';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
+import { NewsLayer } from './map/newsLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
@@ -13,6 +14,7 @@ import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
+import { loadNewsSettings, NewsSettings, NewsStore } from './state/newsStore';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
 import { SelectedDetails } from './state/selectedDetails';
 import { SelectedPath } from './state/selectedPath';
@@ -23,6 +25,8 @@ import { DetailsPanel } from './ui/detailsPanel';
 import { FilterPanel } from './ui/filterPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
+import { NewsCards } from './ui/newsCards';
+import { NewsTicker } from './ui/newsTicker';
 import { formatDtg, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
@@ -77,6 +81,18 @@ async function main(): Promise<void> {
   const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
   const details = new SelectedDetails();
   new DetailsPanel(el('details'), store, clock, layer, selection, style, path, details, () => pathLayer.fit());
+  // Political news: markers, pop-up cards and the ticker share one store.
+  const news = new NewsStore();
+  const newsSettings = new NewsSettings(loadNewsSettings());
+  const cards = new NewsCards(map, news, newsSettings, () => clock.now());
+  new NewsLayer(map, news, newsSettings, layer, () => clock.now(), (id) => cards.open(id));
+  new NewsTicker(el('news-ticker'), news, newsSettings, (id) => cards.open(id));
+  const newsToggle = el('news-toggle');
+  newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
+  const showNewsToggle = () => newsToggle.setAttribute('aria-pressed', String(newsSettings.shown));
+  newsSettings.subscribe(showNewsToggle);
+  showNewsToggle();
+
   const list = new TrackList(
     el('track-list'),
     el('list-toggle') as HTMLButtonElement,
@@ -143,6 +159,7 @@ async function main(): Promise<void> {
     if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
     if (event.key === 'f' || event.key === 'F') filterControl.toggle();
     if (event.key === 's' || event.key === 'S') style.toggle();
+    if (event.key === 'n' || event.key === 'N') newsSettings.set({ shown: !newsSettings.shown });
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
@@ -213,6 +230,9 @@ async function main(): Promise<void> {
           break;
         case 'details':
           details.load(message);
+          break;
+        case 'news':
+          news.apply(message, clock.now());
           break;
       }
     },

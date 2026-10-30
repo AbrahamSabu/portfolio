@@ -1,4 +1,5 @@
-import type { Affiliation, Platform } from '@watchfloor/shared';
+import { NEWS_KINDS, type Affiliation, type Platform } from '@watchfloor/shared';
+import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { trackIconSvg } from '../map/trackIcon';
 import type { SymbolStyle, SymbolStyleSetting } from '../state/symbolStyle';
 import { AFFILIATION_LABEL, PLATFORM_LABEL } from './format';
@@ -14,6 +15,7 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['S', 'Vehicle shapes or military symbols'],
+  ['N', 'Show or hide the news'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],
 ];
@@ -89,6 +91,11 @@ function content(style: SymbolStyle): string {
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
         <li><span class="key-glyph key-stale" aria-hidden="true"></span>Faded: no recent report, so its position is an estimate</li>
       </ul>
+    </section>
+    <section>
+      <h3>News</h3>
+      <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through.</p>
+      <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
     </section>
     <section>
       <h3>Keys</h3>

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatDestination,
+  formatNewsPlace,
+  formatNewsTime,
+  newsSpeech,
   formatOperator,
   formatShipSize,
   formatShipType,
@@ -190,5 +193,19 @@ describe('vehicle details', () => {
     expect(formatShipSize({ lengthM: 180, beamM: 24, draughtM: 4.8 })).toBe('180 × 24 m, draught 4.8 m');
     expect(formatShipSize({ lengthM: 22 })).toBe('22 m long');
     expect(formatShipSize({})).toBe('');
+  });
+});
+
+describe('news', () => {
+  const story = { place: "Marinovka, Saratovskaya Oblast', Russia", headline: 'Two jets destroyed', outlet: 'bnn-news.com' };
+
+  it('writes the time and place in the intel-feed style', () => {
+    expect(formatNewsTime(Date.UTC(2026, 9, 30, 12, 15))).toBe('301215Z');
+    expect(formatNewsPlace(story.place)).toBe('MARINOVKA, RUSSIA');
+    expect(formatNewsPlace('Tel Aviv, Israel')).toBe('TEL AVIV, ISRAEL');
+  });
+
+  it('reads a story aloud as where, the headline and who reported it', () => {
+    expect(newsSpeech(story)).toBe('Marinovka, Russia. Two jets destroyed. Reported by bnn-news.com.');
   });
 });

@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (396 tests after the compact picture).
+- `npm test`: Vitest from the root config (422 tests after the news layer).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -79,7 +79,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 13`, v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 14`, v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -120,7 +120,8 @@ that could have been fetched before they arrived.
   - Images come from `map.setMissingStyleImageResolver` (`renderImage` in
     trackLayer.ts), drawn from the id alone: `sym:<15-char SIDC>` or
     `sym:<SIDC>:<label>` (tactical; labelled from zoom 8), `veh:<shape>:<affiliation>`
-    (vehicle shapes, `map/shapes.ts`) and `lbl:<callsign>` (`map/labels.ts`).
+    (vehicle shapes, `map/shapes.ts`), `lbl:<callsign>` (`map/labels.ts`) and
+    `news:<kind>` (`map/newsIcons.ts`).
   - SymbolStyle (`state/symbolStyle.ts`, localStorage `watchfloor.symbolStyle`):
     'shapes' (default) or 'tactical'; StyleControl button under the trail
     toggle and the S key. Shapes: 15 top-down outlines on a 64-unit square,
@@ -475,6 +476,41 @@ that could have been fetched before they arrived.
     v1 was 20.5 MB and stalled the event loop ~300 ms per save (every 30
     s); v2 is 4.1 MB with a longest stall of 30-60 ms. Startup load and
     restore takes ~0.9 s.
+- News (`server/src/news/`, `shared/src/news.ts`): GDELT 2.0 15-minute
+  batches (gdeltproject.org; free for any use **with a citation and link**:
+  ticker credit, map key, README). `lastupdate.txt` names the newest batch;
+  files are fetched over https (http 301s), >= 5 s apart (GDELT asks for one
+  request per 5 s on its API; its DOC API refused us outright, so don't use
+  it). Each batch is `<stamp>.export.CSV.zip` (events) + `<stamp>.gkg.csv.zip`
+  (articles, ~4.7 MB zipped / ~20 MB); `zip.ts` reads the first entry from
+  the central directory and inflates on the thread pool (no zip dependency);
+  the article file is parsed 150 rows per piece with `setImmediate` between
+  (in one go it held the event loop 130-170 ms, measured).
+  `gdelt.ts` (pure): political score from GKG themes (STRONG +2, WEAK +1,
+  OTHER -3; `MIN_SCORE` 8) plus an event with a political actor type
+  (GOV, MIL, REB...); place = the article's first-named place (a city in the
+  same country preferred over a country centroid; country names from the
+  batch's country-level events, since GKG keeps the article's word, e.g.
+  "Russian"); kind from theme mention counts. **Don't place by event
+  ActionGeo or classify by CAMEO root**: measured, both far noisier (an
+  Israeli election landed in Qatar). Tuned on 4 real batches (~4,000
+  articles): ~4 in 5 kept stories are political; ~30-40 per batch kept
+  (capped 40). `NewsService`: checks every 3 min, backfills 8 batches at
+  startup, keeps 24 h (2,000 max), saves `.cache/news.json` (`NEWS_FILE`;
+  `NEWS=off`). **lastupdate.txt can name a batch whose files still 404
+  minutes later**: a missing batch is retried until it's > 1 h older than
+  the newest. Fixtures in `news/fixtures/` are a cut of a real batch.
+  - Client: `state/newsStore.ts` (NewsStore; NewsSettings in localStorage
+    `watchfloor.news`: `shown`, `voice` off by default), `map/newsLayer.ts`
+    (symbol layer above tracks, fades with age; a click opens the card unless
+    a track is under it), `ui/newsCards.ts` (MapLibre Popup; NewsRotation in
+    `state/newsRotation.ts`: new stories first, then the last 2 h cycle, only
+    stories in view; 9 s dwell, opened cards stay 45 s; waits while hovered,
+    hidden or speaking; read-aloud via speechSynthesis, one story at a time),
+    `ui/newsTicker.ts` (above the status bar, `--ticker-h`, 0 under
+    `.app.news-off`; two copies of the newest 30 scroll at 55 px/s, new
+    stories join at `animationiteration`; reduced motion steps every 8 s).
+    N key and the top bar diamond toggle news.
 - A browser tab left open on a test port reconnects to the next server
   started there and counts as a viewer with its old (possibly wide) view.
   That tab is what drove adsb.lol into 429s; close it or use a fresh port.
@@ -511,7 +547,13 @@ that could have been fetched before they arrived.
   decimal minutes.
 - Map controls sit top left; the right side is reserved for the details panel,
   which becomes a bottom sheet under 640 px.
-- Respect `prefers-reduced-motion`. Motion only responds to user actions.
+- Respect `prefers-reduced-motion`. Motion only responds to user actions,
+  with one deliberate exception: news cards pop up and the ticker scrolls on
+  their own (the user asked for it). Reduced motion stops the scroll, pulse
+  and card animation.
+- News is white (`#F2F6F8`), never an identity colour: a story is neither
+  friend nor hostile. Intel-feed style: DTGs, places in capitals, "OSINT"
+  tag with a red live lamp (the one warm mark).
 - Zoomed out (dots, below zoom 5): aircraft are filled dots, ships are
   rings (`DOT_PAINT` in trackLayer.ts), so domains differ by shape, never
   colour. Symbols scale with zoom (`icon-size` 0.5 at 5, 0.7 at 7, 1 at 10);

@@ -38,6 +38,10 @@
           </div>
         </div>
         <div class="topbar-end">
+          <button class="topbar-button topbar-icon" id="news-toggle" type="button" aria-pressed="true" title="News (N)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z" /></svg>
+            <span class="visually-hidden">News</span>
+          </button>
           <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
           <button class="topbar-button topbar-icon" id="key-toggle" type="button" aria-haspopup="dialog" aria-controls="key-dialog" title="Map key (?)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.4M8 11.6v.1" /></svg>
@@ -228,6 +232,22 @@
           Class, operator and year from <a href="https://www.wikidata.org" target="_blank">Wikidata</a>.
         </p>
       </aside>
+
+      <section class="ticker" id="news-ticker" aria-label="Political news">
+        <span class="ticker-tag"><span class="ticker-live" aria-hidden="true"></span>OSINT</span>
+        <div class="ticker-window">
+          <ul class="ticker-strip" data-strip></ul>
+        </div>
+        <a class="ticker-credit" href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT</a>
+        <button class="ticker-button" type="button" data-voice aria-pressed="false" title="Read new stories aloud">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h2.5l3.5-3v10l-3.5-3h-2.5zM11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.6a6 6 0 0 1 0 8.8" /></svg>
+          <span class="visually-hidden">Read aloud</span>
+        </button>
+        <button class="ticker-button" type="button" data-hide title="Hide news (N)">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          <span class="visually-hidden">Hide news</span>
+        </button>
+      </section>
 
       <footer class="statusbar" id="statusbar">
         <div class="link" data-link data-state="connecting" role="status" aria-live="polite">

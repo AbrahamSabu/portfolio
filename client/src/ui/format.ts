@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type PathBackfill, type TrafficKind, type ShipDetails, type TrackDetails } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Affiliation, type Platform, type Provider, type Track, type TrackSource, type FeedStatus, type PathBackfill, type TrafficKind, type ShipDetails, type TrackDetails, type NewsItem } from '@watchfloor/shared';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   airliner: 'Airliner',
@@ -254,4 +254,22 @@ export function formatShipType(aisType: number | undefined): string {
   if (!family) return '';
   const category = 'ABCD'[(aisType % 10) - 1];
   return (aisType % 10) >= 1 && (aisType % 10) <= 4 ? `${family}, hazardous category ${category}` : family;
+}
+
+/** A news story's time as the day and time of a DTG: "301215Z". */
+export function formatNewsTime(ms: number): string {
+  return formatDtg(ms).split(' ')[0]!;
+}
+
+/** A story's place for the intel-feed style: upper case, at most the first and last parts ("DNIPRO, UKRAINE"). */
+export function formatNewsPlace(place: string): string {
+  const parts = place.split(',').map((p) => p.trim()).filter(Boolean);
+  return (parts.length > 2 ? [parts[0], parts[parts.length - 1]] : parts).join(', ').toUpperCase();
+}
+
+/** What read-aloud says: where, the headline as published, and who published it. */
+export function newsSpeech(story: Pick<NewsItem, 'place' | 'headline' | 'outlet'>): string {
+  const place = story.place.split(',').map((p) => p.trim()).filter(Boolean);
+  const where = place.length > 2 ? `${place[0]}, ${place[place.length - 1]}` : place.join(', ');
+  return `${where}. ${story.headline}. Reported by ${story.outlet}.`;
 }

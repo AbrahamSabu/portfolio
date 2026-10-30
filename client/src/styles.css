@@ -30,6 +30,8 @@
 
   --topbar-h: 44px;
   --statusbar-h: 30px;
+  /* The news ticker above the status bar; 0 while news is hidden (N). */
+  --ticker-h: 32px;
   /* Leaves room for the 300 px details panel on mid-sized screens. */
   --list-w: min(440px, calc(100vw - 340px));
   --safe-top: env(safe-area-inset-top, 0px);
@@ -269,7 +271,7 @@ button {
   top: calc(var(--topbar-h) + var(--safe-top) + 12px);
   left: 12px;
   width: var(--list-w);
-  bottom: calc(var(--statusbar-h) + var(--safe-bottom) + 12px);
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -512,7 +514,7 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   top: calc(var(--topbar-h) + var(--safe-top) + 12px);
   right: 12px;
   width: 300px;
-  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - var(--safe-top) - var(--safe-bottom) - 24px);
   overflow-y: auto;
   padding: 16px 16px 18px;
   background: var(--surface);
@@ -811,7 +813,7 @@ body[data-list-open] .maplibregl-ctrl-top-left {
 
 .maplibregl-ctrl-bottom-left,
 .maplibregl-ctrl-bottom-right {
-  bottom: calc(var(--statusbar-h) + var(--safe-bottom));
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom));
 }
 
 .maplibregl-ctrl-group {
@@ -1130,7 +1132,7 @@ kbd {
   top: calc(var(--topbar-h) + var(--safe-top) + 10px);
   left: 56px;
   width: 260px;
-  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - var(--safe-top) - var(--safe-bottom) - 24px);
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -1246,7 +1248,7 @@ body[data-list-open] .filter-panel {
     top: auto;
     left: 8px;
     right: 8px;
-    bottom: calc(var(--statusbar-h) + var(--safe-bottom) + 8px);
+    bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 8px);
     width: auto;
     max-height: 55%;
   }
@@ -1275,7 +1277,7 @@ body[data-list-open] .filter-panel {
     top: auto;
     left: 8px;
     right: 8px;
-    bottom: calc(var(--statusbar-h) + var(--safe-bottom) + 8px);
+    bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 8px);
     width: auto;
     max-height: 60%;
   }
@@ -1300,6 +1302,335 @@ body[data-list-open] .filter-panel {
 @media (prefers-reduced-motion: reduce) {
   .details-enter,
   .reticle-lock {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ news */
+
+/*
+ * Political news, styled as an open-source intelligence feed: DTGs, places
+ * in capitals, the outlet's headline. White, not an identity colour: a story
+ * is neither friend nor hostile. A red "live" lamp is the one warm mark.
+ */
+.app.news-off {
+  --ticker-h: 0px;
+}
+
+.topbar-button[aria-pressed='true'] {
+  color: var(--ink);
+}
+
+.ticker {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--statusbar-h) + var(--safe-bottom));
+  height: var(--ticker-h);
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: rgb(9 16 21 / 0.94);
+  border-top: 1px solid var(--rule);
+}
+
+.ticker[hidden] {
+  display: none;
+}
+
+.ticker-tag {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 12px 0 16px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  border-right: 1px solid var(--rule);
+}
+
+.ticker-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff5a4e;
+  box-shadow: 0 0 6px #ff5a4e;
+  animation: ticker-lamp 2s steps(2, jump-none) infinite;
+}
+
+@keyframes ticker-lamp {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ticker-window {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  /* Fade the ends, so stories slide in and out rather than being cut. */
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+
+.ticker-strip {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ticker-strip.running {
+  animation: ticker-scroll linear infinite;
+}
+
+.ticker:hover .ticker-strip,
+.ticker:focus-within .ticker-strip {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 28px 0 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ticker-item:hover .ticker-headline {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ticker-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ticker-time {
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+}
+
+.ticker-icon {
+  display: flex;
+  color: #f2f6f8;
+}
+
+.ticker-place {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.ticker-outlet {
+  color: var(--ink-muted);
+}
+
+.ticker-outlet::before {
+  content: '— ';
+}
+
+.ticker-waiting {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--ink-muted);
+}
+
+.ticker-credit {
+  flex: none;
+  padding: 0 10px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.ticker-credit:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.ticker-button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--ticker-h);
+  height: 100%;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.ticker-button:hover,
+.ticker-button[aria-pressed='true'] {
+  color: var(--ink);
+  background: var(--surface-raised);
+}
+
+.ticker-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The card on the map: MapLibre's popup, restyled. */
+.news-popup .maplibregl-popup-content {
+  padding: 10px 28px 10px 12px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid #f2f6f8;
+  border-radius: 2px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font-family: var(--font);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.45);
+}
+
+.news-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--rule);
+}
+
+.news-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--rule);
+}
+
+.news-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--rule);
+}
+
+.news-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--rule);
+}
+
+.news-popup .maplibregl-popup-close-button {
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  color: var(--ink-muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.news-popup .maplibregl-popup-close-button:hover {
+  color: var(--ink);
+  background: var(--surface-raised);
+}
+
+.news-card {
+  animation: news-card-in 160ms ease-out;
+}
+
+@keyframes news-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.news-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+}
+
+.news-card-icon {
+  display: flex;
+  color: #f2f6f8;
+}
+
+.news-card-kind {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.news-card-place {
+  margin-top: 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.news-card-headline {
+  margin: 4px 0 8px;
+  font-size: var(--text-md);
+  line-height: 1.3;
+}
+
+.news-card-source {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.news-card-source:hover {
+  color: var(--ink);
+}
+
+.news-pulse {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #f2f6f8;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: news-pulse 1.6s ease-out forwards;
+}
+
+@keyframes news-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+.key-news {
+  display: grid;
+  place-items: center;
+  color: #f2f6f8;
+}
+
+@media (max-width: 640px) {
+  .ticker-tag {
+    padding: 0 10px 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-live,
+  .news-card {
     animation: none;
   }
 }
