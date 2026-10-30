@@ -3,6 +3,7 @@ import { Map as MapLibreMap, NavigationControl, setWorkerUrl, type StyleSpecific
 // bundler moves things around. Importing the worker as a URL makes Vite ship it
 // and tells us exactly where it ended up.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+import { applyHoloBasemap } from './holoBasemap';
 
 setWorkerUrl(workerUrl);
 
@@ -12,7 +13,7 @@ const DEFAULT_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/sty
 export const OFFLINE_STYLE: StyleSpecification = {
   version: 8,
   sources: {},
-  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#0E171C' } }],
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#04111F' } }],
 };
 
 export interface MapSetup {
@@ -52,6 +53,8 @@ export function createMap(container: HTMLElement): MapSetup {
   let styleLoaded = false;
   let fellBack = style === OFFLINE_STYLE;
   map.once('style.load', () => (styleLoaded = true));
+  // First, so it runs before the track layers are added on the same event.
+  map.on('style.load', () => applyHoloBasemap(map));
   map.on('error', (event) => {
     if (styleLoaded || fellBack) return;
     fellBack = true;
