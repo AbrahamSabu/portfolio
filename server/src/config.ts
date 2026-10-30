@@ -12,6 +12,8 @@ export interface Config {
   pictureFile: string | null;
   /** The aircraft database index (`npm run aircraft-db`); null to use reported types only. */
   aircraftDb: string | null;
+  /** Political news from GDELT (`NEWS=off` to stop it); `file` keeps the day's stories across restarts. */
+  news: { enabled: boolean; file: string | null };
   /**
    * Which feeds run. Defaults to the live world: aircraft from OpenSky
    * everywhere, filled in from adsb.lol and adsb.fi (free, no key) where
@@ -223,6 +225,13 @@ export function loadConfig(): Config {
       process.env.AIRCRAFT_DB?.trim().toLowerCase() === 'off'
         ? null
         : path.resolve(process.cwd(), process.env.AIRCRAFT_DB || '../.cache/aircraft-db'),
+    news: {
+      enabled: process.env.NEWS?.trim().toLowerCase() !== 'off',
+      file:
+        process.env.NEWS_FILE?.trim().toLowerCase() === 'off'
+          ? null
+          : path.resolve(process.cwd(), process.env.NEWS_FILE || '../.cache/news.json'),
+    },
     feeds: parseFeeds(process.env.FEEDS),
     // SIM_SCENARIO is the old name, kept so existing .env files still work.
     scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'cork',

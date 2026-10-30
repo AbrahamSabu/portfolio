@@ -24,6 +24,7 @@ import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
+import { loadNews, NewsService, saveNews } from './news/newsService';
 import { getScenario } from './scenarios';
 import { TrackStore } from './trackStore';
 
@@ -144,6 +145,20 @@ async function main(): Promise<void> {
   };
 
   let hub: Hub | undefined;
+  const newsFile = config.news.file;
+  const news = config.news.enabled
+    ? new NewsService({
+        saved: newsFile ? loadNews(newsFile) : null,
+        onStories: (items) => {
+          hub?.broadcastNews(items);
+          if (newsFile) {
+            saveNews(newsFile, news!.toSaved()).catch((err: unknown) =>
+              log.warn('could not save the news', { error: err instanceof Error ? err.message : String(err) }),
+            );
+          }
+        },
+      })
+    : null;
   const server = createHttpServer({
     staticDir: config.staticDir,
     health: () => ({
@@ -153,6 +168,7 @@ async function main(): Promise<void> {
       clients: hub?.clientCount ?? 0,
       paths: { tracks: store.paths.size, points: store.paths.points, openSkyLookupsLastHour: paths.lookupsLastHour },
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
+      news: news?.health() ?? null,
     }),
   });
 
@@ -177,6 +193,7 @@ async function main(): Promise<void> {
       for (const feed of feeds) feed.setAreas?.(views);
     },
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
+    ...(news ? { news: () => news.items() } : {}),
   });
 
   const sink = {
@@ -214,6 +231,7 @@ async function main(): Promise<void> {
     feed.start(sink);
   }
   hub.start();
+  news?.start();
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -231,6 +249,7 @@ async function main(): Promise<void> {
     shuttingDown = true;
     log.info('shutting down', { signal });
     for (const feed of feeds) feed.stop();
+    news?.stop();
     clearInterval(saveTimer);
     await savePictureNow();
     await hub?.stop();

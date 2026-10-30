@@ -15,6 +15,38 @@ describe('Hub', () => {
     await new Promise((r) => server?.close(r));
   });
 
+  it("sends the day's news after the snapshot, then new stories as they arrive", async () => {
+    const story = {
+      id: '1', headline: 'Parliament passes the budget', url: 'https://example.org/a', outlet: 'example.org',
+      lat: 51.5, lon: -0.12, place: 'London, United Kingdom', kind: 'politics' as const, publishedAt: 1,
+    };
+    server = createServer();
+    hub = new Hub({
+      server, path: '/ws', store: new TrackStore(DEFAULT_STALENESS), tickMs: 1000, staleness: DEFAULT_STALENESS,
+      scenario: null, traffic: 'live', news: () => [story],
+    });
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    const types: string[] = [];
+    const news: unknown[] = [];
+    let got: () => void = () => {};
+    ws.on('message', (data) => {
+      const m = JSON.parse(String(data)) as { type: string };
+      types.push(m.type);
+      if (m.type === 'news') {
+        news.push(m);
+        got();
+      }
+    });
+    await new Promise<void>((r) => (got = r));
+    hub.broadcastNews([{ ...story, id: '2' }]);
+    await new Promise<void>((r) => (got = r));
+    ws.close();
+    expect(types).toEqual(['hello', 'snapshot', 'news', 'news']);
+    expect(news).toMatchObject([{ items: [story], replace: true }, { items: [{ id: '2' }], replace: false }]);
+  });
+
   it('reports the client count as browsers connect and leave', async () => {
     const counts: number[] = [];
     let changed: () => void = () => {};

@@ -8,6 +8,8 @@ import {
   type DeltaMessage,
   type FeedStatus,
   type HelloMessage,
+  type NewsItem,
+  type NewsMessage,
   type DetailsMessage,
   type PathMessage,
   type ScenarioInfo,
@@ -80,6 +82,8 @@ export interface HubOptions {
   feedStatus?: () => FeedStatus[];
   /** Answers a browser's question about one track (its path, its details); `send` may be called more than once. */
   onTrackRequest?: (id: string, send: (message: PathMessage | DetailsMessage) => void) => void;
+  /** The day's news stories, sent to each browser after its snapshot. */
+  news?: () => NewsItem[];
 }
 
 /**
@@ -160,8 +164,23 @@ export class Hub {
     // out first. Encoding a world snapshot takes a few hundred ms, and the
     // hello lets the page frame the map and send its view meanwhile.
     setImmediate(() => {
-      if (this.clients.has(client)) this.sendSnapshot(client);
+      if (!this.clients.has(client)) return;
+      this.sendSnapshot(client);
+      // After the snapshot: the tracks are what the page is for.
+      const news = this.opts.news?.();
+      if (news) this.send(client, { type: 'news', serverTime: Date.now(), items: news, replace: true });
     });
+  }
+
+  /** New stories to every browser, as they arrive (every 15 minutes or so). */
+  broadcastNews(items: NewsItem[]): void {
+    if (items.length === 0) return;
+    const payload = encodeServerMessage({ type: 'news', serverTime: Date.now(), items, replace: false });
+    for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
+  }
+
+  private send(client: Client, message: NewsMessage): void {
+    if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
   }
 
   private sendSnapshot(client: Client): void {

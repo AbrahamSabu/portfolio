@@ -107,3 +107,25 @@ describe('path messages', () => {
     expect(parseClientMessage(JSON.stringify({ type: 'track', id: 42 }))).toBeNull();
   });
 });
+
+describe('news messages', () => {
+  const story = {
+    id: '1301234567',
+    headline: 'Parliament passes the budget',
+    url: 'https://example.org/budget',
+    outlet: 'example.org',
+    lat: 51.5,
+    lon: -0.12,
+    place: 'London, United Kingdom',
+    kind: 'politics' as const,
+    publishedAt: Date.UTC(2026, 9, 30, 12, 15),
+  };
+
+  it('round-trips, and drops a story that could put something odd in the page', () => {
+    const raw = encodeServerMessage({ type: 'news', serverTime: 1, items: [story], replace: true });
+    expect(parseServerMessage(raw)).toEqual({ type: 'news', serverTime: 1, items: [story], replace: true });
+    const bad = JSON.stringify({ type: 'news', serverTime: 1, replace: false, items: [story, { ...story, url: 'javascript:alert(1)' }, { ...story, lat: 'x' }] });
+    expect(parseServerMessage(bad)).toEqual({ type: 'news', serverTime: 1, items: [story], replace: false });
+    expect(parseServerMessage(JSON.stringify({ type: 'news', serverTime: 1, items: [] }))).toBeNull();
+  });
+});

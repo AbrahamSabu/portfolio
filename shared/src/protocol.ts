@@ -1,4 +1,5 @@
 import type { FeedStatus } from './feedStatus';
+import { parseNewsItem, type NewsItem } from './news';
 import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
 import type { Track } from './track';
@@ -36,8 +37,9 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *      carry `typeCode` and `model` from the aircraft database
  *  12  `path` request and reply: a selected track's whole path
  *  13  the request is `track`, answered with `path` and `details`
+ *  14  `news`: political news stories, after the snapshot and as they arrive
  */
-export const PROTOCOL_VERSION = 13;
+export const PROTOCOL_VERSION = 14;
 
 export interface HelloMessage {
   type: 'hello';
@@ -133,7 +135,20 @@ export interface ShipDetails {
   draughtM?: number;
 }
 
-export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage | DetailsMessage;
+/**
+ * News stories (news.ts): the day's, after the snapshot (`replace`), then
+ * each new batch's as it arrives, about every 15 minutes.
+ */
+export interface NewsMessage {
+  type: 'news';
+  serverTime: number;
+  /** Newest first. */
+  items: NewsItem[];
+  /** True: these are all the stories, replacing any the page has. False: add them. */
+  replace: boolean;
+}
+
+export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage | DetailsMessage | NewsMessage;
 
 /** Where the picture is centred, so the client can frame the map on first load. */
 export interface ScenarioInfo {
@@ -170,6 +185,7 @@ export function encodeServerMessage(message: ServerMessage): string {
   switch (message.type) {
     case 'hello':
     case 'details':
+    case 'news':
       return JSON.stringify(message);
     case 'snapshot': {
       const { serverTime, tracks, trails } = message;
@@ -243,6 +259,12 @@ export function parseServerMessage(raw: string): ServerMessage | null {
     case 'details': {
       if (typeof m.id !== 'string' || typeof m.details !== 'object' || m.details === null) return null;
       return m as unknown as DetailsMessage;
+    }
+    case 'news': {
+      if (!Array.isArray(m.items) || typeof m.replace !== 'boolean') return null;
+      // Headlines and links go into the page: each story is checked.
+      const items = m.items.map(parseNewsItem).filter((i): i is NewsItem => i !== null);
+      return { type: 'news', serverTime: m.serverTime, items, replace: m.replace };
     }
     default:
       return null;
