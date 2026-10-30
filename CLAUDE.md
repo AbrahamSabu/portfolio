@@ -414,7 +414,7 @@ that could have been fetched before they arrived.
     from deltas, `splitAtGaps`: > 20 min air / 60 min sea is drawn dashed),
     `map/pathLayer.ts` (orchid accent, dark casing, start ring, above
     trails, below tracks). "Show whole path" fits it beside the details
-    panel; a path that still does not fit at minZoom (was 3, now 0.5 with the globe), so `fit()` binary
+    panel; for a path that still doesn't fit at minZoom (was 3, now 0.5 with the globe), `fit()` binary
     searches the earliest point (then a fraction of the segment before it)
     that still fits at minZoom. Details row "Since 1402Z (2 h 13 min) ·
     start from OpenSky".
