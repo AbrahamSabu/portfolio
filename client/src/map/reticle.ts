@@ -1,9 +1,16 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 
 /**
- * Corner brackets drawn around the selected track. A DOM marker rather than
- * a map layer, so it can animate when a new track is selected.
+ * Turning rings around the selected track (styles.css draws and spins them).
+ * A DOM marker rather than a map layer, so it can animate when a new track is
+ * selected.
  */
+const RINGS = `<svg viewBox="-40 -40 80 80" aria-hidden="true" focusable="false">
+  <circle class="reticle-outer" r="34" />
+  <circle class="reticle-arcs" r="25" />
+  <circle class="reticle-inner" r="17" />
+  <path class="reticle-ticks" d="M0 -36V-40M36 0H40M0 36V40M-36 0H-40" />
+</svg>`;
 export class Reticle {
   private readonly element: HTMLDivElement;
   /** Inner element carries the animation; MapLibre owns the outer element's transform. */
@@ -17,11 +24,7 @@ export class Reticle {
     this.element.setAttribute('aria-hidden', 'true');
     this.frame = document.createElement('div');
     this.frame.className = 'reticle-frame';
-    for (const corner of ['tl', 'tr', 'bl', 'br']) {
-      const span = document.createElement('span');
-      span.className = `reticle-corner reticle-${corner}`;
-      this.frame.append(span);
-    }
+    this.frame.innerHTML = RINGS; // fixed markup
     this.element.append(this.frame);
     this.marker = new Marker({ element: this.element, anchor: 'center' }).setLngLat([0, 0]);
   }
