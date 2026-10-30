@@ -4,6 +4,7 @@ import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import type { NewsSettings, NewsStore } from '../state/newsStore';
 import { NewsRotation } from '../state/newsRotation';
 import { formatAge, formatDtg, formatNewsPlace, newsSpeech } from './format';
+import { speak } from './voice';
 
 /** How long each story stays up when it pops up by itself. */
 const DWELL_MS = 9_000;
@@ -118,7 +119,7 @@ export class NewsCards {
     this.popup.setLngLat([story.lon, story.lat]).setDOMContent(card);
     if (!this.popup.isOpen()) this.popup.addTo(this.map);
     if (!reducedMotion()) pulse(this.map, story);
-    if (this.settings.voice) speak(story);
+    if (this.settings.voice) speakStory(story);
   }
 
   private close(): void {
@@ -173,13 +174,6 @@ function pulse(map: MapLibreMap, story: NewsItem): void {
   ring.addEventListener('animationend', () => marker.remove());
 }
 
-function speak(story: NewsItem): void {
-  const synth = window.speechSynthesis;
-  if (!synth) return;
-  // One story at a time: a backlog of old headlines is worse than skipping one.
-  synth.cancel();
-  const utterance = new SpeechSynthesisUtterance(newsSpeech(story));
-  utterance.lang = 'en';
-  utterance.rate = 1.02;
-  synth.speak(utterance);
+function speakStory(story: NewsItem): void {
+  speak(newsSpeech(story));
 }

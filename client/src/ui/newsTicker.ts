@@ -2,6 +2,7 @@ import type { NewsItem } from '@watchfloor/shared';
 import { newsIconSvg, NEWS_KIND_LABEL } from '../map/newsIcons';
 import type { NewsSettings, NewsStore } from '../state/newsStore';
 import { formatNewsPlace, formatNewsTime } from './format';
+import { speak } from './voice';
 
 /** The newest this many stories run in the ticker. */
 const TICKER_STORIES = 30;
@@ -40,10 +41,7 @@ export class NewsTicker {
       const voice = !settings.voice;
       settings.set({ voice });
       // Say something at once, so turning it on is clearly heard to work.
-      if (voice && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance('Read-aloud on. New stories will be read as they appear.'));
-      }
+      if (voice) speak('Read-aloud on. New stories will be read as they appear.');
     });
     root.querySelector('[data-hide]')?.addEventListener('click', () => settings.set({ shown: false }));
     this.strip.addEventListener('click', (event) => {
