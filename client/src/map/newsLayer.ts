@@ -50,7 +50,8 @@ export class NewsLayer {
         source: SOURCE,
         layout: {
           'icon-image': ['get', 'icon'],
-          'icon-size': ['interpolate', ['linear'], ['zoom'], 2, 0.75, 8, 1],
+          // Small on the globe, where a whole hemisphere's stories share the screen.
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 0.5, 0.45, 3, 0.65, 8, 1],
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
           // Newest on top.

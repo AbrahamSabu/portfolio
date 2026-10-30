@@ -23,7 +23,7 @@ export interface MapSetup {
 }
 
 /**
- * A north-up tactical map. Rotation and pitch are disabled: operators
+ * A north-up tactical map, drawn as a globe when zoomed out. Rotation and pitch are disabled: operators
  * expect north at the top, and a tilted COP makes distances hard to judge.
  */
 export function createMap(container: HTMLElement): MapSetup {
@@ -35,7 +35,8 @@ export function createMap(container: HTMLElement): MapSetup {
     style,
     center: [-0.85, 50.45],
     zoom: 6.5,
-    minZoom: 3,
+    // Low enough to pull back and see the whole globe.
+    minZoom: 0.5,
     maxZoom: 16,
     maxPitch: 0,
     dragRotate: false,
@@ -54,7 +55,13 @@ export function createMap(container: HTMLElement): MapSetup {
   let fellBack = style === OFFLINE_STYLE;
   map.once('style.load', () => (styleLoaded = true));
   // First, so it runs before the track layers are added on the same event.
-  map.on('style.load', () => applyHoloBasemap(map));
+  map.on('style.load', () => {
+    // A globe: zoomed out it's a sphere, and MapLibre flattens it into the
+    // usual map as you zoom in (fully flat by about zoom 12). Set on every
+    // style load, since a style carries its own projection.
+    map.setProjection({ type: 'globe' });
+    applyHoloBasemap(map);
+  });
   map.on('error', (event) => {
     if (styleLoaded || fellBack) return;
     fellBack = true;

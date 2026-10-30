@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (426 tests after the holographic restyle).
+- `npm test`: Vitest from the root config (427 tests after the globe).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -414,7 +414,7 @@ that could have been fetched before they arrived.
     from deltas, `splitAtGaps`: > 20 min air / 60 min sea is drawn dashed),
     `map/pathLayer.ts` (orchid accent, dark casing, start ring, above
     trails, below tracks). "Show whole path" fits it beside the details
-    panel; minZoom 3 means long-haul flights can't fit, so `fit()` binary
+    panel; a path that still does not fit at minZoom (was 3, now 0.5 with the globe), so `fit()` binary
     searches the earliest point (then a fraction of the segment before it)
     that still fits at minZoom. Details row "Since 1402Z (2 h 13 min) ·
     start from OpenSky".
@@ -548,7 +548,13 @@ that could have been fetched before they arrived.
   main.ts after 2.6 s, never blocking clicks or data). Basemap recoloured at
   `style.load` by `map/holoBasemap.ts` (`holoPaint`, pure; basemap layers
   only, never our GeoJSON ones; adds `holo-coast` glow lines on the water
-  layer). Reticle: three turning SVG rings (`map/reticle.ts`). **SVG
+  layer). Globe: `setProjection({ type: 'globe' })` on every `style.load`
+  (createMap.ts; MapLibre flattens it to Mercator as you zoom in), minZoom
+  0.5 so the whole sphere fits, and `setSky` gives space and a thin blue
+  atmosphere. Zoomed out, `getBounds()` can take in places round the back
+  of the globe: news cards also check `facesViewer` (map/viewBox.ts, within
+  80° of the centre below zoom 5) and move on after a pan that turns their
+  story away. Reticle: three turning SVG rings (`map/reticle.ts`). **SVG
   `transform-box: view-box` origins are in user units**: with a viewBox
   centred on 0,0 use `transform-origin: 0 0`, not 50% 50% (that span the
   rings around the wrong point). Read-aloud prefers a British voice

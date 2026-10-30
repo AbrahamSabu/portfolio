@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inViewBox, padViewBox, viewForServer } from './viewBox';
+import { facesViewer, inViewBox, padViewBox, viewForServer } from './viewBox';
 
 const channel = { west: -2, south: 49.5, east: 2, north: 51.5 };
 
@@ -42,5 +42,14 @@ describe('viewForServer', () => {
   it('collapses a view wider than the world to exactly the world', () => {
     const v = viewForServer({ west: -700, south: -85, east: 700, north: 85 });
     expect([v.west, v.east]).toEqual([-180, 180]);
+  });
+});
+
+describe('facesViewer', () => {
+  const europe = { lat: 48, lon: 10 };
+  it('says whether a place is on the visible side of the globe', () => {
+    expect(facesViewer(europe, { lat: 35.7, lon: 51.4 }, 1)).toBe(true); // Tehran, about 37° away
+    expect(facesViewer(europe, { lat: -33.9, lon: 151.2 }, 1)).toBe(false); // Sydney, round the back
+    expect(facesViewer(europe, { lat: -33.9, lon: 151.2 }, 6)).toBe(true); // zoomed in, the bounds decide
   });
 });

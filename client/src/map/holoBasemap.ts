@@ -64,6 +64,16 @@ export function applyHoloBasemap(map: MapLibreMap): void {
       }
     }
   }
+  // Space around the globe, and a thin blue atmosphere on its edge that fades as you zoom in.
+  map.setSky({
+    'sky-color': '#01050b',
+    'horizon-color': '#0a3456',
+    'fog-color': '#01050b',
+    'sky-horizon-blend': 0.6,
+    'horizon-fog-blend': 0.5,
+    'fog-ground-blend': 0.5,
+    'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0],
+  });
   const water = style.layers.find((l) => l.id === 'water' && l.type === 'fill') as
     | (LayerSpecification & { source: string; 'source-layer'?: string })
     | undefined;

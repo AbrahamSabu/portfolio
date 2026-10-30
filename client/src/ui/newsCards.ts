@@ -1,6 +1,7 @@
 import type { NewsItem } from '@watchfloor/shared';
 import { Marker, Popup, type Map as MapLibreMap } from 'maplibre-gl';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
+import { facesViewer } from '../map/viewBox';
 import type { NewsSettings, NewsStore } from '../state/newsStore';
 import { NewsRotation } from '../state/newsRotation';
 import { formatAge, formatDtg, formatNewsPlace, newsSpeech } from './format';
@@ -67,6 +68,14 @@ export class NewsCards {
       else if (!this.shownId) this.advance();
       if (!settings.voice) window.speechSynthesis?.cancel();
     });
+    // The operator moved the map and the card's story went off screen or round the globe: move on.
+    map.on('moveend', () => {
+      const shown = this.shownId && this.news.get(this.shownId);
+      if (shown && !this.onScreenTest()(shown)) {
+        this.pinnedUntil = 0;
+        this.advance();
+      }
+    });
     document.addEventListener('visibilitychange', () => {
       // Back in front: put up what arrived meanwhile now, not at the next turn.
       if (!document.hidden) this.advance();
@@ -100,11 +109,18 @@ export class NewsCards {
       this.schedule(speaking ? 1_000 : DWELL_MS);
       return;
     }
-    const bounds = this.map.getBounds();
-    const story = this.rotation.next(this.news.items, this.now(), (s) => bounds.contains([s.lon, s.lat]));
+    const story = this.rotation.next(this.news.items, this.now(), this.onScreenTest());
     if (story) this.show(story);
     else this.close();
     this.schedule(DWELL_MS);
+  }
+
+  /** Inside the view, and on the side of the globe facing the viewer. */
+  private onScreenTest(): (story: NewsItem) => boolean {
+    const bounds = this.map.getBounds();
+    const { lng, lat } = this.map.getCenter();
+    const zoom = this.map.getZoom();
+    return (s) => bounds.contains([s.lon, s.lat]) && facesViewer({ lat, lon: lng }, s, zoom);
   }
 
   private show(story: NewsItem): void {

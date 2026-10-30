@@ -1,3 +1,5 @@
+import { distanceM } from '@watchfloor/shared';
+
 /**
  * "Is this position near enough the screen to be worth drawing?"
  *
@@ -49,4 +51,17 @@ export function viewForServer(screen: ViewBox, margin = 0.2): ViewBox {
   const padded = padViewBox(screen, margin);
   if (padded.east - padded.west >= 360) return { ...padded, west: -180, east: 180 };
   return padded;
+}
+
+/** An arc a bit short of a quarter of the Earth: the edge of the globe's visible side, less a margin. */
+const VISIBLE_ARC_M = (80 / 360) * 2 * Math.PI * 6_371_000;
+
+/**
+ * Whether a place is on the side of the globe facing the viewer. Zoomed out,
+ * the map is a sphere and its bounds can take in places round the back; a
+ * card popped up there would point at nothing. Zoomed in, the visible side
+ * is the bounds, so this always holds.
+ */
+export function facesViewer(center: { lat: number; lon: number }, place: { lat: number; lon: number }, zoom: number): boolean {
+  return zoom >= 5 || distanceM(center, place) < VISIBLE_ARC_M;
 }
