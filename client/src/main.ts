@@ -136,7 +136,7 @@ async function main(): Promise<void> {
   showBriefingToggle();
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
-  const showNewsToggle = () => newsToggle.setAttribute('aria-pressed', String(newsSettings.shown));
+  const showNewsToggle = () => newsToggle.setAttribute('aria-checked', String(newsSettings.shown));
   newsSettings.subscribe(showNewsToggle);
   showNewsToggle();
 

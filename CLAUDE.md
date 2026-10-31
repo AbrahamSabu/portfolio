@@ -524,7 +524,7 @@ that could have been fetched before they arrived.
     `ui/newsTicker.ts` (above the status bar, `--ticker-h`, 0 under
     `.app.news-off`; two copies of the newest 30 scroll at 55 px/s, new
     stories join at `animationiteration`; reduced motion steps every 8 s).
-    N key and the top bar diamond toggle news.
+    N key and the top bar News switch (role=switch, aria-checked; the bare diamond it replaced wasn't recognised as a toggle) turn news on and off.
   - Briefing (`ui/briefingPanel.ts`, `state/briefing.ts`, pure): top 8 of the
     last 6 h, right side, open by default from 900 px wide (`StoredToggle`
     `watchfloor.briefing`; ×, B key, top bar list button). Hidden while a

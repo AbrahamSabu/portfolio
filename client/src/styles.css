@@ -914,6 +914,65 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   padding: 0;
 }
 
+/*
+ * News on or off, as a switch with a word on it: the bare diamond it
+ * replaced wasn't recognised as a toggle. The thumb slides right and
+ * lights when news is on.
+ */
+.news-switch {
+  gap: 7px;
+  padding: 0 7px 0 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.news-switch-track {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: rgb(63 182 255 / 0.06);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.news-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.news-switch[aria-checked='true'] .news-switch-track {
+  border-color: var(--hud-glow);
+  background: rgb(63 182 255 / 0.22);
+}
+
+.news-switch[aria-checked='true'] .news-switch-thumb {
+  transform: translateX(12px);
+  background: var(--hud-bright);
+  box-shadow: 0 0 6px var(--hud-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-switch-track,
+  .news-switch-thumb {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .news-switch-label {
+    display: none;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

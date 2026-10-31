@@ -54,9 +54,10 @@
           </div>
         </div>
         <div class="topbar-end">
-          <button class="topbar-button topbar-icon" id="news-toggle" type="button" aria-pressed="true" title="News (N)">
+          <button class="topbar-button news-switch" id="news-toggle" type="button" role="switch" aria-checked="true" title="News on the map, ticker and briefing (N)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z" /></svg>
-            <span class="visually-hidden">News</span>
+            <span class="news-switch-label">News</span>
+            <span class="news-switch-track" aria-hidden="true"><span class="news-switch-thumb"></span></span>
           </button>
           <button class="topbar-button topbar-icon" id="briefing-toggle" type="button" aria-pressed="true" aria-controls="briefing" title="Briefing (B)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h1M6 4h7.5M2.5 8h1M6 8h7.5M2.5 12h1M6 12h7.5" /></svg>
