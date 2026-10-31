@@ -54,6 +54,9 @@ export interface GdeltEvent {
   /** Actor type codes (GOV, MIL, REB...) of both actors. */
   actorTypes: string[];
   mentions: number;
+  /** Distinct sources and articles reporting the event in its batch: how widely it's covered. */
+  sources: number;
+  articles: number;
   /** 1 country, 2 US state, 3 US city, 4 world city, 5 world state. */
   geoType: number;
   /** FIPS 10-4, as GDELT codes countries. */
@@ -65,7 +68,7 @@ export interface GdeltEvent {
 }
 
 // Column positions in the export file (GDELT Event Codebook V2.0).
-const E = { id: 0, a1Types: [12, 13, 14], a2Types: [22, 23, 24], isRoot: 25, mentions: 31, geoType: 51, place: 52, geoCountry: 53, lat: 56, lon: 57, url: 60 } as const;
+const E = { id: 0, a1Types: [12, 13, 14], a2Types: [22, 23, 24], isRoot: 25, mentions: 31, sources: 32, articles: 33, geoType: 51, place: 52, geoCountry: 53, lat: 56, lon: 57, url: 60 } as const;
 
 /** Root events with a place: the ones a story's headline is about. */
 export function parseEvents(tsv: string): GdeltEvent[] {
@@ -82,6 +85,8 @@ export function parseEvents(tsv: string): GdeltEvent[] {
       id: c[E.id]!,
       actorTypes: [...E.a1Types, ...E.a2Types].map((i) => c[i]!).filter(Boolean),
       mentions: Number(c[E.mentions]) || 0,
+      sources: Number(c[E.sources]) || 0,
+      articles: Number(c[E.articles]) || 0,
       geoType,
       geoCountry: c[E.geoCountry]!,
       place: c[E.place]!,
@@ -292,6 +297,18 @@ export interface Story extends NewsItem {
 }
 
 /**
+ * How much a story matters, for the briefing's top stories: how widely its
+ * event is covered (sources, articles, the same headline on other sites),
+ * on a log scale so one huge story can't drown the rest, plus how political
+ * the article is. Measured on real batches: most stories score 10-25, wide
+ * ones 30-50.
+ */
+export function importanceOf(score: number, sources: number, articles: number, copies: number): number {
+  const coverage = 6 * Math.log2(1 + Math.max(0, sources)) + 3 * Math.log2(1 + Math.max(0, articles)) + 6 * Math.log2(Math.max(1, copies));
+  return Math.round(Math.min(score, 30) / 2 + coverage);
+}
+
+/**
  * The batch's political stories, one per article, most political first. An
  * article needs a real headline (four words or more), a political score, and
  * at least one event with a political actor (a government, a military, rebels...).
@@ -307,6 +324,12 @@ export function selectStories(events: readonly GdeltEvent[], articles: ReadonlyM
   const stories: Story[] = [];
   const headlines = new Set<string>();
   const countries = countryNames(events);
+  // The same wire story on several sites counts once on the map, and as coverage.
+  const copies = new Map<string, number>();
+  for (const url of byUrl.keys()) {
+    const key = headlineKey(cleanHeadline(articles.get(url)!.title, outletOf(url) ?? ''));
+    copies.set(key, (copies.get(key) ?? 0) + 1);
+  }
   for (const [url, list] of byUrl) {
     const article = articles.get(url)!;
     const score = politicalScore(article.themes);
@@ -317,7 +340,7 @@ export function selectStories(events: readonly GdeltEvent[], articles: ReadonlyM
     const headline = cleanHeadline(article.title, outlet);
     if (headline.split(/\s+/).length < 4 || headline.length > 300) continue;
     // The same wire story on several sites: show it once.
-    const key = headline.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    const key = headlineKey(headline);
     if (headlines.has(key)) continue;
     headlines.add(key);
     // The article's own places, else its most mentioned event's.
@@ -336,8 +359,18 @@ export function selectStories(events: readonly GdeltEvent[], articles: ReadonlyM
       place: cleanPlace(where.name),
       kind: kindOf(article.themes),
       publishedAt,
+      importance: importanceOf(
+        score,
+        Math.max(...list.map((e) => e.sources)),
+        Math.max(...list.map((e) => e.articles)),
+        copies.get(key) ?? 1,
+      ),
       score,
     });
   }
   return stories.sort((a, b) => b.score - a.score);
+}
+
+function headlineKey(headline: string): string {
+  return headline.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 }

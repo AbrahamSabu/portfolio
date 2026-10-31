@@ -126,6 +126,9 @@ describe('news messages', () => {
     expect(parseServerMessage(raw)).toEqual({ type: 'news', serverTime: 1, items: [story], replace: true });
     const bad = JSON.stringify({ type: 'news', serverTime: 1, replace: false, items: [story, { ...story, url: 'javascript:alert(1)' }, { ...story, lat: 'x' }] });
     expect(parseServerMessage(bad)).toEqual({ type: 'news', serverTime: 1, items: [story], replace: false });
+    // Importance is optional: kept when sound, dropped (not the story) when not.
+    const ranked = JSON.stringify({ type: 'news', serverTime: 1, replace: false, items: [{ ...story, importance: 31 }, { ...story, id: 'b', importance: 'high' }] });
+    expect(parseServerMessage(ranked)).toEqual({ type: 'news', serverTime: 1, items: [{ ...story, importance: 31 }, { ...story, id: 'b' }], replace: false });
     expect(parseServerMessage(JSON.stringify({ type: 'news', serverTime: 1, items: [] }))).toBeNull();
   });
 });

@@ -19,6 +19,11 @@ export interface NewsItem {
   kind: NewsKind;
   /** When GDELT published the batch it came in (ms). */
   publishedAt: number;
+  /**
+   * How much it matters (coverage plus how political; roughly 0-60), for the
+   * briefing's top stories. Optional: news saved before it existed has none.
+   */
+  importance?: number;
 }
 
 /**
@@ -54,5 +59,6 @@ export function parseNewsItem(v: unknown): NewsItem | null {
     place: n.place,
     kind: n.kind as NewsKind,
     publishedAt: n.publishedAt,
+    ...(finite(n.importance) && n.importance >= 0 && n.importance <= 1000 ? { importance: Math.round(n.importance) } : {}),
   };
 }

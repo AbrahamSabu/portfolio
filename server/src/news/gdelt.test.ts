@@ -5,6 +5,7 @@ import {
   cleanHeadline,
   cleanPlace,
   decodeEntities,
+  importanceOf,
   kindOf,
   parseArticles,
   parseEvents,
@@ -85,6 +86,29 @@ describe('selectStories (a real batch)', () => {
     const events2 = [...events, ...events.filter((e) => e.url === one.url).map((e) => ({ ...e, id: `${e.id}x`, url: copy }))];
     const again = selectStories(events2, twice, 0);
     expect(again.filter((s) => s.headline === one.headline)).toHaveLength(1);
+    // ...and the second site counts as coverage.
+    expect(again.find((s) => s.headline === one.headline)!.importance).toBeGreaterThan(one.importance!);
+  });
+
+  it('gives every story an importance', () => {
+    expect(stories.every((s) => Number.isInteger(s.importance) && s.importance! > 0)).toBe(true);
+  });
+});
+
+describe('importanceOf', () => {
+  it('grows with coverage, on a log scale', () => {
+    const base = importanceOf(20, 1, 1, 1);
+    expect(importanceOf(20, 4, 1, 1)).toBeGreaterThan(base);
+    expect(importanceOf(20, 1, 4, 1)).toBeGreaterThan(base);
+    expect(importanceOf(20, 1, 1, 3)).toBeGreaterThan(base);
+    // One more source matters to a little-covered story, hardly to a huge one.
+    expect(importanceOf(20, 2, 1, 1) - base).toBeGreaterThan(importanceOf(20, 41, 1, 1) - importanceOf(20, 40, 1, 1));
+    expect(importanceOf(20, 1000, 1000, 1)).toBeLessThan(150);
+  });
+
+  it('counts how political, but caps it, so coverage decides between political stories', () => {
+    expect(importanceOf(28, 1, 1, 1)).toBeGreaterThan(importanceOf(10, 1, 1, 1));
+    expect(importanceOf(60, 1, 1, 1)).toBe(importanceOf(30, 1, 1, 1));
   });
 });
 
