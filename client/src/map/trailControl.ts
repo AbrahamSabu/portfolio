@@ -1,68 +1,37 @@
-import type { IControl } from 'maplibre-gl';
 import type { TrailLayer, TrailMode } from './trailLayer';
 
 const NEXT: Record<TrailMode, TrailMode> = { all: 'selected', selected: 'off', off: 'all' };
 
-const LABEL: Record<TrailMode, string> = {
-  all: 'Trails: all tracks',
-  selected: 'Trails: selected track only',
-  off: 'Trails: off',
-};
-
-/** 16 px line icons, drawn in currentColor so they follow the control's text colour. */
-const ICON: Record<TrailMode, string> = {
-  all: '<path d="M2 13 6 9l3 2 5-6M2 9l4-4 3 2 5-5" opacity=".55"/><path d="M2 13 6 9l3 2 5-6"/>',
-  selected: '<path d="M2 13 6 9l3 2 5-6"/><circle cx="14" cy="5" r="1.6" fill="currentColor"/>',
-  off: '<path d="M2 13 6 9l3 2 5-6" opacity=".45"/><path d="M2 2l12 12"/>',
-};
-
 const STORAGE_KEY = 'watchfloor.trailMode';
 
 /**
- * One button under the zoom controls that cycles trails through
- * all → selected → off. The choice is remembered per browser.
+ * The trail mode (all tracks, selected only, off), shared by the T key and
+ * the Layers menu, and remembered per browser.
  */
-export class TrailControl implements IControl {
-  private container: HTMLElement | null = null;
-  private button: HTMLButtonElement | null = null;
+export class TrailSetting {
+  private readonly listeners = new Set<() => void>();
 
   constructor(private readonly trails: TrailLayer) {}
 
-  onAdd(): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'trail-toggle';
-    button.addEventListener('click', () => this.cycle());
-    container.append(button);
-    this.container = container;
-    this.button = button;
-    this.update();
-    return container;
+  get mode(): TrailMode {
+    return this.trails.mode;
   }
 
-  onRemove(): void {
-    this.container?.remove();
-    this.container = null;
-    this.button = null;
-  }
-
-  cycle(): void {
-    const mode = NEXT[this.trails.mode];
+  set(mode: TrailMode): void {
+    if (mode === this.trails.mode) return;
     this.trails.setMode(mode);
     saveTrailMode(mode);
-    this.update();
+    for (const listener of this.listeners) listener();
   }
 
-  private update(): void {
-    const button = this.button;
-    if (!button) return;
-    const mode = this.trails.mode;
-    button.title = `${LABEL[mode]} (T)`;
-    button.setAttribute('aria-label', LABEL[mode]);
-    button.dataset.mode = mode;
-    button.innerHTML = `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[mode]}</svg>`;
+  /** All → selected → off → all (the T key). */
+  cycle(): void {
+    this.set(NEXT[this.trails.mode]);
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 }
 

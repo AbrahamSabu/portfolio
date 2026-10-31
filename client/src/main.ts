@@ -14,12 +14,11 @@ import { NewsHotspots } from './map/newsHotspots';
 import { isDrawing, RegionDraw } from './map/regionDraw';
 import { RegionLayer } from './map/regionLayer';
 import { NightLayer } from './map/nightLayer';
-import { RadarControl, RadarLayer } from './map/radarLayer';
+import { RadarLayer } from './map/radarLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
-import { StyleControl } from './map/styleControl';
-import { loadTrailMode, TrailControl } from './map/trailControl';
+import { loadTrailMode, TrailSetting } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
@@ -29,7 +28,7 @@ import { loadNewsSettings, NewsSettings, NewsStore } from './state/newsStore';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
 import { SelectedDetails } from './state/selectedDetails';
 import { SelectedPath } from './state/selectedPath';
-import { loadSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
+import { loadSymbolStyle, saveSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
 import { Selection } from './state/selection';
 import { RegionStore, RegionWatch } from './state/regions';
 import { StoredToggle } from './state/storedToggle';
@@ -45,9 +44,11 @@ import { RegionControl, RegionPanel } from './ui/regionPanel';
 import { FilterPanel } from './ui/filterPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
+import { layerSections, type LayerDeps } from './ui/layerSections';
+import { LayersControl, LayersPanel } from './ui/layersMenu';
 import { NewsCards } from './ui/newsCards';
 import { NewsTicker } from './ui/newsTicker';
-import { formatDtg, trafficLabel } from './ui/format';
+import { formatDtg, formatNewsTime, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
 
@@ -119,30 +120,39 @@ async function main(): Promise<void> {
   const airports = new AirportLayer(map, airportsShown);
   // Watch areas, under the tracks too.
   const regions = new RegionStore();
-  const regionLayer = new RegionLayer(map, regions);
+  const regionsShown = new StoredToggle('watchfloor.regionsShown', true);
+  const regionLayer = new RegionLayer(map, regions, regionsShown);
 
   const layer = new TrackLayer(map, store, clock, selection, filter, style);
-  const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
-  map.addControl(trailControl, 'top-left');
+  const trails = new TrailSetting(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
+  style.subscribe(() => saveSymbolStyle(style.value));
   // After the trails, so the selected path draws above them (and below the tracks).
   const path = new SelectedPath();
   const pathLayer = new PathLayer(map, store, path);
-  map.addControl(new StyleControl(style), 'top-left');
+  // Layers: every map toggle in one labelled menu, right under the zoom buttons. Its rows are built on
+  // first opening, from settings made further down.
+  const layersPanel = new LayersPanel(el('layers-panel'), () => layerSections(layerDeps()), () => keyDialog.toggle());
+  map.addControl(new LayersControl(layersPanel), 'top-left');
+  // The layers menu, the filter and the watch areas share a place on the left: one at a time.
+  const leftPanels = () => [layersPanel, filterPanel, regionPanel];
+  const onlyThis = (panel: { open: boolean }) => {
+    if (panel.open) for (const other of leftPanels()) if (other !== panel && other.open) other.setOpen(false);
+  };
+  layersPanel.onOpenChange(() => onlyThis(layersPanel));
   const filterPanel = new FilterPanel(el('filter-panel'), filter, store, clock, () => {
     filterControl.update();
-    // The filter and the watch areas share a place on the left: one at a time.
-    if (filterPanel.open) regionPanel.setOpen(false);
+    onlyThis(filterPanel);
   });
   const filterControl = new FilterControl(filterPanel, filter);
   map.addControl(filterControl, 'top-left');
   const regionDraw = new RegionDraw(map);
   const regionWatch = new RegionWatch();
   const regionPanel = new RegionPanel(el('region-panel'), regions, regionWatch, regionDraw, regionLayer, store, selection);
-  regionPanel.onOpenChange(() => regionPanel.open && filterPanel.open && filterPanel.setOpen(false));
+  regionPanel.onOpenChange(() => onlyThis(regionPanel));
   map.addControl(new RegionControl(regionPanel), 'top-left');
-  // Weather radar, off until asked for: R or the cloud button.
+  // Weather radar, off until asked for: R or the Layers menu.
   const radarShown = new StoredToggle('watchfloor.radar', false);
-  map.addControl(new RadarControl(new RadarLayer(map, radarShown), radarShown), 'top-left');
+  const radar = new RadarLayer(map, radarShown);
   const reticle = new Reticle(map);
   new HoverCard(map, store, clock, layer, (point) => {
     const airport = airports.airportAt(point);
@@ -278,11 +288,13 @@ async function main(): Promise<void> {
       else if (airportPanel.isOpen) airportPanel.close();
       else if (countryPanel.isOpen) countryPanel.close();
       else if (regionPanel.open) regionPanel.setOpen(false);
+      else if (layersPanel.open) layersPanel.setOpen(false);
       else selection.select(null);
     }
     // Single-letter shortcuts must not fire while the operator is typing.
     if (isTyping(event) || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key === 't' || event.key === 'T') trailControl.cycle();
+    if (event.key === 't' || event.key === 'T') trails.cycle();
+    if (event.key === 'm' || event.key === 'M') layersPanel.setOpen(!layersPanel.open);
     if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
     if (event.key === 'f' || event.key === 'F') filterControl.toggle();
     if (event.key === 's' || event.key === 'S') style.toggle();
@@ -299,6 +311,24 @@ async function main(): Promise<void> {
       list.focusSearch();
     }
   });
+
+  /** What the Layers menu wires to: the same settings the keys change. */
+  function layerDeps(): LayerDeps {
+    return {
+      style,
+      trails,
+      news: newsSettings,
+      briefing: briefingOpen,
+      airports: airportsShown,
+      hazards: hazardsShown,
+      chokepoints: chokepointsShown,
+      radar: radarShown,
+      radarTime: () => (radar.frameTime ? `picture from ${formatNewsTime(radar.frameTime)}` : 'loading'),
+      regions: regionsShown,
+      drawArea: () => regionPanel.startDrawing(),
+      manageAreas: () => regionPanel.setOpen(true),
+    };
+  }
 
   // Top bar clock, in server time.
   const dtg = el('dtg');

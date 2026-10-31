@@ -1,6 +1,5 @@
-import type { IControl, Map as MapLibreMap, RasterTileSource } from 'maplibre-gl';
+import type { Map as MapLibreMap, RasterTileSource } from 'maplibre-gl';
 import type { StoredToggle } from '../state/storedToggle';
-import { formatNewsTime } from '../ui/format';
 
 const FRAMES_URL = 'https://api.rainviewer.com/public/weather-maps.json';
 const SOURCE = 'radar';
@@ -46,7 +45,7 @@ export function latestRadarFrame(body: unknown): RadarFrame | null {
  * colours: their blue-green-yellow-red scale would read as identity
  * colours on a map where colour means friend or foe; the terms allow
  * recolouring. Under the basemap's labels and everything of ours. Off by
- * default: R or the cloud button.
+ * default: R or the Layers menu.
  */
 export class RadarLayer {
   private frame: RadarFrame | null = null;
@@ -73,7 +72,7 @@ export class RadarLayer {
     this.apply();
   }
 
-  /** The time of the frame on the map, for the button's title. */
+  /** The time of the frame on the map, for the Layers menu. */
   get frameTime(): number | null {
     return this.frame?.time ?? null;
   }
@@ -127,46 +126,5 @@ export class RadarLayer {
       },
       firstSymbol,
     );
-  }
-}
-
-/** A cloud button under the watch-area one: radar on or off (R). */
-export class RadarControl implements IControl {
-  private button: HTMLButtonElement | null = null;
-
-  constructor(
-    private readonly radar: RadarLayer,
-    private readonly shown: StoredToggle,
-  ) {
-    radar.onChange(() => this.update());
-  }
-
-  onAdd(): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.innerHTML =
-      '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 10.5a2.7 2.7 0 0 1 .3-5.4 3.6 3.6 0 0 1 6.9 1.1 2.2 2.2 0 0 1-.2 4.3z"/><path d="M6 12.5l-.6 1.2M9 12.5l-.6 1.2"/></svg>';
-    button.addEventListener('click', () => this.shown.toggle());
-    container.append(button);
-    this.button = button;
-    this.update();
-    return container;
-  }
-
-  onRemove(): void {
-    this.button?.parentElement?.remove();
-    this.button = null;
-  }
-
-  private update(): void {
-    const button = this.button;
-    if (!button) return;
-    const time = this.radar.frameTime;
-    const label = this.shown.value ? `Weather radar${time ? `, ${formatNewsTime(time)}` : ''}` : 'Weather radar (off)';
-    button.title = `${label} (R)`;
-    button.setAttribute('aria-label', label);
-    button.setAttribute('aria-pressed', String(this.shown.value));
   }
 }

@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (488 tests after weather radar).
+- `npm test`: Vitest from the root config (490 tests after the Layers menu).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -35,7 +35,7 @@ that could have been fetched before they arrived.
   `readsb/` (adsb.lol and adsb.fi), `ais/`, shared `adsb/category.ts` and `backoff.ts`) and
   `scenarios/`.
 - `client/`: Vite, MapLibre GL JS v6 and milsymbol v3 in plain TypeScript, with no
-  UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl, symbols,
+  UI framework. `map/` (createMap, trackLayer, trailLayer, trailControl (TrailSetting), symbols,
   reticle), `net/connection`, `state/` (trackStore, trackQuery, clock, selection)
   and `ui/` (trackList, detailsPanel, statusBar, format).
 
@@ -123,8 +123,8 @@ that could have been fetched before they arrived.
     (vehicle shapes, `map/shapes.ts`), `lbl:<callsign>` (`map/labels.ts`) and
     `news:<kind>` (`map/newsIcons.ts`).
   - SymbolStyle (`state/symbolStyle.ts`, localStorage `watchfloor.symbolStyle`):
-    'shapes' (default) or 'tactical'; StyleControl button under the trail
-    toggle and the S key. Shapes: 15 top-down outlines on a 64-unit square,
+    'shapes' (default) or 'tactical'; the Layers menu and the S key (saved
+    by a subscription in main.ts). Shapes: 15 top-down outlines on a 64-unit square,
     nose north, rotated by `icon-rotate` = course (`icon-rotation-alignment: map`),
     sized by a `scale` feature property (`shapeFor`: per platform, 1.0 for
     wide-bodies by ICAO type code). Fill = identity colour, detail lines in
@@ -137,8 +137,8 @@ that could have been fetched before they arrived.
   - Identity colours live in `map/colors.ts`.
   - TrailLayer rebuilds trail lines only on store or selection change. A separate
     "heads" source joins the last report to the symbol at 10 Hz. Its mode
-    (all, selected or off) is cycled by TrailControl or the T key and saved in
-    localStorage.
+    (all, selected or off) is held by `TrailSetting` (map/trailControl.ts),
+    set from the Layers menu or cycled by the T key, and saved in localStorage.
   - PictureFilter (`state/pictureFilter.ts`): hidden vehicle types
     (grouped by `PLATFORMS_BY_DOMAIN`), hidden sources (provider, or `sim`)
     and `showStale`; saved in localStorage (`watchfloor.filter`, parsed
@@ -146,7 +146,7 @@ that could have been fetched before they arrived.
     TrackLayer (selected track always drawn), TrailLayer, TrackList (its
     domain buttons and search narrow further) and StatusBar (counts are of
     shown tracks, plus "N filtered out"). FilterControl (funnel under the
-    trail toggle, dot when active, F key; Escape closes it first) opens
+    Layers button, dot when active, F key; Escape closes it first) opens
     FilterPanel (`ui/filterPanel.ts`: rows built once, counts of the whole
     picture refreshed 1/s while open). Without the aircraft database ~90%
     of world aircraft are OpenSky's uncategorised 'aircraft'; with it 91 of
@@ -420,6 +420,19 @@ that could have been fetched before they arrived.
   Czechia / Czech Republic). Shares the briefing's frame; opening it closes
   the airport panel and vice versa; Escape closes. Click priority: track,
   then airport, then country label.
+- Layers menu (`ui/layersMenu.ts` LayersPanel + LayersControl, rows in
+  `ui/layerSections.ts`; M key or the stacked-sheets button under zoom):
+  every map toggle with a label, a one-line hint and its key (symbols,
+  trails, news, briefing, read aloud, airports, hazards, chokepoints, radar,
+  watch-area visibility `watchfloor.regionsShown`, draw / manage areas).
+  Rows read and write the same settings objects as the keys and subscribe
+  to them, so menu and keys never disagree; rows are built on first opening
+  (the settings are created further down main.ts than the button must be
+  added). The trail, symbol and radar buttons were folded into it (the user
+  found the controls hard to use); the left column is zoom, Layers, Filter,
+  Watch areas. The menu, filter and watch-area panels share the left side,
+  one at a time (`onlyThis` in main.ts). A test keeps the menu's keys unique
+  and all listed in the map key's `SHORTCUTS`.
 - Watch areas (roadmap 4; browser only, `localStorage` `watchfloor.regions`,
   max 20): `state/regions.ts` (pure: `insideRing` ray casting, 0-360° when a
   ring spans > 180° of longitude; `unwrapRing` for drawing; `RegionWatch`;
@@ -447,7 +460,7 @@ that could have been fetched before they arrived.
   beyond), 100 requests/IP/min (10 tiles per globe view measured). **Drawn
   greyscale** (`raster-saturation: -1`, opacity 0.55): RainViewer's
   blue-green-yellow-red would read as identity colours; terms allow
-  recolouring. Under basemap labels. Off by default; R / cloud button /
+  recolouring. Under basemap labels. Off by default; R / Layers menu /
   `watchfloor.radar`; the frame list is fetched only while shown, every 10
   min. Not animated (13x the tiles). Credit via source attribution.
 - Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):

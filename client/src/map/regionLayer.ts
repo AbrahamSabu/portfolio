@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, Polygon } from 'geojson';
 import { Marker, type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
 import { unwrapRing, type Region, type RegionStore } from '../state/regions';
+import type { StoredToggle } from '../state/storedToggle';
 
 const SOURCE = 'regions';
 const FILL = 'region-fill';
@@ -17,10 +18,22 @@ export class RegionLayer {
   constructor(
     private readonly map: MapLibreMap,
     private readonly regions: RegionStore,
+    private readonly shown: StoredToggle,
   ) {
     map.on('style.load', () => this.install());
     if (map.isStyleLoaded()) this.install();
     regions.subscribe(() => this.render());
+    shown.subscribe(() => this.applyVisibility());
+  }
+
+  /** Hidden areas still watch: this only takes them off the map. */
+  private applyVisibility(): void {
+    const visibility = this.shown.value ? 'visible' : 'none';
+    for (const layer of [FILL, LINE]) if (this.map.getLayer(layer)) this.map.setLayoutProperty(layer, 'visibility', visibility);
+    for (const { marker } of this.tags.values()) {
+      if (this.shown.value) marker.addTo(this.map);
+      else marker.remove();
+    }
   }
 
   /** Fit an area on screen. */
@@ -48,6 +61,7 @@ export class RegionLayer {
       map.addLayer({ id: LINE, type: 'line', source: SOURCE, paint: { 'line-color': 'rgba(168, 230, 255, 0.75)', 'line-width': 1.3, 'line-dasharray': [4, 3] } });
     }
     this.render();
+    this.applyVisibility();
   }
 
   private render(): void {
@@ -86,7 +100,8 @@ export class RegionLayer {
       // Above the area's northernmost corner, where a tag doesn't cover what's inside.
       const ring = unwrapRing(region.ring);
       const top = ring.reduce((best, p) => (p[1] > best[1] ? p : best), ring[0]!);
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, -4], opacityWhenCovered: '0' }).setLngLat(top).addTo(this.map);
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, -4], opacityWhenCovered: '0' }).setLngLat(top);
+      if (this.shown.value) marker.addTo(this.map);
       this.tags.set(region.id, { marker, count });
     }
   }

@@ -24,6 +24,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Raises an alert when an aircraft squawks an emergency code (7500 unlawful interference, 7600 radio failure, 7700 emergency): a card naming the aircraft and an amber ring on the map, once a second report confirms the code
 - Shows earthquakes (USGS, magnitude 2.5 and up, the past day) and current disasters from GDACS (cyclones, floods, volcanoes, droughts, wildfires), sized by strength or alert level, with a card per event and an alert when a strong one appears (H to show or hide)
 - Gives a briefing on any country when you click its name: the day's news placed there, how many of its aircraft and ships are on the map (by registration and flag), and earthquakes or disasters that name it
+- Gathers every map toggle in one Layers menu (M), each with a line saying what it shows and its key
 - Shows weather radar (R): the latest rain and snow picture from RainViewer, in grey so it never reads as an identity colour
 - Watches areas you draw (W): an alert when an aircraft or ship crosses in or out (aircraft, ships or both, military only if you like), a live count inside, and an activity log; kept in your browser, alerting while the page is open
 - Counts the ships in eight shipping chokepoints (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) and how many are under way, as tags on the map (C to show or hide); free AIS coverage is mostly European, so some counts are thin, and the key says so

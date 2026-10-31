@@ -11,7 +11,8 @@ const EXAMPLES: Platform[] = [
   'airliner', 'business-jet', 'light-aircraft', 'helicopter', 'military-aircraft', 'uav',
   'cargo', 'tanker', 'passenger', 'fishing', 'leisure', 'warship',
 ];
-const SHORTCUTS: Array<[keys: string, action: string]> = [
+export const SHORTCUTS: Array<[keys: string, action: string]> = [
+  ['M', 'Layers: everything the map can show, in one menu'],
   ['L', 'Open or close the track list'],
   ['/', 'Search the track list'],
   ['F', 'Open or close the filter'],
@@ -64,9 +65,9 @@ export class KeyDialog {
 
 const STYLE_NOTE: Record<SymbolStyle, string> = {
   shapes:
-    'Each vehicle is drawn from above, pointing where it is heading, and roughly to size: a wide-body is bigger than a Cessna. For MIL-STD-2525C military symbols, press <kbd>S</kbd> or the button under the trails toggle.',
+    'Each vehicle is drawn from above, pointing where it is heading, and roughly to size: a wide-body is bigger than a Cessna. For MIL-STD-2525C military symbols, press <kbd>S</kbd> or use the Layers menu (<kbd>M</kbd>).',
   tactical:
-    "MIL-STD-2525C. The frame's shape says air or sea; the icon inside says what kind. For vehicle shapes, press <kbd>S</kbd> or the button under the trails toggle.",
+    "MIL-STD-2525C. The frame's shape says air or sea; the icon inside says what kind. For vehicle shapes, press <kbd>S</kbd> or use the Layers menu (<kbd>M</kbd>).",
 };
 
 function content(style: SymbolStyle): string {
@@ -109,11 +110,11 @@ function content(style: SymbolStyle): string {
     </section>
     <section>
       <h3>Weather radar</h3>
-      <p>Rain and snow from <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> (free for personal use), the latest 10-minute picture, in grey so it never reads as an identity colour: the brighter, the heavier. Its detail stops at zoom 7, so closer in it is stretched. Coverage is where weather radars are: mostly North America, Europe, East Asia and Australia. Press <kbd>R</kbd> or the cloud button.</p>
+      <p>Rain and snow from <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> (free for personal use), the latest 10-minute picture, in grey so it never reads as an identity colour: the brighter, the heavier. Its detail stops at zoom 7, so closer in it is stretched. Coverage is where weather radars are: mostly North America, Europe, East Asia and Australia. Press <kbd>R</kbd> or use the Layers menu (<kbd>M</kbd>).</p>
     </section>
     <section>
       <h3>Watch areas</h3>
-      <p>Press <kbd>W</kbd> (or the dashed-shape button on the left) and click out an area; name it and choose aircraft, ships or both, military only if you like. An alert says when one crosses in or out (two reports outside count as leaving, so one jumpy position doesn't), and each area counts the tracks that leave the picture inside it (landed, out of receiver range or switched off). Anything already inside when you open the page is counted, not alerted. Areas are kept in this browser, and alerts happen only while the page is open.</p>
+      <p>Press <kbd>W</kbd> (or the Layers menu, or the dashed-shape button on the left) and click out an area; name it and choose aircraft, ships or both, military only if you like. An alert says when one crosses in or out (two reports outside count as leaving, so one jumpy position doesn't), and each area counts the tracks that leave the picture inside it (landed, out of receiver range or switched off). Anything already inside when you open the page is counted, not alerted. Areas are kept in this browser, and alerts happen only while the page is open.</p>
     </section>
     <section>
       <h3>Countries</h3>
