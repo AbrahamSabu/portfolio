@@ -22,6 +22,8 @@
 .filter-panel,
 .hover-card,
 .key-dialog,
+.palette,
+.tour-banner,
 .news-popup .maplibregl-popup-content {
   --bracket: 14px;
   background-color: var(--surface);

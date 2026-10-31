@@ -5,6 +5,7 @@ import './hud.css';
 import { AirportLayer } from './map/airportLayer';
 import { describeAirport } from './map/airports';
 import { ChokepointLayer } from './map/chokepointLayer';
+import { fly } from './map/camera';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
@@ -23,7 +24,9 @@ import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
+import { chokepointCounts } from './state/chokepoints';
 import { HazardStore } from './state/hazards';
+import { tourStops } from './state/tourStops';
 import { loadNewsSettings, NewsSettings, NewsStore } from './state/newsStore';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
 import { SelectedDetails } from './state/selectedDetails';
@@ -34,6 +37,7 @@ import { RegionStore, RegionWatch } from './state/regions';
 import { StoredToggle } from './state/storedToggle';
 import { TrackStore } from './state/trackStore';
 import { AirportPanel } from './ui/airportPanel';
+import { AlertSound } from './ui/alertSound';
 import { BriefingPanel } from './ui/briefingPanel';
 import { CountryPanel } from './ui/countryPanel';
 import { DetailsPanel } from './ui/detailsPanel';
@@ -48,6 +52,8 @@ import { layerSections, type LayerDeps } from './ui/layerSections';
 import { LayersControl, LayersPanel } from './ui/layersMenu';
 import { NewsCards } from './ui/newsCards';
 import { NewsTicker } from './ui/newsTicker';
+import { Palette } from './ui/palette';
+import { Tour } from './ui/tour';
 import { formatDtg, formatNewsTime, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
@@ -207,9 +213,12 @@ async function main(): Promise<void> {
     map.on('mouseenter', label, () => (map.getCanvas().style.cursor = 'pointer'));
     map.on('mouseleave', label, () => (map.getCanvas().style.cursor = ''));
   }
-  new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement);
+  // The alert ping is off by default; its switch is in the Layers menu.
+  const soundOn = new StoredToggle('watchfloor.sound', false);
+  const sound = new AlertSound(soundOn);
+  const emergencyAlerts = new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement, () => sound.ping());
   // Watch areas: who crossed in or out, checked each second.
-  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings);
+  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings, () => sound.ping());
   window.setInterval(() => {
     // Mid-reconnect the store is empty: that's not every track leaving at once.
     if (store.size === 0) return;
@@ -221,6 +230,51 @@ async function main(): Promise<void> {
     regionPanel.refreshCounts();
   }, 1_000);
   new HazardAlerts(el('alerts-hazard'), map, hazards, hazardsShown, newsSettings, (id) => hazardLayer.open(id));
+
+  // The search palette: everything with a place on the map, one box, camera there.
+  const palette = new Palette(
+    el('palette'),
+    () => ({ tracks: store.all(), airports: airports.all, areas: regions.regions }),
+    (match) => {
+      switch (match.kind) {
+        case 'track': {
+          const track = match.track;
+          selection.select(track.id);
+          const pos = layer.positionOf(track.id) ?? { lon: track.lon, lat: track.lat };
+          fly(map, { center: [pos.lon, pos.lat], zoom: Math.max(map.getZoom(), 7) });
+          break;
+        }
+        case 'airport': {
+          const airport = match.airport;
+          countryPanel.close();
+          airportPanel.open(airport);
+          fly(map, { center: [airport.lon, airport.lat], zoom: Math.max(map.getZoom(), 9) });
+          break;
+        }
+        case 'chokepoint': {
+          const { south, west, north, east } = match.chokepoint.box;
+          map.fitBounds([[west, south], [east, north]], { padding: 80, maxZoom: 10, duration: 900 });
+          break;
+        }
+        case 'area':
+          regionLayer.show(match.area);
+          break;
+      }
+    },
+  );
+
+  // The cinematic tour: the camera rides between what's happening until any input stops it.
+  const tour = new Tour(map, el('tour'), () => {
+    const now = clock.now();
+    return tourStops({
+      emergencies: emergencyAlerts.active,
+      trackOf: (id) => store.get(id),
+      hazards: hazards.items,
+      news: news.items,
+      shipsIn: chokepointCounts(store.all(), (t) => store.status(t, now) === 'live'),
+      now,
+    });
+  });
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
   const showNewsToggle = () => newsToggle.setAttribute('aria-checked', String(newsSettings.shown));
@@ -282,9 +336,21 @@ async function main(): Promise<void> {
   document.addEventListener('keydown', (event) => {
     // The key is a modal dialog: it handles its own Escape, and nothing behind it should react.
     if (keyDialog.open) return;
+    // Any key hands the camera back from the tour, and does nothing else.
+    if (tour.active) {
+      tour.stop();
+      return;
+    }
+    // Ctrl K reaches the search even from inside an input box.
+    if ((event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K')) {
+      event.preventDefault();
+      palette.setOpen(true);
+      return;
+    }
     if (event.key === 'Escape') {
       // Close the filter first if it's open, then an airport or country; a further Escape clears the selection.
-      if (filterPanel.open) filterPanel.setOpen(false);
+      if (palette.open) palette.setOpen(false);
+      else if (filterPanel.open) filterPanel.setOpen(false);
       else if (airportPanel.isOpen) airportPanel.close();
       else if (countryPanel.isOpen) countryPanel.close();
       else if (regionPanel.open) regionPanel.setOpen(false);
@@ -305,10 +371,11 @@ async function main(): Promise<void> {
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
+    if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
-      list.focusSearch();
+      palette.setOpen(true);
     }
   });
 
@@ -327,6 +394,9 @@ async function main(): Promise<void> {
       regions: regionsShown,
       drawArea: () => regionPanel.startDrawing(),
       manageAreas: () => regionPanel.setOpen(true),
+      sound: soundOn,
+      search: () => palette.setOpen(true),
+      tour: () => tour.start(),
     };
   }
 

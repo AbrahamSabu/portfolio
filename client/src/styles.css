@@ -2754,3 +2754,159 @@ button.layers-switch:focus-visible,
 button.layers-switch .news-switch-track {
   display: block;
 }
+
+/* ---------- Search palette (/ or Ctrl K) ---------- */
+
+.palette-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(12vh, var(--topbar-h) + 24px) 16px 0;
+  background: rgb(2 8 16 / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.palette {
+  width: min(540px, 100%);
+  padding: 10px;
+  border: 1px solid var(--rule);
+}
+
+.palette-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: 500 var(--text-lg) / 1.3 var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.palette-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.palette-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+}
+
+.palette-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'title kind' 'detail kind';
+  align-items: center;
+  column-gap: 10px;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  cursor: pointer;
+}
+
+.palette-row:last-child {
+  border-bottom: 0;
+}
+
+.palette-row:hover {
+  background: rgb(63 182 255 / 0.1);
+}
+
+/* The chosen row carries the accent, like any selection. */
+.palette-active {
+  background: rgb(201 160 255 / 0.14);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.palette-title {
+  grid-area: title;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-detail {
+  grid-area: detail;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-detail:empty {
+  display: none;
+}
+
+.palette-kind {
+  grid-area: kind;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  color: var(--hud-bright);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- Cinematic tour ---------- */
+
+/* Bottom centre, clear of the alert stack the tour may be visiting. */
+.tour-banner {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+}
+
+.tour-tag {
+  padding: 1px 8px;
+  border: 1px solid var(--hud);
+  color: var(--hud-bright);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--hud-glow);
+  animation: tour-breathe 2.4s ease-in-out infinite;
+}
+
+.tour-title {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes tour-breathe {
+  50% {
+    text-shadow: 0 0 14px var(--hud-glow), 0 0 3px var(--hud-glow);
+    opacity: 0.75;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-tag {
+    animation: none;
+  }
+}

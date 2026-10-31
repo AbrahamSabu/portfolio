@@ -22,6 +22,9 @@ export interface LayerDeps {
   regions: Toggle;
   drawArea: () => void;
   manageAreas: () => void;
+  sound: Toggle;
+  search: () => void;
+  tour: () => void;
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -109,6 +112,8 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         toggle('Earthquakes and disasters', 'USGS and GDACS', 'H', d.hazards),
         toggle('Shipping chokepoints', 'Ships at eight narrows', 'C', d.chokepoints),
         toggle('Weather radar', 'RainViewer, in grey', 'R', d.radar, d.radarTime),
+        { kind: 'action', label: 'Search the map', key: '/', run: d.search },
+        { kind: 'action', label: 'Cinematic tour', key: 'G', run: d.tour },
       ],
     },
     {
@@ -118,6 +123,10 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         { kind: 'action', label: 'Draw a new area', key: 'W', run: d.drawArea },
         { kind: 'action', label: 'Manage areas and activity', run: d.manageAreas },
       ],
+    },
+    {
+      title: 'Alerts',
+      rows: [toggle('Sound', 'A short ping for squawks and area alerts', undefined, d.sound)],
     },
   ];
 }

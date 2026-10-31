@@ -24,6 +24,7 @@ export class RegionAlerts {
     private readonly store: TrackStore,
     private readonly selection: Selection,
     private readonly voice: NewsSettings,
+    private readonly ping: () => void = () => {},
   ) {
     root.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-id]');
@@ -40,6 +41,7 @@ export class RegionAlerts {
       if ((event.type === 'enter' && !region.onEnter) || (event.type === 'exit' && !region.onExit) || event.type === 'lost') continue;
       const name = event.callsign ?? 'No name';
       this.root.prepend(this.card(event, region.name, name, PLATFORM_LABEL[event.platform]));
+      this.ping();
       if (this.voice.voice) speak(`${name} ${event.type === 'enter' ? 'entered' : 'left'} ${region.name}.`);
     }
     while (this.root.children.length > MAX_CARDS) this.root.lastElementChild?.remove();

@@ -40,6 +40,11 @@ export class AirportLayer {
   }
 
   /** The airport under a point (within a few pixels: the icons are small), if one is drawn there. */
+  /** Every airport, once loaded; empty until then. The search palette reads it. */
+  get all(): readonly Airport[] {
+    return this.airports;
+  }
+
   airportAt(point: { x: number; y: number }): Airport | undefined {
     const layers = ICON_LAYERS.filter((layer) => this.map.getLayer(layer));
     if (!this.shown.value || layers.length === 0) return undefined;

@@ -25,6 +25,9 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Shows earthquakes (USGS, magnitude 2.5 and up, the past day) and current disasters from GDACS (cyclones, floods, volcanoes, droughts, wildfires), sized by strength or alert level, with a card per event and an alert when a strong one appears (H to show or hide)
 - Gives a briefing on any country when you click its name: the day's news placed there, how many of its aircraft and ships are on the map (by registration and flag), and earthquakes or disasters that name it
 - Gathers every map toggle in one Layers menu (M), each with a line saying what it shows and its key
+- Finds anything with a place in one search (`/` or Ctrl K): tracks by callsign, squawk, type or model, airports by code or name, chokepoints and your watch areas — and flies the camera there in one cinematic arc, the same move every alert and briefing pick uses
+- Gives a cinematic tour (G): the camera rides between whatever is happening — emergency squawks first, then fresh disasters, the top stories and the busiest chokepoints — until any key or touch hands control back
+- Can ping on an alert: a short synthesised two-note sound for squawks and watch-area crossings, off by default (the Layers menu's Alerts section)
 - Shows weather radar (R): the latest rain and snow picture from RainViewer, in grey so it never reads as an identity colour
 - Watches areas you draw (W): an alert when an aircraft or ship crosses in or out (aircraft, ships or both, military only if you like), a live count inside, and an activity log; kept in your browser, alerting while the page is open
 - Counts the ships in eight shipping chokepoints (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) and how many are under way, as tags on the map (C to show or hide); free AIS coverage is mostly European, so some counts are thin, and the key says so

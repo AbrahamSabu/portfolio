@@ -14,7 +14,8 @@ const EXAMPLES: Platform[] = [
 export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['M', 'Layers: everything the map can show, in one menu'],
   ['L', 'Open or close the track list'],
-  ['/', 'Search the track list'],
+  ['/', 'Search tracks, airports, chokepoints and areas'],
+  ['G', 'Cinematic tour of what is happening'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['S', 'Vehicle shapes or military symbols'],

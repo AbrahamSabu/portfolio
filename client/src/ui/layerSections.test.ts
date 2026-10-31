@@ -30,6 +30,9 @@ function deps(): LayerDeps {
     regions: toggle(true),
     drawArea: () => {},
     manageAreas: () => {},
+    sound: toggle(),
+    search: () => {},
+    tour: () => {},
   };
 }
 
@@ -39,7 +42,7 @@ describe('the Layers menu', () => {
     expect(new Set(keys).size).toBe(keys.length);
     const listed = new Set(SHORTCUTS.map(([k]) => k));
     expect(keys.filter((k) => !listed.has(k))).toEqual([]);
-    expect(keys).toEqual(['S', 'T', 'N', 'B', 'A', 'H', 'C', 'R', 'W']);
+    expect(keys).toEqual(['S', 'T', 'N', 'B', 'A', 'H', 'C', 'R', '/', 'G', 'W']);
   });
 
   it('turns news on when the briefing is asked for with news off', () => {

@@ -433,6 +433,24 @@ that could have been fetched before they arrived.
   Watch areas. The menu, filter and watch-area panels share the left side,
   one at a time (`onlyThis` in main.ts). A test keeps the menu's keys unique
   and all listed in the map key's `SHORTCUTS`.
+- Camera, search and tour (Oct 2026): `map/camera.ts` `fly()` is the one
+  cinematic move (flyTo arc, jumpTo under reduced motion) used by alert
+  Show buttons, briefing picks, the palette and the tour — don't add new
+  bare `easeTo` jumps. Search palette (`/` or Ctrl K — `/` used to focus
+  the track list's search): `state/paletteSearch.ts` (pure scoring: codes
+  beat names, prefixes beat substrings; tracks by callsign/squawk/type/
+  model, airports, chokepoints, watch areas) + `ui/palette.ts` (modal; its
+  input stops propagation of Escape/arrows/Enter so the global keys don't
+  double-handle); AirportLayer gained `get all`. Cinematic tour (G or the
+  Layers menu): `state/tourStops.ts` (pure: emergencies → significant
+  hazards → briefing stories → busiest chokepoints, rebuilt each stop) +
+  `ui/tour.ts` (dwell starts on `moveend`, safety timer in case a flight
+  never lands; ANY key stops it — handled at the top of main.ts's keydown —
+  and any pointerdown/wheel on `document`, capture phase). EmergencyAlerts
+  exposes `get active` for the tour. Alert ping: `ui/alertSound.ts`
+  (WebAudio two-note, synthesised, try/catch), `watchfloor.sound` off by
+  default, Layers menu "Alerts" section; EmergencyAlerts/RegionAlerts take
+  an optional `ping` callback.
 - Watch areas (roadmap 4; browser only, `localStorage` `watchfloor.regions`,
   max 20): `state/regions.ts` (pure: `insideRing` ray casting, 0-360° when a
   ring spans > 180° of longitude; `unwrapRing` for drawing; `RegionWatch`;
