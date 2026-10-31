@@ -51,7 +51,9 @@ Open http://localhost:5173. The server runs on port 8080 and Vite proxies the We
 
 With the server running, `http://localhost:8080/?screensaver` turns the page
 into a self-driving display: the cinematic tour starts as soon as the picture
-arrives, any input pauses it, and after a quiet minute it rides on.
+arrives, any input pauses it, and after a quiet minute it rides on. While the
+window is hidden or minimised the tour stops and the page stops drawing, so
+an unseen screensaver costs next to nothing; it rides on when shown again.
 `scripts/watchfloor-screensaver.cmd` opens that URL as a full-screen Edge
 kiosk (Esc leaves). To have Windows start it by itself after ten idle
 minutes, like a real screensaver:

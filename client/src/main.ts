@@ -310,6 +310,11 @@ async function main(): Promise<void> {
     for (const type of ['pointerdown', 'pointermove', 'wheel', 'keydown'])
       document.addEventListener(type, armed, { capture: true, passive: true });
     armed();
+    // The tour stops itself when the page is hidden (nothing is seen, so
+    // nothing should burn); the moment the screensaver shows again, ride on.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) tour.start();
+    });
     const unsubscribe = store.subscribe(() => {
       if (store.size === 0) return;
       tour.start();

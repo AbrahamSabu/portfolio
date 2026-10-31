@@ -50,6 +50,12 @@ export class Tour {
     document.addEventListener('wheel', () => this.stop(), { capture: true, passive: true });
     // Our own flight settling is what starts the dwell at a stop.
     this.map.on('moveend', () => this.landed());
+    // A hidden page stops painting by itself, but the tour's timers would
+    // keep stepping and pulling map tiles nobody sees: stop instead.
+    // Screensaver mode starts it again when the page shows (main.ts).
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.stop();
+    });
   }
 
   get active(): boolean {
@@ -57,7 +63,8 @@ export class Tour {
   }
 
   start(): void {
-    if (this.on) return;
+    // Never ride unseen: the screensaver's idle timer can fire while hidden.
+    if (this.on || document.hidden) return;
     this.on = true;
     this.root.hidden = false;
     this.cursor = 0;

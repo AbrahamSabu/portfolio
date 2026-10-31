@@ -448,7 +448,10 @@ that could have been fetched before they arrived.
   briefing stories, busiest chokepoints — rebuilt each stop) + `ui/tour.ts`
   (dwell starts on `moveend`, safety timer in case a flight never lands;
   ANY key stops it — handled at the top of main.ts's keydown — and any
-  pointerdown/wheel on `document`, capture phase). A stop with `trackId`
+  pointerdown/wheel on `document`, capture phase; it also stops on
+  `visibilitychange` to hidden and `start()` refuses while hidden —
+  TrackLayer's rAF loop already pauses hidden, the tour's timers didn't —
+  and screensaver mode restarts it when the page shows). A stop with `trackId`
   rides along via the `TourFollow` interface, implemented in main.ts on the
   selection's own follow mode (setFollow(false) → select → setFollow(true),
   or selecting would ease flatly and cancel the flight; stop() releases
