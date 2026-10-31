@@ -410,6 +410,16 @@ that could have been fetched before they arrived.
   H key / `watchfloor.hazards`. **Zoom must be the outermost expression**:
   `['*', scale, ['interpolate', ..., ['zoom'], ...]]` failed validation and
   took the whole basemap with it (no tiles, no error in the pane's console).
+- Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
+  click a basemap country label (`place_country_1/2`, `name:en` else
+  `name`; cursor turns to a pointer) -> the day's stories whose GDELT place
+  ends in that country (ranked by `briefing()` with a 24 h window), aircraft
+  registered there (`registrationCountry` on adsb hex) and ships flying its
+  flag (`flagCountry` on MMSI), plus hazards whose title ends with it.
+  Names compared by `countryKey` (lower case, no accents, aliases such as
+  Czechia / Czech Republic). Shares the briefing's frame; opening it closes
+  the airport panel and vice versa; Escape closes. Click priority: track,
+  then airport, then country label.
 - Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):
   eight hand-drawn boxes (Hormuz, Bab-el-Mandeb, Suez, Singapore Strait,
   Bosphorus, Gibraltar, Dover, Panama); live (not stale) ships in each and

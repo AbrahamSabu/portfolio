@@ -2091,8 +2091,19 @@ body[data-list-open] .filter-panel {
 /* ----------------------------------------------------------- airport panel */
 
 /* Shares the briefing's frame and place; the briefing steps aside for it. */
-.app.airport-open #briefing {
+.app.airport-open #briefing,
+.app.country-open #briefing {
   display: none;
+}
+
+.country-list .briefing-item {
+  grid-template-columns: 18px 1fr;
+  padding: 7px 0;
+}
+
+.country-list .briefing-icon {
+  grid-row: span 2;
+  padding-top: 2px;
 }
 
 .airport-panel {

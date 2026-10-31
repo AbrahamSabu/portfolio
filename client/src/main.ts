@@ -32,6 +32,7 @@ import { StoredToggle } from './state/storedToggle';
 import { TrackStore } from './state/trackStore';
 import { AirportPanel } from './ui/airportPanel';
 import { BriefingPanel } from './ui/briefingPanel';
+import { CountryPanel } from './ui/countryPanel';
 import { DetailsPanel } from './ui/detailsPanel';
 import { EmergencyAlerts } from './ui/emergencyAlerts';
 import { HazardAlerts } from './ui/hazardAlerts';
@@ -157,11 +158,24 @@ async function main(): Promise<void> {
   new ChokepointLayer(map, store, clock, chokepointsShown);
   // An airport's weather and traffic, on a click (a track under the pointer wins: it was selected).
   const airportPanel = new AirportPanel(el('airport-panel'), store, clock, selection, countryName);
+  // A country's briefing, on a click on its name.
+  const countryPanel = new CountryPanel(el('country-panel'), map, store, news, hazards, clock, selection, (id) => cards.open(id), (id) => hazardLayer.open(id));
   map.on('click', (event) => {
     if (layer.trackAt(event.point)) return;
     const airport = airports.airportAt(event.point);
-    if (airport) airportPanel.open(airport);
+    const country = airport ? undefined : countryPanel.countryAt(event.point);
+    if (airport) {
+      countryPanel.close();
+      airportPanel.open(airport);
+    } else if (country) {
+      airportPanel.close();
+      countryPanel.open(country);
+    }
   });
+  for (const label of ['place_country_1', 'place_country_2']) {
+    map.on('mouseenter', label, () => (map.getCanvas().style.cursor = 'pointer'));
+    map.on('mouseleave', label, () => (map.getCanvas().style.cursor = ''));
+  }
   new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings);
   new HazardAlerts(el('alerts-hazard'), map, hazards, hazardsShown, newsSettings, (id) => hazardLayer.open(id));
   const newsToggle = el('news-toggle');
@@ -226,9 +240,10 @@ async function main(): Promise<void> {
     // The key is a modal dialog: it handles its own Escape, and nothing behind it should react.
     if (keyDialog.open) return;
     if (event.key === 'Escape') {
-      // Close the filter first if it's open, then an airport; a further Escape clears the selection.
+      // Close the filter first if it's open, then an airport or country; a further Escape clears the selection.
       if (filterPanel.open) filterPanel.setOpen(false);
       else if (airportPanel.isOpen) airportPanel.close();
+      else if (countryPanel.isOpen) countryPanel.close();
       else selection.select(null);
     }
     // Single-letter shortcuts must not fire while the operator is typing.

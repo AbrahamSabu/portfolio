@@ -53,9 +53,9 @@ function storyWords(story: NewsItem): Set<string> {
  * story that keeps coming back across batches matters). Headlines are
  * never merged or rewritten: the list shows one outlet's own words.
  */
-export function briefing(items: readonly NewsItem[], now: number, size = BRIEFING_SIZE): BriefingEntry[] {
+export function briefing(items: readonly NewsItem[], now: number, size = BRIEFING_SIZE, windowMs = BRIEFING_WINDOW_MS): BriefingEntry[] {
   const scored: Scored[] = items
-    .filter((s) => now - s.publishedAt <= BRIEFING_WINDOW_MS && s.publishedAt <= now + 60_000)
+    .filter((s) => now - s.publishedAt <= windowMs && s.publishedAt <= now + 60_000)
     .map((story) => ({
       story,
       words: storyWords(story),

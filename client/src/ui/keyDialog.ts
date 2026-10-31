@@ -106,6 +106,10 @@ function content(style: SymbolStyle): string {
       <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
     </section>
     <section>
+      <h3>Countries</h3>
+      <p>Click a country's name on the map for its briefing: the day's news placed there, its aircraft and ships on the map (by registration and flag, wherever they are), and earthquakes or disasters that name it.</p>
+    </section>
+    <section>
       <h3>Shipping chokepoints</h3>
       <p>Tags at eight narrows (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) count the ships in each now and how many are under way; closer in, a dashed box shows the area counted. Ship positions come from AIS receivers, which are mostly in Europe: a low count far away can mean few receivers rather than few ships.</p>
     </section>
