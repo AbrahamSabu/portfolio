@@ -23,6 +23,7 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['H', 'Show or hide earthquakes and disasters'],
   ['C', 'Show or hide shipping chokepoints'],
   ['W', 'Draw a watch area'],
+  ['R', 'Show or hide weather radar'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],
 ];
@@ -105,6 +106,10 @@ function content(style: SymbolStyle): string {
       <h3>News</h3>
       <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through. The briefing lists the last six hours' top stories: the most widely covered and most political first, with a story told more than once listed once ("+2 related").</p>
       <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
+    </section>
+    <section>
+      <h3>Weather radar</h3>
+      <p>Rain and snow from <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> (free for personal use), the latest 10-minute picture, in grey so it never reads as an identity colour: the brighter, the heavier. Its detail stops at zoom 7, so closer in it is stretched. Coverage is where weather radars are: mostly North America, Europe, East Asia and Australia. Press <kbd>R</kbd> or the cloud button.</p>
     </section>
     <section>
       <h3>Watch areas</h3>

@@ -14,6 +14,7 @@ import { NewsHotspots } from './map/newsHotspots';
 import { isDrawing, RegionDraw } from './map/regionDraw';
 import { RegionLayer } from './map/regionLayer';
 import { NightLayer } from './map/nightLayer';
+import { RadarControl, RadarLayer } from './map/radarLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
@@ -139,6 +140,9 @@ async function main(): Promise<void> {
   const regionPanel = new RegionPanel(el('region-panel'), regions, regionWatch, regionDraw, regionLayer, store, selection);
   regionPanel.onOpenChange(() => regionPanel.open && filterPanel.open && filterPanel.setOpen(false));
   map.addControl(new RegionControl(regionPanel), 'top-left');
+  // Weather radar, off until asked for: R or the cloud button.
+  const radarShown = new StoredToggle('watchfloor.radar', false);
+  map.addControl(new RadarControl(new RadarLayer(map, radarShown), radarShown), 'top-left');
   const reticle = new Reticle(map);
   new HoverCard(map, store, clock, layer, (point) => {
     const airport = airports.airportAt(point);
@@ -288,6 +292,7 @@ async function main(): Promise<void> {
     if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
+    if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box

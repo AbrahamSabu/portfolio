@@ -24,6 +24,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Raises an alert when an aircraft squawks an emergency code (7500 unlawful interference, 7600 radio failure, 7700 emergency): a card naming the aircraft and an amber ring on the map, once a second report confirms the code
 - Shows earthquakes (USGS, magnitude 2.5 and up, the past day) and current disasters from GDACS (cyclones, floods, volcanoes, droughts, wildfires), sized by strength or alert level, with a card per event and an alert when a strong one appears (H to show or hide)
 - Gives a briefing on any country when you click its name: the day's news placed there, how many of its aircraft and ships are on the map (by registration and flag), and earthquakes or disasters that name it
+- Shows weather radar (R): the latest rain and snow picture from RainViewer, in grey so it never reads as an identity colour
 - Watches areas you draw (W): an alert when an aircraft or ship crosses in or out (aircraft, ships or both, military only if you like), a live count inside, and an activity log; kept in your browser, alerting while the page is open
 - Counts the ships in eight shipping chokepoints (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) and how many are under way, as tags on the map (C to show or hide); free AIS coverage is mostly European, so some counts are thin, and the key says so
 - Marks about 6,000 airports: the largest from the globe, more as you zoom in, with codes and then names, and the name, city and codes on hover (A to show or hide); click one for its latest weather report (decoded, with the raw METAR) and the aircraft arriving and leaving right now
@@ -247,6 +248,7 @@ client/   MapLibre map, symbology, UI
 - Ship facts and photos: [Wikidata](https://www.wikidata.org) (CC0) and [Wikimedia Commons](https://commons.wikimedia.org), each photo credited to its author with its licence
 - Political news: [The GDELT Project](https://www.gdeltproject.org/) (free for any use with a citation); headlines belong to the outlets that published them, and each links to its article
 - Airports: [OurAirports](https://ourairports.com/data/) (public domain)
+- Weather radar: [RainViewer](https://www.rainviewer.com/) (free for personal use; shown in grey, which their terms allow)
 - Airport weather: [aviationweather.gov](https://aviationweather.gov/) (NOAA Aviation Weather Center)
 - Earthquakes: [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/) (public domain)
 - Disasters: Global Disaster Alert and Coordination System, [GDACS](https://www.gdacs.org/) (automatic estimates; local authorities' warnings come first)
