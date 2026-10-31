@@ -442,15 +442,26 @@ that could have been fetched before they arrived.
   model, airports, chokepoints, watch areas) + `ui/palette.ts` (modal; its
   input stops propagation of Escape/arrows/Enter so the global keys don't
   double-handle); AirportLayer gained `get all`. Cinematic tour (G or the
-  Layers menu): `state/tourStops.ts` (pure: emergencies → significant
-  hazards → briefing stories → busiest chokepoints, rebuilt each stop) +
-  `ui/tour.ts` (dwell starts on `moveend`, safety timer in case a flight
-  never lands; ANY key stops it — handled at the top of main.ts's keydown —
-  and any pointerdown/wheel on `document`, capture phase). EmergencyAlerts
-  exposes `get active` for the tour. Alert ping: `ui/alertSound.ts`
+  Layers menu): `state/tourStops.ts` (pure: emergencies lead, then the
+  categories take turns — follow stops (random military/warship picks,
+  fastest and highest aloft, injectable `random`), significant hazards,
+  briefing stories, busiest chokepoints — rebuilt each stop) + `ui/tour.ts`
+  (dwell starts on `moveend`, safety timer in case a flight never lands;
+  ANY key stops it — handled at the top of main.ts's keydown — and any
+  pointerdown/wheel on `document`, capture phase). A stop with `trackId`
+  rides along via the `TourFollow` interface, implemented in main.ts on the
+  selection's own follow mode (setFollow(false) → select → setFollow(true),
+  or selecting would ease flatly and cancel the flight; stop() releases
+  follow but keeps the selection). EmergencyAlerts exposes `get active`
+  for the tour. Alert ping: `ui/alertSound.ts`
   (WebAudio two-note, synthesised, try/catch), `watchfloor.sound` off by
   default, Layers menu "Alerts" section; EmergencyAlerts/RegionAlerts take
-  an optional `ping` callback.
+  an optional `ping` callback. Screensaver mode (`/?screensaver`, in
+  main.ts): the tour starts itself once the store has tracks and restarts
+  after 60 s without input (the URL is the consent the motion rule asks
+  for); `scripts/watchfloor-screensaver.cmd` opens it as an Edge kiosk,
+  and the README's schtasks line adds a 10-minute idle trigger. `*.cmd` is
+  CRLF in .gitattributes.
 - Watch areas (roadmap 4; browser only, `localStorage` `watchfloor.regions`,
   max 20): `state/regions.ts` (pure: `insideRing` ray casting, 0-360° when a
   ring spans > 180° of longitude; `unwrapRing` for drawing; `RegionWatch`;

@@ -6,7 +6,23 @@ import { tourStops, type TourWorld } from './tourStops';
 const NOW = 1_700_000_000_000;
 
 function world(over: Partial<TourWorld>): TourWorld {
-  return { emergencies: [], trackOf: () => undefined, hazards: [], news: [], shipsIn: new Map(), now: NOW, ...over };
+  return { emergencies: [], trackOf: () => undefined, tracks: [], hazards: [], news: [], shipsIn: new Map(), now: NOW, random: () => 0, ...over };
+}
+
+function track(over: Partial<Track>): Track {
+  return {
+    id: 'adsb:1',
+    source: 'adsb',
+    domain: 'air',
+    platform: 'airliner',
+    affiliation: 'unknown',
+    lat: 50,
+    lon: 1,
+    courseDeg: 90,
+    speedMps: 230,
+    observedAt: NOW,
+    ...over,
+  } as Track;
 }
 
 function quake(id: string, magnitude: number, time = NOW): Hazard {
@@ -63,5 +79,45 @@ describe('tourStops', () => {
     expect(stops[0]?.title).toBe('M 6.4 - somewhere');
     const straits = stops.filter((s) => s.title.includes('ship'));
     expect(straits.map((s) => s.title)).toEqual(['Strait of Gibraltar · 160 ships', 'Dover Strait · 30 ships', 'Suez Canal · 7 ships']);
+  });
+
+  it('rides along with military tracks, the fastest and the highest aloft', () => {
+    const jet = track({ id: 'adsb:mil', callsign: 'HKY41', platform: 'military-aircraft', model: 'LOCKHEED C-130' });
+    const ship = track({ id: 'ais:1', callsign: 'DARING', platform: 'warship', domain: 'sea', speedMps: 10 });
+    const fast = track({ id: 'adsb:fast', callsign: 'CONC', speedMps: 280 });
+    const high = track({ id: 'adsb:high', callsign: 'GLEX', altitudeM: 15_500 });
+    // The 700 m/s "aircraft" is a glitched report, not a record: skipped.
+    const glitch = track({ id: 'adsb:glitch', callsign: 'ERR1', speedMps: 700, altitudeM: 30_000 });
+    const stops = tourStops(world({ tracks: [jet, ship, fast, high, glitch, track({ id: 'adsb:dull' })] }));
+    expect(stops.map((s) => [s.title, s.trackId])).toEqual([
+      ['Military flight · HKY41 · LOCKHEED C-130', 'adsb:mil'],
+      ['Warship · DARING', 'ais:1'],
+      ['Fastest aloft · CONC · 544 kn', 'adsb:fast'],
+      ['Highest aloft · GLEX · FL509', 'adsb:high'],
+    ]);
+    expect(stops.every((s) => (s.dwellMs ?? 0) > 8_000)).toBe(true);
+  });
+
+  it('takes turns between the categories instead of playing them in blocks', () => {
+    const stops = tourStops(
+      world({
+        tracks: [track({ id: 'adsb:mil', callsign: 'HKY41', platform: 'military-aircraft' })],
+        hazards: [quake('usgs:a', 6.5)],
+        news: [story('n1', 'Summit ends without an agreement')],
+        shipsIn: new Map([['hormuz', { ships: 12, moving: 9 }]]),
+      }),
+    );
+    expect(stops.map((s) => s.title)).toEqual([
+      'Military flight · HKY41',
+      'M 6.5 - somewhere',
+      'Summit ends without an agreement',
+      'Strait of Hormuz · 12 ships',
+    ]);
+  });
+
+  it('marks the emergency to be followed', () => {
+    const t = track({ id: 'adsb:1', callsign: 'MAYDAY1' });
+    const [stop] = tourStops(world({ emergencies: [{ id: 'adsb:1', squawk: '7700', meaning: 'Emergency', since: NOW }], trackOf: () => t }));
+    expect(stop?.trackId).toBe('adsb:1');
   });
 });

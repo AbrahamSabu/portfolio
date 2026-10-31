@@ -27,6 +27,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Gathers every map toggle in one Layers menu (M), each with a line saying what it shows and its key
 - Finds anything with a place in one search (`/` or Ctrl K): tracks by callsign, squawk, type or model, airports by code or name, chokepoints and your watch areas — and flies the camera there in one cinematic arc, the same move every alert and briefing pick uses
 - Gives a cinematic tour (G): the camera rides between whatever is happening — emergency squawks first, then fresh disasters, the top stories and the busiest chokepoints — until any key or touch hands control back
+- Works as a screensaver: open `/?screensaver` and the tour starts itself and resumes after a quiet minute; `scripts/watchfloor-screensaver.cmd` opens it as a full-screen kiosk
 - Can ping on an alert: a short synthesised two-note sound for squawks and watch-area crossings, off by default (the Layers menu's Alerts section)
 - Shows weather radar (R): the latest rain and snow picture from RainViewer, in grey so it never reads as an identity colour
 - Watches areas you draw (W): an alert when an aircraft or ship crosses in or out (aircraft, ships or both, military only if you like), a live count inside, and an activity log; kept in your browser, alerting while the page is open
@@ -45,6 +46,19 @@ npm run dev
 ```
 
 Open http://localhost:5173. The server runs on port 8080 and Vite proxies the WebSocket to it.
+
+### As a screensaver
+
+With the server running, `http://localhost:8080/?screensaver` turns the page
+into a self-driving display: the cinematic tour starts as soon as the picture
+arrives, any input pauses it, and after a quiet minute it rides on.
+`scripts/watchfloor-screensaver.cmd` opens that URL as a full-screen Edge
+kiosk (Esc leaves). To have Windows start it by itself after ten idle
+minutes, like a real screensaver:
+
+```bash
+schtasks /create /tn "Watchfloor screensaver" /tr "D:\Work\watchfloor\scripts\watchfloor-screensaver.cmd" /sc onidle /i 10
+```
 
 For production, as a single process on one port:
 

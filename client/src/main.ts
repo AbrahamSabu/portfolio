@@ -264,17 +264,58 @@ async function main(): Promise<void> {
   );
 
   // The cinematic tour: the camera rides between what's happening until any input stops it.
-  const tour = new Tour(map, el('tour'), () => {
-    const now = clock.now();
-    return tourStops({
-      emergencies: emergencyAlerts.active,
-      trackOf: (id) => store.get(id),
-      hazards: hazards.items,
-      news: news.items,
-      shipsIn: chokepointCounts(store.all(), (t) => store.status(t, now) === 'live'),
-      now,
+  const tour = new Tour(
+    map,
+    el('tour'),
+    () => {
+      const now = clock.now();
+      const live = [...store.all()].filter((t) => store.status(t, now) === 'live');
+      return tourStops({
+        emergencies: emergencyAlerts.active,
+        trackOf: (id) => store.get(id),
+        tracks: live,
+        hazards: hazards.items,
+        news: news.items,
+        shipsIn: chokepointCounts(live, () => true),
+        now,
+      });
+    },
+    {
+      // Ride along using the selection's own follow mode, so the reticle
+      // locks on and the details panel tells the story of what we're with.
+      engage: (id) => {
+        selection.setFollow(false); // or selecting would ease flatly, cancelling the flight
+        selection.select(id);
+        selection.setFollow(true);
+      },
+      release: () => selection.setFollow(false),
+      clear: () => {
+        selection.setFollow(false);
+        selection.select(null);
+      },
+    },
+  );
+
+  // Screensaver mode (?screensaver, for a kiosk window or an idle trigger):
+  // opening this URL is the consent the motion rule asks for, so the tour
+  // starts itself once the picture is in, and any input only pauses it — a
+  // quiet minute later it rides on.
+  if (new URLSearchParams(location.search).has('screensaver')) {
+    const IDLE_MS = 60_000;
+    let idleTimer: number | undefined;
+    const armed = () => {
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => tour.start(), IDLE_MS);
+    };
+    for (const type of ['pointerdown', 'pointermove', 'wheel', 'keydown'])
+      document.addEventListener(type, armed, { capture: true, passive: true });
+    armed();
+    const unsubscribe = store.subscribe(() => {
+      if (store.size === 0) return;
+      tour.start();
+      unsubscribe();
     });
-  });
+  }
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
   const showNewsToggle = () => newsToggle.setAttribute('aria-checked', String(newsSettings.shown));
