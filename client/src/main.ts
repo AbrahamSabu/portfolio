@@ -28,6 +28,7 @@ import { StoredToggle } from './state/storedToggle';
 import { TrackStore } from './state/trackStore';
 import { BriefingPanel } from './ui/briefingPanel';
 import { DetailsPanel } from './ui/detailsPanel';
+import { EmergencyAlerts } from './ui/emergencyAlerts';
 import { FilterPanel } from './ui/filterPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
@@ -137,6 +138,7 @@ async function main(): Promise<void> {
   briefingOpen.subscribe(showBriefingToggle);
   newsSettings.subscribe(showBriefingToggle);
   showBriefingToggle();
+  new EmergencyAlerts(el('alerts'), map, store, clock, selection, newsSettings);
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
   const showNewsToggle = () => newsToggle.setAttribute('aria-checked', String(newsSettings.shown));

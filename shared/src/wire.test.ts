@@ -34,6 +34,10 @@ describe('encodeTrack / decodeTrack', () => {
     expect(decodeTrack(encodeTrack(named, NOW), NOW)).toEqual(named);
   });
 
+  it("carries an aircraft's squawk", () => {
+    expect(decodeTrack(encodeTrack({ ...jet, squawk: '7700' }, NOW), NOW).squawk).toBe('7700');
+  });
+
   it("carries an aircraft's type designator and model", () => {
     const typed = { ...jet, typeCode: 'B748', model: 'BOEING 747-8' };
     expect(encodeTrack(typed, NOW).slice(13)).toEqual(['B748', 'BOEING 747-8']);

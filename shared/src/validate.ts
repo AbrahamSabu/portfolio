@@ -72,6 +72,9 @@ export function sanitizeTrack(input: unknown): Track | null {
   if (track.domain === 'air' && typeof t.typeCode === 'string' && /^[A-Z0-9]{1,4}$/.test(t.typeCode)) {
     track.typeCode = t.typeCode;
   }
+  if (track.domain === 'air' && typeof t.squawk === 'string' && /^[0-7]{4}$/.test(t.squawk)) {
+    track.squawk = t.squawk;
+  }
   if (track.domain === 'air' && typeof t.model === 'string') {
     // Shown as text, never markup, but still kept short and printable.
     const model = t.model.replace(/[^ -~]/g, '').trim().slice(0, 48);

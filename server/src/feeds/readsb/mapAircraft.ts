@@ -57,6 +57,7 @@ export function mapAircraft(ac: unknown, nowMs: number, provider: Provider): Map
   if (altFt !== null) report.altitudeM = altFt * FEET_TO_M;
   const callsign = typeof a.flight === 'string' ? a.flight.trim() : '';
   if (callsign) report.callsign = callsign;
+  if (typeof a.squawk === 'string') report.squawk = a.squawk.trim();
   return { kind: 'airborne', report };
 }
 

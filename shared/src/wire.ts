@@ -27,8 +27,9 @@ import type { TrailPoint } from './trail';
 
 /**
  * [id, source, domain, platform, affiliation, lat, lon, courseDeg, speedMps,
- * ageMs, altitudeM, callsign, provider, typeCode, model]. The last five may
- * be null when absent, and trailing nulls are left off.
+ * ageMs, altitudeM, callsign, provider, typeCode, model, squawk]. The last
+ * six may be null when absent, and trailing nulls are left off. Fields are
+ * only ever appended: an older browser just ignores the ones it doesn't know.
  */
 export type TrackTuple = (string | number | null)[];
 
@@ -78,6 +79,7 @@ export function encodeTrack(t: Track, serverTime: number): TrackTuple {
     t.provider === undefined ? null : code('provider', t.provider),
     t.typeCode ?? null,
     t.model ?? null,
+    t.squawk ?? null,
   ];
   while (tuple.at(-1) === null) tuple.pop();
   return tuple;
@@ -102,6 +104,7 @@ export function decodeTrack(w: TrackTuple, serverTime: number): Track {
   if (typeof w[12] === 'number') track.provider = TRACK_VALUES.provider[w[12]]!;
   if (typeof w[13] === 'string') track.typeCode = w[13];
   if (typeof w[14] === 'string') track.model = w[14];
+  if (typeof w[15] === 'string') track.squawk = w[15];
   return track;
 }
 

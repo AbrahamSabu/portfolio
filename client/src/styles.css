@@ -1886,3 +1886,164 @@ body[data-list-open] .filter-panel {
     max-height: 55%;
   }
 }
+
+/* ------------------------------------------------------- emergency alerts */
+
+/*
+ * Under the top bar, centred, above the map's panels. Amber (--warn): an
+ * emergency is a state, not an identity, so it never borrows hostile red.
+ */
+.alerts {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  left: 50%;
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.alert-card {
+  position: relative;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid rgb(240 195 106 / 0.55);
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  box-shadow: 0 0 22px rgb(240 195 106 / 0.18);
+  pointer-events: auto;
+  animation: alert-in 220ms ease-out;
+}
+
+.alert-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-right: 24px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+.alert-code {
+  font-size: var(--text-md);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px rgb(240 195 106 / 0.5);
+}
+
+.alert-since {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-title {
+  margin-top: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.alert-kind,
+.alert-facts {
+  font-size: var(--text-sm);
+}
+
+.alert-facts {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-note {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.alert-actions {
+  margin-top: 8px;
+}
+
+.alert-show {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--warn);
+  border-radius: 3px;
+  background: rgb(240 195 106 / 0.12);
+  color: var(--warn);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.alert-show:hover {
+  background: rgb(240 195 106 / 0.24);
+}
+
+.alert-show:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.alert-dismiss {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+/* An amber ring on the aircraft, with its code above, pulsing gently. */
+.emergency-ring {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--warn);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgb(240 195 106 / 0.6), inset 0 0 8px rgb(240 195 106 / 0.35);
+  pointer-events: none;
+  animation: emergency-pulse 1.6s ease-in-out infinite;
+}
+
+.emergency-ring::after {
+  content: attr(data-code);
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--warn);
+  text-shadow: 0 0 4px #000, 0 0 8px rgb(240 195 106 / 0.6);
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes emergency-pulse {
+  50% {
+    box-shadow: 0 0 22px rgb(240 195 106 / 0.9), inset 0 0 12px rgb(240 195 106 / 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-card,
+  .emergency-ring {
+    animation: none;
+  }
+}
+
+.key-emergency {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--warn);
+  border-radius: 50%;
+}

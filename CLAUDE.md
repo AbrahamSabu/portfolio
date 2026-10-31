@@ -390,6 +390,17 @@ that could have been fetched before they arrived.
 - Each running AIS server holds one of the key's 3 AISStream connections; a
   fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
   `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
+- Emergency squawks: `Track.squawk` (aircraft, `^[0-7]{4}$`, from readsb
+  `squawk` and OpenSky state index 14; wire tuple index 15, appended, so no
+  protocol bump). `EMERGENCY_SQUAWKS` / `emergencyOf` in shared/track.ts.
+  Client `state/emergencies.ts` (EmergencyWatch, pure): a code counts once
+  a second report (later observedAt) carries it; ends when the code changes
+  or the track goes. `ui/emergencyAlerts.ts`: checked each second; amber
+  (`--warn`, never hostile red) card under the top bar (Show selects and
+  eases there; × dismisses until the code recurs) plus a dead-reckoned DOM
+  Marker ring with the code; read aloud when read-aloud is on. To see it,
+  run a local readsb stub (one aircraft squawking 7700) with
+  `FEEDS=adsblol ADSBLOL_API_URL=http://127.0.0.1:<port>` on a spare port.
 - Airports (`client/src/map/airports.ts`, `airportLayer.ts`): OurAirports
   (public domain) large + medium + small with scheduled service, 6,146
   rows, committed as `client/src/data/airports.json` (484 KB, 187 KB gzip;

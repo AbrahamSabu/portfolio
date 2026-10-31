@@ -68,6 +68,8 @@ export interface Track {
   /** Aircraft only, from the aircraft database: ICAO type designator (B748) and model ("BOEING 747-8"). */
   typeCode?: string;
   model?: string;
+  /** Aircraft only: the transponder code (squawk), four octal digits, as broadcast. */
+  squawk?: string;
 }
 
 /**
@@ -95,4 +97,19 @@ export const TRACK_VALUES: {
 
 export function makeTrackId(source: TrackSource, nativeId: string): string {
   return `${source}:${nativeId}`;
+}
+
+/**
+ * The three emergency codes every pilot knows, as ICAO assigns them. A
+ * squawk is what the transponder says, not a confirmed emergency: codes
+ * get set by mistake, and the alert says so.
+ */
+export const EMERGENCY_SQUAWKS: Readonly<Record<string, string>> = {
+  '7500': 'Unlawful interference',
+  '7600': 'Radio failure',
+  '7700': 'Emergency',
+};
+
+export function emergencyOf(track: Pick<Track, 'squawk'>): string | undefined {
+  return track.squawk === undefined ? undefined : EMERGENCY_SQUAWKS[track.squawk];
 }

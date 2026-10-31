@@ -20,6 +20,7 @@ const ON_GROUND = 8;
 const VELOCITY = 9;
 const TRUE_TRACK = 10;
 const GEO_ALTITUDE = 13;
+const SQUAWK = 14;
 const CATEGORY = 17; // only present with extended=1
 
 export type SkipReason = 'malformed' | 'no-position' | 'no-velocity' | 'not-aircraft';
@@ -79,6 +80,7 @@ export function mapState(row: unknown): MapOutcome {
   if (altitudeM !== null) report.altitudeM = altitudeM;
   const callsign = typeof row[CALLSIGN] === 'string' ? row[CALLSIGN].trim() : '';
   if (callsign) report.callsign = callsign;
+  if (typeof row[SQUAWK] === 'string') report.squawk = row[SQUAWK].trim();
   return { kind: 'airborne', report };
 }
 

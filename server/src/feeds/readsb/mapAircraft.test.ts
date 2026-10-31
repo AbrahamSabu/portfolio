@@ -38,6 +38,7 @@ describe('mapAircraft on recorded responses (27 Oct 2026, 17:13 UTC)', () => {
         speedMps: 462.8 * (1852 / 3600), // knots to m/s
         observedAt: 1793121192501 - 201, // the response's now, minus seen_pos
         provider: 'adsb.lol',
+        squawk: '6123',
       },
     });
   });

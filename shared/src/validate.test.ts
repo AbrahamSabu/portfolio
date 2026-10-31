@@ -51,6 +51,13 @@ describe('sanitizeTrack', () => {
 });
 
 describe('sanitizeTrack: aircraft type', () => {
+  it('keeps a four-digit octal squawk for aircraft only', () => {
+    expect(sanitizeTrack({ ...good, squawk: '7700' })?.squawk).toBe('7700');
+    expect(sanitizeTrack({ ...good, squawk: '7800' })?.squawk).toBeUndefined();
+    expect(sanitizeTrack({ ...good, squawk: '770' })?.squawk).toBeUndefined();
+    expect(sanitizeTrack({ ...good, domain: 'sea', platform: 'vessel', squawk: '7700' })?.squawk).toBeUndefined();
+  });
+
   it('keeps a type designator and a printable, bounded model for aircraft', () => {
     const t = sanitizeTrack({ ...good, typeCode: 'B748', model: 'BOEING 747-8\u0007' + 'X'.repeat(60) });
     expect(t?.typeCode).toBe('B748');
