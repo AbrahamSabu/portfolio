@@ -49,18 +49,22 @@ Open http://localhost:5173. The server runs on port 8080 and Vite proxies the We
 
 ### As a screensaver
 
-With the server running, `http://localhost:8080/?screensaver` turns the page
-into a self-driving display: the cinematic tour starts as soon as the picture
-arrives, any input pauses it, and after a quiet minute it rides on. While the
-window is hidden or minimised the tour stops and the page stops drawing, so
-an unseen screensaver costs next to nothing; it rides on when shown again.
-`scripts/watchfloor-screensaver.cmd` opens that URL as a full-screen Edge
-kiosk (Esc leaves). To have Windows start it by itself after ten idle
-minutes, like a real screensaver:
+Opening the page with `?screensaver` turns it into a self-driving display:
+the cinematic tour starts as soon as the picture arrives, any input pauses
+it, and after a quiet minute it rides on. While the window is hidden or
+minimised the tour stops and the page stops drawing, so an unseen
+screensaver costs next to nothing; it rides on when shown again.
 
-```bash
-schtasks /create /tn "Watchfloor screensaver" /tr "D:\Work\watchfloor\scripts\watchfloor-screensaver.cmd" /sc onidle /i 10
-```
+After `npm run build`, `scripts\install-screensaver.cmd` installs it for the
+current user, no admin needed: a dedicated server starts at logon (port
+8088, its own picture cache, so it never collides with `npm run dev` on
+8080), and a Task Scheduler idle trigger opens a full-screen Edge kiosk on
+the tour after ten quiet minutes — Esc leaves it.
+`scripts\watchfloor-screensaver.cmd` opens the kiosk by hand, and
+`scripts\uninstall-screensaver.cmd` removes the lot. Rebuilding does not
+reach a running server: close its minimised window and run the server
+script again (each AISStream instance also holds one of the key's three
+connections).
 
 For production, as a single process on one port:
 

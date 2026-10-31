@@ -462,9 +462,14 @@ that could have been fetched before they arrived.
   an optional `ping` callback. Screensaver mode (`/?screensaver`, in
   main.ts): the tour starts itself once the store has tracks and restarts
   after 60 s without input (the URL is the consent the motion rule asks
-  for); `scripts/watchfloor-screensaver.cmd` opens it as an Edge kiosk,
-  and the README's schtasks line adds a 10-minute idle trigger. `*.cmd` is
-  CRLF in .gitattributes.
+  for). `scripts/`: watchfloor-server.cmd runs a dedicated instance on
+  port 8088 (own PICTURE_FILE, exits quietly if 8088 is taken; holds an
+  AISStream connection like any instance), watchfloor-screensaver.cmd
+  opens the Edge kiosk on it, install-screensaver.cmd adds a Startup-
+  folder stub plus a schtasks 10-minute idle trigger (user runs it
+  themselves: installing persistence is denied to the agent), and
+  uninstall-screensaver.cmd removes both. `*.cmd` is CRLF in
+  .gitattributes.
 - Watch areas (roadmap 4; browser only, `localStorage` `watchfloor.regions`,
   max 20): `state/regions.ts` (pure: `insideRing` ray casting, 0-360° when a
   ring spans > 180° of longitude; `unwrapRing` for drawing; `RegionWatch`;
