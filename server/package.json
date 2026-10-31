@@ -8,7 +8,8 @@
     "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --sourcemap --external:ws --outfile=dist/index.js",
     "start": "node --enable-source-maps dist/index.js",
     "typecheck": "tsc -p tsconfig.json",
-    "aircraft-db": "tsx src/tools/fetchAircraftDb.ts"
+    "aircraft-db": "tsx src/tools/fetchAircraftDb.ts",
+    "airports": "tsx src/tools/fetchAirports.ts"
   },
   "dependencies": {
     "ws": "8.22.0"

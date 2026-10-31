@@ -17,6 +17,7 @@
 .ticker,
 .track-list,
 .details,
+.briefing,
 .filter-panel,
 .hover-card,
 .key-dialog,
@@ -79,6 +80,7 @@
 .details-title,
 .hover-card-title,
 .key-title,
+.briefing-title,
 .key-dialog h3,
 .filter-title,
 .filter-group-title,
@@ -110,6 +112,7 @@
 .details-title,
 .hover-card-title,
 .key-title,
+.briefing-title,
 .filter-title {
   font-weight: 700;
   letter-spacing: 0.06em;

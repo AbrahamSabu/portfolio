@@ -19,7 +19,7 @@ export function parseLabelImageId(id: string): string | null {
 }
 
 /** Text with a dark halo, left-aligned in its image (the layer anchors it on the left). */
-export function renderLabel(text: string, pixelRatio: number): { image: ImageData; pixelRatio: number } | null {
+export function renderLabel(text: string, pixelRatio: number, ink = INK): { image: ImageData; pixelRatio: number } | null {
   const measure = document.createElement('canvas').getContext('2d');
   if (!measure) return null;
   measure.font = FONT;
@@ -37,7 +37,7 @@ export function renderLabel(text: string, pixelRatio: number): { image: ImageDat
   ctx.lineWidth = HALO_PX;
   ctx.strokeStyle = OUTLINE;
   ctx.strokeText(text, HALO_PX, height / 2);
-  ctx.fillStyle = INK;
+  ctx.fillStyle = ink;
   ctx.fillText(text, HALO_PX, height / 2);
   return { image: ctx.getImageData(0, 0, canvas.width, canvas.height), pixelRatio };
 }

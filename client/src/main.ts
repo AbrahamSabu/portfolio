@@ -2,6 +2,8 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import './hud.css';
+import { AirportLayer } from './map/airportLayer';
+import { describeAirport } from './map/airports';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
@@ -21,7 +23,9 @@ import { SelectedDetails } from './state/selectedDetails';
 import { SelectedPath } from './state/selectedPath';
 import { loadSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
 import { Selection } from './state/selection';
+import { StoredToggle } from './state/storedToggle';
 import { TrackStore } from './state/trackStore';
+import { BriefingPanel } from './ui/briefingPanel';
 import { DetailsPanel } from './ui/detailsPanel';
 import { FilterPanel } from './ui/filterPanel';
 import { HoverCard } from './ui/hoverCard';
@@ -31,6 +35,17 @@ import { NewsTicker } from './ui/newsTicker';
 import { formatDtg, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
+
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+/** "Ireland" for "IE"; undefined for a code the browser doesn't know. */
+function countryName(iso: string): string | undefined {
+  try {
+    return regionNames.of(iso);
+  } catch {
+    return undefined;
+  }
+}
 
 function el(id: string): HTMLElement {
   const node = document.getElementById(id);
@@ -76,6 +91,10 @@ async function main(): Promise<void> {
 
   const style = new SymbolStyleSetting(loadSymbolStyle());
 
+  // First, so its layers sit under trails, tracks and news.
+  const airportsShown = new StoredToggle('watchfloor.airports', true);
+  const airports = new AirportLayer(map, airportsShown);
+
   const layer = new TrackLayer(map, store, clock, selection, filter, style);
   const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
   map.addControl(trailControl, 'top-left');
@@ -87,7 +106,10 @@ async function main(): Promise<void> {
   const filterControl = new FilterControl(filterPanel, filter);
   map.addControl(filterControl, 'top-left');
   const reticle = new Reticle(map);
-  new HoverCard(map, store, clock, layer);
+  new HoverCard(map, store, clock, layer, (point) => {
+    const airport = airports.airportAt(point);
+    return airport && describeAirport(airport, countryName);
+  });
   const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
   const details = new SelectedDetails();
   new DetailsPanel(el('details'), store, clock, layer, selection, style, path, details, () => pathLayer.fit());
@@ -97,6 +119,21 @@ async function main(): Promise<void> {
   const cards = new NewsCards(map, news, newsSettings, () => clock.now());
   new NewsLayer(map, news, newsSettings, layer, () => clock.now(), (id) => cards.open(id));
   new NewsTicker(el('news-ticker'), news, newsSettings, (id) => cards.open(id));
+  // Top stories, open by default where there's room for it beside the map.
+  const briefingOpen = new StoredToggle('watchfloor.briefing', window.matchMedia('(min-width: 900px)').matches);
+  new BriefingPanel(el('briefing'), map, news, newsSettings, briefingOpen, selection, () => clock.now(), (id) => cards.open(id));
+  const briefingToggle = el('briefing-toggle');
+  briefingToggle.addEventListener('click', () => {
+    // Closed or not, news off means nothing to show: turning it on is what the operator wants.
+    if (!newsSettings.shown) {
+      newsSettings.set({ shown: true });
+      briefingOpen.set(true);
+    } else briefingOpen.toggle();
+  });
+  const showBriefingToggle = () => briefingToggle.setAttribute('aria-pressed', String(briefingOpen.value && newsSettings.shown));
+  briefingOpen.subscribe(showBriefingToggle);
+  newsSettings.subscribe(showBriefingToggle);
+  showBriefingToggle();
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
   const showNewsToggle = () => newsToggle.setAttribute('aria-pressed', String(newsSettings.shown));
@@ -170,6 +207,8 @@ async function main(): Promise<void> {
     if (event.key === 'f' || event.key === 'F') filterControl.toggle();
     if (event.key === 's' || event.key === 'S') style.toggle();
     if (event.key === 'n' || event.key === 'N') newsSettings.set({ shown: !newsSettings.shown });
+    if (event.key === 'a' || event.key === 'A') airportsShown.toggle();
+    if (event.key === 'b' || event.key === 'B') briefingToggle.click();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box

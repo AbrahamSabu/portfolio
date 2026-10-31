@@ -1,4 +1,5 @@
 import { NEWS_KINDS, type Affiliation, type Platform } from '@watchfloor/shared';
+import { airportIconSvg } from '../map/airports';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { trackIconSvg } from '../map/trackIcon';
 import type { SymbolStyle, SymbolStyleSetting } from '../state/symbolStyle';
@@ -16,6 +17,8 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['T', 'Trails: all tracks, selected only, off'],
   ['S', 'Vehicle shapes or military symbols'],
   ['N', 'Show or hide the news'],
+  ['B', 'Open or close the briefing'],
+  ['A', 'Show or hide airports'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],
 ];
@@ -90,11 +93,12 @@ function content(style: SymbolStyle): string {
         <li><span class="key-glyph key-leader" aria-hidden="true"></span>Speed leader: where it will be in 1 minute (aircraft) or 10 (ships)</li>
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
         <li><span class="key-glyph key-stale" aria-hidden="true"></span>Faded: no recent report, so its position is an estimate</li>
+        <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain)</li>
       </ul>
     </section>
     <section>
       <h3>News</h3>
-      <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through.</p>
+      <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through. The briefing lists the last six hours' top stories: the most widely covered and most political first, with a story told more than once listed once ("+2 related").</p>
       <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
     </section>
     <section>

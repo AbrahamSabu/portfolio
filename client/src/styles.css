@@ -1682,3 +1682,148 @@ body[data-list-open] .filter-panel {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------- briefing */
+
+/*
+ * Top stories on the right, where the details panel goes: it steps aside
+ * while a track is selected (briefingPanel.ts), so they never overlap.
+ */
+.briefing {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  padding: 12px 0 6px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.briefing[hidden] {
+  display: none;
+}
+
+.briefing-head {
+  position: relative;
+  padding: 0 14px 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.briefing-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  color: var(--hud-bright);
+}
+
+.briefing-sub {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+.briefing-close {
+  position: absolute;
+  top: -4px;
+  right: 8px;
+}
+
+.briefing-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.briefing-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 6px;
+  width: 100%;
+  padding: 9px 14px 9px 10px;
+  border: 0;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.briefing-item:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.briefing-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.briefing-rank {
+  grid-row: span 3;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--hud);
+  font-variant-numeric: tabular-nums;
+}
+
+.briefing-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.briefing-icon {
+  display: inline-grid;
+  flex: none;
+  color: #f2f6f8;
+}
+
+.briefing-place {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-muted);
+}
+
+.briefing-headline {
+  margin: 2px 0 3px;
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+.briefing-meta {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.briefing-empty {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+/* Phones: it starts closed, and opens as a sheet above the ticker. */
+@media (max-width: 640px) {
+  .briefing {
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: 55%;
+  }
+}

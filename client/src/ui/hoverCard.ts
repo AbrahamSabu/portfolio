@@ -12,8 +12,16 @@ const OFFSET = 14;
  * and labels only appear from zoom 8, so this is how a busy picture is read
  * at a glance. Mouse and pen only: on touch, a tap selects instead.
  *
+ * With no track there, it names an airport instead.
+ *
  * Hit-testing runs at most once a frame, however fast the pointer moves.
  */
+export interface HoverText {
+  title: string;
+  kind: string;
+  facts: string;
+}
+
 export class HoverCard {
   private readonly el: HTMLElement;
   private readonly title: HTMLElement;
@@ -28,6 +36,8 @@ export class HoverCard {
     private readonly store: TrackStore,
     private readonly clock: ServerClock,
     private readonly layer: TrackLayer,
+    /** Anything else worth naming under the pointer when no track is there (airports). */
+    private readonly other: (point: { x: number; y: number }) => HoverText | undefined = () => undefined,
   ) {
     const el = document.createElement('div');
     el.className = 'hover-card';
@@ -55,8 +65,13 @@ export class HoverCard {
     const point = this.point;
     if (!point || this.map.isMoving()) return this.hide();
     const id = this.layer.trackAt(point, 4);
-    if (!id || !this.fill(id)) return this.hide();
-    this.id = id;
+    if (id && this.fill(id)) this.id = id;
+    else {
+      const other = this.other(point);
+      if (!other) return this.hide();
+      this.id = null;
+      this.show(other);
+    }
     this.el.hidden = false;
     // Beside the pointer, flipped to the other side near the right and bottom edges.
     const box = this.map.getContainer().getBoundingClientRect();
@@ -66,13 +81,18 @@ export class HoverCard {
     this.el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   }
 
+  private show(text: HoverText): void {
+    this.title.textContent = text.title;
+    this.kind.textContent = text.kind;
+    this.facts.textContent = text.facts;
+  }
+
   /** Fill the card for a track; false if the track has gone. Text only: names come from the feeds. */
   private fill(id: string): boolean {
     const track = this.store.get(id);
     if (!track) return false;
     const now = this.clock.now();
-    this.title.textContent = track.callsign ?? 'No callsign';
-    this.kind.textContent = track.model ?? PLATFORM_LABEL[track.platform];
+    this.show({ title: track.callsign ?? 'No callsign', kind: track.model ?? PLATFORM_LABEL[track.platform], facts: '' });
     const facts = [
       track.domain === 'air' ? formatAltitude(track.altitudeM) : null,
       formatSpeed(track.speedMps),

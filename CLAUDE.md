@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (427 tests after the globe).
+- `npm test`: Vitest from the root config (444 tests after airports and the briefing).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -390,6 +390,20 @@ that could have been fetched before they arrived.
 - Each running AIS server holds one of the key's 3 AISStream connections; a
   fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
   `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
+- Airports (`client/src/map/airports.ts`, `airportLayer.ts`): OurAirports
+  (public domain) large + medium + small with scheduled service, 6,146
+  rows, committed as `client/src/data/airports.json` (484 KB, 187 KB gzip;
+  `[code, iata, name, city, iso, lat, lon, size]`), rebuilt by `npm run
+  airports` (`server/src/tools/fetchAirports.ts`, pure `buildAirports` /
+  `parseCsv` in `tools/airports.ts`; refuses < 4,000 rows). Imported with
+  `?url` (hashed asset) and fetched after the map is up. AirportLayer is
+  constructed before TrackLayer so its layers sit under everything; one
+  icon + label layer pair per size with minzoom (large 0 / codes 5, medium
+  6 / 7, small 8 / 9; full names from zoom 10). Images `apt:<size>` and
+  `apt-lbl:<text>` via renderImage. Icons ignore placement; labels collide.
+  HoverCard names an airport when no track is under the pointer (country
+  names from `Intl.DisplayNames`). A key / `StoredToggle`
+  `watchfloor.airports`.
 - Paths (selected track's whole history; `server/src/paths/`):
   - `PathHistory` (in TrackStore as `store.paths`, recorded on every accepted
     report): flat number arrays per track, online thinning (`redundant`: the
@@ -511,6 +525,18 @@ that could have been fetched before they arrived.
     `.app.news-off`; two copies of the newest 30 scroll at 55 px/s, new
     stories join at `animationiteration`; reduced motion steps every 8 s).
     N key and the top bar diamond toggle news.
+  - Briefing (`ui/briefingPanel.ts`, `state/briefing.ts`, pure): top 8 of the
+    last 6 h, right side, open by default from 900 px wide (`StoredToggle`
+    `watchfloor.briefing`; ×, B key, top bar list button). Hidden while a
+    track is selected (the details panel has the right side) and while news
+    is off. `NewsItem.importance` (optional, v14 unchanged: older clients
+    ignore it; saved news without it ranks as 0) = `importanceOf` in gdelt.ts:
+    capped political score / 2 + log-scaled sources, articles and copies of
+    the headline in the batch. The briefing groups retellings (>= 3 shared
+    headline words of 4+ letters, >= 40% of the shorter, place names
+    excluded; **two words or same-country grouped five unrelated Delhi
+    stories**), ranks groups by lead importance - 2/hour + 6 log2(size), and
+    shows "+N related". Picking one eases the map there and opens its card.
 - A browser tab left open on a test port reconnects to the next server
   started there and counts as a viewer with its old (possibly wide) view.
   That tab is what drove adsb.lol into 429s; close it or use a fresh port.
