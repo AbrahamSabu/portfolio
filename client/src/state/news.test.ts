@@ -2,6 +2,7 @@ import type { NewsItem } from '@watchfloor/shared';
 import { describe, expect, it } from 'vitest';
 import { NewsRotation } from './newsRotation';
 import { NewsStore } from './newsStore';
+import { hotspotWeight } from '../map/newsHotspots';
 
 const NOW = Date.UTC(2026, 9, 30, 12, 20);
 const story = (id: string, minutesAgo: number, lon = 0): NewsItem => ({
@@ -53,5 +54,16 @@ describe('NewsRotation', () => {
     expect(rotation.next(stories, NOW, west)?.id).toBe('west');
     expect(rotation.next(stories, NOW, everywhere)?.id).toBe('east');
     expect(rotation.next([], NOW, everywhere)).toBeNull();
+  });
+});
+
+describe('hotspotWeight', () => {
+  it('counts a story fully for an hour, then fades it to a third by the end of its day', () => {
+    expect(hotspotWeight(0)).toBe(1);
+    expect(hotspotWeight(3_600_000)).toBe(1);
+    expect(hotspotWeight(12 * 3_600_000)).toBeLessThan(1);
+    expect(hotspotWeight(12 * 3_600_000)).toBeGreaterThan(1 / 3);
+    expect(hotspotWeight(24 * 3_600_000)).toBeCloseTo(1 / 3);
+    expect(hotspotWeight(30 * 3_600_000)).toBeCloseTo(1 / 3);
   });
 });

@@ -555,6 +555,9 @@ that could have been fetched before they arrived.
     `ui/newsTicker.ts` (above the status bar, `--ticker-h`, 0 under
     `.app.news-off`; two copies of the newest 30 scroll at 55 px/s, new
     stories join at `animationiteration`; reduced motion steps every 8 s).
+    Hotspots (`map/newsHotspots.ts`): a white heatmap of the day's stories
+    (weight 1 for an hour, fading to 1/3 at 24 h), under all our layers,
+    gone by zoom 7; constructed before AirportLayer for that order.
     N key and the top bar News switch (role=switch, aria-checked; the bare diamond it replaced wasn't recognised as a toggle) turn news on and off.
   - Briefing (`ui/briefingPanel.ts`, `state/briefing.ts`, pure): top 8 of the
     last 6 h, right side, open by default from 900 px wide (`StoredToggle`

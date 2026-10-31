@@ -9,6 +9,7 @@ import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
 import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
+import { NewsHotspots } from './map/newsHotspots';
 import { NightLayer } from './map/nightLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
@@ -96,8 +97,14 @@ async function main(): Promise<void> {
 
   const style = new SymbolStyleSetting(loadSymbolStyle());
 
+  // Political news: markers, hotspots, pop-up cards, ticker and briefing share one store.
+  const news = new NewsStore();
+  const newsSettings = new NewsSettings(loadNewsSettings());
+
   // Night, under the basemap's labels and everything of ours.
   new NightLayer(map, () => clock.now());
+  // News hotspots next: a glow under airports, tracks and markers.
+  new NewsHotspots(map, news, newsSettings, () => clock.now());
   // First, so its layers sit under trails, tracks and news.
   const airportsShown = new StoredToggle('watchfloor.airports', true);
   const airports = new AirportLayer(map, airportsShown);
@@ -120,9 +127,7 @@ async function main(): Promise<void> {
   const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
   const details = new SelectedDetails();
   new DetailsPanel(el('details'), store, clock, layer, selection, style, path, details, () => pathLayer.fit());
-  // Political news: markers, pop-up cards and the ticker share one store.
-  const news = new NewsStore();
-  const newsSettings = new NewsSettings(loadNewsSettings());
+  // News on the map: pop-up cards and markers.
   const cards = new NewsCards(map, news, newsSettings, () => clock.now());
   // Earthquakes and disasters: above the tracks, under the news.
   const hazards = new HazardStore();
