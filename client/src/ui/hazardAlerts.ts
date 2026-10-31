@@ -1,5 +1,6 @@
 import type { Hazard } from '@watchfloor/shared';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import { fly } from '../map/camera';
 import { HAZARD_KIND_LABEL } from '../map/hazardIcons';
 import { isSignificant, type HazardStore } from '../state/hazards';
 import type { NewsSettings } from '../state/newsStore';
@@ -41,7 +42,7 @@ export class HazardAlerts {
       if (button.dataset.action !== 'dismiss') {
         const h = hazards.get(id);
         if (h) {
-          this.map.easeTo({ center: [h.lon, h.lat], zoom: Math.max(this.map.getZoom(), 4), duration: 900 });
+          fly(this.map, { center: [h.lon, h.lat], zoom: Math.max(this.map.getZoom(), 4) });
           this.open(id);
         }
       }

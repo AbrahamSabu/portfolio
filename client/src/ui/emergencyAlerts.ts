@@ -1,5 +1,6 @@
 import { deadReckon } from '@watchfloor/shared';
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
+import { fly } from '../map/camera';
 import type { ServerClock } from '../state/clock';
 import { EmergencyWatch, type Emergency } from '../state/emergencies';
 import type { NewsSettings } from '../state/newsStore';
@@ -36,6 +37,7 @@ export class EmergencyAlerts {
     private readonly selection: Selection,
     private readonly voice: NewsSettings,
     private readonly chip: HTMLButtonElement,
+    private readonly ping: () => void = () => {},
   ) {
     chip.addEventListener('click', () => {
       const active = this.watch.active.filter((e) => this.store.get(e.id));
@@ -54,9 +56,15 @@ export class EmergencyAlerts {
     window.setInterval(() => this.check(), CHECK_MS);
   }
 
+  /** The squawks being broadcast right now, for the tour. */
+  get active(): readonly Emergency[] {
+    return this.watch.active.filter((e) => this.store.get(e.id));
+  }
+
   private check(): void {
     const now = this.clock.now();
     for (const emergency of this.watch.update(this.store.all(), now)) {
+      this.ping();
       this.dismissed.delete(emergency.id);
       if (this.voice.voice) this.announce(emergency);
     }
@@ -80,7 +88,7 @@ export class EmergencyAlerts {
     const track = this.store.get(id);
     if (!track) return;
     this.selection.select(id);
-    this.map.easeTo({ center: [track.lon, track.lat], zoom: Math.max(this.map.getZoom(), 7), duration: 900 });
+    fly(this.map, { center: [track.lon, track.lat], zoom: Math.max(this.map.getZoom(), 7) });
   }
 
   private announce(e: Emergency): void {

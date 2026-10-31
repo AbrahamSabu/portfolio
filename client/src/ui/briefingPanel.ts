@@ -1,5 +1,6 @@
 import type { NewsItem } from '@watchfloor/shared';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import { fly } from '../map/camera';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { briefing } from '../state/briefing';
 import type { NewsSettings, NewsStore } from '../state/newsStore';
@@ -9,8 +10,6 @@ import { formatAge, formatNewsPlace, formatNewsTime } from './format';
 
 /** Ages and the six-hour window move on even when no batch arrives. */
 const REFRESH_MS = 60_000;
-
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * The briefing: the last six hours' top political stories in a panel on
@@ -61,9 +60,7 @@ export class BriefingPanel {
 
   /** Centre the story (closer in, if the globe is far out) and open its card. */
   private pick(story: NewsItem): void {
-    const target = { center: [story.lon, story.lat] as [number, number], zoom: Math.max(this.map.getZoom(), 3.5) };
-    if (reducedMotion()) this.map.jumpTo(target);
-    else this.map.easeTo({ ...target, duration: 900 });
+    fly(this.map, { center: [story.lon, story.lat], zoom: Math.max(this.map.getZoom(), 3.5) });
     this.onPick(story.id);
   }
 
