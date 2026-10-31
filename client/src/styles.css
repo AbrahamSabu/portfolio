@@ -2549,3 +2549,8 @@ fieldset.region-field {
   height: 22px;
   padding: 0 9px;
 }
+
+/* A tag round the back of the globe is invisible (opacityWhenCovered 0); it mustn't take clicks either. */
+.maplibregl-marker-covered {
+  pointer-events: none;
+}

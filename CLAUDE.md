@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (486 tests after watch areas).
+- `npm test`: Vitest from the root config (488 tests after weather radar).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -438,6 +438,18 @@ that could have been fetched before they arrived.
   (landings, range), which buried the log; stale is not lost** (ships go
   stale and live all day). Events carry callsign/platform as last seen.
   Measured on that box: ~4-5 genuine crossings a minute.
+- Weather radar (`map/radarLayer.ts`; the user chose RainViewer, treating
+  the portfolio as personal use): `api.rainviewer.com/public/weather-maps.json`
+  (CORS allowed, so no server) -> newest past frame only (`latestRadarFrame`,
+  pure; host must be *.rainviewer.com; paths are hashes since Mar 2026);
+  512 px tiles, colour 2 (Universal Blue, the only free scheme: others return
+  it anyway), `1_0`, source maxzoom 7 (free tier limit; MapLibre stretches
+  beyond), 100 requests/IP/min (10 tiles per globe view measured). **Drawn
+  greyscale** (`raster-saturation: -1`, opacity 0.55): RainViewer's
+  blue-green-yellow-red would read as identity colours; terms allow
+  recolouring. Under basemap labels. Off by default; R / cloud button /
+  `watchfloor.radar`; the frame list is fetched only while shown, every 10
+  min. Not animated (13x the tiles). Credit via source attribution.
 - Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):
   eight hand-drawn boxes (Hormuz, Bab-el-Mandeb, Suez, Singapore Strait,
   Bosphorus, Gibraltar, Dover, Panama); live (not stale) ships in each and
@@ -445,7 +457,9 @@ that could have been fetched before they arrived.
   "HORMUZ 0" below zoom 4), dashed box outlines from zoom 5; a tag click
   fits the box. C key / `watchfloor.chokepoints`. **Never give a marker
   element `position`**: MapLibre's markers are `position: absolute`, and
-  `relative` stacked them in page flow, hundreds of px off. Oct 2026
+  `relative` stacked them in page flow, hundreds of px off. Tags use
+  `opacityWhenCovered: '0'` (MapLibre's default 0.2 left ghost tags at the
+  globe's edge) and `.maplibregl-marker-covered` takes no clicks. Oct 2026
   coverage: Gibraltar ~165, Dover ~25, Singapore ~9, Hormuz/Suez/Panama 0
   (AISStream receivers are mostly European; the key says so).
 - Emergency squawks: `Track.squawk` (aircraft, `^[0-7]{4}$`, from readsb

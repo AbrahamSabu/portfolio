@@ -45,7 +45,8 @@ export class ChokepointLayer {
         const { south, west, north, east } = point.box;
         map.fitBounds([[west, south], [east, north]], { padding: 80, maxZoom: 10, duration: 900 });
       });
-      const marker = new Marker({ element: el, anchor: 'left', offset: [6, 0] }).setLngLat(centreOf(point.box));
+      // Round the back of the globe a tag goes, not dimmed (MapLibre's default leaves a ghost at the edge).
+      const marker = new Marker({ element: el, anchor: 'left', offset: [6, 0], opacityWhenCovered: '0' }).setLngLat(centreOf(point.box));
       this.tags.set(point.id, { marker, el, label, number, count });
     }
     map.on('style.load', () => this.install());

@@ -86,7 +86,7 @@ export class RegionLayer {
       // Above the area's northernmost corner, where a tag doesn't cover what's inside.
       const ring = unwrapRing(region.ring);
       const top = ring.reduce((best, p) => (p[1] > best[1] ? p : best), ring[0]!);
-      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, -4] }).setLngLat(top).addTo(this.map);
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, -4], opacityWhenCovered: '0' }).setLngLat(top).addTo(this.map);
       this.tags.set(region.id, { marker, count });
     }
   }
