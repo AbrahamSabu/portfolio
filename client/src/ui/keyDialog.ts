@@ -22,6 +22,7 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['A', 'Show or hide airports'],
   ['H', 'Show or hide earthquakes and disasters'],
   ['C', 'Show or hide shipping chokepoints'],
+  ['W', 'Draw a watch area'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],
 ];
@@ -104,6 +105,10 @@ function content(style: SymbolStyle): string {
       <h3>News</h3>
       <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through. The briefing lists the last six hours' top stories: the most widely covered and most political first, with a story told more than once listed once ("+2 related").</p>
       <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
+    </section>
+    <section>
+      <h3>Watch areas</h3>
+      <p>Press <kbd>W</kbd> (or the dashed-shape button on the left) and click out an area; name it and choose aircraft, ships or both, military only if you like. An alert says when one crosses in or out (two reports outside count as leaving, so one jumpy position doesn't), and each area counts the tracks that leave the picture inside it (landed, out of receiver range or switched off). Anything already inside when you open the page is counted, not alerted. Areas are kept in this browser, and alerts happen only while the page is open.</p>
     </section>
     <section>
       <h3>Countries</h3>

@@ -5,6 +5,7 @@ import { hazardScale, type HazardStore } from '../state/hazards';
 import type { StoredToggle } from '../state/storedToggle';
 import { formatAge, formatNewsTime } from '../ui/format';
 import { HAZARD_KIND_LABEL, hazardIconSvg, hazardImageId } from './hazardIcons';
+import { isDrawing } from './regionDraw';
 import type { TrackLayer } from './trackLayer';
 
 const SOURCE = 'hazards';
@@ -36,7 +37,7 @@ export class HazardLayer {
     shown.subscribe(() => this.applyVisibility());
     window.setInterval(() => this.render(), AGE_REFRESH_MS);
     map.on('click', LAYER, (event) => {
-      if (tracks.trackAt(event.point)) return;
+      if (isDrawing() || tracks.trackAt(event.point)) return;
       const id = event.features?.[0]?.properties?.id;
       if (typeof id === 'string') this.open(id);
     });

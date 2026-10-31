@@ -2328,3 +2328,224 @@ body[data-list-open] .filter-panel {
 .choke-tag-compact .choke-count {
   display: none;
 }
+
+/* ------------------------------------------------------------ watch areas */
+
+.region-body {
+  overflow-y: auto;
+  padding: 8px 12px 10px;
+}
+
+.region-draw {
+  width: 100%;
+  margin-bottom: 8px;
+  color: var(--hud-bright);
+  border-color: var(--hud-glow);
+}
+
+.region-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid var(--hud-glow);
+  border-radius: 3px;
+  background: rgb(63 182 255 / 0.06);
+  font-size: var(--text-sm);
+}
+
+.region-form[hidden] {
+  display: none;
+}
+
+.region-field {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ink-muted);
+}
+
+.region-field input[name='name'] {
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: inherit;
+}
+
+.region-field legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.region-field label,
+.region-check {
+  color: var(--ink);
+}
+
+fieldset.region-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.region-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.region-list,
+.region-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.region-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+}
+
+.region-show {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  padding: 6px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-name {
+  font-weight: 600;
+}
+
+.region-what,
+.region-count,
+.region-empty {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.region-count {
+  color: var(--hud-bright);
+}
+
+.region-empty {
+  padding: 4px 0 8px;
+}
+
+.region-log button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-log button:hover,
+.region-show:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.region-log time {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.region-log [data-type='lost'] span {
+  color: var(--ink-muted);
+}
+
+.region-tag {
+  border-left-color: var(--hud-bright);
+}
+
+/* Area alerts in the display's blue: the squawks are amber, the hazards apricot. */
+.region-alert {
+  border-color: var(--hud-glow);
+  border-left-color: var(--hud-bright);
+  box-shadow: 0 0 22px rgb(63 182 255 / 0.18);
+}
+
+.region-alert .alert-head,
+.region-alert .alert-show {
+  color: var(--hud-bright);
+}
+
+.region-alert .alert-show {
+  border-color: var(--hud-bright);
+  background: rgb(63 182 255 / 0.12);
+}
+
+/* While drawing: what to do, along the bottom of the map. */
+.draw-hint {
+  position: absolute;
+  z-index: 3;
+  bottom: 16px;
+  left: 50%;
+  padding: 6px 12px;
+  border: 1px solid var(--hud-glow);
+  border-radius: 3px;
+  background: rgb(2 10 19 / 0.9);
+  color: var(--hud-bright);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: 0 0 14px rgb(63 182 255 / 0.25);
+}
+
+.draw-hint[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .draw-hint {
+    white-space: normal;
+    width: calc(100% - 32px);
+    text-align: center;
+  }
+}
+
+/* Area alerts come often in a busy area: one compact line each, Show beside it. */
+.region-alert {
+  padding: 6px 10px 7px 12px;
+}
+
+.region-alert .alert-title {
+  margin-top: 2px;
+  padding-right: 64px;
+}
+
+.region-alert .alert-kind {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--ink-muted);
+}
+
+.region-alert .alert-actions {
+  position: absolute;
+  right: 34px;
+  bottom: 6px;
+  margin: 0;
+}
+
+.region-alert .alert-show {
+  height: 22px;
+  padding: 0 9px;
+}

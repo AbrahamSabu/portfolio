@@ -11,6 +11,8 @@ import { FilterControl } from './map/filterControl';
 import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
 import { NewsHotspots } from './map/newsHotspots';
+import { isDrawing, RegionDraw } from './map/regionDraw';
+import { RegionLayer } from './map/regionLayer';
 import { NightLayer } from './map/nightLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
@@ -28,6 +30,7 @@ import { SelectedDetails } from './state/selectedDetails';
 import { SelectedPath } from './state/selectedPath';
 import { loadSymbolStyle, SymbolStyleSetting } from './state/symbolStyle';
 import { Selection } from './state/selection';
+import { RegionStore, RegionWatch } from './state/regions';
 import { StoredToggle } from './state/storedToggle';
 import { TrackStore } from './state/trackStore';
 import { AirportPanel } from './ui/airportPanel';
@@ -36,6 +39,8 @@ import { CountryPanel } from './ui/countryPanel';
 import { DetailsPanel } from './ui/detailsPanel';
 import { EmergencyAlerts } from './ui/emergencyAlerts';
 import { HazardAlerts } from './ui/hazardAlerts';
+import { RegionAlerts } from './ui/regionAlerts';
+import { RegionControl, RegionPanel } from './ui/regionPanel';
 import { FilterPanel } from './ui/filterPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
@@ -111,6 +116,9 @@ async function main(): Promise<void> {
   // First, so its layers sit under trails, tracks and news.
   const airportsShown = new StoredToggle('watchfloor.airports', true);
   const airports = new AirportLayer(map, airportsShown);
+  // Watch areas, under the tracks too.
+  const regions = new RegionStore();
+  const regionLayer = new RegionLayer(map, regions);
 
   const layer = new TrackLayer(map, store, clock, selection, filter, style);
   const trailControl = new TrailControl(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
@@ -119,9 +127,18 @@ async function main(): Promise<void> {
   const path = new SelectedPath();
   const pathLayer = new PathLayer(map, store, path);
   map.addControl(new StyleControl(style), 'top-left');
-  const filterPanel = new FilterPanel(el('filter-panel'), filter, store, clock, () => filterControl.update());
+  const filterPanel = new FilterPanel(el('filter-panel'), filter, store, clock, () => {
+    filterControl.update();
+    // The filter and the watch areas share a place on the left: one at a time.
+    if (filterPanel.open) regionPanel.setOpen(false);
+  });
   const filterControl = new FilterControl(filterPanel, filter);
   map.addControl(filterControl, 'top-left');
+  const regionDraw = new RegionDraw(map);
+  const regionWatch = new RegionWatch();
+  const regionPanel = new RegionPanel(el('region-panel'), regions, regionWatch, regionDraw, regionLayer, store, selection);
+  regionPanel.onOpenChange(() => regionPanel.open && filterPanel.open && filterPanel.setOpen(false));
+  map.addControl(new RegionControl(regionPanel), 'top-left');
   const reticle = new Reticle(map);
   new HoverCard(map, store, clock, layer, (point) => {
     const airport = airports.airportAt(point);
@@ -161,7 +178,7 @@ async function main(): Promise<void> {
   // A country's briefing, on a click on its name.
   const countryPanel = new CountryPanel(el('country-panel'), map, store, news, hazards, clock, selection, (id) => cards.open(id), (id) => hazardLayer.open(id));
   map.on('click', (event) => {
-    if (layer.trackAt(event.point)) return;
+    if (isDrawing() || layer.trackAt(event.point)) return;
     const airport = airports.airportAt(event.point);
     const country = airport ? undefined : countryPanel.countryAt(event.point);
     if (airport) {
@@ -177,6 +194,18 @@ async function main(): Promise<void> {
     map.on('mouseleave', label, () => (map.getCanvas().style.cursor = ''));
   }
   new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings);
+  // Watch areas: who crossed in or out, checked each second.
+  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings);
+  window.setInterval(() => {
+    // Mid-reconnect the store is empty: that's not every track leaving at once.
+    if (store.size === 0) return;
+    const now = clock.now();
+    const events = regionWatch.update(regions.regions, store.all(), (t) => store.status(t, now) === 'live', now);
+    regionPanel.record(events);
+    regionAlerts.show(events);
+    regionLayer.setCounts((id) => regionWatch.insideOf(id).length);
+    regionPanel.refreshCounts();
+  }, 1_000);
   new HazardAlerts(el('alerts-hazard'), map, hazards, hazardsShown, newsSettings, (id) => hazardLayer.open(id));
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
@@ -244,6 +273,7 @@ async function main(): Promise<void> {
       if (filterPanel.open) filterPanel.setOpen(false);
       else if (airportPanel.isOpen) airportPanel.close();
       else if (countryPanel.isOpen) countryPanel.close();
+      else if (regionPanel.open) regionPanel.setOpen(false);
       else selection.select(null);
     }
     // Single-letter shortcuts must not fire while the operator is typing.
@@ -257,6 +287,7 @@ async function main(): Promise<void> {
     if (event.key === 'b' || event.key === 'B') briefingToggle.click();
     if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
+    if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box

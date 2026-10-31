@@ -2,6 +2,7 @@ import type { Feature, FeatureCollection, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import type { NewsSettings, NewsStore } from '../state/newsStore';
 import { newsImageId } from './newsIcons';
+import { isDrawing } from './regionDraw';
 import type { TrackLayer } from './trackLayer';
 
 const SOURCE = 'news';
@@ -32,7 +33,7 @@ export class NewsLayer {
     window.setInterval(() => this.render(), AGE_REFRESH_MS);
 
     map.on('click', NEWS_LAYER, (event) => {
-      if (tracks.trackAt(event.point)) return;
+      if (isDrawing() || tracks.trackAt(event.point)) return;
       const id = event.features?.[0]?.properties?.id;
       if (typeof id === 'string') onPick(id);
     });

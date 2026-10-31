@@ -19,7 +19,7 @@ that could have been fetched before they arrived.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (477 tests after hazards, airports panel, chokepoints and country briefings).
+- `npm test`: Vitest from the root config (486 tests after watch areas).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -420,6 +420,24 @@ that could have been fetched before they arrived.
   Czechia / Czech Republic). Shares the briefing's frame; opening it closes
   the airport panel and vice versa; Escape closes. Click priority: track,
   then airport, then country label.
+- Watch areas (roadmap 4; browser only, `localStorage` `watchfloor.regions`,
+  max 20): `state/regions.ts` (pure: `insideRing` ray casting, 0-360° when a
+  ring spans > 180° of longitude; `unwrapRing` for drawing; `RegionWatch`;
+  `RegionStore`), `map/regionDraw.ts` (W key or the dashed-shape map button
+  -> click corners; first corner / double-click / Enter finishes, Backspace,
+  Esc; keys in the capture phase; `isDrawing()` makes the other click
+  handlers stand down), `map/regionLayer.ts` (fill + dashed outline under
+  the tracks, constructed before TrackLayer; tag above the northernmost
+  corner), `ui/regionPanel.ts` (form, list, log of 50; shares the filter
+  panel's place, one at a time), `ui/regionAlerts.ts` (compact cards, two
+  at most, 90 s). Checked each second, skipped while the store is empty
+  (reconnects). Rules: enter = live outside on the last look, live inside
+  now; already inside at start or first heard inside = silent; exit = two
+  live reports outside; lost = dropped from the picture inside, **counted
+  per area, not logged: a 1,850-track Channel box lost ~40 a minute
+  (landings, range), which buried the log; stale is not lost** (ships go
+  stale and live all day). Events carry callsign/platform as last seen.
+  Measured on that box: ~4-5 genuine crossings a minute.
 - Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):
   eight hand-drawn boxes (Hormuz, Bab-el-Mandeb, Suez, Singapore Strait,
   Bosphorus, Gibraltar, Dover, Panama); live (not stale) ships in each and
@@ -701,7 +719,7 @@ that could have been fetched before they arrived.
    and the status bar says when the feed is rate limited or failing.
 3. ~~Live ships from AISStream.io over WebSocket~~ (done). Free API key in
    `.env`; scenario, world or viewport areas; "off" without a key.
-4. Geofences drawn on the map, with entry and exit alerts.
+4. ~~Geofences drawn on the map, with entry and exit alerts~~ (done, in the browser: watch areas).
 5. Operator tagging of affiliation.
 6. Recording and a replay timeline.
 

@@ -130,6 +130,41 @@
         </div>
       </aside>
 
+      <aside class="filter-panel region-panel" id="region-panel" hidden aria-labelledby="region-title">
+        <header class="filter-head">
+          <h2 class="filter-title" id="region-title">Watch areas</h2>
+          <button class="icon-button" type="button" data-close aria-label="Close watch areas">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="region-body">
+          <form class="region-form" data-form hidden>
+            <label class="region-field">Name <input name="name" maxlength="40" autocomplete="off" required /></label>
+            <fieldset class="region-field">
+              <legend>Watch</legend>
+              <label><input type="radio" name="watch" value="both" checked /> Both</label>
+              <label><input type="radio" name="watch" value="air" /> Aircraft</label>
+              <label><input type="radio" name="watch" value="sea" /> Ships</label>
+            </fieldset>
+            <label class="region-check"><input type="checkbox" name="military" /> Military only</label>
+            <fieldset class="region-field">
+              <legend>Alert when one</legend>
+              <label><input type="checkbox" name="enter" checked /> Enters</label>
+              <label><input type="checkbox" name="exit" checked /> Leaves</label>
+            </fieldset>
+            <div class="region-actions">
+              <button class="alert-show" type="submit">Save area</button>
+              <button class="text-button" type="button" data-discard>Discard</button>
+            </div>
+          </form>
+          <button class="text-button region-draw" type="button" data-draw>+ Draw a new area (W)</button>
+          <ul class="region-list" data-list></ul>
+          <h3 class="filter-group-title">Activity</h3>
+          <ol class="region-log" data-log></ol>
+          <p class="airport-credit">Kept in this browser; alerts only while this page is open.</p>
+        </div>
+      </aside>
+
       <aside class="filter-panel" id="filter-panel" hidden aria-labelledby="filter-title">
         <header class="filter-head">
           <h2 class="filter-title" id="filter-title">Filter</h2>
@@ -144,6 +179,7 @@
       <section class="alerts" aria-label="Alerts">
         <div id="alerts-emergency"></div>
         <div id="alerts-hazard"></div>
+        <div id="alerts-region"></div>
       </section>
 
       <aside class="briefing" id="briefing" hidden aria-labelledby="briefing-title">
