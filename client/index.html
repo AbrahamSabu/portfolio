@@ -158,6 +158,28 @@
         <p class="briefing-empty" data-empty>Waiting for the first news batch.</p>
       </aside>
 
+      <aside class="briefing airport-panel" id="airport-panel" hidden aria-labelledby="airport-title">
+        <header class="briefing-head">
+          <p class="airport-codes" data-field="codes"></p>
+          <h2 class="briefing-title" id="airport-title" data-field="name"></h2>
+          <p class="briefing-sub" data-field="place"></p>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close airport">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="airport-body">
+          <section class="airport-section">
+            <h3 class="airport-heading">Weather</h3>
+            <div data-field="weather"></div>
+          </section>
+          <section class="airport-section">
+            <h3 class="airport-heading">Traffic now</h3>
+            <div data-field="traffic"></div>
+            <p class="airport-credit">From live tracks below 10,000 ft within 40 km: not a timetable.</p>
+          </section>
+        </div>
+      </aside>
+
       <aside class="details" id="details" hidden aria-labelledby="details-title">
         <header class="details-head">
           <div class="details-symbol" data-symbol aria-hidden="true"></div>

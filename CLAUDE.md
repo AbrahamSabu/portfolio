@@ -435,6 +435,21 @@ that could have been fetched before they arrived.
   HoverCard names an airport when no track is under the pointer (country
   names from `Intl.DisplayNames`). A key / `StoredToggle`
   `watchfloor.airports`.
+  - Airport panel (`ui/airportPanel.ts`, click an airport; a track under the
+    pointer wins; Escape or × closes; selecting a track closes it; shares the
+    briefing's frame, `.app.airport-open` hides the briefing). Weather:
+    `GET /api/weather/<ICAO>` (http.ts) -> `WeatherService`
+    (`server/src/weather/`): aviationweather.gov METAR JSON, **which refuses
+    browser (cross-origin) requests**, 100 req/min limit, asks for a custom
+    User-Agent; cached 10 min per station (failures 1 min), >= 1 s between
+    requests, concurrent asks shared. `parseMetar` keeps checked fields;
+    `ui/weatherFormat.ts` words them (visibility arrives in statute miles,
+    "6+" = 10 km or more; metre reports are rounded back to 50 m; `OVX` is
+    their code for a VV group, "sky obscured"). Traffic: `airportTraffic`
+    (state/airportTraffic.ts, pure): air tracks below 3,000 m within 40 km,
+    within 60° of the bearing to it = arriving, > 120° = leaving, else
+    nearby (and anything within 1.5 km). Not a timetable (no free source).
+    Vite proxies `/api` in dev.
 - Paths (selected track's whole history; `server/src/paths/`):
   - `PathHistory` (in TrackStore as `store.paths`, recorded on every accepted
     report): flat number arrays per track, online thinning (`redundant`: the

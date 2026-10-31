@@ -21,6 +21,8 @@ export interface HttpOptions {
   /** Built client to serve in production. Ignored if it doesn't exist (dev uses Vite). */
   staticDir: string;
   health: () => Record<string, unknown>;
+  /** An airport's latest METAR, for `/api/weather/<ICAO>`. */
+  weather?: (station: string) => Promise<unknown>;
 }
 
 /**
@@ -37,6 +39,19 @@ export function createHttpServer(opts: HttpOptions): http.Server {
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, ...opts.health() }));
+      return;
+    }
+
+    const weather = /^\/api\/weather\/([A-Z0-9]{4})$/.exec(url.pathname);
+    if (weather && opts.weather) {
+      opts.weather(weather[1]!).then(
+        (body) => {
+          // Browsers may keep it a few minutes too: METARs change every half hour or hour.
+          res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' });
+          res.end(JSON.stringify({ weather: body }));
+        },
+        () => res.writeHead(502).end(),
+      );
       return;
     }
 

@@ -25,6 +25,7 @@ import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
 import { HazardService } from './hazards/hazardService';
+import { WeatherService } from './weather/weatherService';
 import { loadNews, NewsService, saveNews } from './news/newsService';
 import { getScenario } from './scenarios';
 import { TrackStore } from './trackStore';
@@ -161,8 +162,10 @@ async function main(): Promise<void> {
       })
     : null;
   const hazards = config.hazards ? new HazardService({ onChange: (items) => hub?.broadcastHazards(items) }) : null;
+  const weather = new WeatherService();
   const server = createHttpServer({
     staticDir: config.staticDir,
+    weather: (station) => weather.get(station),
     health: () => ({
       uptimeS: Math.round((Date.now() - startedAt) / 1000),
       tracks: store.size,
