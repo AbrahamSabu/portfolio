@@ -79,7 +79,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 14`, v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 15`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -390,6 +390,26 @@ that could have been fetched before they arrived.
 - Each running AIS server holds one of the key's 3 AISStream connections; a
   fourth is dropped silently. Rehearse AIS failures with a local `ws` stub via
   `AISSTREAM_URL=ws://127.0.0.1:<port>` instead of the real service.
+- Hazards (`server/src/hazards/`, `shared/src/hazards.ts`): USGS M2.5+
+  past-day GeoJSON every 2 min (public domain) and GDACS `events4app`
+  (current events, ~100, mostly green wildfires) every 10 min (free with
+  credit "GDACS"; terms are disclaimers: automatic, may be wrong, local
+  authorities first, which the card says). **GDACS's JSON starts with a
+  BOM** (strip before JSON.parse) and its dates have no zone (UTC).
+  `sources.ts` (pure): `parseUsgs`, `parseGdacs`, `mergeHazards` (USGS
+  quakes plus GDACS's other kinds; a GDACS quake within 2 min / 100 km lends
+  its alert level to the USGS one instead of showing twice). `HazardService`
+  polls each on its own clock with Backoff, keeps the last list on failure,
+  calls `onChange` only when the merged list changes; `HAZARDS=off`.
+  Client: `state/hazards.ts` (HazardStore: listeners get what's new after the
+  first list; `hazardScale`, `isSignificant` = M6+ or orange/red),
+  `map/hazardIcons.ts` (pale apricot #FFD2A8 outlines, `hz:<kind>`),
+  `map/hazardLayer.ts` (above tracks, under news; card in a Popup; source
+  attribution credits USGS and GDACS), `ui/hazardAlerts.ts` (significant new
+  ones only, 5 min, in `#alerts-hazard` beside the squawks' `#alerts-emergency`).
+  H key / `watchfloor.hazards`. **Zoom must be the outermost expression**:
+  `['*', scale, ['interpolate', ..., ['zoom'], ...]]` failed validation and
+  took the whole basemap with it (no tiles, no error in the pane's console).
 - Emergency squawks: `Track.squawk` (aircraft, `^[0-7]{4}$`, from readsb
   `squawk` and OpenSky state index 14; wire tuple index 15, appended, so no
   protocol bump). `EMERGENCY_SQUAWKS` / `emergencyOf` in shared/track.ts.

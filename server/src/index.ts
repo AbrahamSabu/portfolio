@@ -24,6 +24,7 @@ import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
+import { HazardService } from './hazards/hazardService';
 import { loadNews, NewsService, saveNews } from './news/newsService';
 import { getScenario } from './scenarios';
 import { TrackStore } from './trackStore';
@@ -159,6 +160,7 @@ async function main(): Promise<void> {
         },
       })
     : null;
+  const hazards = config.hazards ? new HazardService({ onChange: (items) => hub?.broadcastHazards(items) }) : null;
   const server = createHttpServer({
     staticDir: config.staticDir,
     health: () => ({
@@ -169,6 +171,7 @@ async function main(): Promise<void> {
       paths: { tracks: store.paths.size, points: store.paths.points, openSkyLookupsLastHour: paths.lookupsLastHour },
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
       news: news?.health() ?? null,
+      hazards: hazards?.health() ?? null,
     }),
   });
 
@@ -194,6 +197,7 @@ async function main(): Promise<void> {
     },
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
     ...(news ? { news: () => news.items() } : {}),
+    ...(hazards ? { hazards: () => hazards.items() } : {}),
   });
 
   const sink = {
@@ -232,6 +236,7 @@ async function main(): Promise<void> {
   }
   hub.start();
   news?.start();
+  hazards?.start();
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -250,6 +255,7 @@ async function main(): Promise<void> {
     log.info('shutting down', { signal });
     for (const feed of feeds) feed.stop();
     news?.stop();
+    hazards?.stop();
     clearInterval(saveTimer);
     await savePictureNow();
     await hub?.stop();

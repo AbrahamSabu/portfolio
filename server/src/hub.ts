@@ -8,6 +8,8 @@ import {
   type DeltaMessage,
   type FeedStatus,
   type HelloMessage,
+  type Hazard,
+  type HazardsMessage,
   type NewsItem,
   type NewsMessage,
   type DetailsMessage,
@@ -84,6 +86,8 @@ export interface HubOptions {
   onTrackRequest?: (id: string, send: (message: PathMessage | DetailsMessage) => void) => void;
   /** The day's news stories, sent to each browser after its snapshot. */
   news?: () => NewsItem[];
+  /** Current earthquakes and disasters, sent after the news. */
+  hazards?: () => Hazard[];
 }
 
 /**
@@ -169,6 +173,8 @@ export class Hub {
       // After the snapshot: the tracks are what the page is for.
       const news = this.opts.news?.();
       if (news) this.send(client, { type: 'news', serverTime: Date.now(), items: news, replace: true });
+      const hazards = this.opts.hazards?.();
+      if (hazards) this.send(client, { type: 'hazards', serverTime: Date.now(), items: hazards });
     });
   }
 
@@ -179,7 +185,13 @@ export class Hub {
     for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
   }
 
-  private send(client: Client, message: NewsMessage): void {
+  /** The whole hazard list to every browser, whenever it changes. */
+  broadcastHazards(items: Hazard[]): void {
+    const payload = encodeServerMessage({ type: 'hazards', serverTime: Date.now(), items });
+    for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
+  }
+
+  private send(client: Client, message: NewsMessage | HazardsMessage): void {
     if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
   }
 

@@ -8,3 +8,4 @@ export * from './protocol';
 export * from './wire';
 export * from './countries';
 export * from './news';
+export * from './hazards';

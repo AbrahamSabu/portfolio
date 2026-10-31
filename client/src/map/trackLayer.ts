@@ -11,6 +11,7 @@ import { inViewBox, padViewBox, type ViewBox } from './viewBox';
 import { AFFILIATION_LINE_COLOR } from './colors';
 import { labelImageId, parseLabelImageId, renderLabel } from './labels';
 import { renderAirportImage } from './airports';
+import { renderHazardImage } from './hazardIcons';
 import { parseNewsImageId, renderNewsIcon } from './newsIcons';
 import { parseShapeImageId, renderShape, shapeFor, shapeImageId } from './shapes';
 import { parseSymbolImageId, renderSymbol, sidcFor, symbolImageId } from './symbols';
@@ -371,6 +372,8 @@ function renderImage(id: string, pixelRatio: number): { image: ImageData; pixelR
   if (news) return renderNewsIcon(news, pixelRatio);
   const airport = renderAirportImage(id, pixelRatio);
   if (airport !== undefined) return airport;
+  const hazard = renderHazardImage(id, pixelRatio);
+  if (hazard !== undefined) return hazard;
   const label = parseLabelImageId(id);
   return label ? renderLabel(label, pixelRatio) : null;
 }

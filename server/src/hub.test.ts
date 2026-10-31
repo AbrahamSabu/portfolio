@@ -15,36 +15,47 @@ describe('Hub', () => {
     await new Promise((r) => server?.close(r));
   });
 
-  it("sends the day's news after the snapshot, then new stories as they arrive", async () => {
+  it("sends the day's news and the hazards after the snapshot, then changes as they come", async () => {
     const story = {
       id: '1', headline: 'Parliament passes the budget', url: 'https://example.org/a', outlet: 'example.org',
       lat: 51.5, lon: -0.12, place: 'London, United Kingdom', kind: 'politics' as const, publishedAt: 1,
     };
+    const quake = {
+      id: 'usgs:1', kind: 'earthquake' as const, source: 'usgs' as const, title: 'M 5.0 - Somewhere',
+      lat: 10, lon: 20, time: 1, magnitude: 5, url: 'https://earthquake.usgs.gov/a',
+    };
     server = createServer();
     hub = new Hub({
       server, path: '/ws', store: new TrackStore(DEFAULT_STALENESS), tickMs: 1000, staleness: DEFAULT_STALENESS,
-      scenario: null, traffic: 'live', news: () => [story],
+      scenario: null, traffic: 'live', news: () => [story], hazards: () => [quake],
     });
     await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
     const { port } = server.address() as AddressInfo;
     const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     const types: string[] = [];
-    const news: unknown[] = [];
+    const extras: unknown[] = [];
     let got: () => void = () => {};
     ws.on('message', (data) => {
       const m = JSON.parse(String(data)) as { type: string };
       types.push(m.type);
-      if (m.type === 'news') {
-        news.push(m);
-        got();
+      if (m.type === 'news' || m.type === 'hazards') {
+        extras.push(m);
+        if (m.type === 'hazards' || extras.length > 2) got();
       }
     });
     await new Promise<void>((r) => (got = r));
     hub.broadcastNews([{ ...story, id: '2' }]);
     await new Promise<void>((r) => (got = r));
+    hub.broadcastHazards([]);
+    await new Promise<void>((r) => (got = r));
     ws.close();
-    expect(types).toEqual(['hello', 'snapshot', 'news', 'news']);
-    expect(news).toMatchObject([{ items: [story], replace: true }, { items: [{ id: '2' }], replace: false }]);
+    expect(types).toEqual(['hello', 'snapshot', 'news', 'hazards', 'news', 'hazards']);
+    expect(extras).toMatchObject([
+      { items: [story], replace: true },
+      { items: [quake] },
+      { items: [{ id: '2' }], replace: false },
+      { items: [] },
+    ]);
   });
 
   it('reports the client count as browsers connect and leave', async () => {

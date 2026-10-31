@@ -14,6 +14,8 @@ export interface Config {
   aircraftDb: string | null;
   /** Political news from GDELT (`NEWS=off` to stop it); `file` keeps the day's stories across restarts. */
   news: { enabled: boolean; file: string | null };
+  /** Earthquakes (USGS) and disasters (GDACS) on the map; `HAZARDS=off` to stop them. */
+  hazards: boolean;
   /**
    * Which feeds run. Defaults to the live world: aircraft from OpenSky
    * everywhere, filled in from adsb.lol and adsb.fi (free, no key) where
@@ -232,6 +234,7 @@ export function loadConfig(): Config {
           ? null
           : path.resolve(process.cwd(), process.env.NEWS_FILE || '../.cache/news.json'),
     },
+    hazards: process.env.HAZARDS?.trim().toLowerCase() !== 'off',
     feeds: parseFeeds(process.env.FEEDS),
     // SIM_SCENARIO is the old name, kept so existing .env files still work.
     scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'cork',

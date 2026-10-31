@@ -22,6 +22,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Says who and what a selected track is: a photo of the actual aircraft (credited to its photographer on Planespotters.net), the airline flying it, the country it's registered in, or which country's military it belongs to; for a ship, a photo from Wikimedia Commons when it has one, its exact type (tug, pilot vessel, tanker...), class, operator and year built from Wikidata, its flag, destination and ETA, size, IMO number and radio call sign
 - Shows political news from around the world on the map, live from the GDELT Project: a marker where each story happened (conflict, protest, elections, diplomacy, politics), cards that pop up one at a time as new stories arrive, a scrolling ticker in the style of an intelligence feed, a closable briefing of the last six hours' top stories (B), and optional read-aloud (N to show or hide)
 - Raises an alert when an aircraft squawks an emergency code (7500 unlawful interference, 7600 radio failure, 7700 emergency): a card naming the aircraft and an amber ring on the map, once a second report confirms the code
+- Shows earthquakes (USGS, magnitude 2.5 and up, the past day) and current disasters from GDACS (cyclones, floods, volcanoes, droughts, wildfires), sized by strength or alert level, with a card per event and an alert when a strong one appears (H to show or hide)
 - Marks about 6,000 airports: the largest from the globe, more as you zoom in, with codes and then names, and the name, city and codes on hover (A to show or hide)
 - Survives network trouble: automatic reconnect with backoff, a heartbeat watchdog, and resync for slow clients
 - Simulates about 85 contacts: airliners on airways, a maritime patrol racetrack, an unidentified drone, merchant ships in the real Dover Strait shipping lanes, cross-channel ferries, fishing and leisure boats
@@ -241,6 +242,8 @@ client/   MapLibre map, symbology, UI
 - Ship facts and photos: [Wikidata](https://www.wikidata.org) (CC0) and [Wikimedia Commons](https://commons.wikimedia.org), each photo credited to its author with its licence
 - Political news: [The GDELT Project](https://www.gdeltproject.org/) (free for any use with a citation); headlines belong to the outlets that published them, and each links to its article
 - Airports: [OurAirports](https://ourairports.com/data/) (public domain)
+- Earthquakes: [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/) (public domain)
+- Disasters: Global Disaster Alert and Coordination System, [GDACS](https://www.gdacs.org/) (automatic estimates; local authorities' warnings come first)
 - Countries: ICAO Annex 10 Vol. III (aircraft address blocks) and the ITU's maritime identification digits (ship flags)
 
 All simulated traffic is invented, including callsigns and vessel names. Live aircraft and ships come from crowd-sourced receivers (OpenSky, adsb.lol, adsb.fi, AISStream) and can be delayed, incomplete or missing; empty areas often mean no receivers, not no traffic. AIS is self-reported: a ship's name, type and position are what it broadcasts, not an identification. This is a portfolio project and must not be used for navigation.

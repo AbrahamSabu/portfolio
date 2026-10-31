@@ -7,6 +7,7 @@ import { describeAirport } from './map/airports';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
+import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
 import { NightLayer } from './map/nightLayer';
 import { Reticle } from './map/reticle';
@@ -18,6 +19,7 @@ import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
+import { HazardStore } from './state/hazards';
 import { loadNewsSettings, NewsSettings, NewsStore } from './state/newsStore';
 import { loadFilterState, PictureFilter, saveFilterState } from './state/pictureFilter';
 import { SelectedDetails } from './state/selectedDetails';
@@ -29,6 +31,7 @@ import { TrackStore } from './state/trackStore';
 import { BriefingPanel } from './ui/briefingPanel';
 import { DetailsPanel } from './ui/detailsPanel';
 import { EmergencyAlerts } from './ui/emergencyAlerts';
+import { HazardAlerts } from './ui/hazardAlerts';
 import { FilterPanel } from './ui/filterPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
@@ -121,6 +124,10 @@ async function main(): Promise<void> {
   const news = new NewsStore();
   const newsSettings = new NewsSettings(loadNewsSettings());
   const cards = new NewsCards(map, news, newsSettings, () => clock.now());
+  // Earthquakes and disasters: above the tracks, under the news.
+  const hazards = new HazardStore();
+  const hazardsShown = new StoredToggle('watchfloor.hazards', true);
+  const hazardLayer = new HazardLayer(map, hazards, hazardsShown, layer, () => clock.now());
   new NewsLayer(map, news, newsSettings, layer, () => clock.now(), (id) => cards.open(id));
   new NewsTicker(el('news-ticker'), news, newsSettings, (id) => cards.open(id));
   // Top stories, open by default where there's room for it beside the map.
@@ -138,7 +145,8 @@ async function main(): Promise<void> {
   briefingOpen.subscribe(showBriefingToggle);
   newsSettings.subscribe(showBriefingToggle);
   showBriefingToggle();
-  new EmergencyAlerts(el('alerts'), map, store, clock, selection, newsSettings);
+  new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings);
+  new HazardAlerts(el('alerts-hazard'), map, hazards, hazardsShown, newsSettings, (id) => hazardLayer.open(id));
   const newsToggle = el('news-toggle');
   newsToggle.addEventListener('click', () => newsSettings.set({ shown: !newsSettings.shown }));
   const showNewsToggle = () => newsToggle.setAttribute('aria-checked', String(newsSettings.shown));
@@ -214,6 +222,7 @@ async function main(): Promise<void> {
     if (event.key === 'n' || event.key === 'N') newsSettings.set({ shown: !newsSettings.shown });
     if (event.key === 'a' || event.key === 'A') airportsShown.toggle();
     if (event.key === 'b' || event.key === 'B') briefingToggle.click();
+    if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
@@ -289,6 +298,9 @@ async function main(): Promise<void> {
           break;
         case 'news':
           news.apply(message, clock.now());
+          break;
+        case 'hazards':
+          hazards.apply(message.items);
           break;
       }
     },

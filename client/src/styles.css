@@ -2047,3 +2047,43 @@ body[data-list-open] .filter-panel {
   border: 2px solid var(--warn);
   border-radius: 50%;
 }
+
+/* ------------------------------------------------- earthquakes and disasters */
+
+.alerts > div {
+  display: grid;
+  gap: 8px;
+}
+
+.alerts > div:empty {
+  display: none;
+}
+
+/* Hazard alerts in the hazards' own pale apricot, not the squawks' amber. */
+.hazard-alert {
+  border-color: rgb(255 210 168 / 0.5);
+  border-left-color: #ffd2a8;
+  box-shadow: 0 0 22px rgb(255 210 168 / 0.15);
+}
+
+.hazard-alert .alert-head,
+.hazard-alert .alert-show {
+  color: #ffd2a8;
+}
+
+.hazard-alert .alert-show {
+  border-color: #ffd2a8;
+  background: rgb(255 210 168 / 0.1);
+}
+
+.hazard-card-icon,
+.key-hazard {
+  color: #ffd2a8;
+}
+
+.hazard-card-facts {
+  margin-bottom: 4px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}

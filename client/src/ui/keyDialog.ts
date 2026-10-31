@@ -1,5 +1,6 @@
-import { NEWS_KINDS, type Affiliation, type Platform } from '@watchfloor/shared';
+import { HAZARD_KINDS, NEWS_KINDS, type Affiliation, type Platform } from '@watchfloor/shared';
 import { airportIconSvg } from '../map/airports';
+import { HAZARD_KIND_LABEL, hazardIconSvg } from '../map/hazardIcons';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { trackIconSvg } from '../map/trackIcon';
 import type { SymbolStyle, SymbolStyleSetting } from '../state/symbolStyle';
@@ -19,6 +20,7 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['N', 'Show or hide the news'],
   ['B', 'Open or close the briefing'],
   ['A', 'Show or hide airports'],
+  ['H', 'Show or hide earthquakes and disasters'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],
 ];
@@ -101,6 +103,11 @@ function content(style: SymbolStyle): string {
       <h3>News</h3>
       <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through. The briefing lists the last six hours' top stories: the most widely covered and most political first, with a story told more than once listed once ("+2 related").</p>
       <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
+    </section>
+    <section>
+      <h3>Earthquakes and disasters</h3>
+      <p>Earthquakes of magnitude 2.5 and up from the past day, from the <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>, drawn larger the stronger they are. Other disasters from <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a> (the Global Disaster Alert and Coordination System), drawn larger at orange and red alert. GDACS's alerts are automatic estimates; local authorities' warnings come first.</p>
+      <ul class="key-list">${HAZARD_KINDS.map((k) => `<li><span class="key-glyph key-hazard" aria-hidden="true">${hazardIconSvg(k, 16)}</span>${HAZARD_KIND_LABEL[k]}</li>`).join('')}</ul>
     </section>
     <section>
       <h3>Keys</h3>

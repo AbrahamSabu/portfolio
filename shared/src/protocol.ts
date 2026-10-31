@@ -1,4 +1,5 @@
 import type { FeedStatus } from './feedStatus';
+import { parseHazard, type Hazard } from './hazards';
 import { parseNewsItem, type NewsItem } from './news';
 import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
@@ -38,8 +39,9 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *  12  `path` request and reply: a selected track's whole path
  *  13  the request is `track`, answered with `path` and `details`
  *  14  `news`: political news stories, after the snapshot and as they arrive
+ *  15  `hazards`: earthquakes and disasters, after the snapshot and when they change
  */
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 
 export interface HelloMessage {
   type: 'hello';
@@ -148,7 +150,18 @@ export interface NewsMessage {
   replace: boolean;
 }
 
-export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage | DetailsMessage | NewsMessage;
+/**
+ * Natural hazards (hazards.ts): all of them each time, after the snapshot
+ * and whenever a source's list changes. A few hundred at most, so the whole
+ * list is simpler than changes.
+ */
+export interface HazardsMessage {
+  type: 'hazards';
+  serverTime: number;
+  items: Hazard[];
+}
+
+export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage | DetailsMessage | NewsMessage | HazardsMessage;
 
 /** Where the picture is centred, so the client can frame the map on first load. */
 export interface ScenarioInfo {
@@ -186,6 +199,7 @@ export function encodeServerMessage(message: ServerMessage): string {
     case 'hello':
     case 'details':
     case 'news':
+    case 'hazards':
       return JSON.stringify(message);
     case 'snapshot': {
       const { serverTime, tracks, trails } = message;
@@ -265,6 +279,11 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       // Headlines and links go into the page: each story is checked.
       const items = m.items.map(parseNewsItem).filter((i): i is NewsItem => i !== null);
       return { type: 'news', serverTime: m.serverTime, items, replace: m.replace };
+    }
+    case 'hazards': {
+      if (!Array.isArray(m.items)) return null;
+      const items = m.items.map(parseHazard).filter((h): h is Hazard => h !== null);
+      return { type: 'hazards', serverTime: m.serverTime, items };
     }
     default:
       return null;
