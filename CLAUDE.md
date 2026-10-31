@@ -580,7 +580,13 @@ that could have been fetched before they arrived.
   atmosphere. Zoomed out, `getBounds()` can take in places round the back
   of the globe: news cards also check `facesViewer` (map/viewBox.ts, within
   80° of the centre below zoom 5) and move on after a pan that turns their
-  story away. Reticle: three turning SVG rings (`map/reticle.ts`). **SVG
+  story away. Day and night: `map/nightLayer.ts` draws one 512 px image
+  (rows spaced in Mercator, since an image source is stretched in
+  Mercator) once a minute from `map/sun.ts` (Almanac low-precision sun):
+  faint blue wash by day, darker through twilight to full night 12° after
+  sunset, a soft line at sunset; under basemap labels. **Darkening the night
+  alone was invisible on the near-black basemap**, hence the day wash; a
+  hard one-pixel line came out dotted. Reticle: three turning SVG rings (`map/reticle.ts`). **SVG
   `transform-box: view-box` origins are in user units**: with a viewBox
   centred on 0,0 use `transform-origin: 0 0`, not 50% 50% (that span the
   rings around the wrong point). Read-aloud prefers a British voice

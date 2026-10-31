@@ -8,6 +8,7 @@ import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
 import { NewsLayer } from './map/newsLayer';
+import { NightLayer } from './map/nightLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
@@ -91,6 +92,8 @@ async function main(): Promise<void> {
 
   const style = new SymbolStyleSetting(loadSymbolStyle());
 
+  // Night, under the basemap's labels and everything of ours.
+  new NightLayer(map, () => clock.now());
   // First, so its layers sit under trails, tracks and news.
   const airportsShown = new StoredToggle('watchfloor.airports', true);
   const airports = new AirportLayer(map, airportsShown);
