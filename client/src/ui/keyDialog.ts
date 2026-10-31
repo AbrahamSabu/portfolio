@@ -21,6 +21,7 @@ const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['B', 'Open or close the briefing'],
   ['A', 'Show or hide airports'],
   ['H', 'Show or hide earthquakes and disasters'],
+  ['C', 'Show or hide shipping chokepoints'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],
 ];
@@ -103,6 +104,10 @@ function content(style: SymbolStyle): string {
       <h3>News</h3>
       <p>Political news from the world's press, read by the <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT Project</a> every 15 minutes, so a story shows up 15 to 30 minutes after it's published. Headlines are the outlets' own words. A computer judges what counts as political, so the odd story that isn't gets through. The briefing lists the last six hours' top stories: the most widely covered and most political first, with a story told more than once listed once ("+2 related").</p>
       <ul class="key-list">${NEWS_KINDS.map((k) => `<li><span class="key-glyph key-news" aria-hidden="true">${newsIconSvg(k, 16)}</span>${NEWS_KIND_LABEL[k]}</li>`).join('')}</ul>
+    </section>
+    <section>
+      <h3>Shipping chokepoints</h3>
+      <p>Tags at eight narrows (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) count the ships in each now and how many are under way; closer in, a dashed box shows the area counted. Ship positions come from AIS receivers, which are mostly in Europe: a low count far away can mean few receivers rather than few ships.</p>
     </section>
     <section>
       <h3>Earthquakes and disasters</h3>

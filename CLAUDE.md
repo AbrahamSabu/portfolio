@@ -410,6 +410,16 @@ that could have been fetched before they arrived.
   H key / `watchfloor.hazards`. **Zoom must be the outermost expression**:
   `['*', scale, ['interpolate', ..., ['zoom'], ...]]` failed validation and
   took the whole basemap with it (no tiles, no error in the pane's console).
+- Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):
+  eight hand-drawn boxes (Hormuz, Bab-el-Mandeb, Suez, Singapore Strait,
+  Bosphorus, Gibraltar, Dover, Panama); live (not stale) ships in each and
+  how many > 1 m/s, every 5 s. DOM Marker tags below zoom 8 (compact
+  "HORMUZ 0" below zoom 4), dashed box outlines from zoom 5; a tag click
+  fits the box. C key / `watchfloor.chokepoints`. **Never give a marker
+  element `position`**: MapLibre's markers are `position: absolute`, and
+  `relative` stacked them in page flow, hundreds of px off. Oct 2026
+  coverage: Gibraltar ~165, Dover ~25, Singapore ~9, Hormuz/Suez/Panama 0
+  (AISStream receivers are mostly European; the key says so).
 - Emergency squawks: `Track.squawk` (aircraft, `^[0-7]{4}$`, from readsb
   `squawk` and OpenSky state index 14; wire tuple index 15, appended, so no
   protocol bump). `EMERGENCY_SQUAWKS` / `emergencyOf` in shared/track.ts.

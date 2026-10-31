@@ -4,6 +4,7 @@ import './styles.css';
 import './hud.css';
 import { AirportLayer } from './map/airportLayer';
 import { describeAirport } from './map/airports';
+import { ChokepointLayer } from './map/chokepointLayer';
 import { createMap } from './map/createMap';
 import { DataCredits } from './map/dataCredits';
 import { FilterControl } from './map/filterControl';
@@ -151,6 +152,9 @@ async function main(): Promise<void> {
   briefingOpen.subscribe(showBriefingToggle);
   newsSettings.subscribe(showBriefingToggle);
   showBriefingToggle();
+  // Shipping chokepoints: ship counts at the narrows.
+  const chokepointsShown = new StoredToggle('watchfloor.chokepoints', true);
+  new ChokepointLayer(map, store, clock, chokepointsShown);
   // An airport's weather and traffic, on a click (a track under the pointer wins: it was selected).
   const airportPanel = new AirportPanel(el('airport-panel'), store, clock, selection, countryName);
   map.on('click', (event) => {
@@ -237,6 +241,7 @@ async function main(): Promise<void> {
     if (event.key === 'a' || event.key === 'A') airportsShown.toggle();
     if (event.key === 'b' || event.key === 'B') briefingToggle.click();
     if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
+    if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
