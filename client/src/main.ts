@@ -197,7 +197,7 @@ async function main(): Promise<void> {
     map.on('mouseenter', label, () => (map.getCanvas().style.cursor = 'pointer'));
     map.on('mouseleave', label, () => (map.getCanvas().style.cursor = ''));
   }
-  new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings);
+  new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement);
   // Watch areas: who crossed in or out, checked each second.
   const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings);
   window.setInterval(() => {

@@ -1,4 +1,4 @@
-import type { Track, TrackDetails } from '@watchfloor/shared';
+import { emergencyOf, type Track, type TrackDetails } from '@watchfloor/shared';
 import { shapeSvg, shapeFor } from '../map/shapes';
 import { trackIconKey, trackIconSvg } from '../map/trackIcon';
 import { aircraftPhoto, type Photo } from '../net/photos';
@@ -34,6 +34,7 @@ export class DetailsPanel {
   private readonly altitudeRow: HTMLElement;
   private readonly typeRow: HTMLElement;
   private readonly staleNote: HTMLElement;
+  private readonly emergencyNote: HTMLElement;
   private readonly followButton: HTMLButtonElement;
   private readonly fitButton: HTMLButtonElement;
   private readonly symbol: HTMLElement;
@@ -79,6 +80,7 @@ export class DetailsPanel {
     this.altitudeRow = q('[data-altitude-row]');
     this.typeRow = q('[data-type-row]');
     this.staleNote = q('[data-stale-note]');
+    this.emergencyNote = q('[data-emergency-note]');
     this.followButton = q<HTMLButtonElement>('[data-follow]');
     this.symbol = q('[data-symbol]');
     for (const el of root.querySelectorAll<HTMLElement>('[data-row]')) this.rows[el.dataset.row!] = el;
@@ -164,6 +166,11 @@ export class DetailsPanel {
     this.renderDetails(track);
 
     this.staleNote.hidden = !stale;
+    // An emergency code stays in view here for as long as it's broadcast, whatever happened to its alert card.
+    const emergency = emergencyOf(track);
+    this.emergencyNote.hidden = !emergency;
+    if (emergency) this.emergencyNote.textContent = `Squawking ${track.squawk}: ${emergency.toLowerCase()}, as its transponder broadcasts it.`;
+    this.setRow('squawk', track.squawk ?? '');
     this.root.classList.toggle('details-stale', stale);
 
     const following = this.selection.follow;

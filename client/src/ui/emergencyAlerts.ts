@@ -15,9 +15,12 @@ const CHECK_MS = 1_000;
  * Emergency squawks: an alert card under the top bar for each aircraft
  * squawking 7500, 7600 or 7700, and an amber ring round it on the map. The
  * card says the code is as broadcast (codes get set by mistake), offers to
- * show the aircraft, and can be dismissed; the ring stays while the code
- * does. Read aloud when read-aloud is on. Amber, never an identity colour:
- * an emergency says nothing about friend or foe.
+ * show the aircraft, and can be hidden. Nothing is lost by hiding it: while
+ * any code is broadcast a chip in the top bar says so (click: the cards come
+ * back, or with one squawk the aircraft is shown), the ring can be clicked,
+ * and the aircraft's details say it too. Read aloud when read-aloud is on.
+ * Amber, never an identity colour: an emergency says nothing about friend
+ * or foe.
  */
 export class EmergencyAlerts {
   private readonly watch = new EmergencyWatch();
@@ -32,7 +35,14 @@ export class EmergencyAlerts {
     private readonly clock: ServerClock,
     private readonly selection: Selection,
     private readonly voice: NewsSettings,
+    private readonly chip: HTMLButtonElement,
   ) {
+    chip.addEventListener('click', () => {
+      const active = this.watch.active.filter((e) => this.store.get(e.id));
+      this.dismissed.clear();
+      this.render();
+      if (active.length === 1) this.show(active[0]!.id);
+    });
     root.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-id]');
       if (!button?.dataset.id) return;
@@ -52,6 +62,18 @@ export class EmergencyAlerts {
     }
     this.render();
     this.moveRings(now);
+    this.updateChip();
+  }
+
+  /** The top bar chip: there while any aircraft squawks, whether or not its card is showing. */
+  private updateChip(): void {
+    const active = this.watch.active.filter((e) => this.store.get(e.id));
+    this.chip.hidden = active.length === 0;
+    if (active.length === 0) return;
+    const codes = [...new Set(active.map((e) => e.squawk))].join(', ');
+    this.chip.textContent = active.length === 1 ? `Squawk ${codes}` : `${active.length} squawks · ${codes}`;
+    const hidden = active.filter((e) => this.dismissed.has(e.id)).length;
+    this.chip.title = active.length === 1 ? 'Show the aircraft squawking an emergency code' : hidden ? 'Bring back the hidden alerts' : 'Aircraft squawking emergency codes';
   }
 
   private show(id: string): void {
@@ -128,7 +150,8 @@ export class EmergencyAlerts {
     dismiss.className = 'icon-button alert-dismiss';
     dismiss.dataset.id = e.id;
     dismiss.dataset.action = 'dismiss';
-    dismiss.setAttribute('aria-label', 'Dismiss alert');
+    dismiss.setAttribute('aria-label', 'Hide alert (it stays in the top bar while the code is broadcast)');
+    dismiss.title = 'Hide (it stays in the top bar)';
     dismiss.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>';
     actions.append(show, dismiss);
 
@@ -150,10 +173,18 @@ export class EmergencyAlerts {
       const at = deadReckon(track, track.courseDeg, track.speedMps, Math.min(now - track.observedAt, 60_000));
       let ring = this.rings.get(e.id);
       if (!ring) {
-        const el = document.createElement('div');
+        const el = document.createElement('button');
+        el.type = 'button';
         el.className = 'emergency-ring';
         el.dataset.code = e.squawk;
-        ring = new Marker({ element: el }).setLngLat([at.lon, at.lat]).addTo(this.map);
+        el.title = `Squawking ${e.squawk}: ${e.meaning.toLowerCase()}. Click for the aircraft.`;
+        el.setAttribute('aria-label', el.title);
+        const id = e.id;
+        el.addEventListener('click', (event) => {
+          event.stopPropagation(); // not a click on the map underneath
+          this.show(id);
+        });
+        ring = new Marker({ element: el, opacityWhenCovered: '0' }).setLngLat([at.lon, at.lat]).addTo(this.map);
         this.rings.set(e.id, ring);
       } else ring.setLngLat([at.lon, at.lat]);
     }

@@ -98,7 +98,7 @@ function content(style: SymbolStyle): string {
         <li><span class="key-glyph key-leader" aria-hidden="true"></span>Speed leader: where it will be in 1 minute (aircraft) or 10 (ships)</li>
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
         <li><span class="key-glyph key-stale" aria-hidden="true"></span>Faded: no recent report, so its position is an estimate</li>
-        <li><span class="key-glyph key-emergency" aria-hidden="true"></span>Amber ring: the aircraft is squawking an emergency code (7500, 7600 or 7700), as its transponder broadcasts it</li>
+        <li><span class="key-glyph key-emergency" aria-hidden="true"></span>Amber ring: the aircraft is squawking an emergency code (7500, 7600 or 7700), as its transponder broadcasts it. Click the ring, or the amber chip in the top bar, to find it again after hiding its alert</li>
         <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain). Click one for its weather and the aircraft arriving and leaving</li>
       </ul>
     </section>

@@ -2000,10 +2000,12 @@ body[data-list-open] .filter-panel {
 .emergency-ring {
   width: 44px;
   height: 44px;
+  padding: 0;
   border: 2px solid var(--warn);
   border-radius: 50%;
+  background: transparent;
   box-shadow: 0 0 12px rgb(240 195 106 / 0.6), inset 0 0 8px rgb(240 195 106 / 0.35);
-  pointer-events: none;
+  cursor: pointer;
   animation: emergency-pulse 1.6s ease-in-out infinite;
 }
 
@@ -2553,4 +2555,62 @@ fieldset.region-field {
 /* A tag round the back of the globe is invisible (opacityWhenCovered 0); it mustn't take clicks either. */
 .maplibregl-marker-covered {
   pointer-events: none;
+}
+
+.details-emergency {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--warn);
+  border-radius: 3px;
+  background: rgb(240 195 106 / 0.14);
+  color: var(--warn);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* While any aircraft squawks an emergency code: amber, in the top bar, until the code stops. */
+.alert-chip {
+  border-color: var(--warn);
+  color: var(--warn);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 0 12px rgb(240 195 106 / 0.35);
+  animation: alert-chip-glow 1.6s ease-in-out infinite;
+}
+
+.alert-chip[hidden] {
+  display: none;
+}
+
+.alert-chip::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+}
+
+.alert-chip:hover {
+  background: rgb(240 195 106 / 0.12);
+}
+
+@keyframes alert-chip-glow {
+  50% {
+    box-shadow: 0 0 20px rgb(240 195 106 / 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-chip {
+    animation: none;
+  }
+}
+
+/* Stays amber on hover: hud.css lights other top bar buttons blue. */
+.topbar-button.alert-chip:hover {
+  color: var(--warn);
+  border-color: var(--warn);
 }

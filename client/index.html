@@ -54,6 +54,7 @@
           </div>
         </div>
         <div class="topbar-end">
+          <button class="topbar-button alert-chip" id="alert-chip" type="button" hidden></button>
           <button class="topbar-button news-switch" id="news-toggle" type="button" role="switch" aria-checked="true" title="News on the map, ticker and briefing (N)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z" /></svg>
             <span class="news-switch-label">News</span>
@@ -239,6 +240,8 @@
           </button>
         </header>
 
+        <p class="details-emergency" data-emergency-note role="alert" hidden></p>
+
         <p class="details-stale-note" data-stale-note hidden>
           No recent reports. The position shown is the last estimate.
         </p>
@@ -296,6 +299,10 @@
           <div class="readout-row" data-row="call-sign" hidden>
             <dt>Radio call sign</dt>
             <dd data-field="call-sign"></dd>
+          </div>
+          <div class="readout-row" data-row="squawk" hidden>
+            <dt>Squawk</dt>
+            <dd data-field="squawk"></dd>
           </div>
           <div class="readout-row readout-wide">
             <dt>Position</dt>

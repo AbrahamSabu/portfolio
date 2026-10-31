@@ -469,8 +469,12 @@ that could have been fetched before they arrived.
   a second report (later observedAt) carries it; ends when the code changes
   or the track goes. `ui/emergencyAlerts.ts`: checked each second; amber
   (`--warn`, never hostile red) card under the top bar (Show selects and
-  eases there; × dismisses until the code recurs) plus a dead-reckoned DOM
-  Marker ring with the code; read aloud when read-aloud is on. To see it,
+  eases there; × hides it) plus a dead-reckoned DOM Marker ring (a button:
+  click selects) with the code; read aloud when read-aloud is on. **Hiding
+  a card must never lose the emergency** (the user hid one and couldn't
+  find it again): `#alert-chip` in the top bar stays while any code is
+  broadcast (click: hidden cards come back; with one squawk it shows the
+  aircraft), and the details panel has an amber banner and a Squawk row. To see it,
   run a local readsb stub (one aircraft squawking 7700) with
   `FEEDS=adsblol ADSBLOL_API_URL=http://127.0.0.1:<port>` on a spare port.
 - Airports (`client/src/map/airports.ts`, `airportLayer.ts`): OurAirports
