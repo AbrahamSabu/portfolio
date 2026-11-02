@@ -5,11 +5,15 @@ import {
   parseClientMessage,
   encodeServerMessage,
   type BBox,
+  type BriefMessage,
   type DeltaMessage,
   type FeedStatus,
+  type Finding,
+  type FindingsMessage,
   type HelloMessage,
   type Hazard,
   type HazardsMessage,
+  type ReplayMessage,
   type NewsItem,
   type NewsMessage,
   type DetailsMessage,
@@ -57,10 +61,19 @@ interface Client {
   address: string;
   /** When this browser last asked about a track; requests closer together are ignored. */
   lastTrackRequestAt: number;
+  /** When it last asked for the brief or a replay: both are built to order, so they're rationed harder. */
+  lastBriefAt: number;
+  lastReplayAt: number;
 }
+
+/** Everything sent to one browser in answer to one of its requests. */
+type ServerReply = PathMessage | DetailsMessage | BriefMessage | ReplayMessage;
 
 /** A browser selects tracks by hand: more than a few track requests a second is a bug or abuse. */
 const TRACK_REQUEST_GAP_MS = 200;
+const BRIEF_GAP_MS = 2_000;
+/** A replay reply can run to megabytes, so asking is paced like a pan settling. */
+const REPLAY_GAP_MS = 3_000;
 
 export interface HubOptions {
   server: Server;
@@ -88,6 +101,12 @@ export interface HubOptions {
   news?: () => NewsItem[];
   /** Current earthquakes and disasters, sent after the news. */
   hazards?: () => Hazard[];
+  /** The watchers' current findings, sent after the hazards. */
+  findings?: () => Finding[];
+  /** Answers a browser's request for the handover brief. */
+  onBrief?: (send: (message: BriefMessage) => void) => void;
+  /** Answers a browser's request for recent paths through an area. */
+  onReplay?: (bbox: BBox, send: (message: ReplayMessage) => void) => void;
 }
 
 /**
@@ -145,7 +164,18 @@ export class Hub {
       return;
     }
 
-    const client: Client = { ws, alive: true, needsResync: false, backlog: 0, snapshotInFlight: false, view: null, address, lastTrackRequestAt: 0 };
+    const client: Client = {
+      ws,
+      alive: true,
+      needsResync: false,
+      backlog: 0,
+      snapshotInFlight: false,
+      view: null,
+      address,
+      lastTrackRequestAt: 0,
+      lastBriefAt: 0,
+      lastReplayAt: 0,
+    };
     this.addClient(client);
 
     ws.on('pong', () => (client.alive = true));
@@ -175,6 +205,8 @@ export class Hub {
       if (news) this.send(client, { type: 'news', serverTime: Date.now(), items: news, replace: true });
       const hazards = this.opts.hazards?.();
       if (hazards) this.send(client, { type: 'hazards', serverTime: Date.now(), items: hazards });
+      const findings = this.opts.findings?.();
+      if (findings) this.send(client, { type: 'findings', serverTime: Date.now(), items: findings });
     });
   }
 
@@ -191,7 +223,13 @@ export class Hub {
     for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
   }
 
-  private send(client: Client, message: NewsMessage | HazardsMessage): void {
+  /** The whole findings list to every browser, whenever a watcher's picture changes. */
+  broadcastFindings(items: Finding[]): void {
+    const payload = encodeServerMessage({ type: 'findings', serverTime: Date.now(), items });
+    for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
+  }
+
+  private send(client: Client, message: NewsMessage | HazardsMessage | FindingsMessage): void {
     if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
   }
 
@@ -275,13 +313,28 @@ export class Hub {
       log.debug('ignored client message', { address: client.address });
       return;
     }
+    const reply = (message: ServerReply) => {
+      if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
+    };
     if (message.type === 'track') {
       const now = Date.now();
       if (now - client.lastTrackRequestAt < TRACK_REQUEST_GAP_MS) return;
       client.lastTrackRequestAt = now;
-      this.opts.onTrackRequest?.(message.id, (reply) => {
-        if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(reply));
-      });
+      this.opts.onTrackRequest?.(message.id, reply);
+      return;
+    }
+    if (message.type === 'brief') {
+      const now = Date.now();
+      if (now - client.lastBriefAt < BRIEF_GAP_MS) return;
+      client.lastBriefAt = now;
+      this.opts.onBrief?.(reply);
+      return;
+    }
+    if (message.type === 'replay') {
+      const now = Date.now();
+      if (now - client.lastReplayAt < REPLAY_GAP_MS) return;
+      client.lastReplayAt = now;
+      this.opts.onReplay?.(message.bbox, reply);
       return;
     }
     client.view = message.bbox;

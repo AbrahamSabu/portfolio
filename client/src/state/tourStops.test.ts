@@ -1,4 +1,4 @@
-import type { Hazard, NewsItem, Track } from '@watchfloor/shared';
+import type { Finding, Hazard, NewsItem, Track } from '@watchfloor/shared';
 import { describe, expect, it } from 'vitest';
 import type { ChokepointCount } from './chokepoints';
 import { tourStops, type TourWorld } from './tourStops';
@@ -6,7 +6,7 @@ import { tourStops, type TourWorld } from './tourStops';
 const NOW = 1_700_000_000_000;
 
 function world(over: Partial<TourWorld>): TourWorld {
-  return { emergencies: [], trackOf: () => undefined, tracks: [], hazards: [], news: [], shipsIn: new Map(), now: NOW, random: () => 0, ...over };
+  return { emergencies: [], trackOf: () => undefined, tracks: [], hazards: [], findings: [], news: [], shipsIn: new Map(), now: NOW, random: () => 0, ...over };
 }
 
 function track(over: Partial<Track>): Track {
@@ -113,6 +113,46 @@ describe('tourStops', () => {
       'Summit ends without an agreement',
       'Strait of Hormuz · 12 ships',
     ]);
+  });
+
+  it('visits findings first among the pools, riding along where the track is live', () => {
+    const helo = track({ id: 'adsb:helo', callsign: 'GARDA2', platform: 'helicopter' });
+    const circlingFinding: Finding = {
+      id: 'circling:adsb:helo',
+      kind: 'circling',
+      tracks: ['adsb:helo'],
+      domain: 'air',
+      name: 'GARDA2',
+      detail: '4.2 turns in 11 min · radius 2.3 km',
+      lat: 53.3,
+      lon: -6.2,
+      since: NOW - 60_000,
+    };
+    const ghost: Finding = {
+      id: 'dark:ais:1',
+      kind: 'dark',
+      tracks: ['ais:1'],
+      domain: 'sea',
+      name: 'BALTIC ROSE',
+      detail: 'AIS contact lost · was making 12 kn',
+      lat: 55,
+      lon: 14,
+      since: NOW - 10 * 60_000,
+    };
+    const stops = tourStops(
+      world({
+        findings: [ghost, circlingFinding],
+        trackOf: (id) => (id === 'adsb:helo' ? helo : undefined),
+        hazards: [quake('usgs:a', 6.5)],
+      }),
+    );
+    expect(stops.map((s) => [s.title, s.trackId])).toEqual([
+      ['Circling · GARDA2', 'adsb:helo'],
+      ['M 6.5 - somewhere', undefined],
+      ['AIS contact lost · BALTIC ROSE', undefined],
+    ]);
+    // The ghost is a place, not a ride: the camera frames the last-known position.
+    expect(stops[2]?.center).toEqual([14, 55]);
   });
 
   it('marks the emergency to be followed', () => {

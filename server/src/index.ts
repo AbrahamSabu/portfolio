@@ -24,6 +24,7 @@ import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
+import { FindingsService } from './findings/findingsService';
 import { HazardService } from './hazards/hazardService';
 import { WeatherService } from './weather/weatherService';
 import { loadNews, NewsService, saveNews } from './news/newsService';
@@ -162,6 +163,11 @@ async function main(): Promise<void> {
       })
     : null;
   const hazards = config.hazards ? new HazardService({ onChange: (items) => hub?.broadcastHazards(items) }) : null;
+  // The watchers: circling aircraft, ships gone silent under way, converging military.
+  const findings = new FindingsService({
+    world: { tracks: () => store.snapshot(), path: (id) => store.paths.flat(id) },
+    onChange: (items) => hub?.broadcastFindings(items),
+  });
   const weather = new WeatherService();
   const server = createHttpServer({
     staticDir: config.staticDir,
@@ -175,6 +181,7 @@ async function main(): Promise<void> {
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
       news: news?.health() ?? null,
       hazards: hazards?.health() ?? null,
+      findings: findings.health(),
     }),
   });
 
@@ -201,6 +208,7 @@ async function main(): Promise<void> {
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
     ...(news ? { news: () => news.items() } : {}),
     ...(hazards ? { hazards: () => hazards.items() } : {}),
+    findings: () => findings.items(),
   });
 
   const sink = {
@@ -240,6 +248,7 @@ async function main(): Promise<void> {
   hub.start();
   news?.start();
   hazards?.start();
+  findings.start();
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -259,6 +268,7 @@ async function main(): Promise<void> {
     for (const feed of feeds) feed.stop();
     news?.stop();
     hazards?.stop();
+    findings.stop();
     clearInterval(saveTimer);
     await savePictureNow();
     await hub?.stop();

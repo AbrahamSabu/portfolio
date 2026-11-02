@@ -24,6 +24,7 @@ function deps(): LayerDeps {
     briefing: toggle(),
     airports: toggle(true),
     hazards: toggle(true),
+    findings: toggle(true),
     chokepoints: toggle(true),
     radar: toggle(),
     radarTime: () => '',
@@ -42,7 +43,7 @@ describe('the Layers menu', () => {
     expect(new Set(keys).size).toBe(keys.length);
     const listed = new Set(SHORTCUTS.map(([k]) => k));
     expect(keys.filter((k) => !listed.has(k))).toEqual([]);
-    expect(keys).toEqual(['S', 'T', 'N', 'B', 'A', 'H', 'C', 'R', '/', 'G', 'W']);
+    expect(keys).toEqual(['S', 'T', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'W']);
   });
 
   it('turns news on when the briefing is asked for with news off', () => {

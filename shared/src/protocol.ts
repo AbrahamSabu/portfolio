@@ -1,9 +1,10 @@
 import type { FeedStatus } from './feedStatus';
+import { parseBriefEvent, parseFinding, type BriefEvent, type Finding } from './findings';
 import { parseHazard, type Hazard } from './hazards';
 import { parseNewsItem, type NewsItem } from './news';
 import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
-import type { Track } from './track';
+import { TRACK_VALUES, type Domain, type Platform, type Track } from './track';
 import type { TrailPoint } from './trail';
 import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, type TrailTuple } from './wire';
 
@@ -40,8 +41,12 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *  13  the request is `track`, answered with `path` and `details`
  *  14  `news`: political news stories, after the snapshot and as they arrive
  *  15  `hazards`: earthquakes and disasters, after the snapshot and when they change
+ *  16  `findings`: what the server's watchers noticed (circling, AIS contact
+ *      lost, converging military), whole list like hazards; `brief` request
+ *      and reply (the last 24 h as events, for the handover brief); `replay`
+ *      request and reply (recent paths through an area, for the scrubber)
  */
-export const PROTOCOL_VERSION = 15;
+export const PROTOCOL_VERSION = 16;
 
 export interface HelloMessage {
   type: 'hello';
@@ -161,7 +166,59 @@ export interface HazardsMessage {
   items: Hazard[];
 }
 
-export type ServerMessage = HelloMessage | SnapshotMessage | DeltaMessage | PathMessage | DetailsMessage | NewsMessage | HazardsMessage;
+/**
+ * Watcher findings (findings.ts): all of them each time, after the snapshot
+ * and whenever the list changes. Like hazards, the whole list is simpler
+ * than changes, and a finding that ended simply stops being in it.
+ */
+export interface FindingsMessage {
+  type: 'findings';
+  serverTime: number;
+  items: Finding[];
+}
+
+/** The last day's events, in answer to a browser's `brief` request. Oldest first. */
+export interface BriefMessage {
+  type: 'brief';
+  serverTime: number;
+  /** Events before this were outside the log's window (or the server started then). */
+  sinceTime: number;
+  events: BriefEvent[];
+}
+
+/**
+ * Recent paths through an area, in answer to a browser's `replay` request:
+ * what the scrubber replays. Tracks the server still holds history for,
+ * capped so a worldwide view doesn't ship a million points.
+ */
+export interface ReplayMessage {
+  type: 'replay';
+  serverTime: number;
+  tracks: ReplayTrack[];
+  /** True when the cap cut tracks that were in the area. */
+  truncated: boolean;
+}
+
+export interface ReplayTrack {
+  id: string;
+  domain: Domain;
+  platform: Platform;
+  callsign?: string;
+  /** Oldest first. */
+  points: TrailPoint[];
+}
+
+export type ServerMessage =
+  | HelloMessage
+  | SnapshotMessage
+  | DeltaMessage
+  | PathMessage
+  | DetailsMessage
+  | NewsMessage
+  | HazardsMessage
+  | FindingsMessage
+  | BriefMessage
+  | ReplayMessage;
 
 /** Where the picture is centred, so the client can frame the map on first load. */
 export interface ScenarioInfo {
@@ -192,6 +249,19 @@ interface WireDelta {
   removals: string[];
   feeds?: FeedStatus[];
 }
+interface WireReplayTrack {
+  id: string;
+  domain: Domain;
+  platform: Platform;
+  callsign?: string;
+  points: TrailTuple;
+}
+interface WireReplay {
+  type: 'replay';
+  serverTime: number;
+  tracks: WireReplayTrack[];
+  truncated: boolean;
+}
 
 /** The JSON text the server sends for a message, in the compact wire form. */
 export function encodeServerMessage(message: ServerMessage): string {
@@ -200,7 +270,18 @@ export function encodeServerMessage(message: ServerMessage): string {
     case 'details':
     case 'news':
     case 'hazards':
+    case 'findings':
+    case 'brief':
       return JSON.stringify(message);
+    case 'replay': {
+      const wire: WireReplay = {
+        type: 'replay',
+        serverTime: message.serverTime,
+        truncated: message.truncated,
+        tracks: message.tracks.map((t) => ({ ...t, points: encodeTrail(t.points, message.serverTime) })),
+      };
+      return JSON.stringify(wire);
+    }
     case 'snapshot': {
       const { serverTime, tracks, trails } = message;
       const wire: WireSnapshot = {
@@ -285,6 +366,29 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       const items = m.items.map(parseHazard).filter((h): h is Hazard => h !== null);
       return { type: 'hazards', serverTime: m.serverTime, items };
     }
+    case 'findings': {
+      if (!Array.isArray(m.items)) return null;
+      const items = m.items.map(parseFinding).filter((f): f is Finding => f !== null);
+      return { type: 'findings', serverTime: m.serverTime, items };
+    }
+    case 'brief': {
+      if (!Array.isArray(m.events) || typeof m.sinceTime !== 'number') return null;
+      const events = m.events.map(parseBriefEvent).filter((e): e is BriefEvent => e !== null);
+      return { type: 'brief', serverTime: m.serverTime, sinceTime: m.sinceTime, events };
+    }
+    case 'replay': {
+      if (!Array.isArray(m.tracks) || typeof m.truncated !== 'boolean') return null;
+      const w = m as unknown as WireReplay;
+      const tracks: ReplayTrack[] = [];
+      for (const t of w.tracks) {
+        if (typeof t !== 'object' || t === null || typeof t.id !== 'string' || !Array.isArray(t.points)) return null;
+        if (!TRACK_VALUES.domain.includes(t.domain) || !TRACK_VALUES.platform.includes(t.platform)) return null;
+        const track: ReplayTrack = { id: t.id, domain: t.domain, platform: t.platform, points: decodeTrail(t.points, w.serverTime) };
+        if (typeof t.callsign === 'string') track.callsign = t.callsign;
+        tracks.push(track);
+      }
+      return { type: 'replay', serverTime: w.serverTime, tracks, truncated: w.truncated };
+    }
     default:
       return null;
   }
@@ -309,7 +413,18 @@ export interface TrackRequestMessage {
   id: string;
 }
 
-export type ClientMessage = ViewMessage | TrackRequestMessage;
+/** Ask for the last day's events, for the handover brief. */
+export interface BriefRequestMessage {
+  type: 'brief';
+}
+
+/** Ask for recent paths through an area, for the replay scrubber. */
+export interface ReplayRequestMessage {
+  type: 'replay';
+  bbox: BBox;
+}
+
+export type ClientMessage = ViewMessage | TrackRequestMessage | BriefRequestMessage | ReplayRequestMessage;
 
 /** As validation allows track ids: 1-128 characters, here printable ASCII only. */
 const TRACK_ID = /^[!-~]{1,128}$/;
@@ -330,10 +445,12 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   if (typeof data !== 'object' || data === null) return null;
   const m = data as Record<string, unknown>;
   if (m.type === 'track') return typeof m.id === 'string' && TRACK_ID.test(m.id) ? { type: 'track', id: m.id } : null;
-  if (m.type !== 'view' || typeof m.bbox !== 'object' || m.bbox === null) return null;
+  if (m.type === 'brief') return { type: 'brief' };
+  if (m.type !== 'view' && m.type !== 'replay') return null;
+  if (typeof m.bbox !== 'object' || m.bbox === null) return null;
   const { south, west, north, east } = m.bbox as Record<string, unknown>;
   if (!finite(south) || !finite(west) || !finite(north) || !finite(east)) return null;
   if (south > north || west > east) return null;
   if (south < -90 || north > 90 || west < -720 || east > 720) return null;
-  return { type: 'view', bbox: { south, west, north, east } };
+  return { type: m.type, bbox: { south, west, north, east } };
 }

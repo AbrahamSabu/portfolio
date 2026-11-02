@@ -77,6 +77,15 @@ export class PathHistory {
     return out;
   }
 
+  /**
+   * One track's raw [lon, lat, t, ...] array, for watchers that scan every
+   * track each pass: no per-call allocation, unlike get(). Callers must not
+   * hold it across ticks (record() and prune() edit it in place).
+   */
+  flat(id: string): readonly number[] | undefined {
+    return this.entries.get(id)?.data;
+  }
+
   info(id: string): { firstAltitudeM?: number; backfill?: Backfill } | undefined {
     const e = this.entries.get(id);
     if (!e) return undefined;

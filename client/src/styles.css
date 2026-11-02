@@ -2067,6 +2067,27 @@ body[data-list-open] .filter-panel {
   background: rgb(255 210 168 / 0.1);
 }
 
+/* Findings in the HUD's own blue: the floor's observations, not emergencies. */
+.finding-alert {
+  border-color: rgb(63 182 255 / 0.45);
+  border-left-color: #3fb6ff;
+  box-shadow: 0 0 22px rgb(63 182 255 / 0.12);
+}
+
+.finding-alert .alert-head,
+.finding-alert .alert-show {
+  color: #3fb6ff;
+}
+
+.finding-alert .alert-code {
+  text-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+}
+
+.finding-alert .alert-show {
+  border-color: #3fb6ff;
+  background: rgb(63 182 255 / 0.1);
+}
+
 .hazard-card-icon,
 .key-hazard {
   color: #ffd2a8;

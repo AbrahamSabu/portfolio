@@ -1,7 +1,8 @@
-import type { Hazard, NewsItem, Track } from '@watchfloor/shared';
+import type { Finding, Hazard, NewsItem, Track } from '@watchfloor/shared';
 import { briefing } from './briefing';
 import { centreOf, CHOKEPOINTS, type ChokepointCount } from './chokepoints';
 import type { Emergency } from './emergencies';
+import { FINDING_LABEL } from './findings';
 import { isSignificant } from './hazards';
 
 export interface TourStop {
@@ -20,6 +21,8 @@ export interface TourWorld {
   /** Live (not stale) tracks: candidates to follow. */
   tracks: readonly Track[];
   hazards: readonly Hazard[];
+  /** The watchers' observations: circling, converging, gone silent. */
+  findings: readonly Finding[];
   news: readonly NewsItem[];
   /** Live ships in each chokepoint, by its id (state/chokepoints.ts). */
   shipsIn: ReadonlyMap<string, ChokepointCount>;
@@ -29,6 +32,7 @@ export interface TourWorld {
 }
 
 const MAX_MILITARY = 2;
+const MAX_FINDINGS = 2;
 const MAX_HAZARDS = 3;
 const MAX_STORIES = 4;
 const MAX_CHOKEPOINTS = 3;
@@ -80,8 +84,25 @@ function follows(world: TourWorld): TourStop[] {
 }
 
 /**
+ * The watchers' findings as stops: ride along with whatever is circling or
+ * converging; a ghost gets a visit to its last-known position. Newest first,
+ * live circling and converging before the silent ships.
+ */
+function findingStops(world: TourWorld): TourStop[] {
+  const sorted = [...world.findings].sort((a, b) => Number(a.kind === 'dark') - Number(b.kind === 'dark') || b.since - a.since);
+  const stops: TourStop[] = [];
+  for (const f of sorted.slice(0, MAX_FINDINGS)) {
+    const title = `${FINDING_LABEL[f.kind]} · ${f.name}`;
+    const track = f.kind === 'dark' ? undefined : world.trackOf(f.tracks[0]!);
+    if (track) stops.push(followStop(track, title, f.kind === 'converging' ? 7.5 : 9));
+    else stops.push({ title, center: [f.lon, f.lat], zoom: 9 });
+  }
+  return stops;
+}
+
+/**
  * Where the tour goes. Emergencies always lead; after them the categories
- * take turns — someone to ride along with (a military flight, a warship,
+ * take turns — a watcher's finding, someone to ride along with (a military flight, a warship,
  * the fastest or highest thing aloft), a fresh significant hazard, a top
  * story, a busy chokepoint — so the show alternates between flying with
  * tracks and visiting places instead of reading the news in a block. The
@@ -99,6 +120,7 @@ export function tourStops(world: TourWorld): TourStop[] {
     .filter((x) => x.ships > 0)
     .sort((a, b) => b.ships - a.ships);
   const pools: TourStop[][] = [
+    findingStops(world),
     follows(world),
     significant.slice(0, MAX_HAZARDS).map((h) => ({ title: h.title, center: [h.lon, h.lat] as [number, number], zoom: 5 })),
     briefing(world.news, world.now, MAX_STORIES).map((entry) => ({

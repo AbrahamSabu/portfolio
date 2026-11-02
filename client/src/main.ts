@@ -2,6 +2,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import './hud.css';
+import type { Finding } from '@watchfloor/shared';
 import { AirportLayer } from './map/airportLayer';
 import { describeAirport } from './map/airports';
 import { ChokepointLayer } from './map/chokepointLayer';
@@ -13,6 +14,7 @@ import { Graticule } from './map/graticule';
 import { DataCredits } from './map/dataCredits';
 import { HookTool } from './map/hook';
 import { FilterControl } from './map/filterControl';
+import { FindingLayer } from './map/findingLayer';
 import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
 import { NewsHotspots } from './map/newsHotspots';
@@ -30,6 +32,7 @@ import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
 import { ServerClock } from './state/clock';
 import { chokepointCounts } from './state/chokepoints';
+import { FindingStore } from './state/findings';
 import { HazardStore } from './state/hazards';
 import { tourStops } from './state/tourStops';
 import { loadNewsSettings, NewsSettings, NewsStore } from './state/newsStore';
@@ -47,6 +50,7 @@ import { BriefingPanel } from './ui/briefingPanel';
 import { CountryPanel } from './ui/countryPanel';
 import { DetailsPanel } from './ui/detailsPanel';
 import { EmergencyAlerts } from './ui/emergencyAlerts';
+import { FindingAlerts } from './ui/findingAlerts';
 import { HazardAlerts } from './ui/hazardAlerts';
 import { RegionAlerts } from './ui/regionAlerts';
 import { RegionControl, RegionPanel } from './ui/regionPanel';
@@ -251,6 +255,18 @@ async function main(): Promise<void> {
   }, 1_000);
   new HazardAlerts(el('alerts-hazard'), map, hazards, hazardsShown, newsSettings, (id) => hazardLayer.open(id));
 
+  // The server's watchers: circling aircraft, converging military pairs, ships
+  // gone silent under way. HUD-blue rings and cards: observations, not threats.
+  const findings = new FindingStore();
+  const findingsShown = new StoredToggle('watchfloor.findings', true);
+  const showFinding = (f: Finding) => {
+    const involved = f.tracks.find((id) => store.get(id));
+    if (involved) selection.select(involved);
+    fly(map, { center: [f.lon, f.lat], zoom: Math.max(map.getZoom(), 8) });
+  };
+  new FindingLayer(map, findings, findingsShown, layer, () => clock.now(), showFinding);
+  new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => sound.ping());
+
   // The search palette: everything with a place on the map, one box, camera there.
   const palette = new Palette(
     el('palette'),
@@ -295,6 +311,7 @@ async function main(): Promise<void> {
         trackOf: (id) => store.get(id),
         tracks: live,
         hazards: hazards.items,
+        findings: findings.items,
         news: news.items,
         shipsIn: chokepointCounts(live, () => true),
         now,
@@ -445,6 +462,7 @@ async function main(): Promise<void> {
     if (event.key === 'a' || event.key === 'A') airportsShown.toggle();
     if (event.key === 'b' || event.key === 'B') briefingToggle.click();
     if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
+    if (event.key === 'd' || event.key === 'D') findingsShown.toggle();
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
@@ -466,6 +484,7 @@ async function main(): Promise<void> {
       briefing: briefingOpen,
       airports: airportsShown,
       hazards: hazardsShown,
+      findings: findingsShown,
       chokepoints: chokepointsShown,
       radar: radarShown,
       radarTime: () => (radar.frameTime ? `picture from ${formatNewsTime(radar.frameTime)}` : 'loading'),
@@ -549,6 +568,9 @@ async function main(): Promise<void> {
           break;
         case 'hazards':
           hazards.apply(message.items);
+          break;
+        case 'findings':
+          findings.apply(message.items);
           break;
       }
     },
