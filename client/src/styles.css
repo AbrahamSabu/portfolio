@@ -1864,6 +1864,55 @@ body[data-list-open] .filter-panel {
   color: var(--ink-muted);
 }
 
+/* The watch handover: the server's own log read back, newest first. */
+.handover-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 14px 6px;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+}
+
+.handover-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.handover-item {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px 8px 10px;
+  border: 0;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+button.handover-item {
+  cursor: pointer;
+}
+
+button.handover-item:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.handover-time {
+  flex: none;
+  color: #3fb6ff;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+
+.handover-text {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
 /* Phones: it starts closed, and opens as a sheet above the ticker. */
 @media (max-width: 640px) {
   .briefing {

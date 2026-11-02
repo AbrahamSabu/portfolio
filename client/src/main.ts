@@ -55,6 +55,7 @@ import { HazardAlerts } from './ui/hazardAlerts';
 import { RegionAlerts } from './ui/regionAlerts';
 import { RegionControl, RegionPanel } from './ui/regionPanel';
 import { FilterPanel } from './ui/filterPanel';
+import { HandoverPanel } from './ui/handoverPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
 import { layerSections, type LayerDeps } from './ui/layerSections';
@@ -448,6 +449,7 @@ async function main(): Promise<void> {
       else if (countryPanel.isOpen) countryPanel.close();
       else if (regionPanel.open) regionPanel.setOpen(false);
       else if (layersPanel.open) layersPanel.setOpen(false);
+      else if (handover.open) handover.setOpen(false);
       else if (hook.armed || hook.active) hook.clear();
       else selection.select(null);
     }
@@ -467,6 +469,7 @@ async function main(): Promise<void> {
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
+    if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
@@ -494,6 +497,7 @@ async function main(): Promise<void> {
       sound: soundOn,
       search: () => palette.setOpen(true),
       tour: () => tour.start(),
+      handover: () => handover.setOpen(true),
     };
   }
 
@@ -528,6 +532,8 @@ async function main(): Promise<void> {
   });
 
   const credits = new DataCredits(map);
+  // The watch handover: the server's last-24-hours log, read back on demand.
+  const handover = new HandoverPanel(el('handover'), map, () => connection.send({ type: 'brief' }));
   const connection = new Connection(defaultSocketUrl(), {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
@@ -571,6 +577,9 @@ async function main(): Promise<void> {
           break;
         case 'findings':
           findings.apply(message.items);
+          break;
+        case 'brief':
+          handover.load(message);
           break;
       }
     },

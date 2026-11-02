@@ -24,6 +24,7 @@ import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
+import { BriefService } from './brief/briefService';
 import { FindingsService } from './findings/findingsService';
 import { HazardService } from './hazards/hazardService';
 import { WeatherService } from './weather/weatherService';
@@ -162,11 +163,21 @@ async function main(): Promise<void> {
         },
       })
     : null;
-  const hazards = config.hazards ? new HazardService({ onChange: (items) => hub?.broadcastHazards(items) }) : null;
+  // The event log behind the handover brief: squawks, findings, hazards.
+  const brief = new BriefService({ tracks: () => store.snapshot() });
+  const hazards = config.hazards
+    ? new HazardService({
+        onChange: (items) => {
+          hub?.broadcastHazards(items);
+          brief.onHazards(items);
+        },
+      })
+    : null;
   // The watchers: circling aircraft, ships gone silent under way, converging military.
   const findings = new FindingsService({
     world: { tracks: () => store.snapshot(), path: (id) => store.paths.flat(id) },
     onChange: (items) => hub?.broadcastFindings(items),
+    onEvent: (kind, finding, time, resolved) => brief.onFinding(kind, finding, time, resolved),
   });
   const weather = new WeatherService();
   const server = createHttpServer({
@@ -182,6 +193,7 @@ async function main(): Promise<void> {
       news: news?.health() ?? null,
       hazards: hazards?.health() ?? null,
       findings: findings.health(),
+      brief: brief.health(),
     }),
   });
 
@@ -209,6 +221,7 @@ async function main(): Promise<void> {
     ...(news ? { news: () => news.items() } : {}),
     ...(hazards ? { hazards: () => hazards.items() } : {}),
     findings: () => findings.items(),
+    onBrief: (send) => send(brief.message()),
   });
 
   const sink = {
@@ -249,6 +262,7 @@ async function main(): Promise<void> {
   news?.start();
   hazards?.start();
   findings.start();
+  brief.start();
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -269,6 +283,7 @@ async function main(): Promise<void> {
     news?.stop();
     hazards?.stop();
     findings.stop();
+    brief.stop();
     clearInterval(saveTimer);
     await savePictureNow();
     await hub?.stop();

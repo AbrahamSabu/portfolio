@@ -266,6 +266,22 @@
         <p class="briefing-empty" data-empty>Waiting for the first news batch.</p>
       </aside>
 
+      <aside class="briefing handover" id="handover" hidden aria-labelledby="handover-title">
+        <header class="briefing-head">
+          <h2 class="briefing-title" id="handover-title">Watch handover</h2>
+          <p class="briefing-sub" data-since>The last 24 h, from the floor's own log</p>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close handover">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="handover-actions">
+          <button class="text-button" type="button" data-speak>Read aloud</button>
+        </div>
+        <ol class="handover-list" data-list></ol>
+        <p class="briefing-empty" data-empty hidden>A quiet watch: nothing logged yet.</p>
+        <p class="briefing-empty" data-loading hidden>Asking the floor…</p>
+      </aside>
+
       <aside class="briefing airport-panel" id="airport-panel" hidden aria-labelledby="airport-title">
         <header class="briefing-head">
           <p class="airport-codes" data-field="codes"></p>

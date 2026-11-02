@@ -17,8 +17,12 @@ export interface FindingsServiceOptions {
   now?: () => number;
   /** The whole list, whenever it changes: the hub sends it to every browser. */
   onChange?: (items: Finding[]) => void;
-  /** A finding appeared or went away, for the event log. */
-  onEvent?: (kind: 'finding-started' | 'finding-ended', finding: Finding, time: number) => void;
+  /**
+   * A finding appeared or went away, for the event log. `resolved` is set on
+   * the one ending that means something happened (a silent ship transmitting
+   * again), as opposed to a condition lapsing or a ghost fading.
+   */
+  onEvent?: (kind: 'finding-started' | 'finding-ended', finding: Finding, time: number, resolved?: boolean) => void;
 }
 
 /** How often the watchers sweep the picture. */
@@ -153,7 +157,7 @@ export class FindingsService {
         const held = this.darkHeld.get(id);
         if (held) {
           this.darkHeld.delete(id);
-          this.opts.onEvent?.('finding-ended', held.finding, now);
+          this.opts.onEvent?.('finding-ended', held.finding, now, true);
         }
         continue;
       }

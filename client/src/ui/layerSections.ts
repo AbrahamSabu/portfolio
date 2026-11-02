@@ -32,6 +32,7 @@ export interface LayerDeps {
   sound: Toggle;
   search: () => void;
   tour: () => void;
+  handover: () => void;
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -133,6 +134,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         toggle('Weather radar', 'RainViewer, in grey', 'R', d.radar, d.radarTime),
         { kind: 'action', label: 'Search the map', key: '/', run: d.search },
         { kind: 'action', label: 'Cinematic tour', key: 'G', run: d.tour },
+        { kind: 'action', label: 'Watch handover', key: 'V', run: d.handover },
       ],
     },
     {
