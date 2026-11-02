@@ -34,6 +34,8 @@ export interface LayerDeps {
   tour: () => void;
   handover: () => void;
   timeline: () => void;
+  phosphor: Toggle;
+  exposure: Toggle;
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -150,6 +152,13 @@ export function layerSections(d: LayerDeps): LayerSection[] {
     {
       title: 'Alerts',
       rows: [toggle('Sound', 'A short ping for squawks and area alerts', undefined, d.sound)],
+    },
+    {
+      title: 'Display',
+      rows: [
+        toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
+        toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),
+      ],
     },
   ];
 }

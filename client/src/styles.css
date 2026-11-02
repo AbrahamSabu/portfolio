@@ -2947,6 +2947,24 @@ button.layers-switch .news-switch-track {
   border: 1px solid var(--rule);
 }
 
+/* The long-exposure film: over the map's canvas, under the UI. */
+.exposure {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/*
+ * The phosphor scope: everything on the plotting surface through one green
+ * gun. A deliberate, operator-chosen exception to "colour means identity" —
+ * affiliation colours survive as brightness, as they did on real tubes.
+ */
+#map.phosphor {
+  filter: grayscale(1) sepia(1) hue-rotate(55deg) saturate(2.4) brightness(0.95) contrast(1.06);
+}
+
 /* The timeline bar: six hours back, NOW, thirty minutes ahead, on one strip. */
 .timeline {
   position: absolute;

@@ -15,6 +15,7 @@ import { Graticule } from './map/graticule';
 import { ReplayLayer } from './map/replayLayer';
 import { DataCredits } from './map/dataCredits';
 import { HookTool } from './map/hook';
+import { ExposureLayer } from './map/exposureLayer';
 import { FilterControl } from './map/filterControl';
 import { FindingLayer } from './map/findingLayer';
 import { HazardLayer } from './map/hazardLayer';
@@ -273,6 +274,18 @@ async function main(): Promise<void> {
   new FindingLayer(map, findings, findingsShown, layer, () => clock.now(), showFinding);
   new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => sound.ping());
 
+  // Display theatre, both opt-in: the phosphor scope (one green, the CSS does
+  // it) and the long exposure (movement burns into a canvas over the map).
+  const phosphor = new StoredToggle('watchfloor.phosphor', false);
+  const applyPhosphor = () => el('map').classList.toggle('phosphor', phosphor.value);
+  phosphor.subscribe(applyPhosphor);
+  applyPhosphor();
+  const exposureShown = new StoredToggle('watchfloor.exposure', false);
+  new ExposureLayer(map, layer, () => {
+    const now = clock.now();
+    return [...store.all()].filter((t) => store.status(t, now) === 'live');
+  }, exposureShown);
+
   // The search palette: everything with a place on the map, one box, camera there.
   const palette = new Palette(
     el('palette'),
@@ -506,6 +519,8 @@ async function main(): Promise<void> {
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),
       timeline: () => timeline.setOpen(true),
+      phosphor,
+      exposure: exposureShown,
     };
   }
 

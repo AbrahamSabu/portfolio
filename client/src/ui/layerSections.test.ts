@@ -36,6 +36,8 @@ function deps(): LayerDeps {
     tour: () => {},
     handover: () => {},
     timeline: () => {},
+    phosphor: toggle(),
+    exposure: toggle(),
   };
 }
 
