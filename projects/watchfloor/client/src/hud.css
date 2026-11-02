@@ -1,0 +1,487 @@
+/*
+ * Holographic display layer, on top of styles.css: glass panels with corner
+ * brackets instead of boxes, a soft glow on the interface's lines and
+ * headings, faint scan lines over the map, and the opening sequence. All of
+ * it is light (--hud), none of it colour: track identity colours are never
+ * touched here. Reduced motion keeps the look and drops the movement.
+ */
+
+/* ------------------------------------------------------- glass and brackets */
+
+/*
+ * Corner brackets drawn as eight thin gradients, so any panel gets them
+ * without extra markup. --bracket is the arm length.
+ */
+.topbar,
+.statusbar,
+.ticker,
+.track-list,
+.details,
+.briefing,
+.alert-card,
+.filter-panel,
+.hover-card,
+.key-dialog,
+.palette,
+.tour-banner,
+.timeline,
+.news-popup .maplibregl-popup-content {
+  --bracket: 14px;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(180deg, rgb(63 182 255 / 0.07), transparent 40%);
+  background-size:
+    var(--bracket) 2px, 2px var(--bracket), var(--bracket) 2px, 2px var(--bracket),
+    var(--bracket) 2px, 2px var(--bracket), var(--bracket) 2px, 2px var(--bracket),
+    100% 100%;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom,
+    0 0;
+  background-repeat: no-repeat;
+  box-shadow:
+    0 0 18px rgb(63 182 255 / 0.12),
+    inset 0 0 24px rgb(63 182 255 / 0.05);
+  backdrop-filter: blur(10px) saturate(1.2);
+}
+
+/* The bars run edge to edge: brackets would only mark the screen's corners. */
+.topbar,
+.statusbar,
+.ticker {
+  background-image: linear-gradient(180deg, rgb(63 182 255 / 0.06), transparent);
+  background-size: 100% 100%;
+}
+
+.topbar {
+  border-bottom-color: var(--hud-glow);
+  box-shadow: 0 1px 14px rgb(63 182 255 / 0.18);
+}
+
+.statusbar,
+.ticker {
+  border-top-color: var(--hud-glow);
+}
+
+.ticker {
+  background-color: rgb(2 10 19 / 0.88);
+}
+
+.news-popup .maplibregl-popup-content {
+  --bracket: 10px;
+  border-left: 1px solid var(--rule);
+}
+
+/* -------------------------------------------------------------- lettering */
+
+.brand-name,
+.dtg,
+.track-list-title,
+.details-title,
+.hover-card-title,
+.key-title,
+.briefing-title,
+.key-dialog h3,
+.filter-title,
+.filter-group-title,
+.ticker-tag,
+.ticker-place,
+.news-card-kind,
+.news-card-place {
+  font-family: var(--font-display);
+}
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-bright);
+  text-shadow: 0 0 10px var(--hud-glow);
+}
+
+.dtg {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--hud-bright);
+  text-shadow: 0 0 10px var(--hud-glow);
+}
+
+.track-list-title,
+.details-title,
+.hover-card-title,
+.key-title,
+.briefing-title,
+.filter-title {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 8px rgb(63 182 255 / 0.35);
+}
+
+.key-dialog h3,
+.filter-group-title {
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud);
+}
+
+.ticker-tag,
+.ticker-place,
+.news-card-kind,
+.news-card-place {
+  font-weight: 700;
+}
+
+.ticker-tag {
+  color: var(--hud-bright);
+  text-shadow: 0 0 8px var(--hud-glow);
+}
+
+/* --------------------------------------------------------------- the clock */
+
+/*
+ * A ring around the clock that fills with the minute's seconds, like an
+ * instrument dial. main.ts sets --sec each second.
+ */
+.dtg-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dtg-ring {
+  --sec: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: conic-gradient(var(--hud) calc(var(--sec) * 6deg), rgb(63 182 255 / 0.15) 0);
+  -webkit-mask: radial-gradient(circle, transparent 7px, #000 7.5px, #000 9px, transparent 9.5px, transparent 10px, #000 10.5px);
+  mask: radial-gradient(circle, transparent 7px, #000 7.5px, #000 9px, transparent 9.5px, transparent 10px, #000 10.5px);
+  filter: drop-shadow(0 0 4px var(--hud-glow));
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.topbar-button,
+.maplibregl-ctrl-group,
+.icon-button {
+  border-color: var(--rule);
+}
+
+.topbar-button:hover,
+.topbar-button[aria-expanded='true'],
+.topbar-button[aria-pressed='true'],
+.topbar-button[aria-checked='true'] {
+  color: var(--hud-bright);
+  border-color: var(--hud-glow);
+  box-shadow: 0 0 10px rgb(63 182 255 / 0.25), inset 0 0 8px rgb(63 182 255 / 0.12);
+}
+
+.maplibregl-ctrl-group {
+  background: var(--surface-solid);
+  box-shadow: 0 0 12px rgb(63 182 255 / 0.15);
+}
+
+.maplibregl-ctrl-group button:hover {
+  box-shadow: inset 0 0 10px rgb(63 182 255 / 0.25);
+}
+
+/* ------------------------------------------------------- over the whole map */
+
+/*
+ * Faint scan lines and a vignette, the projection's texture. Above the map,
+ * below every panel, and never in the way of a click.
+ */
+.app::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgb(0 6 14 / 0.55) 100%),
+    repeating-linear-gradient(180deg, rgb(63 182 255 / 0.035) 0 1px, transparent 1px 3px);
+}
+
+/* ------------------------------------------------------ opening sequence */
+
+/*
+ * About two seconds when the page opens: rings draw in, three status lines,
+ * then it fades and the panels slide into place. It never waits for data and
+ * never blocks a click; the map loads underneath meanwhile.
+ */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgb(4 18 34 / 0.75), rgb(1 6 12 / 0.92));
+  animation: boot-out 500ms ease-in 1900ms forwards;
+}
+
+.boot-core {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+.boot svg {
+  width: 168px;
+  height: 168px;
+  overflow: visible;
+  filter: drop-shadow(0 0 8px var(--hud-glow));
+}
+
+.boot circle {
+  fill: none;
+  stroke: var(--hud);
+}
+
+/* pathLength="100" on each ring, so one dash pattern draws any size. */
+.boot-ring {
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  animation: boot-draw 900ms ease-out forwards;
+}
+
+.boot-ring-2 {
+  animation-delay: 150ms;
+}
+
+.boot-ring-3 {
+  animation-delay: 300ms;
+}
+
+.boot-spin {
+  /* The viewBox is centred on 0,0, and view-box origins are in user units. */
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: hud-spin 2.4s linear infinite;
+}
+
+.boot-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  letter-spacing: 0.24em;
+  text-align: center;
+  color: var(--hud-bright);
+  text-shadow: 0 0 8px var(--hud-glow);
+}
+
+.boot-lines li {
+  opacity: 0;
+  animation: boot-line 200ms steps(2, jump-none) forwards;
+}
+
+.boot-lines li:nth-child(1) {
+  animation-delay: 250ms;
+}
+
+.boot-lines li:nth-child(2) {
+  animation-delay: 700ms;
+}
+
+.boot-lines li:nth-child(3) {
+  animation-delay: 1200ms;
+  color: #fff;
+}
+
+/* Panels arrive as the overlay fades. */
+.app.booting .topbar {
+  animation: slide-down 500ms ease-out 1700ms backwards;
+}
+
+.app.booting .statusbar,
+.app.booting .ticker {
+  animation: slide-up 500ms ease-out 1800ms backwards;
+}
+
+.app.booting .maplibregl-ctrl-top-left {
+  animation: fade-in 500ms ease-out 2000ms backwards;
+}
+
+@keyframes boot-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes boot-line {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes boot-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes hud-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hud-spin-back {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot {
+    display: none;
+  }
+
+  .app.booting .topbar,
+  .app.booting .statusbar,
+  .app.booting .ticker,
+  .app.booting .maplibregl-ctrl-top-left {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------- the instrument frame */
+
+/*
+ * Fine ruler ticks along the map's edges and brackets in its corners: the
+ * display reads as a calibrated piece of glass, not a web page. Static
+ * gradients, painted once, never in the way of a click.
+ */
+.map::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image:
+    repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(180deg, var(--rule) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(180deg, var(--rule) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(90deg, var(--hud) 0 1px, transparent 1px 180px),
+    repeating-linear-gradient(90deg, var(--hud) 0 1px, transparent 1px 180px),
+    repeating-linear-gradient(180deg, var(--hud) 0 1px, transparent 1px 180px),
+    repeating-linear-gradient(180deg, var(--hud) 0 1px, transparent 1px 180px);
+  background-position: top left, bottom left, top left, top right;
+  background-repeat: no-repeat;
+  background-size: 100% 4px, 100% 4px, 4px 100%, 4px 100%, 100% 8px, 100% 8px, 8px 100%, 8px 100%;
+}
+
+.map::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    linear-gradient(var(--hud), var(--hud)) top left / 24px 1.5px,
+    linear-gradient(var(--hud), var(--hud)) top left / 1.5px 24px,
+    linear-gradient(var(--hud), var(--hud)) top right / 24px 1.5px,
+    linear-gradient(var(--hud), var(--hud)) top right / 1.5px 24px,
+    linear-gradient(var(--hud), var(--hud)) bottom left / 24px 1.5px,
+    linear-gradient(var(--hud), var(--hud)) bottom left / 1.5px 24px,
+    linear-gradient(var(--hud), var(--hud)) bottom right / 24px 1.5px,
+    linear-gradient(var(--hud), var(--hud)) bottom right / 1.5px 24px;
+  background-repeat: no-repeat;
+}
+
+/* Hairlines under the pointer (map/crosshair.ts), meeting at the cursor. */
+.crosshair {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--hud);
+  mix-blend-mode: screen;
+  opacity: 0.14;
+  transition: opacity 0.2s ease;
+}
+
+.crosshair-h {
+  width: 100%;
+  height: 1px;
+}
+
+.crosshair-v {
+  width: 1px;
+  height: 100%;
+}
+
+/* The scale control as a range tape, not a white web widget. */
+.maplibregl-ctrl-scale {
+  margin: 0 0 4px 10px;
+  padding: 1px 8px 0;
+  border: 1px solid var(--rule);
+  border-top: none;
+  background: rgb(4 15 28 / 0.55);
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+/* Panels materialise when opened; opening them is the operator's own act. */
+@media (prefers-reduced-motion: no-preference) {
+  .briefing,
+  .filter-panel,
+  .details {
+    animation: panel-in 0.16s ease-out;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* The display answers the hand: a soft charge under the pointer. */
+.icon-button:hover,
+.topbar-button:hover,
+.text-button:hover,
+.alert-show:hover,
+.maplibregl-ctrl-group button:hover {
+  box-shadow: 0 0 10px var(--hud-glow), inset 0 0 6px rgb(63 182 255 / 0.12);
+}

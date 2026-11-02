@@ -1,0 +1,133 @@
+{
+ "_comment": "Recorded from AISStream (wss://stream.aisstream.io/v0/stream) over the English Channel scenario box on 2026-10-27, trimmed to a few ships. Frames are exactly as received; receivedAt is our clock.",
+ "frames": [
+  {
+   "receivedAt": 1793139706303,
+   "raw": "{\"Message\":{\"CompressionEnabled\":true},\"MessageType\":\"SubscriptionConfirmation\"}"
+  },
+  {
+   "receivedAt": 1793139706577,
+   "raw": "{\"MetaData\":{\"MMSI\":477745100,\"MMSI_String\":477745100,\"ShipName\":\"GOLDEN DAISY        \",\"latitude\":50.84074,\"longitude\":-1.33088,\"time_utc\":\"2026-10-27 22:21:47.110982691 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"VRUI3  \",\"Destination\":\"GBFAW               \",\"Dimension\":{\"A\":124,\"B\":30,\"C\":13,\"D\":23},\"Dte\":false,\"Eta\":{\"Day\":19,\"Hour\":20,\"Minute\":0,\"Month\":10},\"FixType\":1,\"ImoNumber\":9878008,\"MaximumStaticDraught\":8.7,\"MessageID\":5,\"Name\":\"GOLDEN DAISY        \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":80,\"UserID\":477745100,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139708726,
+   "raw": "{\"MetaData\":{\"MMSI\":232029791,\"MMSI_String\":232029791,\"ShipName\":\"SUNSAIL SOLARIS\",\"latitude\":50.79878,\"longitude\":-1.12036,\"time_utc\":\"2026-10-27 22:21:49.285868003 +0000 UTC\"},\"MessageType\":\"StandardClassBPositionReport\",\"Message\":{\"StandardClassBPositionReport\":{\"AssignedMode\":false,\"ClassBBand\":true,\"ClassBDisplay\":false,\"ClassBDsc\":true,\"ClassBMsg22\":true,\"ClassBUnit\":false,\"Cog\":360,\"CommunicationState\":85866,\"CommunicationStateIsItdma\":true,\"Latitude\":50.79877833333333,\"Longitude\":-1.120355,\"MessageID\":18,\"PositionAccuracy\":true,\"Raim\":true,\"RepeatIndicator\":0,\"Sog\":0,\"Spare1\":0,\"Spare2\":0,\"Timestamp\":49,\"TrueHeading\":511,\"UserID\":232029791,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139710074,
+   "raw": "{\"MetaData\":{\"MMSI\":228379800,\"MMSI_String\":228379800,\"ShipName\":\"F/V LOUIS AGATHE \",\"latitude\":49.46739,\"longitude\":-0.31888,\"time_utc\":\"2026-10-27 22:21:50.6782884 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":228379800,\"Valid\":true,\"NavigationalStatus\":8,\"RateOfTurn\":0,\"Sog\":3,\"PositionAccuracy\":false,\"Longitude\":-0.3188833333333333,\"Latitude\":49.46739,\"Cog\":127,\"TrueHeading\":145,\"Timestamp\":50,\"SpecialManoeuvreIndicator\":1,\"Spare\":0,\"Raim\":false,\"CommunicationState\":27732}}}"
+  },
+  {
+   "receivedAt": 1793139710503,
+   "raw": "{\"MetaData\":{\"MMSI\":232033439,\"MMSI_String\":232033439,\"ShipName\":\"RUPERT BEST         \",\"latitude\":50.56962,\"longitude\":-2.43769,\"time_utc\":\"2026-10-27 22:21:50.833191117 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"MIRQ9  \",\"Destination\":\"PORTLAND:           \",\"Dimension\":{\"A\":11,\"B\":11,\"C\":9,\"D\":2},\"Dte\":false,\"Eta\":{\"Day\":22,\"Hour\":19,\"Minute\":0,\"Month\":9},\"FixType\":1,\"ImoNumber\":9875848,\"MaximumStaticDraught\":4.8,\"MessageID\":5,\"Name\":\"RUPERT BEST         \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":232033439,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139714807,
+   "raw": "{\"MetaData\":{\"MMSI\":228239600,\"MMSI_String\":228239600,\"ShipName\":\"F/V THIERISA        \",\"latitude\":49.45764,\"longitude\":-0.20794,\"time_utc\":\"2026-10-27 22:21:55.134834161 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":228239600,\"Valid\":true,\"NavigationalStatus\":7,\"RateOfTurn\":-127,\"Sog\":3,\"PositionAccuracy\":false,\"Longitude\":-0.20794166666666666,\"Latitude\":49.45764166666667,\"Cog\":119,\"TrueHeading\":134,\"Timestamp\":56,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":157868}}}"
+  },
+  {
+   "receivedAt": 1793139714808,
+   "raw": "{\"MetaData\":{\"MMSI\":235070763,\"MMSI_String\":235070763,\"ShipName\":\"SD INDULGENT        \",\"latitude\":50.80621,\"longitude\":-1.10416,\"time_utc\":\"2026-10-27 22:21:55.259238922 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":235070763,\"Valid\":true,\"NavigationalStatus\":15,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":true,\"Longitude\":-1.1041633333333332,\"Latitude\":50.806205,\"Cog\":37,\"TrueHeading\":0,\"Timestamp\":56,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":49280}}}"
+  },
+  {
+   "receivedAt": 1793139715291,
+   "raw": "{\"MetaData\":{\"MMSI\":235075375,\"MMSI_String\":235075375,\"ShipName\":\"\",\"latitude\":50.791,\"longitude\":-1.11558,\"time_utc\":\"2026-10-27 22:21:55.742687399 +0000 UTC\"},\"MessageType\":\"StaticDataReport\",\"Message\":{\"StaticDataReport\":{\"MessageID\":24,\"PartNumber\":true,\"RepeatIndicator\":0,\"ReportA\":{\"Name\":\"\",\"Valid\":false},\"ReportB\":{\"CallSign\":\"2CSK7  \",\"Dimension\":{\"A\":11,\"B\":11,\"C\":3,\"D\":2},\"FixType\":0,\"ShipType\":36,\"Spare\":0,\"Valid\":true,\"VenderIDModel\":1,\"VenderIDSerial\":1187,\"VendorIDName\":\"FEC\"},\"Reserved\":0,\"UserID\":235075375,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139715291,
+   "raw": "{\"MetaData\":{\"MMSI\":319137700,\"MMSI_String\":319137700,\"ShipName\":\"MOSAIQUE            \",\"latitude\":50.89472,\"longitude\":-1.38901,\"time_utc\":\"2026-10-27 22:21:55.750958316 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"ZGHR5  \",\"Destination\":\"GBSOU               \",\"Dimension\":{\"A\":10,\"B\":40,\"C\":7,\"D\":3},\"Dte\":false,\"Eta\":{\"Day\":19,\"Hour\":22,\"Minute\":0,\"Month\":10},\"FixType\":1,\"ImoNumber\":8976009,\"MaximumStaticDraught\":2.9,\"MessageID\":5,\"Name\":\"MOSAIQUE            \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":37,\"UserID\":319137700,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139723163,
+   "raw": "{\"MetaData\":{\"MMSI\":232056936,\"MMSI_String\":232056936,\"ShipName\":\"HANS                \",\"latitude\":51.501,\"longitude\":0.47323,\"time_utc\":\"2026-10-27 22:22:03.40813406 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":1,\"CallSign\":\"MPWI9  \",\"Destination\":\"KEEP 2NM CPA        \",\"Dimension\":{\"A\":12,\"B\":8,\"C\":3,\"D\":3},\"Dte\":false,\"Eta\":{\"Day\":2,\"Hour\":1,\"Minute\":0,\"Month\":10},\"FixType\":1,\"ImoNumber\":9173977,\"MaximumStaticDraught\":2.6,\"MessageID\":5,\"Name\":\"HANS                \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":232056936,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139725660,
+   "raw": "{\"MetaData\":{\"MMSI\":219031135,\"MMSI_String\":219031135,\"ShipName\":\"LIKYA THERESA       \",\"latitude\":50.80876,\"longitude\":0.96343,\"time_utc\":\"2026-10-27 22:22:05.999757841 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":219031135,\"Valid\":true,\"NavigationalStatus\":0,\"RateOfTurn\":0,\"Sog\":9.3,\"PositionAccuracy\":false,\"Longitude\":0.9634283333333333,\"Latitude\":50.80876333333333,\"Cog\":232.2,\"TrueHeading\":232,\"Timestamp\":6,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":2237}}}"
+  },
+  {
+   "receivedAt": 1793139725864,
+   "raw": "{\"MetaData\":{\"MMSI\":235053723,\"MMSI_String\":235053723,\"ShipName\":\"APEX                \",\"latitude\":50.8341,\"longitude\":-1.32318,\"time_utc\":\"2026-10-27 22:22:06.230677167 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":1,\"CallSign\":\"MQVM8  \",\"Destination\":\"GBFAW               \",\"Dimension\":{\"A\":17,\"B\":18,\"C\":7,\"D\":7},\"Dte\":false,\"Eta\":{\"Day\":27,\"Hour\":0,\"Minute\":0,\"Month\":7},\"FixType\":1,\"ImoNumber\":9408035,\"MaximumStaticDraught\":6.8,\"MessageID\":5,\"Name\":\"APEX                \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":235053723,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139725865,
+   "raw": "{\"MetaData\":{\"MMSI\":235053723,\"MMSI_String\":235053723,\"ShipName\":\"APEX                \",\"latitude\":50.8341,\"longitude\":-1.32318,\"time_utc\":\"2026-10-27 22:22:06.309192564 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":1,\"CallSign\":\"MQVM8  \",\"Destination\":\"GBFAW               \",\"Dimension\":{\"A\":17,\"B\":18,\"C\":7,\"D\":7},\"Dte\":false,\"Eta\":{\"Day\":27,\"Hour\":0,\"Minute\":0,\"Month\":7},\"FixType\":1,\"ImoNumber\":9408035,\"MaximumStaticDraught\":6.8,\"MessageID\":5,\"Name\":\"APEX                \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":235053723,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139726983,
+   "raw": "{\"MetaData\":{\"MMSI\":232023795,\"MMSI_String\":232023795,\"ShipName\":\"JACOBA MARIA        \",\"latitude\":50.30567,\"longitude\":0.86688,\"time_utc\":\"2026-10-27 22:22:07.342362592 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":232023795,\"Valid\":true,\"NavigationalStatus\":0,\"RateOfTurn\":-127,\"Sog\":7.8,\"PositionAccuracy\":false,\"Longitude\":0.8668766666666666,\"Latitude\":50.30567166666666,\"Cog\":330.9,\"TrueHeading\":316,\"Timestamp\":5,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":4640}}}"
+  },
+  {
+   "receivedAt": 1793139728027,
+   "raw": "{\"MetaData\":{\"MMSI\":232015239,\"MMSI_String\":232015239,\"ShipName\":\"VB PULLMAN          \",\"latitude\":50.80919,\"longitude\":-1.0916,\"time_utc\":\"2026-10-27 22:22:08.471307255 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"MCZQ8  \",\"Destination\":\"PORTSMOUTH          \",\"Dimension\":{\"A\":14,\"B\":10,\"C\":0,\"D\":12},\"Dte\":false,\"Eta\":{\"Day\":16,\"Hour\":13,\"Minute\":30,\"Month\":10},\"FixType\":1,\"ImoNumber\":9788239,\"MaximumStaticDraught\":4.7,\"MessageID\":5,\"Name\":\"VB PULLMAN          \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":232015239,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139731130,
+   "raw": "{\"MetaData\":{\"MMSI\":232015239,\"MMSI_String\":232015239,\"ShipName\":\"VB PULLMAN          \",\"latitude\":50.80919,\"longitude\":-1.0916,\"time_utc\":\"2026-10-27 22:22:11.502220273 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"MCZQ8  \",\"Destination\":\"PORTSMOUTH          \",\"Dimension\":{\"A\":14,\"B\":10,\"C\":0,\"D\":12},\"Dte\":false,\"Eta\":{\"Day\":16,\"Hour\":13,\"Minute\":30,\"Month\":10},\"FixType\":1,\"ImoNumber\":9788239,\"MaximumStaticDraught\":4.7,\"MessageID\":5,\"Name\":\"VB PULLMAN          \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":232015239,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139732715,
+   "raw": "{\"MetaData\":{\"MMSI\":232050769,\"MMSI_String\":232050769,\"ShipName\":\"\",\"latitude\":49.45985,\"longitude\":-2.53042,\"time_utc\":\"2026-10-27 22:22:13.224430499 +0000 UTC\"},\"MessageType\":\"StaticDataReport\",\"Message\":{\"StaticDataReport\":{\"MessageID\":24,\"PartNumber\":true,\"RepeatIndicator\":0,\"ReportA\":{\"Name\":\"\",\"Valid\":false},\"ReportB\":{\"CallSign\":\"MOIM9\",\"Dimension\":{\"A\":8,\"B\":4,\"C\":1,\"D\":3},\"FixType\":15,\"ShipType\":37,\"Spare\":0,\"Valid\":true,\"VenderIDModel\":2,\"VenderIDSerial\":41041,\"VendorIDName\":\"SRT\"},\"Reserved\":0,\"UserID\":232050769,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139738328,
+   "raw": "{\"MetaData\":{\"MMSI\":235070238,\"MMSI_String\":235070238,\"ShipName\":\"LCU 9734\",\"latitude\":51.04301,\"longitude\":-4.18539,\"time_utc\":\"2026-10-27 22:22:18.729691289 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":235070238,\"Valid\":true,\"NavigationalStatus\":5,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":-4.185386666666667,\"Latitude\":51.043005,\"Cog\":102,\"TrueHeading\":102,\"Timestamp\":60,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":0}}}"
+  },
+  {
+   "receivedAt": 1793139739148,
+   "raw": "{\"MetaData\":{\"MMSI\":228379800,\"MMSI_String\":228379800,\"ShipName\":\"F/V LOUIS AGATHE \",\"latitude\":49.46739,\"longitude\":-0.31888,\"time_utc\":\"2026-10-27 22:22:19.171151051 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"FLXQ  \",\"Destination\":\"GRANDCAMP\",\"Dimension\":{\"A\":10,\"B\":6,\"C\":4,\"D\":3},\"Dte\":false,\"Eta\":{\"Day\":0,\"Hour\":24,\"Minute\":60,\"Month\":0},\"FixType\":0,\"ImoNumber\":0,\"MaximumStaticDraught\":0,\"MessageID\":5,\"Name\":\"F/V LOUIS AGATHE \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":30,\"UserID\":228379800,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139746557,
+   "raw": "{\"MetaData\":{\"MMSI\":232015239,\"MMSI_String\":232015239,\"ShipName\":\"VB PULLMAN          \",\"latitude\":50.80916,\"longitude\":-1.09156,\"time_utc\":\"2026-10-27 22:22:26.993683053 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":232015239,\"Valid\":true,\"NavigationalStatus\":5,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":-1.091565,\"Latitude\":50.80916,\"Cog\":220.7,\"TrueHeading\":70,\"Timestamp\":25,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":84570}}}"
+  },
+  {
+   "receivedAt": 1793139751175,
+   "raw": "{\"MetaData\":{\"MMSI\":232029791,\"MMSI_String\":232029791,\"ShipName\":\"\",\"latitude\":50.79878,\"longitude\":-1.12036,\"time_utc\":\"2026-10-27 22:22:31.579207355 +0000 UTC\"},\"MessageType\":\"StaticDataReport\",\"Message\":{\"StaticDataReport\":{\"MessageID\":24,\"PartNumber\":true,\"RepeatIndicator\":0,\"ReportA\":{\"Name\":\"\",\"Valid\":false},\"ReportB\":{\"CallSign\":\"MIBS2\",\"Dimension\":{\"A\":8,\"B\":4,\"C\":0,\"D\":4},\"FixType\":15,\"ShipType\":37,\"Spare\":0,\"Valid\":true,\"VenderIDModel\":2,\"VenderIDSerial\":524682,\"VendorIDName\":\"SRT\"},\"Reserved\":0,\"UserID\":232029791,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139757634,
+   "raw": "{\"MetaData\":{\"MMSI\":232050769,\"MMSI_String\":232050769,\"ShipName\":\"\",\"latitude\":49.45985,\"longitude\":-2.53043,\"time_utc\":\"2026-10-27 22:22:38.131743101 +0000 UTC\"},\"MessageType\":\"StandardClassBPositionReport\",\"Message\":{\"StandardClassBPositionReport\":{\"AssignedMode\":false,\"ClassBBand\":true,\"ClassBDisplay\":false,\"ClassBDsc\":true,\"ClassBMsg22\":true,\"ClassBUnit\":false,\"Cog\":360,\"CommunicationState\":83802,\"CommunicationStateIsItdma\":true,\"Latitude\":49.459845,\"Longitude\":-2.5304266666666666,\"MessageID\":18,\"PositionAccuracy\":false,\"Raim\":false,\"RepeatIndicator\":0,\"Sog\":0.1,\"Spare1\":0,\"Spare2\":0,\"Timestamp\":37,\"TrueHeading\":511,\"UserID\":232050769,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139768572,
+   "raw": "{\"MetaData\":{\"MMSI\":319137700,\"MMSI_String\":319137700,\"ShipName\":\"MOSAIQUE            \",\"latitude\":50.89472,\"longitude\":-1.38895,\"time_utc\":\"2026-10-27 22:22:49.018849238 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":319137700,\"Valid\":true,\"NavigationalStatus\":5,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":-1.3889533333333333,\"Latitude\":50.89472333333333,\"Cog\":249.7,\"TrueHeading\":84,\"Timestamp\":48,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":85674}}}"
+  },
+  {
+   "receivedAt": 1793139774812,
+   "raw": "{\"MetaData\":{\"MMSI\":228239600,\"MMSI_String\":228239600,\"ShipName\":\"F/V THIERISA        \",\"latitude\":49.45726,\"longitude\":-0.20682,\"time_utc\":\"2026-10-27 22:22:55.192161563 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":228239600,\"Valid\":true,\"NavigationalStatus\":7,\"RateOfTurn\":127,\"Sog\":2.9,\"PositionAccuracy\":false,\"Longitude\":-0.20681833333333335,\"Latitude\":49.45726,\"Cog\":117.8,\"TrueHeading\":135,\"Timestamp\":56,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":133351}}}"
+  },
+  {
+   "receivedAt": 1793139776989,
+   "raw": "{\"MetaData\":{\"MMSI\":232056936,\"MMSI_String\":232056936,\"ShipName\":\"HANS                \",\"latitude\":51.501,\"longitude\":0.47323,\"time_utc\":\"2026-10-27 22:22:57.511902711 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":232056936,\"Valid\":true,\"NavigationalStatus\":0,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":0.4732333333333333,\"Latitude\":51.500994999999996,\"Cog\":14.1,\"TrueHeading\":258,\"Timestamp\":58,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":2279}}}"
+  },
+  {
+   "receivedAt": 1793139787744,
+   "raw": "{\"MetaData\":{\"MMSI\":232023795,\"MMSI_String\":232023795,\"ShipName\":\"JACOBA MARIA        \",\"latitude\":50.30748,\"longitude\":0.86507,\"time_utc\":\"2026-10-27 22:23:07.839518656 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":232023795,\"Valid\":true,\"NavigationalStatus\":0,\"RateOfTurn\":-127,\"Sog\":8.1,\"PositionAccuracy\":true,\"Longitude\":0.86507,\"Latitude\":50.307480000000005,\"Cog\":326.4,\"TrueHeading\":311,\"Timestamp\":5,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":4112}}}"
+  },
+  {
+   "receivedAt": 1793139797360,
+   "raw": "{\"MetaData\":{\"MMSI\":235070763,\"MMSI_String\":235070763,\"ShipName\":\"SD INDULGENT        \",\"latitude\":50.8062,\"longitude\":-1.10416,\"time_utc\":\"2026-10-27 22:23:17.872379761 +0000 UTC\"},\"MessageType\":\"ShipStaticData\",\"Message\":{\"ShipStaticData\":{\"AisVersion\":2,\"CallSign\":\"2BZM2  \",\"Destination\":\"PORTSMOUTH          \",\"Dimension\":{\"A\":8,\"B\":18,\"C\":2,\"D\":7},\"Dte\":false,\"Eta\":{\"Day\":0,\"Hour\":24,\"Minute\":60,\"Month\":0},\"FixType\":1,\"ImoNumber\":9540285,\"MaximumStaticDraught\":4.2,\"MessageID\":5,\"Name\":\"SD INDULGENT        \",\"RepeatIndicator\":0,\"Spare\":false,\"Type\":52,\"UserID\":235070763,\"Valid\":true}}}"
+  },
+  {
+   "receivedAt": 1793139800142,
+   "raw": "{\"MetaData\":{\"MMSI\":232023795,\"MMSI_String\":232023795,\"ShipName\":\"JACOBA MARIA        \",\"latitude\":50.30787,\"longitude\":0.86461,\"time_utc\":\"2026-10-27 22:23:20.564852781 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":1,\"RepeatIndicator\":0,\"UserID\":232023795,\"Valid\":true,\"NavigationalStatus\":0,\"RateOfTurn\":0,\"Sog\":8,\"PositionAccuracy\":true,\"Longitude\":0.8646133333333333,\"Latitude\":50.30787,\"Cog\":324,\"TrueHeading\":311,\"Timestamp\":18,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":2282}}}"
+  },
+  {
+   "receivedAt": 1793139800356,
+   "raw": "{\"MetaData\":{\"MMSI\":235053723,\"MMSI_String\":235053723,\"ShipName\":\"APEX                \",\"latitude\":50.83411,\"longitude\":-1.32318,\"time_utc\":\"2026-10-27 22:23:20.774054222 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":235053723,\"Valid\":true,\"NavigationalStatus\":5,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":-1.3231833333333334,\"Latitude\":50.83410666666667,\"Cog\":152.2,\"TrueHeading\":146,\"Timestamp\":21,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":86106}}}"
+  },
+  {
+   "receivedAt": 1793139802785,
+   "raw": "{\"MetaData\":{\"MMSI\":232033439,\"MMSI_String\":232033439,\"ShipName\":\"RUPERT BEST         \",\"latitude\":50.56962,\"longitude\":-2.43768,\"time_utc\":\"2026-10-27 22:23:23.285271976 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":232033439,\"Valid\":true,\"NavigationalStatus\":5,\"RateOfTurn\":-128,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":-2.437683333333333,\"Latitude\":50.56962333333333,\"Cog\":213.4,\"TrueHeading\":511,\"Timestamp\":21,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":85546}}}"
+  },
+  {
+   "receivedAt": 1793139808175,
+   "raw": "{\"MetaData\":{\"MMSI\":477745100,\"MMSI_String\":477745100,\"ShipName\":\"GOLDEN DAISY        \",\"latitude\":50.84075,\"longitude\":-1.33087,\"time_utc\":\"2026-10-27 22:23:28.780877429 +0000 UTC\"},\"MessageType\":\"PositionReport\",\"Message\":{\"PositionReport\":{\"MessageID\":3,\"RepeatIndicator\":0,\"UserID\":477745100,\"Valid\":true,\"NavigationalStatus\":5,\"RateOfTurn\":0,\"Sog\":0,\"PositionAccuracy\":false,\"Longitude\":-1.3308666666666666,\"Latitude\":50.84074666666667,\"Cog\":168.3,\"TrueHeading\":141,\"Timestamp\":26,\"SpecialManoeuvreIndicator\":0,\"Spare\":0,\"Raim\":false,\"CommunicationState\":85450}}}"
+  },
+  {
+   "receivedAt": 1793139811113,
+   "raw": "{\"MetaData\":{\"MMSI\":235075375,\"MMSI_String\":235075375,\"ShipName\":\"\",\"latitude\":50.79102,\"longitude\":-1.11563,\"time_utc\":\"2026-10-27 22:23:31.583475433 +0000 UTC\"},\"MessageType\":\"StandardClassBPositionReport\",\"Message\":{\"StandardClassBPositionReport\":{\"AssignedMode\":false,\"ClassBBand\":true,\"ClassBDisplay\":false,\"ClassBDsc\":true,\"ClassBMsg22\":false,\"ClassBUnit\":true,\"Cog\":348.4,\"CommunicationState\":393222,\"CommunicationStateIsItdma\":true,\"Latitude\":50.791023333333335,\"Longitude\":-1.1156283333333334,\"MessageID\":18,\"PositionAccuracy\":true,\"Raim\":true,\"RepeatIndicator\":0,\"Sog\":0,\"Spare1\":0,\"Spare2\":0,\"Timestamp\":32,\"TrueHeading\":198,\"UserID\":235075375,\"Valid\":true}}}"
+  }
+ ]
+}

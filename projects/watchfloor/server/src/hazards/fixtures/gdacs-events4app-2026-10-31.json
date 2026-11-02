@@ -1,0 +1,246 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "bbox": [
+    165.2951,
+    -13.7894,
+    165.2951,
+    -13.7894
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     165.2951,
+     -13.7894
+    ]
+   },
+   "properties": {
+    "eventtype": "EQ",
+    "eventid": 1574916,
+    "episodeid": 1743890,
+    "eventname": "",
+    "glide": "",
+    "name": "Earthquake in Vanuatu Islands",
+    "description": "Earthquake in Vanuatu Islands",
+    "htmldescription": "Green M 4.9 Earthquake in Vanuatu Islands at: 31 Oct 2026 09:18:32.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=EQ&eventid=1574916&episodeid=1743890",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1574916&episodeid=1743890&eventtype=EQ",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=EQ&eventid=1574916"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.0,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Vanuatu Islands",
+    "fromdate": "2026-10-31T09:18:32",
+    "todate": "2026-10-31T09:18:32",
+    "datemodified": "2026-10-31T09:44:04",
+    "iso3": "",
+    "source": "NEIC",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [],
+    "severitydata": {
+     "severity": 4.9,
+     "severitytext": "Magnitude 4.9M, Depth:10km",
+     "severityunit": "M"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    142.9,
+    22.2,
+    142.9,
+    22.2
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     142.9,
+     22.2
+    ]
+   },
+   "properties": {
+    "eventtype": "TC",
+    "eventid": 1001343,
+    "episodeid": 32,
+    "eventname": "IN-FA-26",
+    "glide": "",
+    "name": "Tropical Cyclone IN-FA-26",
+    "description": "Tropical Cyclone IN-FA-26",
+    "htmldescription": "Green Tropical Cyclone IN-FA-26 in Japan, Marshall Islands from: 25 Oct 2026  to: 31 Oct 2026 .",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/TC.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/TC.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=TC&eventid=1001343&episodeid=32",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1001343&episodeid=32&eventtype=TC",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=TC&eventid=1001343"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 1.0,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Japan, Marshall Islands",
+    "fromdate": "2026-10-25T06:00:00",
+    "todate": "2026-10-31T06:00:00",
+    "datemodified": "2026-10-31T07:52:04",
+    "iso3": "MHL",
+    "source": "JTWC",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "countryonland": "",
+    "affectedcountries": [
+     {
+      "iso2": "JP",
+      "iso3": "JPN",
+      "countryname": "Japan"
+     }
+    ],
+    "severitydata": {
+     "severity": 240.7392,
+     "severitytext": "Hurricane/Typhoon > 74 mph (maximum wind speed of 241 km/h)",
+     "severityunit": "km/h"
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    89.8364,
+    27.6363,
+    89.8364,
+    27.6363
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     89.8364,
+     27.6363
+    ]
+   },
+   "properties": {
+    "eventtype": "FL",
+    "eventid": 1104265,
+    "episodeid": 1,
+    "eventname": "",
+    "glide": "",
+    "name": "Flood in Bhutan",
+    "description": "Flood in Bhutan",
+    "htmldescription": "Green Flood in Bhutan from: 29 Oct 2026 01 to: 31 Oct 2026 01.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=FL&eventid=1104265&episodeid=1",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1104265&episodeid=1&eventtype=FL",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=FL&eventid=1104265"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Bhutan",
+    "fromdate": "2026-10-29T01:00:00",
+    "todate": "2026-10-31T01:00:00",
+    "datemodified": "2026-10-31T10:30:43",
+    "iso3": "BTN",
+    "source": "GLOFAS",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "BT",
+      "iso3": "BTN",
+      "countryname": "Bhutan"
+     }
+    ],
+    "severitydata": {
+     "severity": 0.0,
+     "severitytext": "Magnitude 0 ",
+     "severityunit": ""
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "bbox": [
+    14.4601,
+    12.1679,
+    14.4601,
+    12.1679
+   ],
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     14.4601,
+     12.1679
+    ]
+   },
+   "properties": {
+    "eventtype": "WF",
+    "eventid": 1033360,
+    "episodeid": 1,
+    "eventname": "",
+    "glide": "",
+    "name": "Forest fires in Nigeria, Cameroon",
+    "description": "Forest fires in Nigeria, Cameroon",
+    "htmldescription": "Green Forest fires in Nigeria, Cameroon from: 30 Oct 2026 to: 31 Oct 2026.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/WF.png",
+    "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/WF.png",
+    "url": {
+     "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=WF&eventid=1033360&episodeid=1",
+     "report": "https://www.gdacs.org/report.aspx?eventid=1033360&episodeid=1&eventtype=WF",
+     "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=WF&eventid=1033360"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "true",
+    "country": "Nigeria, Cameroon",
+    "fromdate": "2026-10-30T00:00:00",
+    "todate": "2026-10-31T00:00:00",
+    "datemodified": "2026-10-31T08:00:39",
+    "iso3": "NGA",
+    "source": "GWIS",
+    "sourceid": "",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+     {
+      "iso2": "NG",
+      "iso3": "NGA",
+      "countryname": "Nigeria"
+     },
+     {
+      "iso2": "CM",
+      "iso3": "CMR",
+      "countryname": "Cameroon"
+     }
+    ],
+    "severitydata": {
+     "severity": 5400.0,
+     "severitytext": "Green impact for forestfire in 5400 ha",
+     "severityunit": "ha"
+    }
+   }
+  }
+ ],
+ "bbox": null
+}

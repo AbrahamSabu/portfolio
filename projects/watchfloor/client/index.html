@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Watchfloor: a real-time common operating picture of air and sea traffic." />
+    <title>Watchfloor</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306121F'/%3E%3Cpath d='M7 12V7h5M20 7h5v5M25 20v5h-5M12 25H7v-5' fill='none' stroke='%233FB6FF' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2380E0FF'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap"
+    />
+    <script>
+      // Screensaver mode runs the whole page at 30 fps: half the frames,
+      // half the GPU and main-thread animation work, and nobody watching a
+      // wall display can tell. Inline and first, so MapLibre and every
+      // module binds the capped requestAnimationFrame.
+      if (new URLSearchParams(location.search).has('screensaver')) {
+        (() => {
+          const native = window.requestAnimationFrame.bind(window);
+          const queue = new Map();
+          let nextId = 1;
+          let scheduled = false;
+          let last = 0;
+          const pump = (time) => {
+            // Not this vsync: wait for the next one (32 ms gates 60 Hz to 30).
+            if (time - last < 32) {
+              native(pump);
+              return;
+            }
+            last = time;
+            scheduled = false;
+            const callbacks = [...queue.values()];
+            queue.clear();
+            for (const callback of callbacks) callback(time);
+          };
+          window.requestAnimationFrame = (callback) => {
+            queue.set(nextId, callback);
+            if (!scheduled) {
+              scheduled = true;
+              native(pump);
+            }
+            return nextId++;
+          };
+          window.cancelAnimationFrame = (id) => queue.delete(id);
+        })();
+      }
+    </script>
+  </head>
+  <body>
+    <div class="boot" id="boot" aria-hidden="true">
+      <div class="boot-core">
+        <svg viewBox="-84 -84 168 168">
+          <circle class="boot-ring" r="78" pathLength="100" stroke-width="1.5" />
+          <g class="boot-spin"><circle r="64" stroke-width="3" stroke-dasharray="40 18 8 18" opacity="0.8" /></g>
+          <circle class="boot-ring boot-ring-2" r="50" pathLength="100" stroke-width="1" />
+          <circle class="boot-ring boot-ring-3" r="30" pathLength="100" stroke-width="6" stroke-dasharray="12 6" opacity="0.9" />
+          <circle r="10" stroke-width="2" />
+        </svg>
+        <ul class="boot-lines">
+          <li>WATCHFLOOR</li>
+          <li>ESTABLISHING LINK</li>
+          <li>DISPLAY ONLINE</li>
+        </ul>
+      </div>
+    </div>
+    <div class="app booting">
+      <header class="topbar">
+        <div class="topbar-start">
+          <button
+            class="topbar-button"
+            id="list-toggle"
+            type="button"
+            aria-controls="track-list"
+            aria-expanded="false"
+            title="Track list (L)"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h8" /></svg>
+            <span>Tracks</span>
+          </button>
+          <div class="brand">
+            <span class="brand-name">Watchfloor</span>
+            <span class="brand-scenario" id="scenario-name">Connecting to server</span>
+          </div>
+        </div>
+        <div class="topbar-end">
+          <button class="topbar-button alert-chip" id="alert-chip" type="button" hidden></button>
+          <button class="topbar-button news-switch" id="news-toggle" type="button" role="switch" aria-checked="true" title="News on the map, ticker and briefing (N)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z" /></svg>
+            <span class="news-switch-label">News</span>
+            <span class="news-switch-track" aria-hidden="true"><span class="news-switch-thumb"></span></span>
+          </button>
+          <button class="topbar-button topbar-icon" id="briefing-toggle" type="button" aria-pressed="true" aria-controls="briefing" title="Briefing (B)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h1M6 4h7.5M2.5 8h1M6 8h7.5M2.5 12h1M6 12h7.5" /></svg>
+            <span class="visually-hidden">Briefing</span>
+          </button>
+          <span class="dtg-wrap">
+            <span class="dtg-ring" id="dtg-ring" aria-hidden="true"></span>
+            <time class="dtg" id="dtg" title="Date-time group (UTC)"></time>
+          </span>
+          <button class="topbar-button topbar-icon" id="key-toggle" type="button" aria-haspopup="dialog" aria-controls="key-dialog" title="Map key (?)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" /><path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.4M8 11.6v.1" /></svg>
+            <span class="visually-hidden">Map key</span>
+          </button>
+        </div>
+      </header>
+
+      <dialog class="key-dialog" id="key-dialog" aria-labelledby="key-title">
+        <header class="key-head">
+          <h2 class="key-title" id="key-title">Map key</h2>
+          <button class="icon-button" type="button" data-close aria-label="Close map key">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="key-body" data-body></div>
+      </dialog>
+
+      <div class="map" id="map" role="region" aria-label="Tactical map"></div>
+
+      <aside class="track-list" id="track-list" hidden aria-labelledby="track-list-title">
+        <header class="track-list-head">
+          <h2 class="track-list-title" id="track-list-title">
+            Tracks <span class="track-list-count" data-count></span>
+          </h2>
+          <button class="icon-button" type="button" data-close aria-label="Close track list">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+
+        <div class="track-list-filters">
+          <div class="segmented" role="group" aria-label="Show">
+            <button type="button" data-domain="all" aria-pressed="true">All</button>
+            <button type="button" data-domain="air" aria-pressed="false">Air</button>
+            <button type="button" data-domain="sea" aria-pressed="false">Sea</button>
+          </div>
+          <input
+            class="search"
+            type="search"
+            data-search
+            placeholder="Search callsign or type"
+            aria-label="Search by callsign or track id (/)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="track-table-wrap">
+          <table class="track-table" role="grid" aria-labelledby="track-list-title" aria-readonly="true">
+            <thead>
+              <tr>
+                <th scope="col"><button type="button" data-sort="callsign">Callsign</button></th>
+                <th scope="col"><button type="button" data-sort="type">Type</button></th>
+                <th scope="col" class="num"><button type="button" data-sort="speed">Speed</button></th>
+                <th scope="col" class="num"><button type="button" data-sort="altitude">Alt</button></th>
+                <th scope="col" class="num"><button type="button" data-sort="age">Age</button></th>
+              </tr>
+            </thead>
+            <tbody data-rows></tbody>
+          </table>
+          <p class="track-list-empty" data-empty hidden>No tracks match.</p>
+        </div>
+      </aside>
+
+      <aside class="filter-panel layers-panel" id="layers-panel" hidden aria-labelledby="layers-title">
+        <header class="filter-head">
+          <h2 class="filter-title" id="layers-title">Layers</h2>
+          <button class="icon-button" type="button" data-close aria-label="Close layers">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="layers-body" data-body></div>
+        <p class="layers-foot">Every shortcut: <button class="text-button" type="button" data-all-keys>Map key <kbd>?</kbd></button></p>
+      </aside>
+
+      <aside class="filter-panel region-panel" id="region-panel" hidden aria-labelledby="region-title">
+        <header class="filter-head">
+          <h2 class="filter-title" id="region-title">Watch areas</h2>
+          <button class="icon-button" type="button" data-close aria-label="Close watch areas">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="region-body">
+          <form class="region-form" data-form hidden>
+            <label class="region-field">Name <input name="name" maxlength="40" autocomplete="off" required /></label>
+            <fieldset class="region-field">
+              <legend>Watch</legend>
+              <label><input type="radio" name="watch" value="both" checked /> Both</label>
+              <label><input type="radio" name="watch" value="air" /> Aircraft</label>
+              <label><input type="radio" name="watch" value="sea" /> Ships</label>
+            </fieldset>
+            <label class="region-check"><input type="checkbox" name="military" /> Military only</label>
+            <fieldset class="region-field">
+              <legend>Alert when one</legend>
+              <label><input type="checkbox" name="enter" checked /> Enters</label>
+              <label><input type="checkbox" name="exit" checked /> Leaves</label>
+            </fieldset>
+            <div class="region-actions">
+              <button class="alert-show" type="submit">Save area</button>
+              <button class="text-button" type="button" data-discard>Discard</button>
+            </div>
+          </form>
+          <button class="text-button region-draw" type="button" data-draw>+ Draw a new area (W)</button>
+          <ul class="region-list" data-list></ul>
+          <h3 class="filter-group-title">Activity</h3>
+          <ol class="region-log" data-log></ol>
+          <p class="airport-credit">Kept in this browser; alerts only while this page is open.</p>
+        </div>
+      </aside>
+
+      <aside class="filter-panel" id="filter-panel" hidden aria-labelledby="filter-title">
+        <header class="filter-head">
+          <h2 class="filter-title" id="filter-title">Filter</h2>
+          <button class="text-button" type="button" data-reset>Show all</button>
+          <button class="icon-button" type="button" data-close aria-label="Close filter">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="filter-body" data-body></div>
+      </aside>
+
+      <section class="alerts" aria-label="Alerts">
+        <div id="alerts-emergency"></div>
+        <div id="alerts-hazard"></div>
+        <div id="alerts-finding"></div>
+        <div id="alerts-region"></div>
+      </section>
+
+      <div class="palette-backdrop" id="palette" hidden>
+        <div class="palette" role="dialog" aria-label="Search">
+          <input
+            class="palette-input"
+            type="text"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="palette-results"
+            aria-label="Search the map"
+            placeholder="Callsign, squawk, airport, chokepoint or area"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <ul class="palette-results" id="palette-results" data-results role="listbox" aria-label="Search results"></ul>
+        </div>
+      </div>
+
+      <div class="tour-banner" id="tour" hidden role="status">
+        <span class="tour-tag">Tour</span>
+        <span class="tour-title" data-title></span>
+        <button class="text-button" type="button" data-stop>Stop</button>
+      </div>
+
+      <div class="timeline" id="timeline" hidden>
+        <span class="timeline-tag" data-tag>LIVE</span>
+        <div class="timeline-bar" data-bar>
+          <div class="timeline-fill" data-fill></div>
+          <div class="timeline-now" aria-hidden="true"></div>
+          <div class="timeline-handle" data-handle tabindex="0" role="slider" aria-label="Timeline: six hours back to thirty minutes ahead"></div>
+        </div>
+        <button class="text-button" type="button" data-play hidden>Play</button>
+        <button class="text-button" type="button" data-speed hidden>300×</button>
+        <button class="text-button" type="button" data-live-btn hidden>Live</button>
+        <button class="icon-button" type="button" data-close aria-label="Close timeline">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+        </button>
+      </div>
+
+      <aside class="briefing" id="briefing" hidden aria-labelledby="briefing-title">
+        <header class="briefing-head">
+          <h2 class="briefing-title" id="briefing-title">Briefing</h2>
+          <p class="briefing-sub">Top stories · last 6 h</p>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close briefing">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <ol class="briefing-list" data-list></ol>
+        <p class="briefing-empty" data-empty>Waiting for the first news batch.</p>
+      </aside>
+
+      <aside class="briefing handover" id="handover" hidden aria-labelledby="handover-title">
+        <header class="briefing-head">
+          <h2 class="briefing-title" id="handover-title">Watch handover</h2>
+          <p class="briefing-sub" data-since>The last 24 h, from the floor's own log</p>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close handover">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="handover-actions">
+          <button class="text-button" type="button" data-speak>Read aloud</button>
+        </div>
+        <ol class="handover-list" data-list></ol>
+        <p class="briefing-empty" data-empty hidden>A quiet watch: nothing logged yet.</p>
+        <p class="briefing-empty" data-loading hidden>Asking the floor…</p>
+      </aside>
+
+      <aside class="briefing airport-panel" id="airport-panel" hidden aria-labelledby="airport-title">
+        <header class="briefing-head">
+          <p class="airport-codes" data-field="codes"></p>
+          <h2 class="briefing-title" id="airport-title" data-field="name"></h2>
+          <p class="briefing-sub" data-field="place"></p>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close airport">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="airport-body">
+          <section class="airport-section">
+            <h3 class="airport-heading">Weather</h3>
+            <div data-field="weather"></div>
+          </section>
+          <section class="airport-section">
+            <h3 class="airport-heading">Traffic now</h3>
+            <div data-field="traffic"></div>
+            <p class="airport-credit">From live tracks below 10,000 ft within 40 km: not a timetable.</p>
+          </section>
+        </div>
+      </aside>
+
+      <aside class="briefing airport-panel" id="country-panel" hidden aria-labelledby="country-title">
+        <header class="briefing-head">
+          <p class="airport-codes">Country briefing</p>
+          <h2 class="briefing-title" id="country-title" data-field="name"></h2>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close country briefing">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="airport-body" data-field="body"></div>
+      </aside>
+
+      <aside class="details" id="details" hidden aria-labelledby="details-title">
+        <header class="details-head">
+          <div class="details-symbol" data-symbol aria-hidden="true"></div>
+          <div class="details-heading">
+            <p class="details-identity" data-field="identity"></p>
+            <h2 class="details-title" id="details-title" data-field="title"></h2>
+          </div>
+          <button class="icon-button details-close" type="button" data-close aria-label="Close track details">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+
+        <p class="details-emergency" data-emergency-note role="alert" hidden></p>
+
+        <p class="details-stale-note" data-stale-note hidden>
+          No recent reports. The position shown is the last estimate.
+        </p>
+
+        <figure class="details-photo" data-photo>
+          <a class="details-photo-link" data-photo-link target="_blank" hidden>
+            <img data-photo-img alt="" decoding="async" />
+          </a>
+          <div class="details-drawing" data-drawing aria-hidden="true"></div>
+          <figcaption class="details-credit" data-photo-credit hidden>
+            Photo: <a data-photo-credit-link target="_blank"></a> / <span data-photo-source></span>
+          </figcaption>
+        </figure>
+        <p class="details-note" data-private-note hidden>
+          The owner has asked for this aircraft not to be tracked publicly, so no photo or operator is shown.
+        </p>
+
+        <dl class="readout">
+          <div class="readout-row readout-wide" data-type-row hidden>
+            <dt>Aircraft type</dt>
+            <dd data-field="aircraft-type"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="ship-type" hidden>
+            <dt>Ship type</dt>
+            <dd data-field="ship-type"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="class" hidden>
+            <dt>Class</dt>
+            <dd data-field="class"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="operator" hidden>
+            <dt>Operator</dt>
+            <dd data-field="operator"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="country" hidden>
+            <dt data-field="country-label">Registered in</dt>
+            <dd data-field="country"></dd>
+          </div>
+          <div class="readout-row" data-row="built" hidden>
+            <dt>Built</dt>
+            <dd data-field="built"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="destination" hidden>
+            <dt>Destination</dt>
+            <dd data-field="destination"></dd>
+          </div>
+          <div class="readout-row readout-wide" data-row="size" hidden>
+            <dt>Size</dt>
+            <dd data-field="size"></dd>
+          </div>
+          <div class="readout-row" data-row="imo" hidden>
+            <dt>IMO number</dt>
+            <dd data-field="imo"></dd>
+          </div>
+          <div class="readout-row" data-row="call-sign" hidden>
+            <dt>Radio call sign</dt>
+            <dd data-field="call-sign"></dd>
+          </div>
+          <div class="readout-row" data-row="squawk" hidden>
+            <dt>Squawk</dt>
+            <dd data-field="squawk"></dd>
+          </div>
+          <div class="readout-row readout-wide">
+            <dt>Position</dt>
+            <dd><span data-field="lat"></span><span data-field="lon"></span></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Course</dt>
+            <dd data-field="course"></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Speed</dt>
+            <dd data-field="speed"></dd>
+          </div>
+          <div class="readout-row" data-altitude-row>
+            <dt>Altitude</dt>
+            <dd data-field="altitude"></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Last report</dt>
+            <dd data-field="age"></dd>
+          </div>
+          <div class="readout-row">
+            <dt>Source</dt>
+            <dd data-field="source"></dd>
+          </div>
+          <div class="readout-row readout-wide">
+            <dt>Path</dt>
+            <dd data-field="path"></dd>
+          </div>
+          <div class="readout-row readout-wide">
+            <dt>Track ID</dt>
+            <dd class="readout-id" data-field="id"></dd>
+          </div>
+        </dl>
+
+        <div class="details-actions">
+          <button class="button" type="button" data-fit-path>Show whole path</button>
+          <button class="button" type="button" data-follow aria-pressed="false">Follow on map</button>
+        </div>
+        <p class="details-credit" data-airline-credit hidden>
+          Airline names from <a href="https://openflights.org/data.php" target="_blank">OpenFlights</a> (ODbL).
+        </p>
+        <p class="details-credit" data-wikidata-credit hidden>
+          Class, operator and year from <a href="https://www.wikidata.org" target="_blank">Wikidata</a>.
+        </p>
+      </aside>
+
+      <section class="ticker" id="news-ticker" aria-label="Political news">
+        <span class="ticker-tag"><span class="ticker-live" aria-hidden="true"></span>OSINT</span>
+        <div class="ticker-window">
+          <ul class="ticker-strip" data-strip></ul>
+        </div>
+        <a class="ticker-credit" href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT</a>
+        <button class="ticker-button" type="button" data-voice aria-pressed="false" title="Read new stories aloud">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h2.5l3.5-3v10l-3.5-3h-2.5zM11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.6a6 6 0 0 1 0 8.8" /></svg>
+          <span class="visually-hidden">Read aloud</span>
+        </button>
+        <button class="ticker-button" type="button" data-hide title="Hide news (N)">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          <span class="visually-hidden">Hide news</span>
+        </button>
+      </section>
+
+      <footer class="statusbar" id="statusbar">
+        <div class="link" data-link data-state="connecting" role="status" aria-live="polite">
+          <span class="link-dot" aria-hidden="true"></span>
+          <span data-link-text>Connecting</span>
+          <button class="link-retry" type="button" data-link-retry hidden>Retry now</button>
+        </div>
+        <div class="feed-status" data-feed role="status" aria-live="polite" hidden></div>
+        <div class="counts">
+          <span><strong data-count-air>0</strong> air</span>
+          <span><strong data-count-sea>0</strong> sea</span>
+          <span class="counts-stale" data-stale-wrap hidden><strong data-count-stale>0</strong> stale</span>
+          <span class="counts-filtered" data-filtered hidden></span>
+        </div>
+        <div class="cursor" data-cursor aria-hidden="true"></div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

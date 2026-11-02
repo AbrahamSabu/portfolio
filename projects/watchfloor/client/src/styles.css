@@ -1,0 +1,3150 @@
+/*
+ * Watchfloor visual system
+ *
+ * A holographic display: deep navy glass, the interface drawn in thin
+ * glowing blue-cyan lines (--hud), so the map reads like a projection. The
+ * affiliation colours of the symbols (cyan friend, green neutral, red
+ * hostile, yellow unknown) stay the brightest, most saturated things on
+ * screen; --hud is deliberately deeper and bluer than the friend cyan, and
+ * glows rather than fills. One accent, orchid, is reserved for "what the
+ * operator is acting on": focus and the selected path. It is outside the
+ * symbology palette so it can never be mistaken for an identity. The glow,
+ * brackets, scan lines and the opening sequence live in hud.css.
+ */
+
+:root {
+  --surface: rgb(4 15 28 / 0.8);
+  --surface-solid: #06121f;
+  --surface-raised: #0c2236;
+  --rule: rgb(63 182 255 / 0.32);
+  --ink: #d8f1ff;
+  --ink-muted: #82a9c2;
+  --accent: #c9a0ff;
+  /* The display's own light: lines, brackets, glow. Never fills a track. */
+  --hud: #3fb6ff;
+  --hud-bright: #a8e6ff;
+  --hud-glow: rgb(63 182 255 / 0.45);
+  --ok: #7fd9b0;
+  --warn: #f0c36a;
+  --bad: #ff8f87;
+  --map-bg: #020a13;
+
+  --font: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  /* Headings, labels and the clock: squarer, more instrument than prose. */
+  --font-display: 'Rajdhani', var(--font);
+  --text-sm: 0.8125rem; /* 13px */
+  --text-md: 0.9375rem; /* 15px */
+  --text-lg: 1.0625rem; /* 17px */
+  --text-xl: 1.5rem; /* 24px */
+
+  --topbar-h: 44px;
+  --statusbar-h: 30px;
+  /* The news ticker above the status bar; 0 while news is hidden (N). */
+  --ticker-h: 32px;
+  /* Leaves room for the 300 px details panel on mid-sized screens. */
+  --list-w: min(440px, calc(100vw - 340px));
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--map-bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+}
+
+.app > .map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--topbar-h) + var(--safe-top));
+  padding: var(--safe-top) 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.brand-scenario {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-start {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.topbar-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.topbar-button:hover,
+.topbar-button[aria-expanded='true'] {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.topbar-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+/* The date-time group is the one piece of type given room to be a feature. */
+.dtg {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- status bar */
+
+.statusbar {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--statusbar-h) + var(--safe-bottom));
+  padding: 0 16px var(--safe-bottom);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.link-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--warn);
+}
+
+.link[data-state='open'] .link-dot {
+  background: var(--ok);
+}
+
+.link[data-state='waiting'] .link-dot,
+.link[data-state='incompatible'] .link-dot {
+  background: var(--bad);
+}
+
+.link-retry {
+  border: 1px solid var(--rule);
+  background: var(--surface-raised);
+  border-radius: 3px;
+  padding: 1px 8px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.link-retry:hover {
+  border-color: var(--ink-muted);
+}
+
+.counts {
+  display: flex;
+  gap: 16px;
+}
+
+.counts strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.counts-stale strong {
+  color: var(--warn);
+}
+
+/* Some of the picture is hidden on purpose: say so, so a thin map isn't read as an empty sky. */
+.counts-filtered {
+  color: var(--accent);
+}
+
+/* A live feed that isn't delivering. One line: long text is cut off, full text in the title. */
+.feed-status {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--warn);
+}
+
+.cursor {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- track list */
+
+.track-list {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  left: 12px;
+  width: var(--list-w);
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(3 8 11 / 0.45);
+}
+
+.track-list[hidden] {
+  display: none;
+}
+
+.track-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 0 14px;
+}
+
+.track-list-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.track-list-count {
+  margin-left: 4px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.track-list-filters {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.segmented {
+  display: flex;
+  flex: none;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.segmented button {
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--rule);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.search::placeholder {
+  color: var(--ink-muted);
+}
+
+.track-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.track-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Fixed columns: widths don't jump as values change every second. */
+  table-layout: fixed;
+  font-size: var(--text-sm);
+}
+
+.track-table th:nth-child(1) {
+  width: 34%;
+}
+
+.track-table th:nth-child(2) {
+  width: 24%;
+}
+
+.track-table th:nth-child(3),
+.track-table th:nth-child(5) {
+  width: 13%;
+}
+
+.track-table th:nth-child(4) {
+  width: 16%;
+}
+
+.track-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  background: var(--surface-solid);
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  font-weight: 500;
+}
+
+.track-table th button {
+  width: 100%;
+  padding: 7px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.track-table th button:hover,
+.track-table th[aria-sort] button {
+  color: var(--ink);
+}
+
+.track-table th[aria-sort='ascending'] button::after {
+  content: ' ↑';
+}
+
+.track-table th[aria-sort='descending'] button::after {
+  content: ' ↓';
+}
+
+.track-table .num {
+  text-align: right;
+}
+
+.track-table th:first-child button,
+.track-table td:first-child {
+  padding-left: 14px;
+}
+
+.track-table th:last-child button,
+.track-table td:last-child {
+  padding-right: 14px;
+}
+
+.track-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgb(38 64 76 / 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-table tbody tr {
+  cursor: pointer;
+}
+
+/* Stands in for rows outside the windowed range; its height is set from code. */
+.track-table tbody tr.track-spacer {
+  cursor: default;
+  pointer-events: none;
+}
+
+.track-table tbody tr.track-spacer td {
+  padding: 0;
+  border: 0;
+}
+
+.track-table tbody tr:hover {
+  background: var(--surface-raised);
+}
+
+.track-table tbody tr:focus-visible {
+  outline-offset: -2px;
+}
+
+.track-table tbody tr[aria-selected='true'] {
+  background: rgb(201 160 255 / 0.12);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.track-row-stale td {
+  color: var(--ink-muted);
+}
+
+/* Stays a table cell (not flex) so the column's ellipsis still applies. */
+.track-cell-callsign {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.track-cell-callsign .swatch {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+
+.track-cell-muted {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.track-list-empty {
+  margin: 0;
+  padding: 16px 14px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+/* Keep the map controls clear of the open list. */
+body[data-list-open] .maplibregl-ctrl-top-left {
+  left: calc(var(--list-w) + 12px);
+}
+
+/* --------------------------------------------------------- details panel */
+
+.details {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  right: 12px;
+  width: 300px;
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  overflow-y: auto;
+  padding: 16px 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(3 8 11 / 0.45);
+}
+
+.details-enter {
+  animation: details-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes details-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+.details-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 32px;
+}
+
+/* The track's own map symbol, drawn by the same code as the map's. */
+.details-symbol {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  background: rgb(9 16 21 / 0.55);
+}
+
+.details-symbol svg {
+  display: block;
+  max-width: 40px;
+  max-height: 40px;
+}
+
+.details-heading {
+  min-width: 0;
+}
+
+.details-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.details-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.icon-button svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.details-close {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+}
+
+.details-stale-note {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 3px;
+  background: rgb(240 195 106 / 0.1);
+  color: var(--warn);
+  font-size: var(--text-sm);
+}
+
+.details-photo {
+  margin: 14px 0 0;
+}
+
+/* Planespotters' large thumbnails are 420 × 280: hold that shape so nothing jumps when one arrives. */
+.details-photo-link {
+  display: block;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.details-photo-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--surface-raised);
+}
+
+.details-drawing {
+  display: grid;
+  place-items: center;
+  height: 112px;
+  border-radius: 3px;
+  background: rgb(220 230 235 / 0.04);
+}
+
+.details-drawing svg {
+  display: block;
+  width: 88px;
+  height: 88px;
+}
+
+/* The bottom sheet is short: there the drawing would only repeat the header's icon. */
+@media (max-width: 640px) {
+  .details-drawing {
+    display: none;
+  }
+}
+
+.details-credit {
+  margin: 6px 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.details-credit a {
+  color: inherit;
+}
+
+.details-note {
+  margin: 10px 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.details-stale .readout dd {
+  color: var(--ink-muted);
+}
+
+.readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin: 16px 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.readout-row {
+  min-width: 0;
+}
+
+.readout-wide {
+  grid-column: 1 / -1;
+}
+
+.readout dt {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.readout dd {
+  margin: 1px 0 0;
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+
+.readout-wide dd {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.readout-id {
+  color: var(--ink-muted);
+  font-weight: 400 !important;
+}
+
+.button {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-raised);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.details-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--ink-muted);
+}
+
+.button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- reticle */
+
+.reticle {
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+}
+
+.reticle-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * The selected track sits in the middle of three turning rings, like a
+ * reactor core: a fine dashed outer ring, three heavy arcs turning the other
+ * way, a thin inner ring, and four fixed ticks at the compass points. In the
+ * display's light, not an identity colour; the track's own colour is inside.
+ */
+.reticle svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--hud-bright);
+  filter: drop-shadow(0 0 3px var(--hud)) drop-shadow(0 0 1px rgb(1 6 13 / 0.9));
+}
+
+.reticle-outer {
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  opacity: 0.8;
+  animation: hud-spin 14s linear infinite;
+}
+
+.reticle-arcs {
+  stroke-width: 2.5;
+  stroke-dasharray: 40 12.36;
+  animation: hud-spin-back 7s linear infinite;
+}
+
+.reticle-inner {
+  stroke-width: 1;
+  opacity: 0.55;
+}
+
+.reticle-ticks {
+  stroke-width: 1.5;
+}
+
+.reticle-outer,
+.reticle-arcs {
+  /* The viewBox is centred on 0,0, and view-box origins are in user units. */
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+.reticle-stale svg {
+  stroke: var(--ink-muted);
+  filter: drop-shadow(0 0 1px rgb(1 6 13 / 0.9));
+}
+
+.reticle-stale .reticle-outer,
+.reticle-stale .reticle-arcs {
+  animation-play-state: paused;
+}
+
+/* The one orchestrated moment: the rings close in on the selected track. */
+.reticle-lock {
+  animation: reticle-lock 420ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+@keyframes reticle-lock {
+  from {
+    opacity: 0;
+    transform: scale(2.4) rotate(-90deg);
+  }
+}
+
+/* ------------------------------------------------------ MapLibre controls */
+
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-top-right {
+  top: calc(var(--topbar-h) + var(--safe-top));
+}
+
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom));
+}
+
+.maplibregl-ctrl-group {
+  background: var(--surface-solid);
+  border: 1px solid var(--rule);
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--rule);
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.88);
+}
+
+.maplibregl-ctrl-attrib {
+  background: rgb(16 28 35 / 0.8) !important;
+  color: var(--ink-muted);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--ink-muted);
+}
+
+.maplibregl-ctrl-attrib-button {
+  filter: invert(0.85);
+}
+
+/* ------------------------------------------------------------- top bar end */
+
+.topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-icon {
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+}
+
+/*
+ * News on or off, as a switch with a word on it: the bare diamond it
+ * replaced wasn't recognised as a toggle. The thumb slides right and
+ * lights when news is on.
+ */
+.news-switch {
+  gap: 7px;
+  padding: 0 7px 0 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.news-switch-track {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: rgb(63 182 255 / 0.06);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.news-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-muted);
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.news-switch[aria-checked='true'] .news-switch-track {
+  border-color: var(--hud-glow);
+  background: rgb(63 182 255 / 0.22);
+}
+
+.news-switch[aria-checked='true'] .news-switch-thumb {
+  transform: translateX(12px);
+  background: var(--hud-bright);
+  box-shadow: 0 0 6px var(--hud-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-switch-track,
+  .news-switch-thumb {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .news-switch-label {
+    display: none;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- hover card */
+
+/* Positioned by transform from the map's top left; never takes the pointer. */
+.hover-card {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  max-width: 240px;
+  padding: 6px 9px 7px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgb(3 8 11 / 0.45);
+  pointer-events: none;
+}
+
+.hover-card[hidden] {
+  display: none;
+}
+
+.hover-card-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.hover-card-kind {
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.hover-card-facts {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.hover-card-facts:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------- map key */
+
+.key-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface-solid);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 20px 50px rgb(3 8 11 / 0.6);
+}
+
+.key-dialog::backdrop {
+  background: rgb(5 10 13 / 0.55);
+}
+
+.key-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.key-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.key-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.key-body {
+  overflow-y: auto;
+  padding: 4px 20px 20px;
+}
+
+.key-body section + section {
+  border-top: 1px solid var(--rule);
+}
+
+.key-body h3 {
+  margin: 16px 0 4px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.key-body p {
+  margin: 0 0 10px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 12px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.key-grid li,
+.key-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.key-symbol {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+}
+
+.key-symbol svg {
+  display: block;
+  max-width: 30px;
+  max-height: 30px;
+}
+
+.key-list {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 14px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+/* Small drawings of what the map draws. */
+.key-glyph {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 14px;
+}
+
+.key-dot::before,
+.key-ring::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 11px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.key-dot::before {
+  background: #ffff80;
+}
+
+.key-ring::before {
+  border: 1.5px solid #ffff80;
+}
+
+.key-leader::before,
+.key-trail::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 2px;
+  width: 26px;
+  height: 0;
+}
+
+.key-leader::before {
+  border-top: 1.5px solid rgb(255 255 128 / 0.75);
+}
+
+.key-trail::before {
+  border-top: 1.25px solid rgb(255 255 128 / 0.4);
+}
+
+.key-stale::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 9px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ffff80;
+  opacity: 0.4;
+}
+
+.key-shortcuts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+}
+
+.key-shortcuts dt,
+.key-shortcuts dd {
+  margin: 0;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------- filter */
+
+.filter-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+/* A dot while anything is filtered. */
+.filter-toggle[data-active]::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Beside the map controls, which sit top left. */
+.filter-panel {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--topbar-h) + var(--safe-top) + 10px);
+  left: 56px;
+  width: 260px;
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(3 8 11 / 0.45);
+}
+
+body[data-list-open] .filter-panel {
+  left: calc(var(--list-w) + 56px);
+}
+
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 8px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.filter-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.text-button {
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.text-button:hover {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.filter-body {
+  overflow-y: auto;
+  padding: 4px 0 8px;
+}
+
+.filter-group {
+  margin: 0;
+  padding: 6px 0 2px;
+  border: 0;
+}
+
+.filter-group + .filter-group {
+  border-top: 1px solid var(--rule);
+}
+
+.filter-group legend {
+  padding: 0;
+  width: 100%;
+}
+
+.filter-group-title {
+  display: block;
+  padding: 4px 14px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 14px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.filter-row[hidden] {
+  display: none;
+}
+
+.filter-row:hover {
+  background: var(--surface-raised);
+}
+
+/* A group's own box sits in the heading, in the heading's colour. */
+.filter-group-title.filter-row {
+  color: var(--ink-muted);
+}
+
+.filter-row input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.filter-label {
+  flex: 1;
+}
+
+.filter-count {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------- small screens */
+
+@media (max-width: 640px) {
+  .details {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 8px);
+    width: auto;
+    max-height: 55%;
+  }
+
+  @keyframes details-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  .track-list {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    height: 60%;
+  }
+
+  body[data-list-open] .maplibregl-ctrl-top-left {
+    left: 0;
+  }
+
+  .filter-panel,
+  body[data-list-open] .filter-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 8px);
+    width: auto;
+    max-height: 60%;
+  }
+
+  .topbar-button span {
+    display: none;
+  }
+
+  .cursor {
+    display: none;
+  }
+
+  .statusbar {
+    gap: 16px;
+  }
+
+  .brand-scenario {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details-enter,
+  .reticle-lock,
+  .reticle-outer,
+  .reticle-arcs {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ news */
+
+/*
+ * Political news, styled as an open-source intelligence feed: DTGs, places
+ * in capitals, the outlet's headline. White, not an identity colour: a story
+ * is neither friend nor hostile. A red "live" lamp is the one warm mark.
+ */
+.app.news-off {
+  --ticker-h: 0px;
+}
+
+.topbar-button[aria-pressed='true'] {
+  color: var(--ink);
+}
+
+.ticker {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--statusbar-h) + var(--safe-bottom));
+  height: var(--ticker-h);
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: rgb(9 16 21 / 0.94);
+  border-top: 1px solid var(--rule);
+}
+
+.ticker[hidden] {
+  display: none;
+}
+
+.ticker-tag {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 12px 0 16px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  border-right: 1px solid var(--rule);
+}
+
+.ticker-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff5a4e;
+  box-shadow: 0 0 6px #ff5a4e;
+  animation: ticker-lamp 2s steps(2, jump-none) infinite;
+}
+
+@keyframes ticker-lamp {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ticker-window {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  /* Fade the ends, so stories slide in and out rather than being cut. */
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+
+.ticker-strip {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ticker-strip.running {
+  animation: ticker-scroll linear infinite;
+}
+
+.ticker:hover .ticker-strip,
+.ticker:focus-within .ticker-strip {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 28px 0 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ticker-item:hover .ticker-headline {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ticker-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ticker-time {
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+}
+
+.ticker-icon {
+  display: flex;
+  color: #f2f6f8;
+}
+
+.ticker-place {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.ticker-outlet {
+  color: var(--ink-muted);
+}
+
+.ticker-outlet::before {
+  content: '— ';
+}
+
+.ticker-waiting {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--ink-muted);
+}
+
+.ticker-credit {
+  flex: none;
+  padding: 0 10px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.ticker-credit:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.ticker-button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--ticker-h);
+  height: 100%;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.ticker-button:hover,
+.ticker-button[aria-pressed='true'] {
+  color: var(--ink);
+  background: var(--surface-raised);
+}
+
+.ticker-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The card on the map: MapLibre's popup, restyled. */
+.news-popup .maplibregl-popup-content {
+  padding: 10px 28px 10px 12px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid #f2f6f8;
+  border-radius: 2px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font-family: var(--font);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.45);
+}
+
+.news-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--rule);
+}
+
+.news-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.news-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--rule);
+}
+
+.news-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--rule);
+}
+
+.news-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--rule);
+}
+
+.news-popup .maplibregl-popup-close-button {
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  color: var(--ink-muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.news-popup .maplibregl-popup-close-button:hover {
+  color: var(--ink);
+  background: var(--surface-raised);
+}
+
+.news-card {
+  animation: news-card-in 160ms ease-out;
+}
+
+@keyframes news-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.news-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+}
+
+.news-card-icon {
+  display: flex;
+  color: #f2f6f8;
+}
+
+.news-card-kind {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.news-card-place {
+  margin-top: 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.news-card-headline {
+  margin: 4px 0 8px;
+  font-size: var(--text-md);
+  line-height: 1.3;
+}
+
+.news-card-source {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.news-card-source:hover {
+  color: var(--ink);
+}
+
+.news-pulse {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #f2f6f8;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: news-pulse 1.6s ease-out forwards;
+}
+
+@keyframes news-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+.key-news {
+  display: grid;
+  place-items: center;
+  color: #f2f6f8;
+}
+
+@media (max-width: 640px) {
+  .ticker-tag {
+    padding: 0 10px 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-live,
+  .news-card {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------- briefing */
+
+/*
+ * Top stories on the right, where the details panel goes: it steps aside
+ * while a track is selected (briefingPanel.ts), so they never overlap.
+ */
+.briefing {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - var(--safe-top) - var(--safe-bottom) - 24px);
+  padding: 12px 0 6px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.briefing[hidden] {
+  display: none;
+}
+
+.briefing-head {
+  position: relative;
+  padding: 0 14px 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.briefing-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  color: var(--hud-bright);
+}
+
+.briefing-sub {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+.briefing-close {
+  position: absolute;
+  top: -4px;
+  right: 8px;
+}
+
+.briefing-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.briefing-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 6px;
+  width: 100%;
+  padding: 9px 14px 9px 10px;
+  border: 0;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.briefing-item:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.briefing-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.briefing-rank {
+  grid-row: span 3;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--hud);
+  font-variant-numeric: tabular-nums;
+}
+
+.briefing-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.briefing-icon {
+  display: inline-grid;
+  flex: none;
+  color: #f2f6f8;
+}
+
+.briefing-place {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-muted);
+}
+
+.briefing-headline {
+  margin: 2px 0 3px;
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+.briefing-meta {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.briefing-empty {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+/* The watch handover: the server's own log read back, newest first. */
+.handover-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 14px 6px;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+}
+
+.handover-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.handover-item {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px 8px 10px;
+  border: 0;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+button.handover-item {
+  cursor: pointer;
+}
+
+button.handover-item:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.handover-time {
+  flex: none;
+  color: #3fb6ff;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+
+.handover-text {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+/* Phones: it starts closed, and opens as a sheet above the ticker. */
+@media (max-width: 640px) {
+  .briefing {
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: 55%;
+  }
+}
+
+/* ------------------------------------------------------- emergency alerts */
+
+/*
+ * Under the top bar, centred, above the map's panels. Amber (--warn): an
+ * emergency is a state, not an identity, so it never borrows hostile red.
+ */
+.alerts {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  left: 50%;
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.alert-card {
+  position: relative;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid rgb(240 195 106 / 0.55);
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  box-shadow: 0 0 22px rgb(240 195 106 / 0.18);
+  pointer-events: auto;
+  animation: alert-in 220ms ease-out;
+}
+
+.alert-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-right: 24px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+.alert-code {
+  font-size: var(--text-md);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px rgb(240 195 106 / 0.5);
+}
+
+.alert-since {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-title {
+  margin-top: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.alert-kind,
+.alert-facts {
+  font-size: var(--text-sm);
+}
+
+.alert-facts {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-note {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.alert-actions {
+  margin-top: 8px;
+}
+
+.alert-show {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--warn);
+  border-radius: 3px;
+  background: rgb(240 195 106 / 0.12);
+  color: var(--warn);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.alert-show:hover {
+  background: rgb(240 195 106 / 0.24);
+}
+
+.alert-show:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.alert-dismiss {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+/* An amber ring on the aircraft, with its code above, pulsing gently. */
+.emergency-ring {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--warn);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 12px rgb(240 195 106 / 0.6), inset 0 0 8px rgb(240 195 106 / 0.35);
+  cursor: pointer;
+  animation: emergency-pulse 1.6s ease-in-out infinite;
+}
+
+.emergency-ring::after {
+  content: attr(data-code);
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--warn);
+  text-shadow: 0 0 4px #000, 0 0 8px rgb(240 195 106 / 0.6);
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes emergency-pulse {
+  50% {
+    box-shadow: 0 0 22px rgb(240 195 106 / 0.9), inset 0 0 12px rgb(240 195 106 / 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-card,
+  .emergency-ring {
+    animation: none;
+  }
+}
+
+.key-emergency {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--warn);
+  border-radius: 50%;
+}
+
+/* ------------------------------------------------- earthquakes and disasters */
+
+.alerts > div {
+  display: grid;
+  gap: 8px;
+}
+
+.alerts > div:empty {
+  display: none;
+}
+
+/* Hazard alerts in the hazards' own pale apricot, not the squawks' amber. */
+.hazard-alert {
+  border-color: rgb(255 210 168 / 0.5);
+  border-left-color: #ffd2a8;
+  box-shadow: 0 0 22px rgb(255 210 168 / 0.15);
+}
+
+.hazard-alert .alert-head,
+.hazard-alert .alert-show {
+  color: #ffd2a8;
+}
+
+.hazard-alert .alert-show {
+  border-color: #ffd2a8;
+  background: rgb(255 210 168 / 0.1);
+}
+
+/* Findings in the HUD's own blue: the floor's observations, not emergencies. */
+.finding-alert {
+  border-color: rgb(63 182 255 / 0.45);
+  border-left-color: #3fb6ff;
+  box-shadow: 0 0 22px rgb(63 182 255 / 0.12);
+}
+
+.finding-alert .alert-head,
+.finding-alert .alert-show {
+  color: #3fb6ff;
+}
+
+.finding-alert .alert-code {
+  text-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+}
+
+.finding-alert .alert-show {
+  border-color: #3fb6ff;
+  background: rgb(63 182 255 / 0.1);
+}
+
+.hazard-card-icon,
+.key-hazard {
+  color: #ffd2a8;
+}
+
+.hazard-card-facts {
+  margin-bottom: 4px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------- airport panel */
+
+/* Shares the briefing's frame and place; the briefing steps aside for it. */
+.app.airport-open #briefing,
+.app.country-open #briefing {
+  display: none;
+}
+
+.country-list .briefing-item {
+  grid-template-columns: 18px 1fr;
+  padding: 7px 0;
+}
+
+.country-list .briefing-icon {
+  grid-row: span 2;
+  padding-top: 2px;
+}
+
+.airport-panel {
+  width: 320px;
+}
+
+.airport-codes {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--hud);
+}
+
+.airport-body {
+  overflow-y: auto;
+  padding: 4px 14px 8px;
+}
+
+.airport-section + .airport-section {
+  margin-top: 6px;
+  border-top: 1px solid rgb(63 182 255 / 0.12);
+}
+
+.airport-heading {
+  margin: 10px 0 6px;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud);
+}
+
+.airport-weather-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+}
+
+.airport-category {
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+
+/* Worse conditions read louder, in the interface's own warning colour. */
+.airport-category-ifr,
+.airport-category-lifr {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.airport-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.airport-rows dt {
+  color: var(--ink-muted);
+}
+
+.airport-rows dd {
+  margin: 0;
+}
+
+.airport-raw {
+  display: block;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  background: rgb(63 182 255 / 0.06);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.airport-muted {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.airport-credit {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.airport-credit a {
+  color: inherit;
+}
+
+.airport-group {
+  margin: 6px 0 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.airport-traffic {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.airport-traffic button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.airport-traffic button:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.airport-traffic button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.airport-callsign {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------- chokepoint tags */
+
+.choke-tag {
+  /* No position here: MapLibre's markers are absolute, which the dot uses too. */
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  padding: 3px 7px 4px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--hud);
+  border-radius: 2px;
+  background: rgb(2 10 19 / 0.82);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgb(63 182 255 / 0.15);
+}
+
+.choke-tag:hover {
+  border-color: var(--hud-glow);
+  box-shadow: 0 0 14px rgb(63 182 255 / 0.35);
+}
+
+.choke-tag:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.choke-name {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hud-bright);
+}
+
+.choke-count {
+  font-size: 0.6875rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.choke-tag::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--hud-bright);
+  box-shadow: 0 0 6px var(--hud);
+}
+
+.choke-number {
+  margin-left: 6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Full tags say it in words underneath; compact ones keep just the number. */
+.choke-tag:not(.choke-tag-compact) .choke-number {
+  display: none;
+}
+
+.choke-tag-compact {
+  padding: 1px 5px 2px;
+}
+
+.choke-tag-compact .choke-count {
+  display: none;
+}
+
+/* ------------------------------------------------------------ watch areas */
+
+.region-body {
+  overflow-y: auto;
+  padding: 8px 12px 10px;
+}
+
+.region-draw {
+  width: 100%;
+  margin-bottom: 8px;
+  color: var(--hud-bright);
+  border-color: var(--hud-glow);
+}
+
+.region-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid var(--hud-glow);
+  border-radius: 3px;
+  background: rgb(63 182 255 / 0.06);
+  font-size: var(--text-sm);
+}
+
+.region-form[hidden] {
+  display: none;
+}
+
+.region-field {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ink-muted);
+}
+
+.region-field input[name='name'] {
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: inherit;
+}
+
+.region-field legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.region-field label,
+.region-check {
+  color: var(--ink);
+}
+
+fieldset.region-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.region-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.region-list,
+.region-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.region-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+}
+
+.region-show {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  padding: 6px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-name {
+  font-weight: 600;
+}
+
+.region-what,
+.region-count,
+.region-empty {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.region-count {
+  color: var(--hud-bright);
+}
+
+.region-empty {
+  padding: 4px 0 8px;
+}
+
+.region-log button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-log button:hover,
+.region-show:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.region-log time {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.region-log [data-type='lost'] span {
+  color: var(--ink-muted);
+}
+
+.region-tag {
+  border-left-color: var(--hud-bright);
+}
+
+/* Area alerts in the display's blue: the squawks are amber, the hazards apricot. */
+.region-alert {
+  border-color: var(--hud-glow);
+  border-left-color: var(--hud-bright);
+  box-shadow: 0 0 22px rgb(63 182 255 / 0.18);
+}
+
+.region-alert .alert-head,
+.region-alert .alert-show {
+  color: var(--hud-bright);
+}
+
+.region-alert .alert-show {
+  border-color: var(--hud-bright);
+  background: rgb(63 182 255 / 0.12);
+}
+
+/* While drawing: what to do, along the bottom of the map. */
+.draw-hint {
+  position: absolute;
+  z-index: 3;
+  bottom: 16px;
+  left: 50%;
+  padding: 6px 12px;
+  border: 1px solid var(--hud-glow);
+  border-radius: 3px;
+  background: rgb(2 10 19 / 0.9);
+  color: var(--hud-bright);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: 0 0 14px rgb(63 182 255 / 0.25);
+}
+
+.draw-hint[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .draw-hint {
+    white-space: normal;
+    width: calc(100% - 32px);
+    text-align: center;
+  }
+}
+
+/* Area alerts come often in a busy area: one compact line each, Show beside it. */
+.region-alert {
+  padding: 6px 10px 7px 12px;
+}
+
+.region-alert .alert-title {
+  margin-top: 2px;
+  padding-right: 64px;
+}
+
+.region-alert .alert-kind {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--ink-muted);
+}
+
+.region-alert .alert-actions {
+  position: absolute;
+  right: 34px;
+  bottom: 6px;
+  margin: 0;
+}
+
+.region-alert .alert-show {
+  height: 22px;
+  padding: 0 9px;
+}
+
+/* A tag round the back of the globe is invisible (opacityWhenCovered 0); it mustn't take clicks either. */
+.maplibregl-marker-covered {
+  pointer-events: none;
+}
+
+.details-emergency {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--warn);
+  border-radius: 3px;
+  background: rgb(240 195 106 / 0.14);
+  color: var(--warn);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* While any aircraft squawks an emergency code: amber, in the top bar, until the code stops. */
+.alert-chip {
+  border-color: var(--warn);
+  color: var(--warn);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 0 12px rgb(240 195 106 / 0.35);
+  animation: alert-chip-glow 1.6s ease-in-out infinite;
+}
+
+.alert-chip[hidden] {
+  display: none;
+}
+
+.alert-chip::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+}
+
+.alert-chip:hover {
+  background: rgb(240 195 106 / 0.12);
+}
+
+@keyframes alert-chip-glow {
+  50% {
+    box-shadow: 0 0 20px rgb(240 195 106 / 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-chip {
+    animation: none;
+  }
+}
+
+/* Stays amber on hover: hud.css lights other top bar buttons blue. */
+.topbar-button.alert-chip:hover {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+/* ----------------------------------------------------------- layers menu */
+
+.layers-body {
+  overflow-y: auto;
+  padding: 2px 12px 6px;
+}
+
+.layers-section + .layers-section {
+  margin-top: 4px;
+}
+
+.layers-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 3px;
+}
+
+.layers-row-switch {
+  cursor: pointer;
+}
+
+.layers-row-switch:hover {
+  background: rgb(63 182 255 / 0.07);
+}
+
+.layers-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.layers-label {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.layers-hint {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.layers-key {
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.layers-key[hidden] {
+  display: none;
+}
+
+/* The switch: the News switch's track and thumb, lit when on. */
+button.layers-switch {
+  padding: 2px;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+
+button.layers-switch[aria-checked='true'] .news-switch-track {
+  border-color: var(--hud-glow);
+  background: rgb(63 182 255 / 0.22);
+}
+
+button.layers-switch[aria-checked='true'] .news-switch-thumb {
+  transform: translateX(12px);
+  background: var(--hud-bright);
+  box-shadow: 0 0 6px var(--hud-glow);
+}
+
+button.layers-switch:focus-visible,
+.layers-choice-group button:focus-visible,
+.layers-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.layers-choice-group {
+  display: flex;
+  margin-top: 4px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.layers-choice-group button {
+  flex: 1;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.layers-choice-group button + button {
+  border-left: 1px solid var(--rule);
+}
+
+.layers-choice-group button[aria-checked='true'] {
+  background: rgb(63 182 255 / 0.18);
+  color: var(--hud-bright);
+}
+
+.layers-row-choice {
+  grid-template-columns: 1fr auto;
+  align-items: start;
+}
+
+.layers-row-action {
+  grid-template-columns: 1fr auto;
+}
+
+.layers-action {
+  text-align: left;
+}
+
+.layers-foot {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border-top: 1px solid rgb(63 182 255 / 0.12);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.layers-foot kbd {
+  font-family: var(--font-display);
+}
+
+.layers-panel {
+  width: 300px;
+}
+
+.layers-panel .layers-body {
+  overflow-x: hidden;
+}
+
+button.layers-switch .news-switch-track {
+  display: block;
+}
+
+/* ---------- Search palette (/ or Ctrl K) ---------- */
+
+.palette-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(12vh, var(--topbar-h) + 24px) 16px 0;
+  background: rgb(2 8 16 / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.palette {
+  width: min(540px, 100%);
+  padding: 10px;
+  border: 1px solid var(--rule);
+}
+
+.palette-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  background: var(--surface-solid);
+  color: var(--ink);
+  font: 500 var(--text-lg) / 1.3 var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.palette-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.palette-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+}
+
+.palette-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'title kind' 'detail kind';
+  align-items: center;
+  column-gap: 10px;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  cursor: pointer;
+}
+
+.palette-row:last-child {
+  border-bottom: 0;
+}
+
+.palette-row:hover {
+  background: rgb(63 182 255 / 0.1);
+}
+
+/* The chosen row carries the accent, like any selection. */
+.palette-active {
+  background: rgb(201 160 255 / 0.14);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.palette-title {
+  grid-area: title;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-detail {
+  grid-area: detail;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-detail:empty {
+  display: none;
+}
+
+.palette-kind {
+  grid-area: kind;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  color: var(--hud-bright);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------- Cinematic tour ---------- */
+
+/* Bottom centre, clear of the alert stack the tour may be visiting. */
+.tour-banner {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+}
+
+/* The long-exposure film: over the map's canvas, under the UI. */
+.exposure {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/*
+ * The phosphor scope: everything on the plotting surface through one green
+ * gun. A deliberate, operator-chosen exception to "colour means identity" —
+ * affiliation colours survive as brightness, as they did on real tubes.
+ */
+#map.phosphor {
+  filter: grayscale(1) sepia(1) hue-rotate(55deg) saturate(2.4) brightness(0.95) contrast(1.06);
+}
+
+/* The timeline bar: six hours back, NOW, thirty minutes ahead, on one strip. */
+.timeline {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(720px, calc(100vw - 24px));
+  padding: 8px 14px;
+  border: 1px solid rgb(63 182 255 / 0.4);
+  background: var(--surface);
+}
+
+.timeline-tag {
+  flex: none;
+  min-width: 108px;
+  color: #3fb6ff;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline[data-mode='replay'] .timeline-tag,
+.timeline[data-mode='project'] .timeline-tag {
+  text-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+}
+
+.timeline-bar {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.timeline-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 9px;
+  height: 2px;
+  background: rgb(63 182 255 / 0.25);
+}
+
+.timeline-fill {
+  position: absolute;
+  left: 0;
+  top: 9px;
+  height: 2px;
+  background: rgb(63 182 255 / 0.6);
+  pointer-events: none;
+}
+
+/* The NOW notch sits where state/timeline.ts puts it (NOW_F). */
+.timeline-now {
+  position: absolute;
+  left: 78%;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  background: #3fb6ff;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.timeline-handle {
+  position: absolute;
+  top: 10px;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 1.5px solid #3fb6ff;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+  pointer-events: none;
+}
+
+.tour-tag {
+  padding: 1px 8px;
+  border: 1px solid var(--hud);
+  color: var(--hud-bright);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--hud-glow);
+  animation: tour-breathe 2.4s ease-in-out infinite;
+}
+
+.tour-title {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Opacity only: it runs on the compositor, where text-shadow would repaint every frame. */
+@keyframes tour-breathe {
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-tag {
+    animation: none;
+  }
+}
+
+/* ---------- ATC data block (selected track) ---------- */
+
+/* The marker root sits on the track; the card hangs up-right on a leader line. */
+.data-block {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.data-block::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  width: 30px;
+  height: 1px;
+  background: var(--hud);
+  opacity: 0.8;
+  transform: rotate(-45deg);
+  transform-origin: 0 50%;
+}
+
+.data-block-card {
+  position: absolute;
+  left: 30px;
+  bottom: 28px;
+  padding: 3px 8px 4px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--hud);
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.data-block-name {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.data-block-facts {
+  color: var(--hud-bright);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+.data-block-stale {
+  opacity: 0.5;
+}
+
+/* ---------- Hook readout (X) ---------- */
+
+.hook-label {
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--hud-bright);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  pointer-events: none;
+  /* Lifted off the line by the Marker's own offset: MapLibre owns this element's transform. */
+}

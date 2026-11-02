@@ -1,0 +1,213 @@
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import type { CircleLayerSpecification, GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from 'maplibre-gl';
+import { DEFAULT_TRAIL_RULES, type Track } from '@watchfloor/shared';
+import type { PictureFilter } from '../state/pictureFilter';
+import type { Selection } from '../state/selection';
+import type { TrackStore } from '../state/trackStore';
+import { AFFILIATION_LINE_COLOR } from './colors';
+import { blipsFor } from './trailBlips';
+import { LOWEST_TRACK_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
+import { inViewBox } from './viewBox';
+
+/** Which tracks show their history. */
+export type TrailMode = 'all' | 'selected' | 'off';
+/** How a trail is drawn: a continuous line, or a radar scope's fading history blips. */
+export type TrailStyle = 'line' | 'scope';
+
+const TRAILS_SOURCE = 'track-trails';
+const HEADS_SOURCE = 'track-trail-heads';
+const BLIPS_SOURCE = 'track-trail-blips';
+const TRAILS_LAYER = 'track-trails';
+const HEADS_LAYER = 'track-trail-heads';
+const BLIPS_LAYER = 'track-trail-blips';
+
+/** One blip per past sweep, identity coloured like the line it replaces, fading with age. */
+const BLIP_PAINT: CircleLayerSpecification['paint'] = {
+  'circle-color': AFFILIATION_LINE_COLOR,
+  'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 1.2, 10, 2.2],
+  'circle-opacity': ['*', ['get', 'fade'], ['case', ['==', ['get', 'selected'], 1], 1, 0.6]],
+};
+
+/** Quiet by default so trails never compete with symbols; the selected one stands out. */
+const PAINT: LineLayerSpecification['paint'] = {
+  'line-color': AFFILIATION_LINE_COLOR,
+  'line-width': ['case', ['==', ['get', 'selected'], 1], 2, 1.25],
+  'line-opacity': ['case', ['==', ['get', 'selected'], 1], 0.85, 0.35],
+};
+
+/**
+ * Draws where each track has been.
+ *
+ * A trail is the track's *reported* positions, never dead-reckoned ones, so it
+ * shows only where the track was actually seen. It is drawn in two parts:
+ *
+ * - The trail itself changes only when a report arrives (about once a
+ *   second), so it is rebuilt only when the store changes.
+ * - The "head" joins the last report to the symbol, which moves at 10 Hz.
+ *   It is one short segment per track, in its own small source, so the
+ *   frequent update stays cheap however long the trails get.
+ *
+ * Zoomed out to dots, "all" draws only the selected track's trail. A ship's
+ * 30-minute trail is about a pixel long at world zoom, and rebuilding tens of
+ * thousands of them every second (each delta changes the store) was most of
+ * the main thread's work with the whole world loaded.
+ */
+export class TrailLayer {
+  private currentMode: TrailMode;
+  private currentStyle: TrailStyle;
+  /** True while the timeline shows another moment instead of the live picture. */
+  private hidden = false;
+
+  constructor(
+    private readonly map: MapLibreMap,
+    private readonly store: TrackStore,
+    private readonly tracks: TrackLayer,
+    private readonly selection: Selection,
+    private readonly filter: PictureFilter,
+    mode: TrailMode,
+    style: TrailStyle = 'line',
+    private readonly now: () => number = () => Date.now(),
+  ) {
+    this.currentMode = mode;
+    this.currentStyle = style;
+    map.on('style.load', () => this.install());
+    if (map.isStyleLoaded()) this.install();
+    store.subscribe(() => this.renderTrails());
+    selection.subscribe(() => this.renderTrails());
+    filter.subscribe(() => this.renderTrails());
+    tracks.onFrame(() => this.renderHeads());
+    // Trails are culled to the view, so a finished pan or zoom needs a rebuild.
+    map.on('moveend', () => this.renderTrails());
+  }
+
+  get mode(): TrailMode {
+    return this.currentMode;
+  }
+
+  setMode(mode: TrailMode): void {
+    if (mode === this.currentMode) return;
+    this.currentMode = mode;
+    this.renderTrails();
+    this.renderHeads();
+  }
+
+  get style(): TrailStyle {
+    return this.currentStyle;
+  }
+
+  setStyle(style: TrailStyle): void {
+    if (style === this.currentStyle) return;
+    this.currentStyle = style;
+    this.renderTrails();
+  }
+
+  private install(): void {
+    const map = this.map;
+    for (const id of [TRAILS_SOURCE, HEADS_SOURCE, BLIPS_SOURCE]) {
+      if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: emptyCollection() });
+    }
+    // Under the speed leaders, which are under the symbols.
+    const beforeId = map.getLayer(LOWEST_TRACK_LAYER) ? LOWEST_TRACK_LAYER : undefined;
+    for (const [id, source] of [
+      [TRAILS_LAYER, TRAILS_SOURCE],
+      [HEADS_LAYER, HEADS_SOURCE],
+    ] as const) {
+      if (map.getLayer(id)) continue;
+      map.addLayer(
+        {
+          id,
+          type: 'line',
+          source,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: PAINT,
+        },
+        beforeId,
+      );
+    }
+    if (!map.getLayer(BLIPS_LAYER)) {
+      map.addLayer({ id: BLIPS_LAYER, type: 'circle', source: BLIPS_SOURCE, paint: BLIP_PAINT }, beforeId);
+    }
+    this.applyHidden();
+    this.renderTrails();
+  }
+
+  /** Hide the live trails while the timeline shows another moment. */
+  setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    this.applyHidden();
+  }
+
+  private applyHidden(): void {
+    const visibility = this.hidden ? 'none' : 'visible';
+    for (const layer of [TRAILS_LAYER, HEADS_LAYER, BLIPS_LAYER]) {
+      if (this.map.getLayer(layer)) this.map.setLayoutProperty(layer, 'visibility', visibility);
+    }
+  }
+
+  /** The tracks whose trails are visible in the current mode, and near enough the screen to draw. */
+  private *visibleTracks(): Iterable<Track> {
+    if (this.currentMode === 'all' && this.map.getZoom() >= SYMBOL_MIN_ZOOM) {
+      const view = this.tracks.viewBox();
+      for (const track of this.store.all()) {
+        const pos = this.tracks.positionOf(track.id);
+        if (track.id === this.selection.id) yield track;
+        else if (pos && this.filter.passes(track, pos.stale) && inViewBox(view, pos.lon, pos.lat)) yield track;
+      }
+    } else if (this.currentMode !== 'off' && this.selection.id) {
+      const track = this.store.get(this.selection.id);
+      if (track) yield track;
+    }
+  }
+
+  private renderTrails(): void {
+    const lines: Feature<LineString>[] = [];
+    const blips: Feature<Point>[] = [];
+    const now = this.now();
+    for (const track of this.visibleTracks()) {
+      const points = this.store.trail(track.id);
+      if (this.currentStyle === 'scope') {
+        const selected = track.id === this.selection.id ? 1 : 0;
+        for (const [lon, lat, fade] of blipsFor(points, now, DEFAULT_TRAIL_RULES[track.domain].windowMs)) {
+          blips.push({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lon, lat] },
+            properties: { affiliation: track.affiliation, selected, fade },
+          });
+        }
+      } else if (points.length >= 2) {
+        lines.push(line(track, this.selection.id, points.map(([lon, lat]) => [lon, lat])));
+      }
+    }
+    this.map.getSource<GeoJSONSource>(TRAILS_SOURCE)?.setData({ type: 'FeatureCollection', features: lines });
+    this.map.getSource<GeoJSONSource>(BLIPS_SOURCE)?.setData({ type: 'FeatureCollection', features: blips });
+  }
+
+  private renderHeads(): void {
+    const features: Feature<LineString>[] = [];
+    for (const track of this.visibleTracks()) {
+      const last = this.store.trail(track.id).at(-1);
+      const pos = this.tracks.positionOf(track.id);
+      if (!last || !pos) continue;
+      features.push(
+        line(track, this.selection.id, [
+          [last[0], last[1]],
+          [pos.lon, pos.lat],
+        ]),
+      );
+    }
+    this.map.getSource<GeoJSONSource>(HEADS_SOURCE)?.setData({ type: 'FeatureCollection', features });
+  }
+}
+
+function line(track: Track, selectedId: string | null, coordinates: number[][]): Feature<LineString> {
+  return {
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates },
+    properties: { affiliation: track.affiliation, selected: track.id === selectedId ? 1 : 0 },
+  };
+}
+
+function emptyCollection(): FeatureCollection {
+  return { type: 'FeatureCollection', features: [] };
+}
