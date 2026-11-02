@@ -82,6 +82,8 @@ export class FindingsService {
   private lastSweepMs = 0;
   /** The first sweep finds what predates the watch: it publishes, but logs no events. */
   private seeded = false;
+  /** Since when the sea feed has delivered without a gap; null while it's quiet. */
+  private seaLiveSince: number | null = null;
 
   constructor(private readonly opts: FindingsServiceOptions) {
     this.now = opts.now ?? (() => Date.now());
@@ -165,12 +167,16 @@ export class FindingsService {
   private sweepDark(tracks: readonly Track[], now: number): void {
     // When no sea report is fresh, the silence is ours, not the ships': the
     // AIS feed pauses while nobody watches, and an outage looks the same.
-    // The watcher stands aside rather than call every under-way ship dark.
+    // The watcher stands aside rather than call every under-way ship dark —
+    // and a ship's loss only counts if it reported while this live spell was
+    // already running, or every gap would end in a wall of false ghosts.
     let freshestSea = Infinity;
     for (const t of tracks) {
       if (t.domain === 'sea' && now - t.observedAt < freshestSea) freshestSea = now - t.observedAt;
     }
     const feedLive = freshestSea < FEED_QUIET_MS;
+    if (!feedLive) this.seaLiveSince = null;
+    else this.seaLiveSince ??= now;
     for (const t of tracks) {
       const id = `dark:${t.id}`;
       if (t.source !== 'ais' || t.domain !== 'sea') continue;
@@ -185,7 +191,8 @@ export class FindingsService {
         continue;
       }
       if (this.darkHeld.has(id)) continue; // since and detail keep the facts at loss time
-      if (!feedLive || t.speedMps < DARK_MIN_SPEED_MPS) continue;
+      if (!feedLive || this.seaLiveSince === null || t.observedAt < this.seaLiveSince) continue;
+      if (t.speedMps < DARK_MIN_SPEED_MPS) continue;
       const data = this.opts.world.path(t.id);
       if (!data || data.length < 6 || t.observedAt - data[2]! < DARK_WATCHED_MS) continue;
       const finding: Finding = {

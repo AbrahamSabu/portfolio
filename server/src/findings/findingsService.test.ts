@@ -108,9 +108,18 @@ describe('FindingsService', () => {
   /** A fresh moored report: proof the AIS feed itself is alive this sweep. */
   const witness = (at: number) => track('ais:999999999', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 0, observedAt: at });
 
+  /** A sweep with the feed live at `t`, so losses after `t` count as happening on watch. */
+  const goLive = (h: Harness, t: number) => {
+    h.setNow(t);
+    h.world.tracks = [witness(t)];
+    h.service.sweep();
+    h.setNow(T0);
+  };
+
   it('reports a ship gone dark under way, in exactly those words', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
+    goLive(h, lastContact);
     h.world.tracks = [
       track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', callsign: 'BALTIC ROSE', speedMps: 6, observedAt: lastContact }),
       witness(T0),
@@ -129,6 +138,7 @@ describe('FindingsService', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
     const ship = track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact });
+    goLive(h, lastContact);
     h.world.tracks = [ship, witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
@@ -144,6 +154,7 @@ describe('FindingsService', () => {
   it('keeps the ghost after the store drops the track, then lets it fade', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
+    goLive(h, lastContact);
     h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact }), witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
@@ -163,6 +174,7 @@ describe('FindingsService', () => {
   it('ignores a ship only just seen: no history, no judgement', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
+    goLive(h, lastContact);
     h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact }), witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 60_000, lastContact));
     h.service.sweep();
@@ -172,6 +184,7 @@ describe('FindingsService', () => {
   it('ignores a silent ship that was drifting, not under way', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
+    goLive(h, lastContact);
     h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 0.5, observedAt: lastContact }), witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
@@ -223,6 +236,7 @@ describe('FindingsService', () => {
   it('publishes only the newest silent ships, without churning events', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
+    goLive(h, lastContact - 60_000);
     h.world.tracks = Array.from({ length: 35 }, (_, i) => {
       const id = `ais:${100000000 + i}`;
       h.world.paths.set(id, seaPath(lastContact - 30 * 60_000 - i * 1000, lastContact - i * 1000));
