@@ -7,7 +7,9 @@ import { describeAirport } from './map/airports';
 import { ChokepointLayer } from './map/chokepointLayer';
 import { fly } from './map/camera';
 import { createMap } from './map/createMap';
+import { Crosshair } from './map/crosshair';
 import { DataBlock } from './map/dataBlock';
+import { Graticule } from './map/graticule';
 import { DataCredits } from './map/dataCredits';
 import { HookTool } from './map/hook';
 import { FilterControl } from './map/filterControl';
@@ -126,6 +128,9 @@ async function main(): Promise<void> {
   const news = new NewsStore();
   const newsSettings = new NewsSettings(loadNewsSettings());
 
+  // The plotting surface: a faint graticule under everything, and hairlines under the pointer.
+  new Graticule(map);
+  new Crosshair(map);
   // Night, under the basemap's labels and everything of ours.
   new NightLayer(map, () => clock.now());
   // News hotspots next: a glow under airports, tracks and markers.

@@ -1,4 +1,4 @@
-import { Map as MapLibreMap, NavigationControl, setWorkerUrl, type StyleSpecification } from 'maplibre-gl';
+import { Map as MapLibreMap, NavigationControl, ScaleControl, setWorkerUrl, type StyleSpecification } from 'maplibre-gl';
 // MapLibre finds its web worker relative to its own file, which breaks once a
 // bundler moves things around. Importing the worker as a URL makes Vite ship it
 // and tells us exactly where it ended up.
@@ -51,6 +51,8 @@ export function createMap(container: HTMLElement, options: { pixelRatio?: number
   map.keyboard.disableRotation();
   // Top-left keeps the right side clear for the details panel.
   map.addControl(new NavigationControl({ showCompass: false }), 'top-left');
+  // A range tape above the status bar (hud.css restyles it as an instrument).
+  map.addControl(new ScaleControl({ maxWidth: 110 }), 'bottom-left');
 
   // If the basemap style itself can't load (offline, blocked), fall back to a
   // plain background so tracks still draw. Tile errors after load are ignored.

@@ -778,6 +778,14 @@ that could have been fetched before they arrived.
   (`ui/voice.ts`, `pickBritishVoice`).
 - One accent, orchid #C9A0FF, used only for selection and focus. It is
   deliberately outside the symbology palette.
+- Plotting-surface furniture (Nov 2026): `map/graticule.ts` (10° grid,
+  30°/equator lines brighter, under basemap labels, built once; zoom must
+  stay the outermost expression in its opacity), `map/crosshair.ts`
+  (pointer hairlines, hover-capable devices only; stylesheet owns the
+  resting opacity and JS only clears/zeroes the inline value), ruler ticks
+  and corner brackets on `.map::before/::after` (static gradients), a
+  restyled ScaleControl (added in createMap), panel-in animation
+  (reduced-motion guarded) and hover glow in hud.css.
 - IBM Plex Sans Condensed with tabular numbers for text; Rajdhani
   (`--font-display`, Google Fonts) for headings, labels, the brand and the
   clock. UI text is sentence case; callsigns and the date-time group are
