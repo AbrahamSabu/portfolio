@@ -53,7 +53,11 @@ Opening the page with `?screensaver` turns it into a self-driving display:
 the cinematic tour starts as soon as the picture arrives, any input pauses
 it, and after a quiet minute it rides on. While the window is hidden or
 minimised the tour stops and the page stops drawing, so an unseen
-screensaver costs next to nothing; it rides on when shown again.
+screensaver costs next to nothing; it rides on when shown again. On screen
+it runs deliberately cold: the whole page is capped at 30 fps, the map
+renders at 1:1 pixels rather than the display's scaled resolution, and
+tracks redraw in whole-pixel steps — a screensaver watched from across the
+room, not a benchmark.
 
 After `npm run build`, `scripts\install-screensaver.cmd` installs it for the
 current user, no admin needed: a dedicated server starts at logon (port

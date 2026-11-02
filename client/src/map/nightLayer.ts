@@ -55,7 +55,7 @@ export class NightLayer {
 
   /** The shading for now, as a PNG data URL. */
   private draw(): string {
-    const ctx = this.canvas.getContext('2d');
+    const ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return '';
     const image = ctx.createImageData(SIZE, SIZE);
     const sun = subsolarPoint(this.now());

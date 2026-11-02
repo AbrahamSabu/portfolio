@@ -470,6 +470,20 @@ that could have been fetched before they arrived.
   themselves: installing persistence is denied to the agent), and
   uninstall-screensaver.cmd removes both. `*.cmd` is CRLF in
   .gitattributes.
+- Screensaver and follow efficiency (Nov 2026, the user heard fans):
+  every canvas we getImageData from (labels, shapes, symbols, icons,
+  nightLayer) is created `{ willReadFrequently: true }` — without it,
+  readbacks were 29% of main-thread samples mid-tour (93% saturated).
+  Follow mode recentres only when the track has drifted >= 1 px
+  (main.ts onFrame): an unconditional jumpTo fired moveend -> forceAll ->
+  render -> notifyFrame -> jumpTo, a full both-domain redraw at 60 Hz.
+  The region-watch interval returns early with no areas drawn (it copied
+  every track each second). Screensaver mode only: an inline script in
+  index.html caps requestAnimationFrame at 30 fps (inline so MapLibre
+  binds the capped one), createMap gets `pixelRatio: 1`, and
+  `setPaceScale(2)` (map/renderRate.ts) doubles redraw intervals.
+  Measured headless mid-tour: main-thread TaskDuration 65% of a core at
+  7k tracks -> 24% at 29k, profile 84% idle.
 - Watch areas (roadmap 4; browser only, `localStorage` `watchfloor.regions`,
   max 20): `state/regions.ts` (pure: `insideRing` ray casting, 0-360° when a
   ring spans > 180° of longitude; `unwrapRing` for drawing; `RegionWatch`;

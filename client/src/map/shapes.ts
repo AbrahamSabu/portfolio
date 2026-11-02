@@ -185,7 +185,7 @@ export function renderShape(
   const canvas = document.createElement('canvas');
   canvas.width = px;
   canvas.height = px;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.scale(px / 72, px / 72);
   ctx.translate(4, 4);

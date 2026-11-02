@@ -113,7 +113,7 @@ export function renderSymbol(
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(halfW * 2 * pixelRatio);
   canvas.height = Math.ceil(halfH * 2 * pixelRatio);
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(source, (halfW - anchor.x) * pixelRatio, (halfH - anchor.y) * pixelRatio);
   return { image: ctx.getImageData(0, 0, canvas.width, canvas.height), pixelRatio };

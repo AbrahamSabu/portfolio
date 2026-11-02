@@ -48,7 +48,7 @@ export function renderHazardImage(id: string, pixelRatio: number): { image: Imag
   const size = Math.round(22 * pixelRatio);
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.scale(size / 24, size / 24);
   const path = new Path2D(PATHS[kind as HazardKind]);

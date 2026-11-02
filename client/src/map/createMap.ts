@@ -26,13 +26,16 @@ export interface MapSetup {
  * A north-up tactical map, drawn as a globe when zoomed out. Rotation and pitch are disabled: operators
  * expect north at the top, and a tilted COP makes distances hard to judge.
  */
-export function createMap(container: HTMLElement): MapSetup {
+export function createMap(container: HTMLElement, options: { pixelRatio?: number } = {}): MapSetup {
   const configured = import.meta.env.VITE_MAP_STYLE_URL;
   const style = configured === 'offline' ? OFFLINE_STYLE : configured || DEFAULT_STYLE;
 
   const map = new MapLibreMap({
     container,
     style,
+    // The screensaver passes 1: on a scaled-up display that's half the
+    // pixels or fewer for a picture watched from across the room.
+    ...(options.pixelRatio ? { pixelRatio: options.pixelRatio } : {}),
     center: [-0.85, 50.45],
     zoom: 6.5,
     // Low enough to pull back and see the whole globe.

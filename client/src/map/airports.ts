@@ -74,7 +74,7 @@ function renderAirportIcon(size: AirportSize, pixelRatio: number): { image: Imag
   const px = Math.round(css * pixelRatio);
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = px;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.scale(px / 24, px / 24);
   const alpha = [0.85, 0.7, 0.6][size]!;

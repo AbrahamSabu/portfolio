@@ -16,6 +16,42 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap"
     />
+    <script>
+      // Screensaver mode runs the whole page at 30 fps: half the frames,
+      // half the GPU and main-thread animation work, and nobody watching a
+      // wall display can tell. Inline and first, so MapLibre and every
+      // module binds the capped requestAnimationFrame.
+      if (new URLSearchParams(location.search).has('screensaver')) {
+        (() => {
+          const native = window.requestAnimationFrame.bind(window);
+          const queue = new Map();
+          let nextId = 1;
+          let scheduled = false;
+          let last = 0;
+          const pump = (time) => {
+            // Not this vsync: wait for the next one (32 ms gates 60 Hz to 30).
+            if (time - last < 32) {
+              native(pump);
+              return;
+            }
+            last = time;
+            scheduled = false;
+            const callbacks = [...queue.values()];
+            queue.clear();
+            for (const callback of callbacks) callback(time);
+          };
+          window.requestAnimationFrame = (callback) => {
+            queue.set(nextId, callback);
+            if (!scheduled) {
+              scheduled = true;
+              native(pump);
+            }
+            return nextId++;
+          };
+          window.cancelAnimationFrame = (id) => queue.delete(id);
+        })();
+      }
+    </script>
   </head>
   <body>
     <div class="boot" id="boot" aria-hidden="true">

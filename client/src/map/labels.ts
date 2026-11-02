@@ -28,7 +28,7 @@ export function renderLabel(text: string, pixelRatio: number, ink = INK): { imag
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(width * pixelRatio);
   canvas.height = Math.ceil(height * pixelRatio);
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.scale(pixelRatio, pixelRatio);
   ctx.font = FONT;

@@ -32,8 +32,15 @@ export function metresPerPixel(zoom: number, latDeg: number): number {
   return (EARTH_CIRCUMFERENCE_M * Math.cos((latDeg * Math.PI) / 180)) / (WORLD_PX_AT_ZOOM_0 * 2 ** zoom);
 }
 
+/** A whole-picture slowdown: the screensaver sets 2 (one-pixel steps, halved ceilings' pace). */
+let paceScale = 1;
+
+export function setPaceScale(scale: number): void {
+  paceScale = scale;
+}
+
 export function renderIntervalMs(zoom: number, latDeg: number, domain: Domain = 'air'): number {
   const { fastestMps, maxIntervalMs } = PACE[domain];
   const ms = ((metresPerPixel(zoom, latDeg) * MAX_PIXEL_STEP) / fastestMps) * 1000;
-  return Math.min(maxIntervalMs, Math.max(MIN_RENDER_INTERVAL_MS, ms));
+  return paceScale * Math.min(maxIntervalMs, Math.max(MIN_RENDER_INTERVAL_MS, ms));
 }

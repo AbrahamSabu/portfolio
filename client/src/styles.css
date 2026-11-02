@@ -2898,10 +2898,10 @@ button.layers-switch .news-switch-track {
   white-space: nowrap;
 }
 
+/* Opacity only: it runs on the compositor, where text-shadow would repaint every frame. */
 @keyframes tour-breathe {
   50% {
-    text-shadow: 0 0 14px var(--hud-glow), 0 0 3px var(--hud-glow);
-    opacity: 0.75;
+    opacity: 0.6;
   }
 }
 

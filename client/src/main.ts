@@ -19,6 +19,7 @@ import { RadarLayer } from './map/radarLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
+import { setPaceScale } from './map/renderRate';
 import { loadTrailMode, TrailSetting } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
@@ -104,7 +105,13 @@ async function main(): Promise<void> {
   const clock = new ServerClock();
   const selection = new Selection();
 
-  const { map, userHasMoved } = createMap(el('map'));
+  // Screensaver mode asks everything to be cheap: it is watched from across
+  // the room, often for hours. Native-resolution pixels and half-pixel
+  // redraw steps buy nothing there, so render at 1:1 and take whole-pixel
+  // steps (the inline script in index.html also caps the page at 30 fps).
+  const screensaver = new URLSearchParams(location.search).has('screensaver');
+  const { map, userHasMoved } = createMap(el('map'), screensaver ? { pixelRatio: 1 } : {});
+  if (screensaver) setPaceScale(2);
   await waitForFonts();
 
   // What the operator has chosen to see, remembered per browser.
@@ -221,7 +228,9 @@ async function main(): Promise<void> {
   const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings, () => sound.ping());
   window.setInterval(() => {
     // Mid-reconnect the store is empty: that's not every track leaving at once.
-    if (store.size === 0) return;
+    // And with no areas drawn there's nothing to watch: don't copy 30k
+    // tracks a second for nothing.
+    if (store.size === 0 || regions.regions.length === 0) return;
     const now = clock.now();
     const events = regionWatch.update(regions.regions, store.all(), (t) => store.status(t, now) === 'live', now);
     regionPanel.record(events);
@@ -300,7 +309,7 @@ async function main(): Promise<void> {
   // opening this URL is the consent the motion rule asks for, so the tour
   // starts itself once the picture is in, and any input only pauses it — a
   // quiet minute later it rides on.
-  if (new URLSearchParams(location.search).has('screensaver')) {
+  if (screensaver) {
     const IDLE_MS = 60_000;
     let idleTimer: number | undefined;
     const armed = () => {
@@ -362,7 +371,17 @@ async function main(): Promise<void> {
     if (!pos) return;
     reticle.move(pos.lon, pos.lat);
     reticle.setStale(pos.stale);
-    if (selection.follow && !map.isMoving()) map.jumpTo({ center: [pos.lon, pos.lat] });
+    if (selection.follow && !map.isMoving()) {
+      // Recentre only once the track has drifted a pixel. Every jump fires
+      // moveend, which forces a full redraw of both domains, whose frame
+      // notification jumps again: without this guard, following redrew the
+      // whole picture at 60 Hz (measured: most of the main thread).
+      const at = map.project([pos.lon, pos.lat]);
+      const container = map.getContainer();
+      if (Math.hypot(at.x - container.clientWidth / 2, at.y - container.clientHeight / 2) >= 1) {
+        map.jumpTo({ center: [pos.lon, pos.lat] });
+      }
+    }
   });
   // How long the page took to show the picture (User Timing, for DevTools and measurements).
   const stopFirstDraw = layer.onFrame(() => {
