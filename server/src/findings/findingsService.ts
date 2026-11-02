@@ -1,6 +1,9 @@
 import { mpsToKnots, type Finding, type Track } from '@watchfloor/shared';
+import { createLogger } from '../log';
 import { circling } from './circling';
 import { convergingPairs } from './converging';
+
+const log = createLogger('findings');
 
 /**
  * Narrow view of the track store, so tests feed synthetic pictures without
@@ -91,7 +94,15 @@ export class FindingsService {
   }
 
   start(): void {
-    this.timer ??= setInterval(() => this.sweep(), this.intervalMs);
+    // A watcher bug must degrade, not take the floor down: a sweep that throws
+    // is logged and the next one tries again.
+    this.timer ??= setInterval(() => {
+      try {
+        this.sweep();
+      } catch (err) {
+        log.error('findings sweep failed', { error: err instanceof Error ? (err.stack ?? err.message) : String(err) });
+      }
+    }, this.intervalMs);
     this.timer.unref?.();
   }
 

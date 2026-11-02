@@ -1,5 +1,8 @@
 import { emergencyOf, type BriefEvent, type BriefMessage, type Finding, type Hazard, type Track } from '@watchfloor/shared';
+import { createLogger } from '../log';
 import { findingEnded, findingStarted, hazardSeen, significantHazard, squawkEnded, squawkStarted } from './compose';
+
+const log = createLogger('brief');
 
 /** The brief covers one watch handover's worth of history. */
 const WINDOW_MS = 24 * 3_600_000;
@@ -45,7 +48,15 @@ export class BriefService {
   }
 
   start(): void {
-    this.timer ??= setInterval(() => this.sweep(), this.intervalMs);
+    // The log must never take the floor down: a sweep that throws is logged
+    // and the next one tries again.
+    this.timer ??= setInterval(() => {
+      try {
+        this.sweep();
+      } catch (err) {
+        log.error('brief sweep failed', { error: err instanceof Error ? (err.stack ?? err.message) : String(err) });
+      }
+    }, this.intervalMs);
     this.timer.unref?.();
   }
 

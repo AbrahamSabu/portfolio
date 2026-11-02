@@ -649,6 +649,23 @@ async function main(): Promise<void> {
   });
 
   const status = new StatusBar(el('statusbar'), map, store, clock, filter, () => connection.retryNow());
+
+  // A covered or background tab should cost nothing: after a quiet minute
+  // hidden, close the socket entirely (no deltas, no reconnect churn, and the
+  // server's feeds can pause if nobody else watches). The moment the page is
+  // seen again it reconnects and gets a fresh snapshot. Short alt-tabs stay
+  // connected: the grace means switching windows never drops the picture.
+  const HIDDEN_STOP_MS = 60_000;
+  let hiddenTimer: number | undefined;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenTimer = window.setTimeout(() => connection.stop(), HIDDEN_STOP_MS);
+    } else {
+      window.clearTimeout(hiddenTimer);
+      connection.start();
+    }
+  });
+
   connection.start();
 }
 

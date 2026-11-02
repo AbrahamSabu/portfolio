@@ -7,6 +7,7 @@ import {
   type StalenessRules,
   type TrackSource,
 } from '@watchfloor/shared';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { loadConfig, trafficKind } from './config';
 import { readAircraftDb } from './feeds/adsb/aircraftDb';
 import type { Feed } from './feeds/feed';
@@ -296,7 +297,32 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
 
+/**
+ * A last gasp with a stack. The kiosk server runs in a minimized console that
+ * closes when the process dies, so without this file a crash leaves nothing
+ * to read. Appends, so a crash loop tells its whole story.
+ */
+function recordCrash(kind: string, reason: unknown): void {
+  const detail = reason instanceof Error ? (reason.stack ?? reason.message) : String(reason);
+  log.error(kind, { error: detail });
+  try {
+    mkdirSync('../.cache', { recursive: true });
+    appendFileSync('../.cache/crash.log', `${new Date().toISOString()} ${kind}\n${detail}\n\n`);
+  } catch {
+    // Nowhere to write: the log line above is all there is.
+  }
+}
+
+process.on('uncaughtException', (err) => {
+  recordCrash('uncaught exception', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  recordCrash('unhandled rejection', reason);
+  process.exit(1);
+});
+
 main().catch((err) => {
-  log.error('failed to start', { error: err instanceof Error ? err.message : String(err) });
+  recordCrash('failed to start', err);
   process.exit(1);
 });

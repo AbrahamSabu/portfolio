@@ -29,6 +29,7 @@ export class Connection {
   private retryTimer: number | undefined;
   private watchdogTimer: number | undefined;
   private watchdogMs = 5000;
+  private lastMessageAt = 0;
   private stopped = true;
 
   constructor(
@@ -81,6 +82,7 @@ export class Connection {
 
     ws.onmessage = (event) => {
       const receivedAt = Date.now();
+      this.lastMessageAt = receivedAt;
       this.armWatchdog();
       if (typeof event.data !== 'string') return;
       const parseStart = performance.now();
@@ -114,6 +116,14 @@ export class Connection {
   private armWatchdog(): void {
     window.clearTimeout(this.watchdogTimer);
     this.watchdogTimer = window.setTimeout(() => {
+      // A throttled background tab fires timers late in batches: if a message
+      // did arrive recently by the wall clock, the link is fine — re-arm
+      // instead of killing a healthy socket (each kill cost the server a
+      // fresh world snapshot on reconnect).
+      if (Date.now() - this.lastMessageAt < this.watchdogMs) {
+        this.armWatchdog();
+        return;
+      }
       // close() would wait for a closing handshake that will never come on a dead link.
       const ws = this.ws;
       this.ws = null;
