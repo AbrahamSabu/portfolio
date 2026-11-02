@@ -57,6 +57,9 @@ const DARK_MAX = 30;
 /** Two converging aircraft drop out of the gates and back as reports land; hold findings briefly. */
 const CONVERGING_HOLD_MS = 2 * 60_000;
 
+/** If not one ship reported inside this window, it's the feed that's silent, not a ship. */
+const FEED_QUIET_MS = 90_000;
+
 interface Held {
   finding: Finding;
   lastPositiveAt: number;
@@ -160,6 +163,14 @@ export class FindingsService {
   }
 
   private sweepDark(tracks: readonly Track[], now: number): void {
+    // When no sea report is fresh, the silence is ours, not the ships': the
+    // AIS feed pauses while nobody watches, and an outage looks the same.
+    // The watcher stands aside rather than call every under-way ship dark.
+    let freshestSea = Infinity;
+    for (const t of tracks) {
+      if (t.domain === 'sea' && now - t.observedAt < freshestSea) freshestSea = now - t.observedAt;
+    }
+    const feedLive = freshestSea < FEED_QUIET_MS;
     for (const t of tracks) {
       const id = `dark:${t.id}`;
       if (t.source !== 'ais' || t.domain !== 'sea') continue;
@@ -174,7 +185,7 @@ export class FindingsService {
         continue;
       }
       if (this.darkHeld.has(id)) continue; // since and detail keep the facts at loss time
-      if (t.speedMps < DARK_MIN_SPEED_MPS) continue;
+      if (!feedLive || t.speedMps < DARK_MIN_SPEED_MPS) continue;
       const data = this.opts.world.path(t.id);
       if (!data || data.length < 6 || t.observedAt - data[2]! < DARK_WATCHED_MS) continue;
       const finding: Finding = {

@@ -105,11 +105,15 @@ describe('FindingsService', () => {
     expect(h.events.at(-1)).toEqual({ kind: 'finding-ended', id: 'circling:adsb:abc123' });
   });
 
+  /** A fresh moored report: proof the AIS feed itself is alive this sweep. */
+  const witness = (at: number) => track('ais:999999999', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 0, observedAt: at });
+
   it('reports a ship gone dark under way, in exactly those words', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
     h.world.tracks = [
       track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', callsign: 'BALTIC ROSE', speedMps: 6, observedAt: lastContact }),
+      witness(T0),
     ];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
@@ -125,7 +129,7 @@ describe('FindingsService', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
     const ship = track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact });
-    h.world.tracks = [ship];
+    h.world.tracks = [ship, witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
     expect(h.service.items()).toHaveLength(1);
@@ -140,7 +144,7 @@ describe('FindingsService', () => {
   it('keeps the ghost after the store drops the track, then lets it fade', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
-    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact })];
+    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact }), witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
 
@@ -159,7 +163,7 @@ describe('FindingsService', () => {
   it('ignores a ship only just seen: no history, no judgement', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
-    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact })];
+    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact }), witness(T0)];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 60_000, lastContact));
     h.service.sweep();
     expect(h.service.items()).toHaveLength(0);
@@ -168,7 +172,17 @@ describe('FindingsService', () => {
   it('ignores a silent ship that was drifting, not under way', () => {
     const h = harness();
     const lastContact = T0 - 9 * 60_000;
-    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 0.5, observedAt: lastContact })];
+    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 0.5, observedAt: lastContact }), witness(T0)];
+    h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
+    h.service.sweep();
+    expect(h.service.items()).toHaveLength(0);
+  });
+
+  it('stands aside when the whole sea picture is silent: that is the feed, not a ship', () => {
+    const h = harness();
+    const lastContact = T0 - 9 * 60_000;
+    // Every sea report is minutes old — the feed is paused or down.
+    h.world.tracks = [track('ais:123456789', { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact })];
     h.world.paths.set('ais:123456789', seaPath(lastContact - 30 * 60_000, lastContact));
     h.service.sweep();
     expect(h.service.items()).toHaveLength(0);
@@ -214,6 +228,7 @@ describe('FindingsService', () => {
       h.world.paths.set(id, seaPath(lastContact - 30 * 60_000 - i * 1000, lastContact - i * 1000));
       return track(id, { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact - i * 1000 });
     });
+    h.world.tracks.push(witness(T0));
     h.service.sweep();
     expect(h.events).toHaveLength(35); // every loss is an event...
     expect(h.service.items()).toHaveLength(30); // ...but the list holds the newest 30
