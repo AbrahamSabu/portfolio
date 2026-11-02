@@ -2947,6 +2947,88 @@ button.layers-switch .news-switch-track {
   border: 1px solid var(--rule);
 }
 
+/* The timeline bar: six hours back, NOW, thirty minutes ahead, on one strip. */
+.timeline {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(720px, calc(100vw - 24px));
+  padding: 8px 14px;
+  border: 1px solid rgb(63 182 255 / 0.4);
+  background: var(--surface);
+}
+
+.timeline-tag {
+  flex: none;
+  min-width: 108px;
+  color: #3fb6ff;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline[data-mode='replay'] .timeline-tag,
+.timeline[data-mode='project'] .timeline-tag {
+  text-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+}
+
+.timeline-bar {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.timeline-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 9px;
+  height: 2px;
+  background: rgb(63 182 255 / 0.25);
+}
+
+.timeline-fill {
+  position: absolute;
+  left: 0;
+  top: 9px;
+  height: 2px;
+  background: rgb(63 182 255 / 0.6);
+  pointer-events: none;
+}
+
+/* The NOW notch sits where state/timeline.ts puts it (NOW_F). */
+.timeline-now {
+  position: absolute;
+  left: 78%;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  background: #3fb6ff;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.timeline-handle {
+  position: absolute;
+  top: 10px;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 1.5px solid #3fb6ff;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+  pointer-events: none;
+}
+
 .tour-tag {
   padding: 1px 8px;
   border: 1px solid var(--hud);

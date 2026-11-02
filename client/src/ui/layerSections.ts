@@ -33,6 +33,7 @@ export interface LayerDeps {
   search: () => void;
   tour: () => void;
   handover: () => void;
+  timeline: () => void;
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -135,6 +136,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         { kind: 'action', label: 'Search the map', key: '/', run: d.search },
         { kind: 'action', label: 'Cinematic tour', key: 'G', run: d.tour },
         { kind: 'action', label: 'Watch handover', key: 'V', run: d.handover },
+        { kind: 'action', label: 'Timeline', key: 'Z', run: d.timeline },
       ],
     },
     {

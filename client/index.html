@@ -254,6 +254,21 @@
         <button class="text-button" type="button" data-stop>Stop</button>
       </div>
 
+      <div class="timeline" id="timeline" hidden>
+        <span class="timeline-tag" data-tag>LIVE</span>
+        <div class="timeline-bar" data-bar>
+          <div class="timeline-fill" data-fill></div>
+          <div class="timeline-now" aria-hidden="true"></div>
+          <div class="timeline-handle" data-handle tabindex="0" role="slider" aria-label="Timeline: six hours back to thirty minutes ahead"></div>
+        </div>
+        <button class="text-button" type="button" data-play hidden>Play</button>
+        <button class="text-button" type="button" data-speed hidden>300×</button>
+        <button class="text-button" type="button" data-live-btn hidden>Live</button>
+        <button class="icon-button" type="button" data-close aria-label="Close timeline">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+        </button>
+      </div>
+
       <aside class="briefing" id="briefing" hidden aria-labelledby="briefing-title">
         <header class="briefing-head">
           <h2 class="briefing-title" id="briefing-title">Briefing</h2>

@@ -10,7 +10,9 @@ import { fly } from './map/camera';
 import { createMap } from './map/createMap';
 import { Crosshair } from './map/crosshair';
 import { DataBlock } from './map/dataBlock';
+import { GhostLayer } from './map/ghostLayer';
 import { Graticule } from './map/graticule';
+import { ReplayLayer } from './map/replayLayer';
 import { DataCredits } from './map/dataCredits';
 import { HookTool } from './map/hook';
 import { FilterControl } from './map/filterControl';
@@ -43,6 +45,7 @@ import { loadSymbolStyle, saveSymbolStyle, SymbolStyleSetting } from './state/sy
 import { Selection } from './state/selection';
 import { RegionStore, RegionWatch } from './state/regions';
 import { StoredToggle } from './state/storedToggle';
+import { positionAt } from './state/timeline';
 import { TrackStore } from './state/trackStore';
 import { AirportPanel } from './ui/airportPanel';
 import { AlertSound } from './ui/alertSound';
@@ -58,6 +61,7 @@ import { FilterPanel } from './ui/filterPanel';
 import { HandoverPanel } from './ui/handoverPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
+import { Timeline } from './ui/timeline';
 import { layerSections, type LayerDeps } from './ui/layerSections';
 import { LayersControl, LayersPanel } from './ui/layersMenu';
 import { NewsCards } from './ui/newsCards';
@@ -149,7 +153,8 @@ async function main(): Promise<void> {
   const regionLayer = new RegionLayer(map, regions, regionsShown);
 
   const layer = new TrackLayer(map, store, clock, selection, filter, style);
-  const trails = new TrailSetting(new TrailLayer(map, store, layer, selection, filter, loadTrailMode(), loadTrailStyle(), () => clock.now()));
+  const trailLayer = new TrailLayer(map, store, layer, selection, filter, loadTrailMode(), loadTrailStyle(), () => clock.now());
+  const trails = new TrailSetting(trailLayer);
   style.subscribe(() => saveSymbolStyle(style.value));
   // After the trails, so the selected path draws above them (and below the tracks).
   const path = new SelectedPath();
@@ -450,6 +455,7 @@ async function main(): Promise<void> {
       else if (regionPanel.open) regionPanel.setOpen(false);
       else if (layersPanel.open) layersPanel.setOpen(false);
       else if (handover.open) handover.setOpen(false);
+      else if (timeline.open) timeline.setOpen(false);
       else if (hook.armed || hook.active) hook.clear();
       else selection.select(null);
     }
@@ -470,6 +476,7 @@ async function main(): Promise<void> {
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
+    if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
@@ -498,6 +505,7 @@ async function main(): Promise<void> {
       search: () => palette.setOpen(true),
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),
+      timeline: () => timeline.setOpen(true),
     };
   }
 
@@ -534,6 +542,36 @@ async function main(): Promise<void> {
   const credits = new DataCredits(map);
   // The watch handover: the server's last-24-hours log, read back on demand.
   const handover = new HandoverPanel(el('handover'), map, () => connection.send({ type: 'brief' }));
+
+  // The timeline: scrub into the last six hours (replay, from the server's
+  // paths) or thirty minutes ahead (dead-reckoned ghosts). The live picture
+  // hides while replaying, so two moments are never on screen as one.
+  const ghosts = new GhostLayer(map, () => {
+    const now = clock.now();
+    return [...store.all()].filter((t) => store.status(t, now) === 'live');
+  });
+  const replayLayer = new ReplayLayer(map, positionAt);
+  const timeline = new Timeline(el('timeline'), {
+    now: () => clock.now(),
+    onState: (s) => {
+      const replaying = s.mode === 'replay';
+      layer.setHidden(replaying);
+      trailLayer.setHidden(replaying);
+      if (replaying) {
+        selection.select(null);
+        hook.clear();
+      }
+      ghosts.setOffset(s.mode === 'project' ? s.offsetMs : null);
+      replayLayer.setTime(replaying ? s.t : null);
+    },
+    requestReplay: () => {
+      const b = map.getBounds();
+      connection.send({
+        type: 'replay',
+        bbox: viewForServer({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }),
+      });
+    },
+  });
   const connection = new Connection(defaultSocketUrl(), {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
@@ -580,6 +618,10 @@ async function main(): Promise<void> {
           break;
         case 'brief':
           handover.load(message);
+          break;
+        case 'replay':
+          replayLayer.setData(message.tracks);
+          timeline.loaded(message);
           break;
       }
     },

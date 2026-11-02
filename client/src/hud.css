@@ -24,6 +24,7 @@
 .key-dialog,
 .palette,
 .tour-banner,
+.timeline,
 .news-popup .maplibregl-popup-content {
   --bracket: 14px;
   background-color: var(--surface);

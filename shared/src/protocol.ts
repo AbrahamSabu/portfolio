@@ -4,7 +4,7 @@ import { parseHazard, type Hazard } from './hazards';
 import { parseNewsItem, type NewsItem } from './news';
 import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
-import { TRACK_VALUES, type Domain, type Platform, type Track } from './track';
+import { TRACK_VALUES, type Affiliation, type Domain, type Platform, type Track } from './track';
 import type { TrailPoint } from './trail';
 import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, type TrailTuple } from './wire';
 
@@ -203,6 +203,7 @@ export interface ReplayTrack {
   id: string;
   domain: Domain;
   platform: Platform;
+  affiliation: Affiliation;
   callsign?: string;
   /** Oldest first. */
   points: TrailPoint[];
@@ -253,6 +254,7 @@ interface WireReplayTrack {
   id: string;
   domain: Domain;
   platform: Platform;
+  affiliation: Affiliation;
   callsign?: string;
   points: TrailTuple;
 }
@@ -383,7 +385,14 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       for (const t of w.tracks) {
         if (typeof t !== 'object' || t === null || typeof t.id !== 'string' || !Array.isArray(t.points)) return null;
         if (!TRACK_VALUES.domain.includes(t.domain) || !TRACK_VALUES.platform.includes(t.platform)) return null;
-        const track: ReplayTrack = { id: t.id, domain: t.domain, platform: t.platform, points: decodeTrail(t.points, w.serverTime) };
+        if (!TRACK_VALUES.affiliation.includes(t.affiliation)) return null;
+        const track: ReplayTrack = {
+          id: t.id,
+          domain: t.domain,
+          platform: t.platform,
+          affiliation: t.affiliation,
+          points: decodeTrail(t.points, w.serverTime),
+        };
         if (typeof t.callsign === 'string') track.callsign = t.callsign;
         tracks.push(track);
       }

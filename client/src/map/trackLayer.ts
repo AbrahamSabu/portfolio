@@ -96,6 +96,8 @@ export class TrackLayer {
   private readonly lastRender: Record<Domain, number> = { air: 0, sea: 0 };
   /** Set to redraw a domain on the next frame, whatever its interval says. */
   private readonly forced: Record<Domain, boolean> = { air: true, sea: true };
+  /** True while the timeline shows another moment instead of the live picture. */
+  private hidden = false;
   private readonly frameListeners = new Set<() => void>();
 
   constructor(
@@ -225,7 +227,25 @@ export class TrackLayer {
       });
     }
     for (const domain of DOMAINS) this.render(domain);
+    this.applyHidden();
     this.notifyFrame();
+  }
+
+  /** Hide the live picture while the timeline shows another moment. */
+  setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    this.applyHidden();
+  }
+
+  private applyHidden(): void {
+    const visibility = this.hidden ? 'none' : 'visible';
+    for (const domain of DOMAINS) {
+      const id = ids(domain);
+      for (const layer of [id.leaders, id.dots, id.symbols, id.labels]) {
+        if (this.map.getLayer(layer)) this.map.setLayoutProperty(layer, 'visibility', visibility);
+      }
+    }
   }
 
   private resolveImage(id: string): void {

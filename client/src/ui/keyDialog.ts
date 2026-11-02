@@ -17,6 +17,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['/', 'Search tracks, airports, chokepoints and areas'],
   ['G', 'Cinematic tour of what is happening'],
   ['V', 'Watch handover: the last 24 hours, read back'],
+  ['Z', 'Timeline: replay six hours back, project thirty minutes ahead'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['S', 'Vehicle shapes or military symbols'],

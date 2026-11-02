@@ -55,6 +55,8 @@ const PAINT: LineLayerSpecification['paint'] = {
 export class TrailLayer {
   private currentMode: TrailMode;
   private currentStyle: TrailStyle;
+  /** True while the timeline shows another moment instead of the live picture. */
+  private hidden = false;
 
   constructor(
     private readonly map: MapLibreMap,
@@ -125,7 +127,22 @@ export class TrailLayer {
     if (!map.getLayer(BLIPS_LAYER)) {
       map.addLayer({ id: BLIPS_LAYER, type: 'circle', source: BLIPS_SOURCE, paint: BLIP_PAINT }, beforeId);
     }
+    this.applyHidden();
     this.renderTrails();
+  }
+
+  /** Hide the live trails while the timeline shows another moment. */
+  setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    this.applyHidden();
+  }
+
+  private applyHidden(): void {
+    const visibility = this.hidden ? 'none' : 'visible';
+    for (const layer of [TRAILS_LAYER, HEADS_LAYER, BLIPS_LAYER]) {
+      if (this.map.getLayer(layer)) this.map.setLayoutProperty(layer, 'visibility', visibility);
+    }
   }
 
   /** The tracks whose trails are visible in the current mode, and near enough the screen to draw. */

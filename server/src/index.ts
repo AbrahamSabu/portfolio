@@ -19,6 +19,7 @@ import { OpenSkyFeed } from './feeds/opensky/openSkyFeed';
 import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { PathService } from './paths/pathService';
+import { replayFor } from './replay/replay';
 import { trackDetails } from './details/trackDetails';
 import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
@@ -222,6 +223,7 @@ async function main(): Promise<void> {
     ...(hazards ? { hazards: () => hazards.items() } : {}),
     findings: () => findings.items(),
     onBrief: (send) => send(brief.message()),
+    onReplay: (bbox, send) => send(replayFor(store.snapshot(), (id) => store.paths.get(id), bbox, Date.now())),
   });
 
   const sink = {
