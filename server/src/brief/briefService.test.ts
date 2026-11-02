@@ -55,19 +55,19 @@ describe('BriefService', () => {
     expect(h.service.message().events).toHaveLength(1);
   });
 
-  it('words each finding kind, and skips a ghost that merely faded', () => {
+  it('is editorial about findings: long orbits and converging pairs, never routine silence', () => {
     const h = harness();
-    const circlingFinding: Finding = {
-      id: 'circling:adsb:helo',
+    const orbit = (id: string, name: string): Finding => ({
+      id: `circling:${id}`,
       kind: 'circling',
-      tracks: ['adsb:helo'],
+      tracks: [id],
       domain: 'air',
-      name: 'GARDA2',
+      name,
       detail: '4.2 turns in 11 min · radius 2.3 km',
       lat: 53.3,
       lon: -6.2,
       since: T0,
-    };
+    });
     const ghost: Finding = {
       id: 'dark:ais:1',
       kind: 'dark',
@@ -79,36 +79,56 @@ describe('BriefService', () => {
       lon: 14,
       since: T0,
     };
-    h.service.onFinding('finding-started', circlingFinding, T0);
+    const pair: Finding = {
+      id: 'conv:adsb:a|adsb:b',
+      kind: 'converging',
+      tracks: ['adsb:a', 'adsb:b'],
+      domain: 'air',
+      name: 'NATO01 × NAVY7',
+      detail: 'CPA 1.8 km in 4 min · closing 320 kn',
+      lat: 54,
+      lon: 10,
+      since: T0,
+    };
+    // Starts: only the converging pair is a line; an orbit earns its line by lasting.
+    h.service.onFinding('finding-started', orbit('adsb:helo', 'GARDA2'), T0);
     h.service.onFinding('finding-started', ghost, T0 + 60_000);
-    h.service.onFinding('finding-ended', circlingFinding, T0 + 30 * 60_000);
+    h.service.onFinding('finding-started', pair, T0 + 60_000);
+    // Ends: a 97-minute orbit is the story; a 10-minute one is a traffic pattern;
+    // "no longer converging" and a ship heard again add nothing.
+    h.service.onFinding('finding-ended', orbit('adsb:helo', 'GARDA2'), T0 + 97 * 60_000);
+    h.service.onFinding('finding-ended', orbit('adsb:gaa', 'SHORT1'), T0 + 10 * 60_000);
+    h.service.onFinding('finding-ended', pair, T0 + 8 * 60_000);
     h.service.onFinding('finding-ended', ghost, T0 + 40 * 60_000, true);
-    const faded: Finding = { ...ghost, id: 'dark:ais:2', name: 'OTHER' };
-    h.service.onFinding('finding-ended', faded, T0 + 50 * 60_000); // lapsed, not resolved
 
     expect(h.service.message().events.map((e) => e.text)).toEqual([
-      'GARDA2 seen circling near 53.3°N 6.2°W (4.2 turns in 11 min · radius 2.3 km).',
-      'AIS contact with BALTIC ROSE lost near 55.0°N 14.0°E (was making 12 kn).',
-      'GARDA2 no longer circling (seen for 30 min).',
-      'BALTIC ROSE is transmitting again (silent for 40 min).',
+      'Military aircraft converging: NATO01 × NAVY7 (CPA 1.8 km in 4 min · closing 320 kn).',
+      'GARDA2 no longer circling (seen for 97 min).',
     ]);
   });
 
-  it('logs significant hazards that appear, but not those already there at start', () => {
+  it('logs significant hazards that happen on this watch, not the backlog', () => {
     const h = harness();
-    const quake = (id: string, magnitude: number): Hazard => ({
+    const quake = (id: string, magnitude: number, time = T0 + 60_000): Hazard => ({
       id,
       kind: 'earthquake',
       source: 'usgs',
       title: `M ${magnitude} - somewhere`,
       lat: 10,
       lon: 20,
-      time: T0,
+      time,
       magnitude,
       url: 'https://example.org',
     });
     h.service.onHazards([quake('usgs:old', 7.0)]);
-    h.service.onHazards([quake('usgs:old', 7.0), quake('usgs:new', 6.1), quake('usgs:small', 4.2)]);
+    // A second source's first list arrives later with events that began long
+    // ago: new to the merged list, but not news.
+    h.service.onHazards([
+      quake('usgs:old', 7.0),
+      quake('usgs:new', 6.1),
+      quake('usgs:small', 4.2),
+      quake('usgs:lastweek', 6.8, T0 - 7 * 24 * 3_600_000),
+    ]);
     expect(h.service.message().events.map((e) => e.text)).toEqual(['M 6.1 - somewhere (USGS).']);
   });
 

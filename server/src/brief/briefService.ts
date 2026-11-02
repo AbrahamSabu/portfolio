@@ -7,6 +7,8 @@ const WINDOW_MS = 24 * 3_600_000;
 const MAX_EVENTS = 500;
 /** How often the squawk watch sweeps the picture. */
 const SWEEP_MS = 5_000;
+/** An orbit mentioned in the brief must have lasted: short ones are traffic patterns. */
+const LONG_ORBIT_MS = 15 * 60_000;
 
 export interface BriefServiceOptions {
   tracks: () => readonly Track[];
@@ -68,12 +70,23 @@ export class BriefService {
     };
   }
 
-  /** Wired to FindingsService.onEvent. */
+  /**
+   * Wired to FindingsService.onEvent. The log is editorial where the findings
+   * list is exhaustive: worldwide, ships fall out of AIS coverage and traffic
+   * patterns start and stop every minute, and at that volume the brief's
+   * squawks and hazards would drown (measured: the 500-event cap filled in
+   * twelve minutes). So routine silence stays on the map only, a converging
+   * pair is one line (its start), and circling earns its line by lasting —
+   * the ending writes it, with the duration.
+   */
   onFinding(kind: 'finding-started' | 'finding-ended', finding: Finding, time: number, resolved = false): void {
+    if (finding.kind === 'dark') return;
     if (kind === 'finding-started') {
+      if (finding.kind === 'circling') return;
       this.add({ time, kind, text: findingStarted(finding), lat: finding.lat, lon: finding.lon, trackId: finding.tracks[0]! });
       return;
     }
+    if (finding.kind !== 'circling' || time - finding.since < LONG_ORBIT_MS) return;
     const text = findingEnded(finding, time, resolved);
     if (text) this.add({ time, kind, text, lat: finding.lat, lon: finding.lon, trackId: finding.tracks[0]! });
   }
@@ -88,7 +101,12 @@ export class BriefService {
     for (const h of items) {
       if (this.hazardIds.has(h.id)) continue;
       this.hazardIds.add(h.id);
-      if (significantHazard(h)) this.add({ time: now, kind: 'hazard', text: hazardSeen(h), lat: h.lat, lon: h.lon });
+      // Sources arrive on their own clocks, so "new to the merged list" isn't
+      // "new": a cyclone that began last week joins the list at startup. Only
+      // what happened on this watch is an event.
+      if (significantHazard(h) && h.time >= this.startedAt) {
+        this.add({ time: now, kind: 'hazard', text: hazardSeen(h), lat: h.lat, lon: h.lon });
+      }
     }
   }
 
