@@ -470,6 +470,22 @@ that could have been fetched before they arrived.
   themselves: installing persistence is denied to the agent), and
   uninstall-screensaver.cmd removes both. `*.cmd` is CRLF in
   .gitattributes.
+- Scope UI (Nov 2026, from ATC/CIC research): data block
+  (`map/dataBlock.ts`): a DOM Marker beside the selected track, callsign +
+  a second row timesharing altitude/speed with typeCode/squawk every 4 s
+  (STARS-style); text refreshed at 1 Hz on the layer's frame. Trail style
+  (`TrailStyle` 'line'|'scope', localStorage `watchfloor.trailStyle`, menu
+  choice row — ChoiceRow.key is now optional): scope draws blips via
+  `map/trailBlips.ts` `blipsFor` (pure: one blip per tenth of the domain's
+  trail window, newest of each slot, fade by age) into a circle layer,
+  identity-coloured. Hook (X, `map/hook.ts`): arm from a selection, next
+  map click on a track completes the pair (module-level `isHooking()` makes
+  TrackLayer's click stand down, like `isDrawing()`); dashed HUD line +
+  midpoint readout from `approach()` in shared/geo.ts (pure flat-earth CPA:
+  range, bearing, closing speed, tCPA, dCPA; tested). Cleared by X, Esc
+  (before selection-clear in the chain) or either track dropping. Markers:
+  never set CSS transform on a Marker element (MapLibre owns it) — use the
+  Marker `offset` option.
 - Screensaver and follow efficiency (Nov 2026, the user heard fans):
   every canvas we getImageData from (labels, shapes, symbols, icons,
   nightLayer) is created `{ willReadFrequently: true }` — without it,

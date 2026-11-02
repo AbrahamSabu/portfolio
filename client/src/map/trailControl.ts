@@ -1,8 +1,9 @@
-import type { TrailLayer, TrailMode } from './trailLayer';
+import type { TrailLayer, TrailMode, TrailStyle } from './trailLayer';
 
 const NEXT: Record<TrailMode, TrailMode> = { all: 'selected', selected: 'off', off: 'all' };
 
 const STORAGE_KEY = 'watchfloor.trailMode';
+const STYLE_KEY = 'watchfloor.trailStyle';
 
 /**
  * The trail mode (all tracks, selected only, off), shared by the T key and
@@ -29,6 +30,18 @@ export class TrailSetting {
     this.set(NEXT[this.trails.mode]);
   }
 
+  get style(): TrailStyle {
+    return this.trails.style;
+  }
+
+  /** Line, or a radar scope's fading blips; from the Layers menu, remembered per browser. */
+  setStyle(style: TrailStyle): void {
+    if (style === this.trails.style) return;
+    this.trails.setStyle(style);
+    save(STYLE_KEY, style);
+    for (const listener of this.listeners) listener();
+  }
+
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -46,9 +59,23 @@ export function loadTrailMode(): TrailMode {
   return 'all';
 }
 
-function saveTrailMode(mode: TrailMode): void {
+export function loadTrailStyle(): TrailStyle {
   try {
-    localStorage.setItem(STORAGE_KEY, mode);
+    const saved = localStorage.getItem(STYLE_KEY);
+    if (saved === 'line' || saved === 'scope') return saved;
+  } catch {
+    // Use the default.
+  }
+  return 'line';
+}
+
+function saveTrailMode(mode: TrailMode): void {
+  save(STORAGE_KEY, mode);
+}
+
+function save(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
   } catch {
     // Not remembered; that's fine.
   }

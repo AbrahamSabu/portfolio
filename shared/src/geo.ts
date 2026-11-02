@@ -95,3 +95,45 @@ export const mpsToKnots = (mps: number) => mps / MPS_PER_KNOT;
 export const knotsToMps = (kt: number) => kt * MPS_PER_KNOT;
 export const metresToFeet = (m: number) => m / M_PER_FT;
 export const feetToMetres = (ft: number) => ft * M_PER_FT;
+
+export interface MovingPoint extends LatLon {
+  /** Course over ground, degrees true. */
+  courseDeg: number;
+  /** Speed over ground, m/s. */
+  speedMps: number;
+}
+
+export interface Approach {
+  rangeM: number;
+  /** From a to b, degrees true. */
+  bearingDeg: number;
+  /** Positive while the two are getting closer (m/s); negative means opening. */
+  closingMps: number;
+  /** Seconds until the closest point; 0 when they are already past it (or hold steady). */
+  tcpaS: number;
+  /** How close they will get (m), on present courses and speeds. */
+  cpaM: number;
+}
+
+/**
+ * Closest point of approach between two tracks: the CIC console's answer to
+ * "are these two going to meet?". The patch of earth between them is treated
+ * as flat and both courses and speeds as constant — good to a few percent at
+ * the ranges a hook is used over, and honest about being a projection.
+ */
+export function approach(a: MovingPoint, b: MovingPoint): Approach {
+  const rangeM = distanceM(a, b);
+  const brg = bearingDeg(a, b);
+  const rad = Math.PI / 180;
+  // East/north metres of b relative to a, and the relative velocity.
+  const rx = rangeM * Math.sin(brg * rad);
+  const ry = rangeM * Math.cos(brg * rad);
+  const vx = b.speedMps * Math.sin(b.courseDeg * rad) - a.speedMps * Math.sin(a.courseDeg * rad);
+  const vy = b.speedMps * Math.cos(b.courseDeg * rad) - a.speedMps * Math.cos(a.courseDeg * rad);
+  const vv = vx * vx + vy * vy;
+  const rv = rx * vx + ry * vy;
+  const closingMps = rangeM === 0 ? 0 : -rv / rangeM;
+  const tcpaS = vv === 0 ? 0 : Math.max(0, -rv / vv);
+  const cpaM = Math.hypot(rx + vx * tcpaS, ry + vy * tcpaS);
+  return { rangeM, bearingDeg: brg, closingMps, tcpaS, cpaM };
+}

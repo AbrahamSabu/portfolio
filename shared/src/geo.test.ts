@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  approach,
   bearingDeg,
   deadReckon,
   destination,
@@ -47,5 +48,42 @@ describe('geo', () => {
   it('does not move a stationary or future track', () => {
     expect(deadReckon({ lat: 1, lon: 2 }, 45, 0, 10_000)).toEqual({ lat: 1, lon: 2 });
     expect(deadReckon({ lat: 1, lon: 2 }, 45, 10, -5)).toEqual({ lat: 1, lon: 2 });
+  });
+});
+
+describe('approach', () => {
+  const at = (lat: number, lon: number, courseDeg: number, speedMps: number) => ({ lat, lon, courseDeg, speedMps });
+
+  it('meets head-on in range over closing speed', () => {
+    // b is ~2 km north of a; a runs north at 10 m/s, b south at 10 m/s.
+    const a = approach(at(0, 0, 0, 10), at(2000 / 111_195, 0, 180, 10));
+    expect(a.rangeM).toBeCloseTo(2000, -1);
+    expect(a.bearingDeg).toBeCloseTo(0, 0);
+    expect(a.closingMps).toBeCloseTo(20, 1);
+    expect(a.tcpaS).toBeCloseTo(100, 0);
+    expect(a.cpaM).toBeLessThan(1);
+  });
+
+  it('holds steady when the courses are parallel at the same speed', () => {
+    const a = approach(at(0, 0, 90, 10), at(0.01, 0, 90, 10));
+    expect(a.closingMps).toBeCloseTo(0, 3);
+    expect(a.tcpaS).toBe(0);
+    expect(a.cpaM).toBeCloseTo(a.rangeM, 0);
+  });
+
+  it('is already past the closest point when they are opening', () => {
+    // b is north of a and running further north; a stands still.
+    const a = approach(at(0, 0, 0, 0), at(0.01, 0, 0, 10));
+    expect(a.closingMps).toBeLessThan(0);
+    expect(a.tcpaS).toBe(0);
+    expect(a.cpaM).toBeCloseTo(a.rangeM, 0);
+  });
+
+  it('misses abeam on crossing courses', () => {
+    // b starts 1 km east of a, running north; a stands still: CPA is now.
+    const a = approach(at(0, 0, 0, 0), at(0, 1000 / 111_195, 0, 10));
+    expect(a.bearingDeg).toBeCloseTo(90, 0);
+    expect(a.tcpaS).toBe(0);
+    expect(a.cpaM).toBeCloseTo(a.rangeM, 0);
   });
 });

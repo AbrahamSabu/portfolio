@@ -25,6 +25,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['H', 'Show or hide earthquakes and disasters'],
   ['C', 'Show or hide shipping chokepoints'],
   ['W', 'Draw a watch area'],
+  ['X', 'Hook a second track: range, bearing, closest approach'],
   ['R', 'Show or hide weather radar'],
   ['?', 'This key'],
   ['Esc', 'Close a panel, or clear the selection'],

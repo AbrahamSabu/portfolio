@@ -11,6 +11,7 @@ import { inViewBox, padViewBox, type ViewBox } from './viewBox';
 import { AFFILIATION_LINE_COLOR } from './colors';
 import { labelImageId, parseLabelImageId, renderLabel } from './labels';
 import { renderAirportImage } from './airports';
+import { isHooking } from './hook';
 import { isDrawing } from './regionDraw';
 import { renderHazardImage } from './hazardIcons';
 import { parseNewsImageId, renderNewsIcon } from './newsIcons';
@@ -258,8 +259,8 @@ export class TrackLayer {
 
   private bindInteraction(): void {
     const map = this.map;
-    // While an area is being drawn, clicks place its corners instead.
-    map.on('click', (event) => !isDrawing() && this.selection.select(this.trackAt(event.point)));
+    // While an area is being drawn or a hook is being placed, clicks belong to those tools.
+    map.on('click', (event) => !isDrawing() && !isHooking() && this.selection.select(this.trackAt(event.point)));
     for (const layer of HIT_LAYERS) {
       map.on('mouseenter', layer, () => (map.getCanvas().style.cursor = 'pointer'));
       map.on('mouseleave', layer, () => (map.getCanvas().style.cursor = ''));

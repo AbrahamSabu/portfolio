@@ -19,7 +19,7 @@ function deps(): LayerDeps {
   };
   return {
     style: { value: 'shapes', set() {}, subscribe: () => {} },
-    trails: { mode: 'all', set() {}, subscribe: () => {} },
+    trails: { mode: 'all', style: 'line', set() {}, setStyle() {}, subscribe: () => {} },
     news,
     briefing: toggle(),
     airports: toggle(true),

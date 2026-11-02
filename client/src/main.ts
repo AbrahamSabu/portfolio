@@ -7,7 +7,9 @@ import { describeAirport } from './map/airports';
 import { ChokepointLayer } from './map/chokepointLayer';
 import { fly } from './map/camera';
 import { createMap } from './map/createMap';
+import { DataBlock } from './map/dataBlock';
 import { DataCredits } from './map/dataCredits';
+import { HookTool } from './map/hook';
 import { FilterControl } from './map/filterControl';
 import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
@@ -20,7 +22,7 @@ import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
 import { setPaceScale } from './map/renderRate';
-import { loadTrailMode, TrailSetting } from './map/trailControl';
+import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl } from './net/connection';
@@ -137,7 +139,7 @@ async function main(): Promise<void> {
   const regionLayer = new RegionLayer(map, regions, regionsShown);
 
   const layer = new TrackLayer(map, store, clock, selection, filter, style);
-  const trails = new TrailSetting(new TrailLayer(map, store, layer, selection, filter, loadTrailMode()));
+  const trails = new TrailSetting(new TrailLayer(map, store, layer, selection, filter, loadTrailMode(), loadTrailStyle(), () => clock.now()));
   style.subscribe(() => saveSymbolStyle(style.value));
   // After the trails, so the selected path draws above them (and below the tracks).
   const path = new SelectedPath();
@@ -167,6 +169,10 @@ async function main(): Promise<void> {
   const radarShown = new StoredToggle('watchfloor.radar', false);
   const radar = new RadarLayer(map, radarShown);
   const reticle = new Reticle(map);
+  // The selected track's ATC-style data block, riding the same dead-reckoned position.
+  new DataBlock(map, store, clock, layer, selection);
+  // The hook (X): range, bearing and closest approach between the selection and a second track.
+  const hook = new HookTool(map, store, clock, layer, selection);
   new HoverCard(map, store, clock, layer, (point) => {
     const airport = airports.airportAt(point);
     return airport && describeAirport(airport, countryName);
@@ -420,6 +426,7 @@ async function main(): Promise<void> {
       else if (countryPanel.isOpen) countryPanel.close();
       else if (regionPanel.open) regionPanel.setOpen(false);
       else if (layersPanel.open) layersPanel.setOpen(false);
+      else if (hook.armed || hook.active) hook.clear();
       else selection.select(null);
     }
     // Single-letter shortcuts must not fire while the operator is typing.
@@ -437,6 +444,7 @@ async function main(): Promise<void> {
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
+    if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box

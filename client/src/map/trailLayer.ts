@@ -1,20 +1,32 @@
-import type { Feature, FeatureCollection, LineString } from 'geojson';
-import type { GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from 'maplibre-gl';
-import type { Track } from '@watchfloor/shared';
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import type { CircleLayerSpecification, GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from 'maplibre-gl';
+import { DEFAULT_TRAIL_RULES, type Track } from '@watchfloor/shared';
 import type { PictureFilter } from '../state/pictureFilter';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
 import { AFFILIATION_LINE_COLOR } from './colors';
+import { blipsFor } from './trailBlips';
 import { LOWEST_TRACK_LAYER, SYMBOL_MIN_ZOOM, type TrackLayer } from './trackLayer';
 import { inViewBox } from './viewBox';
 
 /** Which tracks show their history. */
 export type TrailMode = 'all' | 'selected' | 'off';
+/** How a trail is drawn: a continuous line, or a radar scope's fading history blips. */
+export type TrailStyle = 'line' | 'scope';
 
 const TRAILS_SOURCE = 'track-trails';
 const HEADS_SOURCE = 'track-trail-heads';
+const BLIPS_SOURCE = 'track-trail-blips';
 const TRAILS_LAYER = 'track-trails';
 const HEADS_LAYER = 'track-trail-heads';
+const BLIPS_LAYER = 'track-trail-blips';
+
+/** One blip per past sweep, identity coloured like the line it replaces, fading with age. */
+const BLIP_PAINT: CircleLayerSpecification['paint'] = {
+  'circle-color': AFFILIATION_LINE_COLOR,
+  'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 1.2, 10, 2.2],
+  'circle-opacity': ['*', ['get', 'fade'], ['case', ['==', ['get', 'selected'], 1], 1, 0.6]],
+};
 
 /** Quiet by default so trails never compete with symbols; the selected one stands out. */
 const PAINT: LineLayerSpecification['paint'] = {
@@ -42,6 +54,7 @@ const PAINT: LineLayerSpecification['paint'] = {
  */
 export class TrailLayer {
   private currentMode: TrailMode;
+  private currentStyle: TrailStyle;
 
   constructor(
     private readonly map: MapLibreMap,
@@ -50,8 +63,11 @@ export class TrailLayer {
     private readonly selection: Selection,
     private readonly filter: PictureFilter,
     mode: TrailMode,
+    style: TrailStyle = 'line',
+    private readonly now: () => number = () => Date.now(),
   ) {
     this.currentMode = mode;
+    this.currentStyle = style;
     map.on('style.load', () => this.install());
     if (map.isStyleLoaded()) this.install();
     store.subscribe(() => this.renderTrails());
@@ -73,9 +89,19 @@ export class TrailLayer {
     this.renderHeads();
   }
 
+  get style(): TrailStyle {
+    return this.currentStyle;
+  }
+
+  setStyle(style: TrailStyle): void {
+    if (style === this.currentStyle) return;
+    this.currentStyle = style;
+    this.renderTrails();
+  }
+
   private install(): void {
     const map = this.map;
-    for (const id of [TRAILS_SOURCE, HEADS_SOURCE]) {
+    for (const id of [TRAILS_SOURCE, HEADS_SOURCE, BLIPS_SOURCE]) {
       if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: emptyCollection() });
     }
     // Under the speed leaders, which are under the symbols.
@@ -96,6 +122,9 @@ export class TrailLayer {
         beforeId,
       );
     }
+    if (!map.getLayer(BLIPS_LAYER)) {
+      map.addLayer({ id: BLIPS_LAYER, type: 'circle', source: BLIPS_SOURCE, paint: BLIP_PAINT }, beforeId);
+    }
     this.renderTrails();
   }
 
@@ -115,13 +144,26 @@ export class TrailLayer {
   }
 
   private renderTrails(): void {
-    const features: Feature<LineString>[] = [];
+    const lines: Feature<LineString>[] = [];
+    const blips: Feature<Point>[] = [];
+    const now = this.now();
     for (const track of this.visibleTracks()) {
       const points = this.store.trail(track.id);
-      if (points.length < 2) continue;
-      features.push(line(track, this.selection.id, points.map(([lon, lat]) => [lon, lat])));
+      if (this.currentStyle === 'scope') {
+        const selected = track.id === this.selection.id ? 1 : 0;
+        for (const [lon, lat, fade] of blipsFor(points, now, DEFAULT_TRAIL_RULES[track.domain].windowMs)) {
+          blips.push({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lon, lat] },
+            properties: { affiliation: track.affiliation, selected, fade },
+          });
+        }
+      } else if (points.length >= 2) {
+        lines.push(line(track, this.selection.id, points.map(([lon, lat]) => [lon, lat])));
+      }
     }
-    this.map.getSource<GeoJSONSource>(TRAILS_SOURCE)?.setData({ type: 'FeatureCollection', features });
+    this.map.getSource<GeoJSONSource>(TRAILS_SOURCE)?.setData({ type: 'FeatureCollection', features: lines });
+    this.map.getSource<GeoJSONSource>(BLIPS_SOURCE)?.setData({ type: 'FeatureCollection', features: blips });
   }
 
   private renderHeads(): void {

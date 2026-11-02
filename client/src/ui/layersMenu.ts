@@ -20,7 +20,7 @@ export interface SwitchRow {
 export interface ChoiceRow {
   kind: 'choice';
   label: string;
-  key: string;
+  key?: string;
   options: { value: string; label: string }[];
   get(): string;
   set(value: string): void;

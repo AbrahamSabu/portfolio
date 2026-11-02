@@ -1,4 +1,4 @@
-import type { TrailMode } from '../map/trailLayer';
+import type { TrailMode, TrailStyle } from '../map/trailLayer';
 import type { SymbolStyle } from '../state/symbolStyle';
 import type { LayerSection } from './layersMenu';
 
@@ -11,7 +11,13 @@ interface Toggle {
 /** What the menu needs: the settings the keys already use. */
 export interface LayerDeps {
   style: { readonly value: SymbolStyle; set(style: SymbolStyle): void; subscribe(listener: () => void): unknown };
-  trails: { readonly mode: TrailMode; set(mode: TrailMode): void; subscribe(listener: () => void): unknown };
+  trails: {
+    readonly mode: TrailMode;
+    readonly style: TrailStyle;
+    set(mode: TrailMode): void;
+    setStyle(style: TrailStyle): void;
+    subscribe(listener: () => void): unknown;
+  };
   news: { readonly shown: boolean; readonly voice: boolean; set(change: { shown?: boolean; voice?: boolean }): void; subscribe(listener: () => void): unknown };
   briefing: Toggle;
   airports: Toggle;
@@ -66,6 +72,17 @@ export function layerSections(d: LayerDeps): LayerSection[] {
           ],
           get: () => d.trails.mode,
           set: (v) => d.trails.set(v as TrailMode),
+          watch: [d.trails],
+        },
+        {
+          kind: 'choice',
+          label: 'Trail style',
+          options: [
+            { value: 'line', label: 'Line' },
+            { value: 'scope', label: 'Scope blips' },
+          ],
+          get: () => d.trails.style,
+          set: (v) => d.trails.setStyle(v as TrailStyle),
           watch: [d.trails],
         },
       ],

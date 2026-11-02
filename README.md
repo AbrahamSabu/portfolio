@@ -13,7 +13,9 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Draws each contact as a top-down shape of what it is (airliner, business jet, helicopter, drone, tanker, fishing boat...), pointing along its course and roughly to size, or as its MIL-STD-2525C symbol (`S` switches), with a callsign label and a speed leader showing where it's heading, or as a small identity-coloured dot when zoomed out to a continent or the world
 - Moves symbols smoothly between reports using dead reckoning, so tracks glide instead of jumping
 - Fades tracks that stop reporting, then removes them after a timeout that depends on the track type and how often its source reports, and says in the status bar when a live feed is rate limited or not responding
-- Shows where each track has been with a history trail, for all tracks, only the selected one, or none
+- Shows where each track has been with a history trail, for all tracks, only the selected one, or none — drawn as a line, or as a radar scope's discrete fading blips (Layers menu)
+- Hangs an ATC-style data block off the selected track: callsign, then a line that timeshares altitude and speed with type and squawk, the way a controller's STARS or ERAM block does
+- Hooks a pair of tracks like a CIC console (X): a line between the selection and a second track with live range, true bearing, closing speed and the closest point of approach on present courses
 - Lists every track, all 7,000+ of them worldwide, in a sortable table you can filter by air or sea and search by callsign; selecting a row selects the track on the map, and the other way round
 - Shows the whole path of a selected track, as far back as the server has it: up to 12 hours for aircraft and 24 for ships, with the start of a flight filled in from OpenSky when we only saw it mid-air, and a button to fit it on screen
 - Names any track you point at in a small card (callsign, model, altitude, speed), at every zoom, and explains every colour, symbol and line in a map key (?)
