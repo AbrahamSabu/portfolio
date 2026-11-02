@@ -410,6 +410,66 @@ that could have been fetched before they arrived.
   H key / `watchfloor.hazards`. **Zoom must be the outermost expression**:
   `['*', scale, ['interpolate', ..., ['zoom'], ...]]` failed validation and
   took the whole basemap with it (no tiles, no error in the pane's console).
+- Findings — the watchers (`server/src/findings/`, `shared/src/findings.ts`,
+  protocol v16 `findings` message, whole list like hazards): the server
+  sweeps the picture every 20 s for three conditions, each a pure, tested
+  detector. `circling.ts` works on PathHistory's raw flat array
+  (`paths.flat(id)`, no allocation for straight-liners): signed heading
+  change along the window's points ≥ 720° inside radius ≤ 20 km, ≥ 12
+  points, span ≥ 3 min — signed, so jitter cancels and figure-eights don't
+  count. `converging.ts`: pairwise `approach()` over military air platforms
+  (military-aircraft/-helicopter, maritime-patrol, uav), CPA < 5 km inside
+  10 min, from 15–400 km apart (the floor filters joined formations),
+  altitude gap ≤ 3 km when both known. Gone-dark lives in
+  `findingsService.ts`: AIS sea track silent ≥ 8 min at ≥ ~5 kn with ≥ 10
+  min of watched path; the ghost outlives the store's drop and fades after
+  45 min; only the newest 30 are *published* — never evict the held set, or
+  re-detection churns events forever (bug fixed Nov 2026). Findings carry
+  measured wording only ("AIS contact lost", never intent); `since` is kept
+  stable by held maps with hysteresis (circling 4 min, converging 2 min).
+  **The first sweep seeds silently**: it publishes but logs no events (what
+  it finds predates the watch). Client: `state/findings.ts` (FindingStore,
+  `interrupts()` — dark never cards), `map/findingLayer.ts` (HUD-blue rings
+  + dots, ghosts fade by age, click hands the finding to main which selects
+  the first live involved track), `ui/findingAlerts.ts` (cards capped at 3,
+  one ping per batch), tour rides along (`findingStops`, first pool).
+  D key / `watchfloor.findings`.
+- Watch handover (`server/src/brief/`, protocol v16 `brief`
+  request/reply): BriefService keeps a rolling 24 h / 500-event log —
+  emergency squawks starting/ending (its own 5 s sweep over the store),
+  findings (wired to FindingsService.onEvent; a dark ending logs only when
+  `resolved`, i.e. the ship transmits again — a ghost fading is
+  bookkeeping), significant hazards as they appear (first hazard list is
+  baseline, not events). Every line is composed in `compose.ts` *when it
+  happens* from facts in hand, so the brief can't drift from data. Client:
+  `ui/handoverPanel.ts` (V key or Layers → Watch handover; re-requests on
+  every open; newest first; rows with a place fly there; Read aloud speaks
+  the newest 10 lines).
+- Timeline (`state/timeline.ts` pure + tested, `ui/timeline.ts`,
+  `map/replayLayer.ts`, `map/ghostLayer.ts`, `server/src/replay/replay.ts`,
+  protocol v16 `replay` request/reply): one bar (Z), NOW at NOW_F = 0.78
+  (the CSS notch at 78% must match), six hours of past left of it, thirty
+  minutes of future right. Left: the client asks once per visit for the
+  current view's paths (server answers from PathHistory — no new recording;
+  richest first, capped 400 tracks / 150k points, `truncated` honest in the
+  tag) and `positionAt` interpolates; the live picture is *hidden*
+  (TrackLayer/TrailLayer `setHidden`) so two moments are never on screen at
+  once, and selection + hook are cleared. Right: GhostLayer dead-reckons
+  every live track in view with a dashed thread back to the present, over
+  the live picture. The tag is the honesty device: LIVE / `REPLAY −2 h 14
+  min · 400 tracks (capped)` / `PROJECTED +26 min`. Play runs 60/300/900×
+  and snaps back to live on catching up. `setPointerCapture` is wrapped in
+  try/catch (synthetic pointers can't be captured — headless tests scrub by
+  dispatching `pointerdown`).
+- Display theatre (Layers → Display, both off by default): phosphor scope
+  (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
+  hue-rotate to scope green; a deliberate operator-chosen exception to
+  "colour means identity", affiliations survive as brightness) and long
+  exposure (`map/exposureLayer.ts`, `watchfloor.exposure`: a 2D canvas over
+  the map, `mix-blend-mode: screen`, a faint dot per live track every 500 ms
+  at its *drawn* position, never cleared while the camera holds still;
+  movestart clears — the film moved; sleeps when hidden/off; globe far-side
+  guarded by a bounds check before `project()`).
 - Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
   click a basemap country label (`place_country_1/2`, `name:en` else
   `name`; cursor turns to a pointer) -> the day's stories whose GDELT place
@@ -827,7 +887,8 @@ that could have been fetched before they arrived.
    `.env`; scenario, world or viewport areas; "off" without a key.
 4. ~~Geofences drawn on the map, with entry and exit alerts~~ (done, in the browser: watch areas).
 5. Operator tagging of affiliation.
-6. Recording and a replay timeline.
+6. ~~Recording and a replay timeline~~ (done, Z: replay from the server's
+   existing paths, no new recording; plus 30 min of dead-reckoned projection).
 
 ## How to work here
 

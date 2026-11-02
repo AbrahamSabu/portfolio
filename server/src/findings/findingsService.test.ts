@@ -58,6 +58,8 @@ function harness(): Harness {
     onChange: (items) => changes.push(items),
     onEvent: (kind, finding) => events.push({ kind, id: finding.id }),
   });
+  // The first sweep only seeds: what it finds predates the watch, so no events.
+  service.sweep();
   return { service, world, changes, events, setNow: (t) => (now = t) };
 }
 
@@ -185,6 +187,39 @@ describe('FindingsService', () => {
     expect(items[0]!.name).toBe('NATO01 × NAVY7');
     expect(items[0]!.detail).toMatch(/^CPA \d+\.\d km in \d+ min · closing \d+ kn$/);
     expect(items[0]!.tracks).toEqual(['adsb:aaa', 'adsb:bbb']);
+  });
+
+  it('seeds silently: findings from the first sweep log no events', () => {
+    let now = T0;
+    const events: string[] = [];
+    const service = new FindingsService({
+      world: { tracks: () => [track('adsb:abc123')], path: () => orbitPath(T0) },
+      now: () => now,
+      onEvent: (kind) => events.push(kind),
+    });
+    service.sweep();
+    expect(service.items()).toHaveLength(1);
+    expect(events).toHaveLength(0);
+    // The next genuinely new finding does log.
+    now = T0 + 60_000;
+    service.sweep();
+    expect(events).toHaveLength(0);
+  });
+
+  it('publishes only the newest silent ships, without churning events', () => {
+    const h = harness();
+    const lastContact = T0 - 9 * 60_000;
+    h.world.tracks = Array.from({ length: 35 }, (_, i) => {
+      const id = `ais:${100000000 + i}`;
+      h.world.paths.set(id, seaPath(lastContact - 30 * 60_000 - i * 1000, lastContact - i * 1000));
+      return track(id, { source: 'ais', domain: 'sea', platform: 'cargo', speedMps: 6, observedAt: lastContact - i * 1000 });
+    });
+    h.service.sweep();
+    expect(h.events).toHaveLength(35); // every loss is an event...
+    expect(h.service.items()).toHaveLength(30); // ...but the list holds the newest 30
+    h.service.sweep();
+    h.service.sweep();
+    expect(h.events).toHaveLength(35); // and nothing churns on later sweeps
   });
 
   it('only publishes when the list changed', () => {

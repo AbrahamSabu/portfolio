@@ -642,6 +642,9 @@ async function main(): Promise<void> {
     },
     onState(state) {
       status.setConnection(state);
+      // A page left open across a deploy (the screensaver kiosk) heals itself:
+      // one reload fetches the bundle that matches the server's protocol.
+      if (state.status === 'incompatible') window.setTimeout(() => location.reload(), 5000);
     },
   });
 

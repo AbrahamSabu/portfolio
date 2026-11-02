@@ -46,7 +46,12 @@ const DARK_MIN_SPEED_MPS = 2.6;
 const DARK_WATCHED_MS = 10 * 60_000;
 /** The ghost fades out of the list this long after the last contact. */
 const DARK_LINGER_MS = 45 * 60_000;
-/** The newest losses only: at the edge of terrestrial coverage this is routine. */
+/**
+ * Only the newest losses are published: at the edge of terrestrial coverage
+ * going silent is routine. The cap is applied when publishing, never to the
+ * held set — evicting held ghosts would re-detect them next sweep and churn
+ * the event log forever.
+ */
 const DARK_MAX = 30;
 
 /** Two converging aircraft drop out of the gates and back as reports land; hold findings briefly. */
@@ -70,8 +75,10 @@ export class FindingsService {
   private readonly intervalMs: number;
   private timer: NodeJS.Timeout | undefined;
   private published: Finding[] = [];
-  private signature = '';
+  private signature = '[]';
   private lastSweepMs = 0;
+  /** The first sweep finds what predates the watch: it publishes, but logs no events. */
+  private seeded = false;
 
   constructor(private readonly opts: FindingsServiceOptions) {
     this.now = opts.now ?? (() => Date.now());
@@ -112,8 +119,13 @@ export class FindingsService {
     this.sweepCircling(tracks, live, now);
     this.sweepDark(tracks, now);
     this.sweepConverging(tracks, live, now);
+    this.seeded = true;
     this.lastSweepMs = Math.round(performance.now() - started);
     this.publish();
+  }
+
+  private event(kind: 'finding-started' | 'finding-ended', finding: Finding, time: number, resolved?: boolean): void {
+    if (this.seeded) this.opts.onEvent?.(kind, finding, time, resolved);
   }
 
   private sweepCircling(tracks: readonly Track[], live: Set<string>, now: number): void {
@@ -141,7 +153,7 @@ export class FindingsService {
         held.lastPositiveAt = now;
       } else {
         this.circlingHeld.set(id, { finding, lastPositiveAt: now });
-        this.opts.onEvent?.('finding-started', finding, now);
+        this.event('finding-started', finding, now);
       }
     }
     this.expire(this.circlingHeld, live, now, CIRCLING_HOLD_MS);
@@ -157,7 +169,7 @@ export class FindingsService {
         const held = this.darkHeld.get(id);
         if (held) {
           this.darkHeld.delete(id);
-          this.opts.onEvent?.('finding-ended', held.finding, now, true);
+          this.event('finding-ended', held.finding, now, true);
         }
         continue;
       }
@@ -177,21 +189,14 @@ export class FindingsService {
         since: t.observedAt,
       };
       this.darkHeld.set(id, { finding, lastPositiveAt: now });
-      this.opts.onEvent?.('finding-started', finding, now);
+      this.event('finding-started', finding, now);
     }
     // Ghosts outlive their tracks (the store drops a silent ship long before
     // the ghost should fade), so expiry here is by time since last contact.
     for (const [id, held] of this.darkHeld) {
       if (now - held.finding.since > DARK_LINGER_MS) {
         this.darkHeld.delete(id);
-        this.opts.onEvent?.('finding-ended', held.finding, now);
-      }
-    }
-    if (this.darkHeld.size > DARK_MAX) {
-      const oldest = [...this.darkHeld.values()].sort((a, b) => a.finding.since - b.finding.since);
-      for (const held of oldest.slice(0, this.darkHeld.size - DARK_MAX)) {
-        this.darkHeld.delete(held.finding.id);
-        this.opts.onEvent?.('finding-ended', held.finding, now);
+        this.event('finding-ended', held.finding, now);
       }
     }
   }
@@ -218,7 +223,7 @@ export class FindingsService {
         held.lastPositiveAt = now;
       } else {
         this.convergingHeld.set(id, { finding, lastPositiveAt: now });
-        this.opts.onEvent?.('finding-started', finding, now);
+        this.event('finding-started', finding, now);
       }
     }
     this.expire(this.convergingHeld, live, now, CONVERGING_HOLD_MS);
@@ -230,7 +235,7 @@ export class FindingsService {
       const gone = h.finding.tracks.some((t) => !live.has(t));
       if (gone || now - h.lastPositiveAt > holdMs) {
         held.delete(id);
-        this.opts.onEvent?.('finding-ended', h.finding, now);
+        this.event('finding-ended', h.finding, now);
       }
     }
   }
@@ -239,7 +244,10 @@ export class FindingsService {
     const items = [
       ...[...this.convergingHeld.values()].map((h) => h.finding),
       ...[...this.circlingHeld.values()].map((h) => h.finding).sort((a, b) => a.since - b.since),
-      ...[...this.darkHeld.values()].map((h) => h.finding).sort((a, b) => b.since - a.since),
+      ...[...this.darkHeld.values()]
+        .map((h) => h.finding)
+        .sort((a, b) => b.since - a.since)
+        .slice(0, DARK_MAX),
     ];
     const signature = JSON.stringify(items);
     if (signature === this.signature) return;

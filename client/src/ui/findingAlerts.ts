@@ -6,6 +6,8 @@ import { speak } from './voice';
 
 /** A finding alert goes away by itself after this long; the map marker stays. */
 const SHOW_MS = 5 * 60_000;
+/** Busy skies can start several findings in one sweep; the stack stays readable. */
+const MAX_CARDS = 3;
 
 /**
  * An alert card (the emergency squawks' style, in the same stack) when one of
@@ -25,11 +27,15 @@ export class FindingAlerts {
     ping: () => void = () => {},
   ) {
     findings.subscribe((added) => {
-      for (const f of added.filter(interrupts)) {
+      const interrupting = added.filter(interrupts);
+      for (const f of interrupting) {
         this.add(f);
-        ping();
-        if (voice.voice) speak(`${FINDING_LABEL[f.kind]}. ${f.name}.`);
+        // One card in, oldest card out: the map keeps every finding regardless.
+        while (this.timers.size > MAX_CARDS) this.remove(this.timers.keys().next().value!);
       }
+      if (interrupting.length === 0) return;
+      ping();
+      if (voice.voice) speak(`${FINDING_LABEL[interrupting[0]!.kind]}. ${interrupting[0]!.name}.`);
     });
     root.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-finding-id]');

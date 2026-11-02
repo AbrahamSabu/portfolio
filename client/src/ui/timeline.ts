@@ -60,7 +60,11 @@ export class Timeline {
     };
     this.bar.addEventListener('pointerdown', (event) => {
       this.stopPlay();
-      this.bar.setPointerCapture(event.pointerId);
+      try {
+        this.bar.setPointerCapture(event.pointerId);
+      } catch {
+        // A synthetic or already-lifted pointer can't be captured; the press still scrubs.
+      }
       scrubTo(event.clientX);
     });
     this.bar.addEventListener('pointermove', (event) => {
