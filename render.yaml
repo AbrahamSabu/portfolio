@@ -1,0 +1,42 @@
+# One-click Render Blueprint: a free live demo of Watchfloor.
+#
+# Free-tier behaviour is exactly right for a demo with metered upstream APIs:
+# the service spins down after 15 idle minutes (so it spends no OpenSky
+# credits and holds no AISStream connection while nobody is looking) and
+# wakes on the next visit in about a minute. The picture cache is off —
+# the free filesystem is ephemeral anyway — so each wake starts clean and
+# the feeds fill the world back in within a minute or two.
+#
+# The three secrets are set in the Render dashboard when the blueprint is
+# first applied (sync: false below): OPENSKY_CLIENT_ID, OPENSKY_CLIENT_SECRET,
+# AISSTREAM_API_KEY. They never live in this repository.
+services:
+  - type: web
+    name: watchfloor
+    runtime: node
+    plan: free
+    rootDir: projects/watchfloor
+    buildCommand: npm ci && npm run build
+    startCommand: cd server && node --enable-source-maps dist/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PICTURE_FILE
+        value: off
+      - key: FEEDS
+        value: opensky,adsblol,adsbfi,ais
+      - key: OPENSKY_AREA
+        value: world
+      # Viewport, not world: a worldwide AIS stream is hundreds of messages a
+      # second, which a 0.1-vCPU instance should not chew through for ships
+      # nobody is looking at. Viewport mode subscribes only to what viewers
+      # actually watch.
+      - key: AIS_AREA
+        value: viewport
+      - key: OPENSKY_CLIENT_ID
+        sync: false
+      - key: OPENSKY_CLIENT_SECRET
+        sync: false
+      - key: AISSTREAM_API_KEY
+        sync: false
