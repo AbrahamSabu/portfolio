@@ -39,7 +39,7 @@ export class BriefService {
   private readonly squawking = new Map<string, Squawking>();
   /** Hazards already seen; null until the first list (those predate the log). */
   private hazardIds: Set<string> | null = null;
-  private timer: NodeJS.Timeout | undefined;
+  private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(private readonly opts: BriefServiceOptions) {
     this.now = opts.now ?? (() => Date.now());

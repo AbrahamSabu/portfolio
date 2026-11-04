@@ -79,7 +79,7 @@ export class FindingsService {
   private readonly convergingHeld = new Map<string, Held>();
   private readonly now: () => number;
   private readonly intervalMs: number;
-  private timer: NodeJS.Timeout | undefined;
+  private timer: ReturnType<typeof setInterval> | undefined;
   private published: Finding[] = [];
   private signature = '[]';
   private lastSweepMs = 0;

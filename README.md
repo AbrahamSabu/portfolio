@@ -2,6 +2,8 @@
 
 A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn as vehicle shapes or as NATO-standard MIL-STD-2525 symbols.
 
+**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs the built-in English Channel simulation entirely in the page: nothing to install, no account, no live data.
+
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
 By default Watchfloor opens on the live world: aircraft everywhere from the [OpenSky Network](https://opensky-network.org), filled in from two volunteer ADS-B networks, [adsb.lol](https://adsb.lol) and [adsb.fi](https://adsb.fi), wherever you zoom in to a region, and ships everywhere from [AISStream](https://aisstream.io). Cork, in the south of Ireland, is the home area those two networks keep warm. It can also run offline on a built-in traffic simulator over the English Channel (`FEEDS=sim` with `SCENARIO=english-channel`). Every feed plugs into the same pipeline, so nothing downstream knows or cares where a track came from.

@@ -18,6 +18,25 @@ that could have been fetched before they arrived.
 - `npm run dev`: server on 8080 (tsx watch) plus Vite on 5173, which proxies `/ws`.
 - `npm run build` then `npm start`: production as one process on 8080, serving
   the built client, `/ws` and `/healthz`.
+- `npm run build:demo`: the static demo in `client/dist-demo` (gitignored), the
+  server run *inside the page* (`client/src/demo/localServer.ts`: the real
+  Simulator, TrackStore, FindingsService, BriefService and replayFor, every
+  message through the real wire encoder and parser). `vite build --mode demo`
+  sets `base: './'` (it's served from a subfolder), defines `VITE_DEMO=sim`
+  and `process.env.LOG_LEVEL` (the server logger reads it at load). `main()`
+  loads the demo module *first*, before anything can reach for the
+  connection; in the normal build the switch folds away (the normal bundle
+  was byte-identical before and after). News starts hidden (no GDELT without
+  a server), and details are `{}` (the aircraft/airline DBs are on disk). On
+  first start it fast-forwards the simulator through the last hour so the
+  timeline has a past: sliced by a 50 ms *work budget* (yields wait behind a
+  frame, and software rendering makes frames slow), ingesting with simulated
+  time (`ingest(report, simNow)`, or the store drops it as too old), and
+  stopping within a step of now. Don't loop `while (t < Date.now())`: the
+  target moves on every yield and is never met. Published to the portfolio
+  repo at `demos/watchfloor/` (served by its GitHub Pages). Server code the
+  demo imports must stay browser-safe: no `node:` imports, and timers typed
+  `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
 - `npm test`: Vitest from the root config (490 tests after the Layers menu).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes

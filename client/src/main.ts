@@ -32,7 +32,7 @@ import { setPaceScale } from './map/renderRate';
 import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl';
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
-import { Connection, defaultSocketUrl } from './net/connection';
+import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
 import { ServerClock } from './state/clock';
 import { chokepointCounts } from './state/chokepoints';
 import { FindingStore } from './state/findings';
@@ -114,6 +114,9 @@ function endBootSequence(): void {
 }
 
 async function main(): Promise<void> {
+  // The static demo build runs the server inside the page. Loaded first, before
+  // anything can reach for the connection, and absent from the normal build.
+  const demo = import.meta.env.VITE_DEMO === 'sim' ? await import('./demo/localServer') : null;
   endBootSequence();
   const store = new TrackStore();
   const clock = new ServerClock();
@@ -136,7 +139,9 @@ async function main(): Promise<void> {
 
   // Political news: markers, hotspots, pop-up cards, ticker and briefing share one store.
   const news = new NewsStore();
-  const newsSettings = new NewsSettings(loadNewsSettings());
+  // The demo has no news (GDELT is fetched by the server, and there isn't
+  // one), so the ticker and briefing start hidden rather than wait forever.
+  const newsSettings = new NewsSettings(demo ? { shown: false, voice: false } : loadNewsSettings());
 
   // The plotting surface: a faint graticule under everything, and hairlines under the pointer.
   new Graticule(map);
@@ -587,7 +592,7 @@ async function main(): Promise<void> {
       });
     },
   });
-  const connection = new Connection(defaultSocketUrl(), {
+  const handlers: ConnectionHandlers = {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
       switch (message.type) {
@@ -646,7 +651,8 @@ async function main(): Promise<void> {
       // one reload fetches the bundle that matches the server's protocol.
       if (state.status === 'incompatible') window.setTimeout(() => location.reload(), 5000);
     },
-  });
+  };
+  const connection: Link = demo ? new demo.LocalServer(handlers) : new Connection(defaultSocketUrl(), handlers);
 
   const status = new StatusBar(el('statusbar'), map, store, clock, filter, () => connection.retryNow());
 

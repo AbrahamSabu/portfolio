@@ -43,7 +43,7 @@ export class Simulator implements Feed {
   private readonly retireBox: BBox;
   private entities: SimEntity[] = [];
   private sink: TrackSink | undefined;
-  private timer: NodeJS.Timeout | undefined;
+  private timer: ReturnType<typeof setInterval> | undefined;
   private lastStepAt = 0;
   private seq = 0;
 

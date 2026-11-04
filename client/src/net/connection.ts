@@ -12,6 +12,14 @@ export interface ConnectionHandlers {
   onState(state: ConnectionState): void;
 }
 
+/** What the page needs from its link to the server: the socket, or the demo's in-page server. */
+export interface Link {
+  send(message: ClientMessage): void;
+  start(): void;
+  stop(): void;
+  retryNow(): void;
+}
+
 const MIN_BACKOFF_MS = 500;
 const MAX_BACKOFF_MS = 10_000;
 
@@ -23,7 +31,7 @@ const MAX_BACKOFF_MS = 10_000;
  * sends something every tick, so silence means the link is dead even if the
  * browser hasn't noticed yet.
  */
-export class Connection {
+export class Connection implements Link {
   private ws: WebSocket | null = null;
   private attempt = 0;
   private retryTimer: number | undefined;
