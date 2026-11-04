@@ -1,0 +1,191 @@
+import {
+  DEFAULT_STALENESS,
+  PROTOCOL_VERSION,
+  encodeServerMessage,
+  parseServerMessage,
+  type ClientMessage,
+  type ScenarioInfo,
+  type ServerMessage,
+} from '@watchfloor/shared';
+// The server's own pieces, unchanged: the demo runs the real simulator,
+// store, watchers and event log, just inside the page instead of on Node.
+import { BriefService } from '../../../server/src/brief/briefService';
+import { Simulator } from '../../../server/src/feeds/sim/simulator';
+import { FindingsService } from '../../../server/src/findings/findingsService';
+import { replayFor } from '../../../server/src/replay/replay';
+import { getScenario } from '../../../server/src/scenarios';
+import { TrackStore } from '../../../server/src/trackStore';
+import type { ConnectionHandlers, Link } from '../net/connection';
+
+const TICK_MS = 1000;
+/** Fixed, so every visitor sees the same opening picture. */
+const SEED = 7;
+/**
+ * A real server has hours of history; a page that just opened has none, so
+ * the timeline would replay an empty sea. On first start the simulator runs
+ * this far through the past at full speed (each step stamps its reports with
+ * simulated time), so paths, trails and findings exist from the first frame.
+ */
+const HISTORY_MS = 60 * 60_000;
+/** The motion model clamps steps at a second, so the past runs in whole seconds. */
+const HISTORY_STEP_MS = 1000;
+/**
+ * Work per slice before yielding to the page. Sliced by time, not by
+ * simulated span: every yield waits behind a frame, and on a slow GPU a
+ * frame can take hundreds of milliseconds, so few, short-enough slices
+ * finish far sooner than many tiny ones.
+ */
+const HISTORY_SLICE_BUDGET_MS = 50;
+const LIVE_STEP_MS = 250;
+
+/**
+ * The whole server, in the page: what the static demo build (`npm run
+ * build:demo`) uses instead of a WebSocket, so it can be hosted anywhere
+ * files are served, with no API keys and nothing to spend. It speaks the
+ * same protocol as the Hub — hello, snapshot, a delta every tick, findings,
+ * and answers to track, brief and replay requests — and every message goes
+ * through the real wire encoding and parser, so the client can't tell the
+ * difference except that the traffic is labelled simulated, which it is.
+ */
+export class LocalServer implements Link {
+  private readonly store = new TrackStore(DEFAULT_STALENESS);
+  private readonly sim: Simulator;
+  private readonly findings: FindingsService;
+  private readonly brief: BriefService;
+  private readonly scenario: ScenarioInfo;
+  private tickTimer: number | undefined;
+  private stepTimer: number | undefined;
+  private running = false;
+  /** The past being run (or run): started once, awaited by every start. */
+  private history: Promise<void> | null = null;
+  /** Simulated time while the past is being run; null once it's live. */
+  private simNow: number | null = null;
+
+  constructor(private readonly handlers: ConnectionHandlers) {
+    const scenario = getScenario('english-channel');
+    this.scenario = { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
+    this.sim = new Simulator({ scenario, seed: SEED });
+    this.brief = new BriefService({ tracks: () => this.store.snapshot() });
+    this.findings = new FindingsService({
+      world: { tracks: () => this.store.snapshot(), path: (id) => this.store.paths.flat(id) },
+      onChange: (items) => this.emit({ type: 'findings', serverTime: Date.now(), items }),
+      onEvent: (kind, finding, time, resolved) => this.brief.onFinding(kind, finding, time, resolved),
+    });
+  }
+
+  start(): void {
+    if (this.running) return;
+    this.running = true;
+    // "Connecting" while the past runs: the map and basemap are already up.
+    this.handlers.onState({ status: 'connecting' });
+    void (this.history ??= this.runHistory()).then(() => {
+      if (!this.running) return;
+      // Resuming after the tab was hidden carries on from where it stood: the
+      // motion model clamps the gap to a second, so nothing teleports.
+      this.stepTimer = window.setInterval(() => this.sim.step(Date.now()), LIVE_STEP_MS);
+      this.findings.start();
+      this.brief.start();
+      this.handlers.onState({ status: 'open' });
+      const now = Date.now();
+      this.emit({
+        type: 'hello',
+        protocol: PROTOCOL_VERSION,
+        serverTime: now,
+        tickMs: TICK_MS,
+        staleness: DEFAULT_STALENESS,
+        scenario: this.scenario,
+        traffic: 'simulated',
+        feeds: [],
+      });
+      this.emit({ type: 'snapshot', serverTime: now, tracks: this.store.snapshot(), trails: this.store.trailSnapshot() });
+      this.store.flush(); // the snapshot carried it all
+      this.emit({ type: 'findings', serverTime: now, items: this.findings.items() });
+      this.tickTimer = window.setInterval(() => this.tick(), TICK_MS);
+    });
+  }
+
+  stop(): void {
+    this.running = false;
+    window.clearInterval(this.tickTimer);
+    window.clearInterval(this.stepTimer);
+    this.findings.stop();
+    this.brief.stop();
+  }
+
+  /** Nothing to reconnect to. */
+  retryNow(): void {}
+
+  send(message: ClientMessage): void {
+    if (!this.running) return;
+    const now = Date.now();
+    switch (message.type) {
+      case 'view':
+        return; // the simulator covers its own area whatever is on screen
+      case 'track':
+        this.emit({ type: 'path', serverTime: now, id: message.id, points: this.store.paths.get(message.id), backfill: 'none' });
+        // The server's details come from aircraft and airline databases on
+        // disk; a simulated track has no real registry or owner to look up.
+        if (this.store.get(message.id)) this.emit({ type: 'details', serverTime: now, id: message.id, details: {} });
+        return;
+      case 'brief':
+        this.emit(this.brief.message());
+        return;
+      case 'replay':
+        this.emit(replayFor(this.store.snapshot(), (id) => this.store.paths.get(id), message.bbox, now));
+        return;
+    }
+  }
+
+  /**
+   * Run the simulator through the last HISTORY_MS at full speed, into the
+   * store. In slices, yielding between them, so the page stays responsive:
+   * the whole run is a second or two of work on a phone.
+   */
+  private async runHistory(): Promise<void> {
+    const started = performance.now();
+    let t = Date.now() - HISTORY_MS;
+    this.simNow = t;
+    // Reports are judged against the time they were made, not the wall clock,
+    // or the store would turn the whole past away as too old.
+    const sink = {
+      upsert: (report: unknown) => this.store.ingest(report, this.simNow ?? Date.now()),
+      remove: (id: string) => this.store.remove(id),
+    };
+    this.sim.attach(sink, t);
+    let lastPrune = t;
+    // The wall clock moves while we yield, so "now" is re-read each slice, and
+    // the run stops within a step of it rather than exactly on it (a target
+    // that moves on every yield is never met). The live stepper takes the rest.
+    while (Date.now() - t > HISTORY_STEP_MS) {
+      const sliceStart = performance.now();
+      const end = Date.now();
+      while (t < end && performance.now() - sliceStart < HISTORY_SLICE_BUDGET_MS) {
+        t = Math.min(end, t + HISTORY_STEP_MS);
+        this.simNow = t;
+        this.sim.step(t);
+        if (t - lastPrune >= 10_000) {
+          this.store.prune(t);
+          lastPrune = t;
+        }
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+    this.simNow = null;
+    this.store.prune(Date.now());
+    this.store.flush(); // the snapshot carries it all
+    performance.measure('wf:demo-history', { start: started });
+  }
+
+  private tick(): void {
+    const now = Date.now();
+    this.store.prune(now);
+    const { upserts, removals } = this.store.flush();
+    this.emit({ type: 'delta', serverTime: now, upserts, removals });
+  }
+
+  /** Through the real encoder and parser, exactly as the socket path does. */
+  private emit(message: ServerMessage): void {
+    const parsed = parseServerMessage(encodeServerMessage(message));
+    if (parsed) this.handlers.onMessage(parsed, Date.now());
+  }
+}

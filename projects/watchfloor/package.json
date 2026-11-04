@@ -15,6 +15,7 @@
   "scripts": {
     "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w @watchfloor/server\" \"npm run dev -w @watchfloor/client\"",
     "build": "npm run build -w @watchfloor/client && npm run build -w @watchfloor/server",
+    "build:demo": "npm run build:demo -w @watchfloor/client",
     "start": "npm run start -w @watchfloor/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "aircraft-db": "npm run aircraft-db -w @watchfloor/server --",
