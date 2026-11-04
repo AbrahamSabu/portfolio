@@ -7,7 +7,7 @@ I build AI pipelines, tools and websites.
 | # | Project | What it is | See it |
 |---|---|---|---|
 | 1 | [**auto-websites**](projects/auto-websites) | Finds local businesses with no website and has Claude Code design, build and deploy a bespoke site for each. 39 are live. | [The sites](gallery/client-sites) |
-| 2 | [**Watchfloor**](projects/watchfloor) | A live common operating picture of the world's air and sea traffic: tens of thousands of aircraft and ships on a tactical globe, with watchers that flag circling aircraft, silent ships and converging military, a replay timeline and a handover brief | [Run it yourself](projects/watchfloor#quick-start) |
+| 2 | [**Watchfloor**](projects/watchfloor) | A live common operating picture of the world's air and sea traffic: tens of thousands of aircraft and ships on a tactical globe, with watchers that flag circling aircraft, silent ships and converging military, a replay timeline and a handover brief | [Live demo](https://abrahamsabu.github.io/portfolio/demos/watchfloor/) |
 | 3 | [**Heloria Sim**](projects/heloria-sim) | Open-source rocket flight simulator: one design through OpenRocket, RocketPy and a built-in model, compared, then thousands of Monte Carlo flights | [Code](projects/heloria-sim) |
 | 4 | [**Heloria Labs website**](projects/heloria-next) | Next.js site built around a WebGL machine that assembles as you scroll | [Live](https://heloria-next.vercel.app) |
 | 5 | [**UCAT Prep**](projects/ucat-tracker) | Free UCAT study app: a plan built from your test date, AI-written practice questions, timed sections, mocks and an error log | [How to run it](projects/ucat-tracker) |
@@ -30,5 +30,6 @@ built hands-off by auto-websites.
 projects/        one folder per project: README, screenshots, code
 gallery/         every website's source
 assets/          screenshots
-render.yaml      deploy blueprint for the live Watchfloor demo
+demos/          browser demos that run with nothing installed
+render.yaml      deploy blueprint for Watchfloor on live data
 ```
