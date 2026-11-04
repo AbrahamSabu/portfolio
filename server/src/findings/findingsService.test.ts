@@ -251,6 +251,41 @@ describe('FindingsService', () => {
     expect(h.events).toHaveLength(35); // and nothing churns on later sweeps
   });
 
+  it('reports a rare aircraft in flight, with its fleet size when the database knows it', () => {
+    let now = T0;
+    let tracks: Track[] = [];
+    const events: string[] = [];
+    const service = new FindingsService({
+      world: { tracks: () => tracks, path: () => undefined },
+      now: () => now,
+      onEvent: (kind, finding) => events.push(`${kind} ${finding.id}`),
+      fleetOf: (code) => (code === 'BLCF' ? 5 : undefined),
+    });
+    service.sweep(); // seed
+    now = T0 + 20_000;
+    tracks = [track('adsb:aaa111', { callsign: 'GTI4141', typeCode: 'BLCF', altitudeM: 9_754, speedMps: 240, observedAt: now })];
+    service.sweep();
+    const [f] = service.items();
+    expect(f).toMatchObject({ kind: 'rare', name: 'GTI4141', tracks: ['adsb:aaa111'] });
+    expect(f!.detail).toBe('Boeing 747 Dreamlifter · 1 of 5 in the aircraft database · 32,000 ft');
+    expect(events).toEqual(['finding-started rare:adsb:aaa111']);
+  });
+
+  it('never spotlights a rare aircraft whose owner asked not to be tracked', () => {
+    let now = T0;
+    let tracks: Track[] = [];
+    const service = new FindingsService({
+      world: { tracks: () => tracks, path: () => undefined },
+      now: () => now,
+      isPrivate: (t) => t.id === 'adsb:aaa222',
+    });
+    service.sweep();
+    now = T0 + 20_000;
+    tracks = [track('adsb:aaa222', { typeCode: 'A124', altitudeM: 11_000, speedMps: 230, observedAt: now })];
+    service.sweep();
+    expect(service.items()).toEqual([]);
+  });
+
   it('only publishes when the list changed', () => {
     const h = harness();
     h.world.tracks = [track('adsb:abc123')];

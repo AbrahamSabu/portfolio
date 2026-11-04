@@ -21,6 +21,8 @@ export function findingStarted(f: Finding): string {
       return `AIS contact with ${f.name} lost near ${place(f.lat, f.lon)} (${f.detail.replace('AIS contact lost · ', '')}).`;
     case 'converging':
       return `Military aircraft converging: ${f.name} (${f.detail}).`;
+    case 'rare':
+      return `Rare sighting: ${f.name} near ${place(f.lat, f.lon)} (${f.detail}).`;
   }
 }
 
@@ -34,6 +36,8 @@ export function findingEnded(f: Finding, time: number, resolved: boolean): strin
       return resolved ? `${f.name} is transmitting again (silent for ${minutes} min).` : null;
     case 'converging':
       return `No longer converging: ${f.name}.`;
+    case 'rare':
+      return null; // flying on out of coverage isn't news; the sighting was
   }
 }
 

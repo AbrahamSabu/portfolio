@@ -132,7 +132,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       rows: [
         toggle('Airports', 'About 6,000; more as you zoom in', 'A', d.airports),
         toggle('Earthquakes and disasters', 'USGS and GDACS', 'H', d.hazards),
-        toggle('Findings', 'Circling aircraft, converging military, ships gone silent', 'D', d.findings),
+        toggle('Findings', 'Rare aircraft, circling, converging military, ships gone silent', 'D', d.findings),
         toggle('Shipping chokepoints', 'Ships at eight narrows', 'C', d.chokepoints),
         toggle('Weather radar', 'RainViewer, in grey', 'R', d.radar, d.radarTime),
         { kind: 'action', label: 'Search the map', key: '/', run: d.search },

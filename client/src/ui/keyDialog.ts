@@ -25,7 +25,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['B', 'Open or close the briefing'],
   ['A', 'Show or hide airports'],
   ['H', 'Show or hide earthquakes and disasters'],
-  ['D', 'Show or hide findings (circling, converging, gone silent)'],
+  ['D', 'Show or hide findings (rare aircraft, circling, converging, gone silent)'],
   ['C', 'Show or hide shipping chokepoints'],
   ['W', 'Draw a watch area'],
   ['X', 'Hook a second track: range, bearing, closest approach'],
