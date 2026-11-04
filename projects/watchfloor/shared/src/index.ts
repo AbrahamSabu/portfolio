@@ -11,3 +11,4 @@ export * from './news';
 export * from './hazards';
 export * from './findings';
 export * from './weather';
+export * from './sky';

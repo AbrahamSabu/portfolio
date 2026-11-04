@@ -2,6 +2,7 @@ import {
   AIS_STALENESS,
   DEFAULT_STALENESS,
   polledStaleness,
+  type BBox,
   type ScenarioInfo,
   type StalenessRule,
   type StalenessRules,
@@ -21,6 +22,7 @@ import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { PathService } from './paths/pathService';
 import { replayFor } from './replay/replay';
+import { nearbyAircraft, SkyWatchers } from './sky/nearby';
 import { trackDetails } from './details/trackDetails';
 import { readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
@@ -182,9 +184,37 @@ async function main(): Promise<void> {
     onEvent: (kind, finding, time, resolved) => brief.onFinding(kind, finding, time, resolved),
   });
   const weather = new WeatherService();
+
+  // Who is watching: browsers over the socket, plus plane-spotter phones,
+  // which only make HTTP requests (sky/nearby.ts). Demand and areas are set
+  // separately, so a socket connecting never makes the feeds re-poll.
+  let socketClients = 0;
+  let socketViews: BBox[] = [];
+  const skyWatchers = new SkyWatchers();
+  const applyDemand = () => {
+    for (const feed of feeds) feed.setDemand?.(socketClients > 0 || skyWatchers.active);
+  };
+  const applyAreas = () => {
+    const areas = [...socketViews, ...skyWatchers.areas()];
+    for (const feed of feeds) feed.setAreas?.(areas);
+  };
+  const skyExpiry = setInterval(() => {
+    if (!skyWatchers.expire(Date.now())) return;
+    applyAreas();
+    if (!skyWatchers.active) applyDemand();
+  }, 30_000);
+  skyExpiry.unref();
+
   const server = createHttpServer({
     staticDir: config.staticDir,
     weather: (station) => weather.get(station),
+    sky: (lat, lon) => {
+      const now = Date.now();
+      const wasActive = skyWatchers.active;
+      if (skyWatchers.touch(lat, lon, now)) applyAreas();
+      if (!wasActive) applyDemand();
+      return nearbyAircraft(store.snapshot(), { lat, lon }, now, staleness, (t) => trackDetails(t, detailSources));
+    },
     health: () => ({
       uptimeS: Math.round((Date.now() - startedAt) / 1000),
       tracks: store.size,
@@ -214,10 +244,12 @@ async function main(): Promise<void> {
     // Without a key AIS can't deliver anything, so it mustn't make the label say "live".
     traffic: trafficKind(config.feeds.filter((f) => f !== 'ais' || config.ais.apiKey)),
     onClientsChanged: (count) => {
-      for (const feed of feeds) feed.setDemand?.(count > 0);
+      socketClients = count;
+      applyDemand();
     },
     onViewsChanged: (views) => {
-      for (const feed of feeds) feed.setAreas?.(views);
+      socketViews = views;
+      applyAreas();
     },
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
     ...(news ? { news: () => news.items() } : {}),

@@ -480,6 +480,30 @@ that could have been fetched before they arrived.
   and snaps back to live on catching up. `setPointerCapture` is wrapped in
   try/catch (synthetic pointers can't be captured — headless tests scrub by
   dispatching `pointerdown`).
+- Plane-spotter (`client/sky.html`, `src/sky/`, `server/src/sky/nearby.ts`,
+  `shared/src/sky.ts`): a second Vite page (the demo build leaves it out:
+  it needs a live server). `GET /api/sky?lat=&lon=` answers the live
+  aircraft within 60 km (air, altitude ≥ 60 m, not stale; private ones
+  without callsign/airline). Phones hold no socket, so `SkyWatchers` keeps
+  each requester's half-degree cell for 2 min: while any is kept the feeds
+  stay awake (demand = sockets OR phones) and the regional feeds also poll
+  those cells; demand and areas are applied *separately* and only on change
+  (each `setAreas` can trigger a poll). The page is tiny (no MapLibre): GPS
+  via watchPosition, compass via `deviceorientationabsolute` (Android) or
+  `webkitCompassHeading` (iOS, alpha = 360 − heading, permission asked from
+  the Start tap); relative orientation is ignored (no north). `skyMath.ts`
+  (pure, tested): back-camera direction = −Z column of the W3C Z-X'-Y''
+  matrix; sky position with a 4/3-earth curve drop; lock within 12°, else
+  "turn right 25° and tilt up 10°" guidance; tap a dot to pick. hexdb.io
+  (CORS `*`) supplies type (when the server has no model) and route,
+  shown as airport *names* minus "International Airport", cut at a hyphen.
+  adsb.lol, adsb.fi, airplanes.live and OpenSky all refuse cross-origin
+  browser calls, which is why positions come from our own server. Only
+  works over https (secure context): Render, or a tunnel. Headless test:
+  CDP geolocation override works, but faked orientation sensors deliver
+  null angles in headless — dispatch `DeviceOrientationEvent`s instead.
+  Write regexes with the Edit tool, not Python heredocs: `"\b"` became a
+  backspace byte once.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to

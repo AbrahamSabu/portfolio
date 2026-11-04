@@ -23,6 +23,8 @@ export interface HttpOptions {
   health: () => Record<string, unknown>;
   /** An airport's latest METAR, for `/api/weather/<ICAO>`. */
   weather?: (station: string) => Promise<unknown>;
+  /** The live aircraft near a point, for the plane-spotter's `/api/sky?lat=…&lon=…`. */
+  sky?: (lat: number, lon: number) => unknown;
 }
 
 /**
@@ -39,6 +41,19 @@ export function createHttpServer(opts: HttpOptions): http.Server {
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, ...opts.health() }));
+      return;
+    }
+
+    if (url.pathname === '/api/sky' && opts.sky) {
+      const lat = Number(url.searchParams.get('lat'));
+      const lon = Number(url.searchParams.get('lon'));
+      // Number('') is 0, so a missing parameter must be caught before the range check.
+      if (!url.searchParams.get('lat') || !url.searchParams.get('lon') || !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+        res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('lat and lon, in degrees');
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(JSON.stringify(opts.sky(lat, lon)));
       return;
     }
 

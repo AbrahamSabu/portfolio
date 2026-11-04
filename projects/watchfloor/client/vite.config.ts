@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
 const server = process.env.WATCHFLOOR_SERVER ?? 'http://127.0.0.1:8080';
@@ -29,6 +30,14 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: demo ? 'dist-demo' : 'dist',
+      // Two pages: the display, and the phone plane-spotter (sky.html), which
+      // needs a live server, so the static demo leaves it out.
+      rollupOptions: {
+        input: {
+          main: fileURLToPath(new URL('./index.html', import.meta.url)),
+          ...(demo ? {} : { sky: fileURLToPath(new URL('./sky.html', import.meta.url)) }),
+        },
+      },
       sourcemap: !demo,
       // MapLibre and milsymbol (all symbol standards) are large; they're cached after first load.
       chunkSizeWarningLimit: 2500,
