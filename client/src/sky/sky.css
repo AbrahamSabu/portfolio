@@ -1,0 +1,204 @@
+/*
+ * The plane-spotter, phone first. Same tokens as the main display: HUD blue
+ * for the instrument, identity yellow for aircraft (unknown affiliation, as
+ * the map draws ADS-B traffic), orchid only for the one you're pointing at.
+ */
+:root {
+  --bg: #04111f;
+  --surface: rgb(8 24 42 / 0.92);
+  --ink: #e6f1fa;
+  --ink-muted: #8aa6bf;
+  --hud: #3fb6ff;
+  --accent: #c9a0ff;
+  --aircraft: #ffff80;
+  --warn: #f0c36a;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* The sections set their own display, which would otherwise beat `hidden`. */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sky {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+.sky-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sky-brand {
+  color: var(--hud);
+  font-size: 0.7rem;
+  letter-spacing: 0.32em;
+  font-weight: 600;
+}
+
+.sky-title {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+}
+
+.sky-start {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8vh;
+}
+
+.sky-lede {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sky-go {
+  align-self: flex-start;
+  padding: 14px 40px;
+  border: 1.5px solid var(--hud);
+  border-radius: 999px;
+  background: rgb(63 182 255 / 0.14);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 24px rgb(63 182 255 / 0.25);
+  cursor: pointer;
+}
+
+.sky-small,
+.sky-foot,
+.sky-hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.sky-error {
+  margin: 0;
+  color: var(--warn);
+}
+
+.sky-live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sky-card {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgb(63 182 255 / 0.35);
+  border-left: 3px solid var(--hud);
+  border-radius: 6px;
+  background: var(--surface);
+  transition: border-color 0.2s;
+}
+
+/* Locked on: the one place the accent appears. */
+.sky-card[data-state='locked'] {
+  border-color: rgb(201 160 255 / 0.6);
+  border-left-color: var(--accent);
+  box-shadow: 0 0 26px rgb(201 160 255 / 0.18);
+}
+
+.sky-card-tag {
+  margin: 0 0 4px;
+  color: var(--hud);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sky-card[data-state='locked'] .sky-card-tag {
+  color: var(--accent);
+}
+
+.sky-card-name {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sky-card-what {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.sky-card-route {
+  margin: 2px 0 0;
+  color: var(--ink-muted);
+}
+
+.sky-card-what:empty,
+.sky-card-route:empty,
+.sky-card-name:empty {
+  display: none;
+}
+
+.sky-card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 14px;
+  margin: 12px 0 0;
+}
+
+.sky-card-stats div {
+  margin: 0;
+}
+
+.sky-card-stats dt {
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sky-card-stats dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sky-scope {
+  width: min(100%, 420px);
+  aspect-ratio: 1;
+  touch-action: manipulation;
+}
+
+.sky-hint {
+  min-height: 1.4em;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.sky-foot {
+  margin-top: auto;
+}

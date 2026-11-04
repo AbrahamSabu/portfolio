@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#04111F" />
+    <title>What's that plane? · Watchfloor</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='none' stroke='%233FB6FF' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='1.6' fill='%23C9A0FF'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <main class="sky">
+      <header class="sky-head">
+        <span class="sky-brand">WATCHFLOOR</span>
+        <h1 class="sky-title">What's that plane?</h1>
+      </header>
+
+      <section class="sky-start" id="start">
+        <p class="sky-lede">Point your phone at a plane in the sky and it tells you what it is.</p>
+        <button class="sky-go" id="go" type="button">Start</button>
+        <p class="sky-small">
+          It asks for your location and compass. Your location goes to this Watchfloor server to find the aircraft near you. It isn't stored, and
+          the flight-tracking networks only ever see a rough area.
+        </p>
+        <p class="sky-error" id="start-error" hidden></p>
+      </section>
+
+      <section class="sky-live" id="live" hidden>
+        <article class="sky-card" id="card" data-state="searching">
+          <p class="sky-card-tag" data-field="tag">Looking for aircraft near you…</p>
+          <h2 class="sky-card-name" data-field="name"></h2>
+          <p class="sky-card-what" data-field="what"></p>
+          <p class="sky-card-route" data-field="route"></p>
+          <dl class="sky-card-stats">
+            <div><dt>Altitude</dt><dd data-field="alt">—</dd></div>
+            <div><dt>Speed</dt><dd data-field="speed">—</dd></div>
+            <div><dt>Distance</dt><dd data-field="dist">—</dd></div>
+            <div><dt>In your sky</dt><dd data-field="where">—</dd></div>
+          </dl>
+        </article>
+        <canvas class="sky-scope" id="scope" aria-label="The sky around you: the centre is straight up, the edge is the horizon"></canvas>
+        <p class="sky-hint" id="hint"></p>
+      </section>
+
+      <footer class="sky-foot" id="foot">
+        Live positions: Watchfloor's feeds (OpenSky Network, adsb.lol, adsb.fi) · Types and routes: hexdb.io
+      </footer>
+    </main>
+    <script type="module" src="/src/sky/main.ts"></script>
+  </body>
+</html>
