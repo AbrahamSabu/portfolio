@@ -1,4 +1,4 @@
-[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Read the report](https://abrahamsabu.github.io/portfolio/projects/krios-research/report.html)
+[← All projects](../../README.md) · [Read the report](FULL-REPORT.md)
 
 # Kríos market research
 

@@ -1,4 +1,4 @@
-[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Project page](https://abrahamsabu.github.io/portfolio/projects/heloria-sim/)
+[← All projects](../../README.md)
 
 # Heloria Sim
 

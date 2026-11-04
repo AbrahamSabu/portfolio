@@ -1,4 +1,4 @@
-[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [See the sites it built](https://abrahamsabu.github.io/portfolio/gallery/#auto-built)
+[← All projects](../../README.md) · [See the sites it built](../../gallery/client-sites)
 
 # auto-websites
 
@@ -9,7 +9,7 @@
 | ![](screenshots/client-franco-barbeari.jpg) | ![](screenshots/client-kian-fitz-painting-decorating.jpg) |
 | ![](screenshots/client-musa-s-barbers.jpg) | ![](screenshots/client-nectar-coffee.jpg) |
 
-**It built 44 sites, and 39 are live.** [Browse them →](https://abrahamsabu.github.io/portfolio/gallery/#auto-built)
+**It built 44 sites, and 39 are live.** [Browse them →](../../gallery/client-sites)
 
 ![The app: search any city, pick businesses, build](screenshots/app-find.png)
 

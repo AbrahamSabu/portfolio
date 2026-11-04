@@ -1,10 +1,10 @@
-[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Open the app](https://abrahamsabu.github.io/portfolio/projects/ucat-tracker/)
+[← All projects](../../README.md)
 
 # UCAT Prep
 
 **A free UCAT study app. Enter your test date and it builds a day-by-day plan, writes fresh practice questions with AI, times you like the real test, and tracks every error until you've fixed it.**
 
-**[Open it in your browser →](https://abrahamsabu.github.io/portfolio/projects/ucat-tracker/)** Nothing to install, no account.
+**Download [`index.html`](index.html) and open it in your browser.** Nothing to install, no account.
 
 ![Your plan, built from your test date](screenshots/plan.png)
 

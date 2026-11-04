@@ -1,4 +1,4 @@
-[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md)
+[← All projects](../../README.md)
 
 # Kríos blog agent
 

@@ -1,4 +1,4 @@
-[← Portfolio](https://abrahamsabu.github.io/portfolio/) · [All projects](../../README.md) · [Live site](https://heloria-next.vercel.app)
+[← All projects](../../README.md) · [Live site](https://heloria-next.vercel.app)
 
 # Heloria Labs website
 
