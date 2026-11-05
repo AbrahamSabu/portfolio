@@ -1,7 +1,8 @@
-import { mpsToKnots, type Finding, type Track } from '@watchfloor/shared';
+import { metresToFeet, mpsToKnots, type Finding, type Track } from '@watchfloor/shared';
 import { createLogger } from '../log';
 import { circling } from './circling';
 import { convergingPairs } from './converging';
+import { rareSightings } from './rare';
 
 const log = createLogger('findings');
 
@@ -26,6 +27,15 @@ export interface FindingsServiceOptions {
    * again), as opposed to a condition lapsing or a ghost fading.
    */
   onEvent?: (kind: 'finding-started' | 'finding-ended', finding: Finding, time: number, resolved?: boolean) => void;
+  /** How many of an aircraft type the database knows, for "1 of 5 in the aircraft database". */
+  fleetOf?: (typeCode: string) => number | undefined;
+  /**
+   * Whose owner asked not to be tracked publicly (FAA LADD, or a privacy
+   * address). The map still draws them, as every flight tracker does, but a
+   * rare sighting puts a spotlight on one (a card, a ping, the tour, the
+   * log), which is the opposite of what was asked: those are skipped.
+   */
+  isPrivate?: (track: Track) => boolean;
 }
 
 /** How often the watchers sweep the picture. */
@@ -59,6 +69,8 @@ const DARK_MAX = 30;
 
 /** Two converging aircraft drop out of the gates and back as reports land; hold findings briefly. */
 const CONVERGING_HOLD_MS = 2 * 60_000;
+/** A rare aircraft dropping out of coverage for a minute is still the same sighting. */
+const RARE_HOLD_MS = 3 * 60_000;
 
 /** If not one ship reported inside this window, it's the feed that's silent, not a ship. */
 const FEED_QUIET_MS = 90_000;
@@ -77,6 +89,7 @@ export class FindingsService {
   private readonly circlingHeld = new Map<string, Held>();
   private readonly darkHeld = new Map<string, Held>();
   private readonly convergingHeld = new Map<string, Held>();
+  private readonly rareHeld = new Map<string, Held>();
   private readonly now: () => number;
   private readonly intervalMs: number;
   private timer: ReturnType<typeof setInterval> | undefined;
@@ -120,6 +133,7 @@ export class FindingsService {
       circling: this.circlingHeld.size,
       dark: this.darkHeld.size,
       converging: this.convergingHeld.size,
+      rare: this.rareHeld.size,
       lastSweepMs: this.lastSweepMs,
     };
   }
@@ -135,6 +149,7 @@ export class FindingsService {
     this.sweepCircling(tracks, live, now);
     this.sweepDark(tracks, now);
     this.sweepConverging(tracks, live, now);
+    this.sweepRare(tracks, live, now);
     this.seeded = true;
     this.lastSweepMs = Math.round(performance.now() - started);
     this.publish();
@@ -258,6 +273,38 @@ export class FindingsService {
     this.expire(this.convergingHeld, live, now, CONVERGING_HOLD_MS);
   }
 
+  private sweepRare(tracks: readonly Track[], live: Set<string>, now: number): void {
+    for (const { track: t, label } of rareSightings(tracks, now)) {
+      if (this.opts.isPrivate?.(t)) continue;
+      const id = `rare:${t.id}`;
+      const held = this.rareHeld.get(id);
+      const fleet = t.typeCode ? this.opts.fleetOf?.(t.typeCode) : undefined;
+      const parts = [label];
+      // Only when the database says so: a count is a fact, not a guess.
+      if (fleet && fleet > 0) parts.push(`1 of ${fleet} in the aircraft database`);
+      parts.push(`${(Math.round(metresToFeet(t.altitudeM ?? 0) / 100) * 100).toLocaleString('en-GB')} ft`);
+      const finding: Finding = {
+        id,
+        kind: 'rare',
+        tracks: [t.id],
+        domain: 'air',
+        name: nameOf(t),
+        detail: parts.join(' · '),
+        lat: t.lat,
+        lon: t.lon,
+        since: held?.finding.since ?? now,
+      };
+      if (held) {
+        held.finding = finding;
+        held.lastPositiveAt = now;
+      } else {
+        this.rareHeld.set(id, { finding, lastPositiveAt: now });
+        this.event('finding-started', finding, now);
+      }
+    }
+    this.expire(this.rareHeld, live, now, RARE_HOLD_MS);
+  }
+
   /** Drop findings whose condition lapsed (or whose tracks left the picture). */
   private expire(held: Map<string, Held>, live: Set<string>, now: number, holdMs: number): void {
     for (const [id, h] of held) {
@@ -272,6 +319,7 @@ export class FindingsService {
   private publish(): void {
     const items = [
       ...[...this.convergingHeld.values()].map((h) => h.finding),
+      ...[...this.rareHeld.values()].map((h) => h.finding).sort((a, b) => a.since - b.since),
       ...[...this.circlingHeld.values()].map((h) => h.finding).sort((a, b) => a.since - b.since),
       ...[...this.darkHeld.values()]
         .map((h) => h.finding)

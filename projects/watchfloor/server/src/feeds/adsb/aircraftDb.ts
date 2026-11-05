@@ -97,6 +97,18 @@ export class AircraftDb {
     return this.icao.length;
   }
 
+  private fleet: Map<string, number> | undefined;
+
+  /** How many aircraft of one ICAO type designator the database knows (counted once, on first ask). */
+  fleetSize(code: string): number | undefined {
+    if (!this.fleet) {
+      const counts = new Map<number, number>();
+      for (const i of this.typeIndex) counts.set(i, (counts.get(i) ?? 0) + 1);
+      this.fleet = new Map(this.types.map((t, i) => [t.code, counts.get(i) ?? 0]));
+    }
+    return this.fleet.get(code);
+  }
+
   lookup(hex: string): AircraftInfo | undefined {
     if (!/^[0-9a-f]{6}$/i.test(hex)) return undefined;
     const key = parseInt(hex, 16);

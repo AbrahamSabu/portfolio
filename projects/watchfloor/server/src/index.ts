@@ -177,11 +177,14 @@ async function main(): Promise<void> {
         },
       })
     : null;
-  // The watchers: circling aircraft, ships gone silent under way, converging military.
+  // The watchers: circling aircraft, ships gone silent under way, converging
+  // military, rare aircraft (named with their fleet size when the database is loaded).
   const findings = new FindingsService({
     world: { tracks: () => store.snapshot(), path: (id) => store.paths.flat(id) },
     onChange: (items) => hub?.broadcastFindings(items),
     onEvent: (kind, finding, time, resolved) => brief.onFinding(kind, finding, time, resolved),
+    ...(aircraftDb ? { fleetOf: (code: string) => aircraftDb.db.fleetSize(code) } : {}),
+    isPrivate: (t) => trackDetails(t, detailSources).private === true,
   });
   const weather = new WeatherService();
 

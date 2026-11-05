@@ -5,6 +5,7 @@ export const FINDING_LABEL: Record<FindingKind, string> = {
   circling: 'Circling',
   dark: 'AIS contact lost',
   converging: 'Converging',
+  rare: 'Rare sighting',
 };
 
 /**

@@ -7,7 +7,7 @@ import type { Domain } from './track';
  * never claims about intent, and their wording states only what was measured.
  */
 export interface Finding {
-  /** Stable while the finding persists: `circling:<trackId>`, `dark:<trackId>`, `conv:<idA>|<idB>`. */
+  /** Stable while the finding persists: `circling:<trackId>`, `dark:<trackId>`, `conv:<idA>|<idB>`, `rare:<trackId>`. */
   id: string;
   kind: FindingKind;
   /** The track ids involved; the first is the one to select or follow. */
@@ -23,8 +23,9 @@ export interface Finding {
   since: number;
 }
 
-export type FindingKind = 'circling' | 'dark' | 'converging';
-export const FINDING_KINDS: readonly FindingKind[] = ['circling', 'dark', 'converging'];
+/** `rare`: an airborne aircraft of a type built in tiny numbers (findings/rare.ts). */
+export type FindingKind = 'circling' | 'dark' | 'converging' | 'rare';
+export const FINDING_KINDS: readonly FindingKind[] = ['circling', 'dark', 'converging', 'rare'];
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const text = (v: unknown, max: number): v is string => typeof v === 'string' && v.length > 0 && v.length <= max;

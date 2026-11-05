@@ -70,6 +70,14 @@ afterAll(() => {
 describe('AircraftDb', () => {
   const db = buildAircraftDb(CSV, TYPES);
 
+  it('counts the fleet of each type, for the rare-sightings watcher', () => {
+    expect(db.fleetSize('C17')).toBe(1);
+    // The duplicate line made 3C4B2A an A320, so no 747-8s remain.
+    expect(db.fleetSize('A320')).toBe(1);
+    expect(db.fleetSize('B748')).toBe(0);
+    expect(db.fleetSize('XXXX')).toBeUndefined();
+  });
+
   it('looks aircraft up by ICAO24 address, in either case', () => {
     expect(db.size).toBe(4);
     expect(db.lookup('ae1234')).toEqual({

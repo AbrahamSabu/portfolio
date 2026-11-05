@@ -107,6 +107,26 @@ describe('BriefService', () => {
     ]);
   });
 
+  it('logs a rare sighting when it starts, and nothing when it flies on', () => {
+    const h = harness();
+    const sighting: Finding = {
+      id: 'rare:adsb:aaa111',
+      kind: 'rare',
+      tracks: ['adsb:aaa111'],
+      domain: 'air',
+      name: 'GTI4141',
+      detail: 'Boeing 747 Dreamlifter · 1 of 5 in the aircraft database · 32,000 ft',
+      lat: 53.2,
+      lon: -3.0,
+      since: T0,
+    };
+    h.service.onFinding('finding-started', sighting, T0);
+    h.service.onFinding('finding-ended', sighting, T0 + 40 * 60_000);
+    expect(h.service.message().events.map((e) => e.text)).toEqual([
+      'Rare sighting: GTI4141 near 53.2°N 3.0°W (Boeing 747 Dreamlifter · 1 of 5 in the aircraft database · 32,000 ft).',
+    ]);
+  });
+
   it('logs significant hazards that happen on this watch, not the backlog', () => {
     const h = harness();
     const quake = (id: string, magnitude: number, time = T0 + 60_000): Hazard => ({

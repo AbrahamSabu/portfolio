@@ -452,7 +452,19 @@ that could have been fetched before they arrived.
   + dots, ghosts fade by age, click hands the finding to main which selects
   the first live involved track), `ui/findingAlerts.ts` (cards capped at 3,
   one ping per batch), tour rides along (`findingStops`, first pool).
-  D key / `watchfloor.findings`.
+  D key / `watchfloor.findings`. Rare sightings (`findings/rare.ts`): a
+  hand-picked designator list (`RARE_TYPES`), not "types with few
+  airframes", which would mostly catch homebuilts; every entry was under
+  100 airframes in the tar1090 database (A380 261 and 747-400 450 are too
+  common). Airborne only (Belugas broadcast parked at their factories),
+  hold 3 min, detail gets "1 of N in the aircraft database" only when
+  `AircraftDb.fleetSize` knows N. **Privacy-flagged aircraft are skipped**
+  (`isPrivate`, from `trackDetails`): the map still draws them, but a card,
+  ping, tour stop and log line spotlight them. Logged on start only.
+  Start the 8088 server through Explorer (`Start-Process explorer.exe
+  -ArgumentList '"…\watchfloor-server.cmd"'`), not from a tool shell: a
+  supervisor started from a tool shell died with that shell (no crash log;
+  the picture's last save gives the time).
 - Watch handover (`server/src/brief/`, protocol v16 `brief`
   request/reply): BriefService keeps a rolling 24 h / 500-event log —
   emergency squawks starting/ending (its own 5 s sweep over the store),
