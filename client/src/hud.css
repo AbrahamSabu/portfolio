@@ -485,3 +485,50 @@
 .maplibregl-ctrl-group button:hover {
   box-shadow: 0 0 10px var(--hud-glow), inset 0 0 6px rgb(63 182 255 / 0.12);
 }
+
+/* ------------------------------------------------------------------ phones */
+
+/*
+ * The top bar holds about 560px of brand, buttons and clock; a phone has
+ * 360-430. Below 640px the buttons go icon-only, the scenario name and the
+ * map-key button (keyboard shortcuts, on a phone?) step out, and the brand
+ * and clock shrink, so nothing collides.
+ */
+@media (max-width: 640px) {
+  .topbar {
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 8px;
+  }
+
+  .topbar-start,
+  .topbar-end {
+    gap: 6px;
+  }
+
+  .brand-scenario,
+  #list-toggle > span,
+  .rare-chip > span:not(.rare-count),
+  #key-toggle,
+  .dtg-ring {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  .dtg {
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+/* The narrowest phones: the briefing button steps out too (Layers → Briefing still opens it). */
+@media (max-width: 400px) {
+  #briefing-toggle {
+    display: none;
+  }
+}

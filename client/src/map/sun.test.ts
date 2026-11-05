@@ -38,10 +38,12 @@ describe('solarElevation', () => {
 
 describe('shade', () => {
   const alpha = (el: number) => shade(el)[3];
-  it('washes the day faintly, marks sunset with a line, and darkens through twilight to full night', () => {
+  it('washes the day faintly, glows softly at sunset, and darkens through twilight to full night', () => {
     expect(alpha(30)).toBe(22);
-    expect(shade(0)).toEqual([63, 182, 255, 120]);
-    expect(alpha(0.6)).toBe(60);
+    // A faint glow, not a line: a strong one swelled into a stripe on the globe.
+    expect(shade(0)).toEqual([63, 182, 255, 30]);
+    expect(alpha(0.6)).toBeLessThan(30);
+    expect(alpha(0.6)).toBeGreaterThan(20);
     expect(alpha(-20)).toBe(165);
     const twilight = [-1.5, -3, -6, -9].map(alpha);
     expect(twilight).toEqual([...twilight].sort((a, b) => a - b));

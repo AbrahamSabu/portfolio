@@ -6,6 +6,14 @@ import { speak } from './voice';
 
 /** A finding alert goes away by itself after this long; the map marker stays. */
 const SHOW_MS = 5 * 60_000;
+/**
+ * Findings that turn up in the page's first half minute were already out
+ * there: the server's feeds wake when a page connects, so its first fresh
+ * reports "discover" aircraft that were flying all along. They go on the map
+ * and in the Rare tab, without a card or a ping.
+ */
+const CALM_OPEN_MS = 30_000;
+const openedAt = performance.now();
 /** Busy skies can start several findings in one sweep; the stack stays readable. */
 const MAX_CARDS = 3;
 
@@ -27,6 +35,7 @@ export class FindingAlerts {
     ping: () => void = () => {},
   ) {
     findings.subscribe((added) => {
+      if (performance.now() - openedAt < CALM_OPEN_MS) return;
       const interrupting = added.filter(interrupts);
       for (const f of interrupting) {
         this.add(f);

@@ -84,8 +84,9 @@ function mercatorLat(t: number): number {
 
 const DAY: Rgba = [40, 130, 210, 22];
 const NIGHT: Rgba = [0, 2, 8, 165];
-const LINE: Rgba = [63, 182, 255, 120];
-const LINE_HALF_WIDTH_DEG = 1.2;
+const GLOW: Rgba = [63, 182, 255, 30];
+/** The dusk glow fades out this far either side of sunset (°). */
+const GLOW_HALF_WIDTH_DEG = 3;
 type Rgba = [number, number, number, number];
 
 /**
@@ -93,16 +94,23 @@ type Rgba = [number, number, number, number];
  * already near black, so darkening the night alone barely shows (tried):
  * the day side gets a faint blue wash, the night side goes darker through
  * twilight (full night 12° after sunset, nautical dusk), and sunset itself
- * is a thin line of the display's light.
+ * is a faint, wide glow of the display's light. It was once a strong thin
+ * line, but the image is stretched over the whole earth, so on the globe
+ * the line swelled into a bright stripe that read as a rendering fault.
  */
 export function shade(elevationDeg: number): Rgba {
-  // A soft band about two pixels wide: a hard one-pixel line came out dotted.
-  const line = Math.max(0, 1 - Math.abs(elevationDeg) / LINE_HALF_WIDTH_DEG);
-  if (line > 0) return [LINE[0], LINE[1], LINE[2], Math.round(LINE[3] * line)];
+  const g = Math.max(0, 1 - Math.abs(elevationDeg) / GLOW_HALF_WIDTH_DEG);
+  const glowA = GLOW[3] * g * g * (3 - 2 * g);
   if (elevationDeg >= 0) {
-    const t = Math.min(1, elevationDeg / 8);
-    return [DAY[0], DAY[1], DAY[2], Math.round(DAY[3] * t)];
+    const dayA = DAY[3] * Math.min(1, elevationDeg / 8);
+    // Whichever is stronger: the glow near sunset, the wash further into the day.
+    return glowA > dayA ? [GLOW[0], GLOW[1], GLOW[2], Math.round(glowA)] : [DAY[0], DAY[1], DAY[2], Math.round(dayA)];
   }
   const t = Math.min(1, -elevationDeg / 12);
-  return [NIGHT[0], NIGHT[1], NIGHT[2], Math.round(NIGHT[3] * t * t * (3 - 2 * t))];
+  const nightA = NIGHT[3] * t * t * (3 - 2 * t);
+  if (glowA === 0) return [NIGHT[0], NIGHT[1], NIGHT[2], Math.round(nightA)];
+  // Dusk: the glow over the deepening dark, mixed by how much each contributes.
+  const w = glowA / (glowA + nightA);
+  const mix = (i: 0 | 1 | 2) => Math.round(GLOW[i] * w + NIGHT[i] * (1 - w));
+  return [mix(0), mix(1), mix(2), Math.round(Math.min(255, nightA + glowA * (1 - nightA / 255)))];
 }
