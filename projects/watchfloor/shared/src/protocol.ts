@@ -175,6 +175,12 @@ export interface FindingsMessage {
   type: 'findings';
   serverTime: number;
   items: Finding[];
+  /**
+   * Rare sightings that have ended in the last 24 hours, newest first, each
+   * with `endedAt`: what the Rare aircraft tab lists besides the live ones.
+   * Optional, so a page without the tab simply ignores it.
+   */
+  recent?: Finding[];
 }
 
 /** The last day's events, in answer to a browser's `brief` request. Oldest first. */
@@ -371,7 +377,9 @@ export function parseServerMessage(raw: string): ServerMessage | null {
     case 'findings': {
       if (!Array.isArray(m.items)) return null;
       const items = m.items.map(parseFinding).filter((f): f is Finding => f !== null);
-      return { type: 'findings', serverTime: m.serverTime, items };
+      const message: FindingsMessage = { type: 'findings', serverTime: m.serverTime, items };
+      if (Array.isArray(m.recent)) message.recent = m.recent.map(parseFinding).filter((f): f is Finding => f !== null);
+      return message;
     }
     case 'brief': {
       if (!Array.isArray(m.events) || typeof m.sinceTime !== 'number') return null;

@@ -1864,6 +1864,94 @@ body[data-list-open] .filter-panel {
   color: var(--ink-muted);
 }
 
+/* The Rare aircraft tab: above the news briefing, which shares its frame. */
+.rare-panel {
+  z-index: 3;
+}
+
+/* The panels are glass: the briefing underneath would read through them. */
+body:has(#rare-panel:not([hidden]), #handover:not([hidden])) #briefing {
+  visibility: hidden;
+}
+
+/* More cards than the corner holds: the oldest fade out at the top instead of being cut off. */
+.alerts-overflow {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 72px);
+}
+
+.rare-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.rare-group {
+  margin: 10px 14px 4px;
+  color: var(--hud);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rare-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rare-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  row-gap: 1px;
+  width: 100%;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rare-item:hover {
+  background: rgb(63 182 255 / 0.08);
+}
+
+.rare-item-type {
+  font-weight: 600;
+}
+
+.rare-item-name {
+  color: #3fb6ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.rare-item-facts,
+.rare-item-time {
+  grid-column: 1 / -1;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+/* The top bar's count of rare aircraft flying right now. */
+.rare-count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgb(63 182 255 / 0.22);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.rare-chip-live {
+  border-color: rgb(63 182 255 / 0.6);
+  color: var(--ink);
+}
+
 /* The watch handover: the server's own log read back, newest first. */
 .handover-actions {
   display: flex;
@@ -1931,15 +2019,26 @@ button.handover-item:hover {
  * Under the top bar, centred, above the map's panels. Amber (--warn): an
  * emergency is a state, not an identity, so it never borrows hostile red.
  */
+/*
+ * Bottom-left, growing upward: clear of the middle of the map (where the eye
+ * is), the map buttons top-left, the panels on the right, and the timeline
+ * and tour banner at the bottom centre (the 72px clears the scale tape and
+ * the timeline's band). Capped in height; past that the oldest scroll off
+ * the top, behind the newest.
+ */
 .alerts {
   position: absolute;
   z-index: 4;
-  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
-  left: 50%;
-  display: grid;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 72px);
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   gap: 8px;
-  width: min(340px, calc(100vw - 24px));
-  transform: translateX(-50%);
+  width: min(320px, calc(100vw - 24px));
+  /* 290px: the map buttons above (they end about 240px down) and the 72px below. */
+  max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - 290px);
+  overflow: hidden;
   pointer-events: none;
 }
 

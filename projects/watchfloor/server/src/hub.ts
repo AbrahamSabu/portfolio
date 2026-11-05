@@ -101,8 +101,8 @@ export interface HubOptions {
   news?: () => NewsItem[];
   /** Current earthquakes and disasters, sent after the news. */
   hazards?: () => Hazard[];
-  /** The watchers' current findings, sent after the hazards. */
-  findings?: () => Finding[];
+  /** The watchers' current findings, and the last day's ended rare sightings, sent after the hazards. */
+  findings?: () => { items: Finding[]; recent: Finding[] };
   /** Answers a browser's request for the handover brief. */
   onBrief?: (send: (message: BriefMessage) => void) => void;
   /** Answers a browser's request for recent paths through an area. */
@@ -206,7 +206,7 @@ export class Hub {
       const hazards = this.opts.hazards?.();
       if (hazards) this.send(client, { type: 'hazards', serverTime: Date.now(), items: hazards });
       const findings = this.opts.findings?.();
-      if (findings) this.send(client, { type: 'findings', serverTime: Date.now(), items: findings });
+      if (findings) this.send(client, { type: 'findings', serverTime: Date.now(), ...findings });
     });
   }
 
@@ -224,8 +224,8 @@ export class Hub {
   }
 
   /** The whole findings list to every browser, whenever a watcher's picture changes. */
-  broadcastFindings(items: Finding[]): void {
-    const payload = encodeServerMessage({ type: 'findings', serverTime: Date.now(), items });
+  broadcastFindings(items: Finding[], recent: Finding[]): void {
+    const payload = encodeServerMessage({ type: 'findings', serverTime: Date.now(), items, recent });
     for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
   }
 

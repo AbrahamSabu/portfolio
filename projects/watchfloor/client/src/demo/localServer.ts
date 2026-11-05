@@ -68,7 +68,7 @@ export class LocalServer implements Link {
     this.brief = new BriefService({ tracks: () => this.store.snapshot() });
     this.findings = new FindingsService({
       world: { tracks: () => this.store.snapshot(), path: (id) => this.store.paths.flat(id) },
-      onChange: (items) => this.emit({ type: 'findings', serverTime: Date.now(), items }),
+      onChange: (items, recent) => this.emit({ type: 'findings', serverTime: Date.now(), items, recent }),
       onEvent: (kind, finding, time, resolved) => this.brief.onFinding(kind, finding, time, resolved),
     });
   }
@@ -99,7 +99,7 @@ export class LocalServer implements Link {
       });
       this.emit({ type: 'snapshot', serverTime: now, tracks: this.store.snapshot(), trails: this.store.trailSnapshot() });
       this.store.flush(); // the snapshot carried it all
-      this.emit({ type: 'findings', serverTime: now, items: this.findings.items() });
+      this.emit({ type: 'findings', serverTime: now, items: this.findings.items(), recent: this.findings.recent() });
       this.tickTimer = window.setInterval(() => this.tick(), TICK_MS);
     });
   }

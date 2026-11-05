@@ -21,6 +21,8 @@ export interface Finding {
   lon: number;
   /** When the condition was first met (ms). */
   since: number;
+  /** Only on past sightings (FindingsMessage.recent): when it was last seen. */
+  endedAt?: number;
 }
 
 /** `rare`: an airborne aircraft of a type built in tiny numbers (findings/rare.ts). */
@@ -39,7 +41,7 @@ export function parseFinding(v: unknown): Finding | null {
   if (!Array.isArray(f.tracks) || f.tracks.length === 0 || f.tracks.length > 4) return null;
   if (!f.tracks.every((t): t is string => text(t, 130))) return null;
   if (!finite(f.lat) || !finite(f.lon) || Math.abs(f.lat) > 90 || Math.abs(f.lon) > 180 || !finite(f.since)) return null;
-  return {
+  const finding: Finding = {
     id: f.id,
     kind: f.kind as FindingKind,
     tracks: f.tracks,
@@ -50,6 +52,8 @@ export function parseFinding(v: unknown): Finding | null {
     lon: f.lon,
     since: f.since,
   };
+  if (finite(f.endedAt)) finding.endedAt = f.endedAt;
+  return finding;
 }
 
 /**

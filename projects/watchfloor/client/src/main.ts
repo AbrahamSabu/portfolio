@@ -60,6 +60,7 @@ import { RegionAlerts } from './ui/regionAlerts';
 import { RegionControl, RegionPanel } from './ui/regionPanel';
 import { FilterPanel } from './ui/filterPanel';
 import { HandoverPanel } from './ui/handoverPanel';
+import { RarePanel } from './ui/rarePanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
 import { Timeline } from './ui/timeline';
@@ -278,6 +279,20 @@ async function main(): Promise<void> {
   };
   new FindingLayer(map, findings, findingsShown, layer, () => clock.now(), showFinding);
   new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => sound.ping());
+  // The Rare aircraft tab: what's flying now and the last day's, whenever you want them.
+  const rarePanel = new RarePanel(el('rare-panel'), el('rare-toggle') as HTMLButtonElement, findings, map, () => clock.now(), showFinding);
+
+  // The alert corner fades its oldest cards when it's full. A bottom-anchored
+  // stack overflows upward, which scrollHeight doesn't count, so the cards are measured.
+  const alertCorner = document.querySelector<HTMLElement>('.alerts')!;
+  const markOverflow = () => {
+    // Each kind of alert is a group; the stack's gap (8px) sits between the groups shown.
+    const groups = [...alertCorner.children].filter((g): g is HTMLElement => g instanceof HTMLElement && g.offsetHeight > 0);
+    const content = groups.reduce((sum, g) => sum + g.offsetHeight, 0) + 8 * Math.max(0, groups.length - 1);
+    alertCorner.classList.toggle('alerts-overflow', content > alertCorner.clientHeight + 1);
+  };
+  new MutationObserver(markOverflow).observe(alertCorner, { childList: true, subtree: true });
+  window.addEventListener('resize', markOverflow);
 
   // Display theatre, both opt-in: the phosphor scope (one green, the CSS does
   // it) and the long exposure (movement burns into a canvas over the map).
@@ -473,6 +488,7 @@ async function main(): Promise<void> {
       else if (regionPanel.open) regionPanel.setOpen(false);
       else if (layersPanel.open) layersPanel.setOpen(false);
       else if (handover.open) handover.setOpen(false);
+      else if (rarePanel.open) rarePanel.setOpen(false);
       else if (timeline.open) timeline.setOpen(false);
       else if (hook.armed || hook.active) hook.clear();
       else selection.select(null);
@@ -494,6 +510,7 @@ async function main(): Promise<void> {
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
+    if (event.key === 'u' || event.key === 'U') rarePanel.setOpen(!rarePanel.open);
     if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === '?') keyDialog.toggle();
@@ -523,6 +540,7 @@ async function main(): Promise<void> {
       search: () => palette.setOpen(true),
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),
+      rare: () => rarePanel.setOpen(true),
       timeline: () => timeline.setOpen(true),
       phosphor,
       exposure: exposureShown,
@@ -634,7 +652,7 @@ async function main(): Promise<void> {
           hazards.apply(message.items);
           break;
         case 'findings':
-          findings.apply(message.items);
+          findings.apply(message.items, message.recent ?? []);
           break;
         case 'brief':
           handover.load(message);

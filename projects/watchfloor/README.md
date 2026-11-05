@@ -74,10 +74,12 @@ current user, no admin needed: a dedicated server starts at logon (port
 8080), and a Task Scheduler idle trigger opens a full-screen Edge kiosk on
 the tour after ten quiet minutes — Esc leaves it.
 `scripts\watchfloor-screensaver.cmd` opens the kiosk by hand, and
-`scripts\uninstall-screensaver.cmd` removes the lot. Rebuilding does not
-reach a running server: close its minimised window and run the server
-script again (each AISStream instance also holds one of the key's three
-connections).
+`scripts\uninstall-screensaver.cmd` removes the lot. The server runs with
+no window (nothing to close by accident), restarts itself if it ever
+stops, and logs to `.cache\server.log`. To stop it, run
+`scripts\stop-watchfloor-server.cmd`; after rebuilding, stop it and run
+`scripts\watchfloor-server.cmd` again (each AISStream instance also holds
+one of the key's three connections).
 
 For production, as a single process on one port:
 
