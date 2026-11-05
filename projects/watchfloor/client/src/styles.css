@@ -96,6 +96,20 @@ button {
   inset: 0;
 }
 
+/* Behind the map (map/space.ts): deep navy lightening towards the globe, the stars drawn on its canvas. */
+.app > .space {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 65% at 50% 47%, #0a1f36 0%, #05101e 55%, #02060c 100%);
+}
+
+.app > .space canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 /* ---------------------------------------------------------------- top bar */
 
 .topbar {
@@ -3060,7 +3074,8 @@ button.layers-switch .news-switch-track {
  * gun. A deliberate, operator-chosen exception to "colour means identity" —
  * affiliation colours survive as brightness, as they did on real tubes.
  */
-#map.phosphor {
+#map.phosphor,
+.app:has(#map.phosphor) > .space {
   filter: grayscale(1) sepia(1) hue-rotate(55deg) saturate(2.4) brightness(0.95) contrast(1.06);
 }
 

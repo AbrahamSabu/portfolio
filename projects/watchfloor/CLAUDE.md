@@ -494,8 +494,16 @@ that could have been fetched before they arrived.
   1.2°) swelled into a stripe that looked like a rendering fault.
 - Space and night (Nov 2026): around the globe the map canvas is
   transparent (tested: a red #map background shows exactly there), so
-  `map/space.ts` paints #map once: a seeded 900-star canvas (no animation:
-  the motion rule) over a navy radial gradient. Free when zoomed in.
+  `map/space.ts` (SpaceBackdrop) draws on a canvas in `#space`, a sibling
+  behind #map, over a navy radial gradient: a seeded Milky Way (glow puffs,
+  7,000 dust stars, light lanes; heavy lanes made it a dark smudge) with
+  blue/teal nebulae (never orchid), plus three tiled star depths (512,
+  1024, 1536 px; small tiles repeated the bright few in a visible grid)
+  that drift at different speeds with the map's unwrapped longitude and
+  latitude. Redrawn only on map `move`, coalesced to a frame, skipped above
+  zoom 7; still under reduced motion (it moves only when the map does, so
+  the motion rule holds). The galaxy canvas is 1x even on high-DPI (soft;
+  4x memory for nothing). Phosphor mode filters `.space` too.
   `map/nightLights.ts`: NASA Black Marble 2016 (VIIRS) as one 2048px Web
   Mercator image from the GIBS WMS (CORS `*`, ~170 KB, public domain;
   1024 looked like smudges at zoom 3). Lights = luminance above 0.3 (the
