@@ -30,6 +30,8 @@ const ids = (domain: Domain) => ({
   leaders: `track-leaders-${domain}`,
   /** Small dots for the zoomed-out view, where thousands of full symbols would just be a smear. */
   dots: `track-dots-${domain}`,
+  /** A soft halo under each dot: where traffic is dense the halos overlap and the route glows. */
+  glow: `track-glow-${domain}`,
   symbols: `track-symbols-${domain}`,
   /** Callsigns beside vehicle shapes; tactical symbols carry theirs inside the image. */
   labels: `track-labels-${domain}`,
@@ -67,7 +69,7 @@ type CirclePaint = NonNullable<CircleLayerSpecification['paint']>;
 const DOT_PAINT: Record<Domain, CirclePaint> = {
   air: {
     'circle-color': AFFILIATION_LINE_COLOR,
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 1.4, 5, 2.8],
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 1.1, 5, 2.6],
     'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.9],
   },
   sea: {
@@ -76,6 +78,31 @@ const DOT_PAINT: Record<Domain, CirclePaint> = {
     'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 1, 0.8, 5, 1.2],
     'circle-stroke-color': AFFILIATION_LINE_COLOR,
     'circle-stroke-opacity': ['case', ['==', ['get', 'stale'], 1], 0.35, 0.85],
+  },
+};
+
+/**
+ * Traffic as light, zoomed out: each dot gets a wide, blurred halo in its own
+ * identity colour, faint alone and bright where many overlap, so busy
+ * corridors (the North Atlantic, Europe's skies) glow by their density alone.
+ * No invented history: comet tails long enough to see from orbit would have
+ * to be extrapolated along each heading, drawing paths aircraft never flew.
+ * Ships glow fainter than aircraft: there are twice as many, and they'd
+ * otherwise wash the coasts out.
+ */
+const GLOW_PAINT: Record<Domain, CirclePaint> = {
+  air: {
+    'circle-color': AFFILIATION_LINE_COLOR,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 3.5, 3, 5, 5, 7.5],
+    'circle-blur': 1,
+    // Faint alone: at 0.17, Europe's thousands overlapped into a solid sheet.
+    'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.02, 0.09],
+  },
+  sea: {
+    'circle-color': AFFILIATION_LINE_COLOR,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 3, 3, 4.5, 5, 6],
+    'circle-blur': 1,
+    'circle-opacity': ['case', ['==', ['get', 'stale'], 1], 0.01, 0.045],
   },
 };
 
@@ -175,6 +202,8 @@ export class TrackLayer {
     for (const domain of DOMAINS) {
       const id = ids(domain);
       if (map.getLayer(id.dots)) continue;
+      // The halo first, so the bright dot sits on top of its own glow.
+      if (!map.getLayer(id.glow)) map.addLayer({ id: id.glow, type: 'circle', source: id.source, maxzoom: SYMBOL_MIN_ZOOM, paint: GLOW_PAINT[domain] });
       map.addLayer({ id: id.dots, type: 'circle', source: id.source, maxzoom: SYMBOL_MIN_ZOOM, paint: DOT_PAINT[domain] });
     }
     for (const domain of DOMAINS) {
@@ -242,7 +271,7 @@ export class TrackLayer {
     const visibility = this.hidden ? 'none' : 'visible';
     for (const domain of DOMAINS) {
       const id = ids(domain);
-      for (const layer of [id.leaders, id.dots, id.symbols, id.labels]) {
+      for (const layer of [id.leaders, id.glow, id.dots, id.symbols, id.labels]) {
         if (this.map.getLayer(layer)) this.map.setLayoutProperty(layer, 'visibility', visibility);
       }
     }

@@ -475,6 +475,29 @@ that could have been fetched before they arrived.
   groups) exceed it, `.alerts-overflow` fades the oldest at the top; a
   bottom-anchored flex stack overflows *upward*, which scrollHeight
   doesn't count, so main.ts measures the groups.
+- First impression (Nov 2026 visual pass): **calm open**: no news card for
+  15 s (`newsCards.ts` CALM_OPEN_MS; the first used to land 1.5 s in,
+  mid-globe) and no finding cards for 30 s (`findingAlerts.ts`: the
+  server's feeds wake when a page connects, so its first reports
+  "discover" aircraft that were flying all along). On phones (< 640px)
+  the news rotation never pops cards (tapped ones still open), the top
+  bar goes icon-only (hud.css "phones"), and the map credits start folded:
+  MapLibre auto-opens compact credits the first time they have text (often
+  on a resize after load), unless the box already has `maplibregl-compact`,
+  so createMap adds it at creation. **Traffic as light**: below zoom 5 each
+  dot has a blurred halo layer (`track-glow-*`, GLOW_PAINT) in its identity
+  colour, faint alone (air 0.09, sea 0.045; 0.17 made Europe a solid
+  sheet) and bright where many overlap. Not comet tails: tails visible from
+  orbit would be extrapolated along headings, inventing paths. Sunset is
+  now a faint 3° glow (alpha 30) mixed into the twilight, not a line: the
+  night image is stretched over the earth, so the old line (alpha 120,
+  1.2°) swelled into a stripe that looked like a rendering fault.
+- Air findings hold through feed pauses (`airLiveSince`, like
+  `seaLiveSince`): while no aircraft report is fresher than 90 s nothing
+  air-side expires, and for a hold-length after the feed returns neither
+  the quiet spell nor a not-yet-reported track counts. Without this every
+  page open ended and restarted them as new (cards, pings, log lines). A
+  past rare sighting's `endedAt` is when it was last seen as rare.
 - Watch handover (`server/src/brief/`, protocol v16 `brief`
   request/reply): BriefService keeps a rolling 24 h / 500-event log —
   emergency squawks starting/ending (its own 5 s sweep over the store),

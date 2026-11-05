@@ -106,6 +106,13 @@ export class FindingsService {
   private seeded = false;
   /** Since when the sea feed has delivered without a gap; null while it's quiet. */
   private seaLiveSince: number | null = null;
+  /**
+   * Since when aircraft reports have been arriving without a gap; null while
+   * the air feeds are quiet. The server pauses its feeds while nobody
+   * watches, so a quiet spell isn't every aircraft landing at once: air
+   * findings are held through it, not ended and restarted as "new".
+   */
+  private airLiveSince: number | null = null;
 
   constructor(private readonly opts: FindingsServiceOptions) {
     this.now = opts.now ?? (() => Date.now());
@@ -155,7 +162,13 @@ export class FindingsService {
     const now = this.now();
     const tracks = this.opts.world.tracks();
     const live = new Set<string>();
-    for (const t of tracks) live.add(t.id);
+    let freshestAir = Infinity;
+    for (const t of tracks) {
+      live.add(t.id);
+      if (t.domain === 'air' && now - t.observedAt < freshestAir) freshestAir = now - t.observedAt;
+    }
+    if (freshestAir >= FEED_QUIET_MS) this.airLiveSince = null;
+    else this.airLiveSince ??= now;
 
     this.sweepCircling(tracks, live, now);
     this.sweepDark(tracks, now);
@@ -318,16 +331,22 @@ export class FindingsService {
     for (const [id, held] of before) {
       if (this.rareHeld.has(id)) continue;
       // The same aircraft seen again replaces its older entry.
-      this.rareRecent = [{ ...held.finding, endedAt: now }, ...this.rareRecent.filter((f) => f.id !== id)];
+      // When it was last seen as itself, not when the hold ran out.
+      this.rareRecent = [{ ...held.finding, endedAt: held.lastPositiveAt }, ...this.rareRecent.filter((f) => f.id !== id)];
     }
     this.rareRecent = this.rareRecent.filter((f) => now - (f.endedAt ?? now) <= RARE_RECENT_MS).slice(0, RARE_RECENT_MAX);
   }
 
   /** Drop findings whose condition lapsed (or whose tracks left the picture). */
   private expire(held: Map<string, Held>, live: Set<string>, now: number, holdMs: number): void {
+    // Feeds quiet: nothing has been heard either way, so everything holds.
+    if (this.airLiveSince === null) return;
+    // Just back: reports trickle in over a poll or two, so the quiet spell
+    // doesn't count against the hold, and a track not reported yet isn't gone yet.
+    const settling = now - this.airLiveSince < holdMs;
     for (const [id, h] of held) {
       const gone = h.finding.tracks.some((t) => !live.has(t));
-      if (gone || now - h.lastPositiveAt > holdMs) {
+      if ((gone && !settling) || now - Math.max(h.lastPositiveAt, this.airLiveSince) > holdMs) {
         held.delete(id);
         this.event('finding-ended', h.finding, now);
       }

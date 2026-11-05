@@ -17,6 +17,19 @@ const PINNED_MS = 45_000;
  * (it did, in testing).
  */
 const MAX_HOLD_MS = 30_000;
+/**
+ * The page's first moments are for the picture: no card pops up until this
+ * long after it opens. The first card used to land 1.5 s in, in the middle
+ * of the globe, before anyone had looked at anything else.
+ */
+const CALM_OPEN_MS = 15_000;
+const openedAt = performance.now();
+const calmLeft = () => Math.max(0, CALM_OPEN_MS - (performance.now() - openedAt));
+/**
+ * On a phone a card covers half the map and the map buttons: stories there
+ * open only when tapped (a marker, the ticker), never by themselves.
+ */
+const narrow = () => window.innerWidth < 640;
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -58,6 +71,11 @@ export class NewsCards {
 
     news.subscribe((added) => {
       this.rotation.enqueue(added);
+      // The opening calm: whatever arrived waits its turn until it's over.
+      if (calmLeft() > 0) {
+        if (!this.shownId) this.schedule(calmLeft());
+        return;
+      }
       // Something new: show it now rather than at the end of the current dwell.
       if (added.length > 0 && !this.pinned()) this.advance();
       // The page just got the day's stories: put one up soon, not after a full dwell.
@@ -78,9 +96,9 @@ export class NewsCards {
     });
     document.addEventListener('visibilitychange', () => {
       // Back in front: put up what arrived meanwhile now, not at the next turn.
-      if (!document.hidden) this.advance();
+      if (!document.hidden && calmLeft() === 0) this.advance();
     });
-    this.schedule(DWELL_MS);
+    this.schedule(Math.max(DWELL_MS, calmLeft()));
   }
 
   /** Open one story's card, from its marker or the ticker; it stays up until closed. */
@@ -107,6 +125,12 @@ export class NewsCards {
     const reading = this.hovering && this.now() - this.hoverSince < MAX_HOLD_MS;
     if (!this.settings.shown || document.hidden || reading || this.pinned() || speaking) {
       this.schedule(speaking ? 1_000 : DWELL_MS);
+      return;
+    }
+    // A phone: the rotation steps aside (and a card it put up closes); tapped ones stay.
+    if (narrow()) {
+      this.close();
+      this.schedule(DWELL_MS);
       return;
     }
     const story = this.rotation.next(this.news.items, this.now(), this.onScreenTest());

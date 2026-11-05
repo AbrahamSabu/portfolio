@@ -74,6 +74,20 @@ export function createMap(container: HTMLElement, options: { pixelRatio?: number
     map.setStyle(OFFLINE_STYLE);
   });
 
+  // The compact credits open themselves the first time they have text (often
+  // on a resize after load); on a phone they'd sit over the map as a box of
+  // text. Marking them compact now, folded, is what MapLibre takes as
+  // "already set up", so it never auto-opens them; the ⓘ button still does.
+  const foldCredits = () => {
+    if (container.clientWidth > 640) return;
+    const attrib = container.querySelector('.maplibregl-ctrl-attrib');
+    attrib?.classList.add('maplibregl-compact');
+    attrib?.classList.remove('maplibregl-compact-show');
+    attrib?.removeAttribute('open');
+  };
+  foldCredits();
+  map.once('load', foldCredits);
+
   let moved = false;
   for (const type of ['dragstart', 'wheel', 'touchstart', 'boxzoomstart'] as const) {
     map.on(type, () => (moved = true));
