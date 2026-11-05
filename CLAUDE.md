@@ -492,6 +492,22 @@ that could have been fetched before they arrived.
   now a faint 3° glow (alpha 30) mixed into the twilight, not a line: the
   night image is stretched over the earth, so the old line (alpha 120,
   1.2°) swelled into a stripe that looked like a rendering fault.
+- Space and night (Nov 2026): around the globe the map canvas is
+  transparent (tested: a red #map background shows exactly there), so
+  `map/space.ts` paints #map once: a seeded 900-star canvas (no animation:
+  the motion rule) over a navy radial gradient. Free when zoomed in.
+  `map/nightLights.ts`: NASA Black Marble 2016 (VIIRS) as one 2048px Web
+  Mercator image from the GIBS WMS (CORS `*`, ~170 KB, public domain;
+  1024 looked like smudges at zoom 3). Lights = luminance above 0.3 (the
+  product's dark-blue land and ice drop out), shown only where the sun is
+  below -2° (full by -10°), recomputed every 2 min for lit pixels only, in
+  pale HUD blue (200,230,255), not amber: amber means emergency here.
+  Raster under the first symbol layer, above the night shade, opacity
+  fading out by zoom 7; credit via an empty geojson source with a layer.
+  Style readiness from `style.load`/`styledataloading`, never
+  `isStyleLoaded()` (it read false while tiles loaded, exactly when the
+  image arrived, and the layer never went in). The briefing now fades in
+  last in the opening sequence (`.app.booting .briefing`).
 - Air findings hold through feed pauses (`airLiveSince`, like
   `seaLiveSince`): while no aircraft report is fresher than 90 s nothing
   air-side expires, and for a hold-length after the feed returns neither
