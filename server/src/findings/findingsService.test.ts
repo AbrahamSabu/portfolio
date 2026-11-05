@@ -271,6 +271,41 @@ describe('FindingsService', () => {
     expect(events).toEqual(['finding-started rare:adsb:aaa111']);
   });
 
+  it('keeps a day of ended rare sightings for the Rare aircraft tab', () => {
+    let now = T0;
+    let tracks: Track[] = [];
+    const service = new FindingsService({ world: { tracks: () => tracks, path: () => undefined }, now: () => now });
+    service.sweep();
+    const beluga = (t: number) => track('adsb:aaa333', { callsign: 'BGA114C', typeCode: 'A337', altitudeM: 6_000, speedMps: 200, observedAt: t });
+
+    now = T0 + 20_000;
+    tracks = [beluga(now)];
+    service.sweep();
+    expect(service.recent()).toEqual([]);
+
+    // It leaves the picture; after the hold it moves to the recent list, with when it was last seen.
+    now = T0 + 10 * 60_000;
+    tracks = [];
+    service.sweep();
+    expect(service.items()).toEqual([]);
+    expect(service.recent()).toMatchObject([{ id: 'rare:adsb:aaa333', name: 'BGA114C', endedAt: now }]);
+
+    // Seen again and lost again: one entry, the newest.
+    now = T0 + 20 * 60_000;
+    tracks = [beluga(now)];
+    service.sweep();
+    now = T0 + 30 * 60_000;
+    tracks = [];
+    service.sweep();
+    expect(service.recent()).toHaveLength(1);
+    expect(service.recent()[0]!.endedAt).toBe(now);
+
+    // A day on, it's gone from the list.
+    now += 25 * 3_600_000;
+    service.sweep();
+    expect(service.recent()).toEqual([]);
+  });
+
   it('never spotlights a rare aircraft whose owner asked not to be tracked', () => {
     let now = T0;
     let tracks: Track[] = [];

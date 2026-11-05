@@ -20,7 +20,7 @@ export interface FindingsServiceOptions {
   intervalMs?: number;
   now?: () => number;
   /** The whole list, whenever it changes: the hub sends it to every browser. */
-  onChange?: (items: Finding[]) => void;
+  onChange?: (items: Finding[], recent: Finding[]) => void;
   /**
    * A finding appeared or went away, for the event log. `resolved` is set on
    * the one ending that means something happened (a silent ship transmitting
@@ -71,6 +71,10 @@ const DARK_MAX = 30;
 const CONVERGING_HOLD_MS = 2 * 60_000;
 /** A rare aircraft dropping out of coverage for a minute is still the same sighting. */
 const RARE_HOLD_MS = 3 * 60_000;
+/** Past rare sightings are listed this long after they end, for the Rare aircraft tab. */
+const RARE_RECENT_MS = 24 * 3_600_000;
+/** A busy military exercise could log dozens; the tab shows the newest. */
+const RARE_RECENT_MAX = 60;
 
 /** If not one ship reported inside this window, it's the feed that's silent, not a ship. */
 const FEED_QUIET_MS = 90_000;
@@ -90,11 +94,13 @@ export class FindingsService {
   private readonly darkHeld = new Map<string, Held>();
   private readonly convergingHeld = new Map<string, Held>();
   private readonly rareHeld = new Map<string, Held>();
+  /** Rare sightings that ended, newest first, each with endedAt. */
+  private rareRecent: Finding[] = [];
   private readonly now: () => number;
   private readonly intervalMs: number;
   private timer: ReturnType<typeof setInterval> | undefined;
   private published: Finding[] = [];
-  private signature = '[]';
+  private signature = '[[],[]]';
   private lastSweepMs = 0;
   /** The first sweep finds what predates the watch: it publishes, but logs no events. */
   private seeded = false;
@@ -122,6 +128,11 @@ export class FindingsService {
   stop(): void {
     clearInterval(this.timer);
     this.timer = undefined;
+  }
+
+  /** Rare sightings that ended in the last 24 hours, newest first. */
+  recent(): Finding[] {
+    return this.rareRecent;
   }
 
   items(): Finding[] {
@@ -302,7 +313,14 @@ export class FindingsService {
         this.event('finding-started', finding, now);
       }
     }
+    const before = new Map(this.rareHeld);
     this.expire(this.rareHeld, live, now, RARE_HOLD_MS);
+    for (const [id, held] of before) {
+      if (this.rareHeld.has(id)) continue;
+      // The same aircraft seen again replaces its older entry.
+      this.rareRecent = [{ ...held.finding, endedAt: now }, ...this.rareRecent.filter((f) => f.id !== id)];
+    }
+    this.rareRecent = this.rareRecent.filter((f) => now - (f.endedAt ?? now) <= RARE_RECENT_MS).slice(0, RARE_RECENT_MAX);
   }
 
   /** Drop findings whose condition lapsed (or whose tracks left the picture). */
@@ -326,11 +344,11 @@ export class FindingsService {
         .sort((a, b) => b.since - a.since)
         .slice(0, DARK_MAX),
     ];
-    const signature = JSON.stringify(items);
+    const signature = JSON.stringify([items, this.rareRecent]);
     if (signature === this.signature) return;
     this.signature = signature;
     this.published = items;
-    this.opts.onChange?.(items);
+    this.opts.onChange?.(items, this.rareRecent);
   }
 }
 

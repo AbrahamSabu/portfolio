@@ -181,7 +181,7 @@ async function main(): Promise<void> {
   // military, rare aircraft (named with their fleet size when the database is loaded).
   const findings = new FindingsService({
     world: { tracks: () => store.snapshot(), path: (id) => store.paths.flat(id) },
-    onChange: (items) => hub?.broadcastFindings(items),
+    onChange: (items, recent) => hub?.broadcastFindings(items, recent),
     onEvent: (kind, finding, time, resolved) => brief.onFinding(kind, finding, time, resolved),
     ...(aircraftDb ? { fleetOf: (code: string) => aircraftDb.db.fleetSize(code) } : {}),
     isPrivate: (t) => trackDetails(t, detailSources).private === true,
@@ -257,7 +257,7 @@ async function main(): Promise<void> {
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
     ...(news ? { news: () => news.items() } : {}),
     ...(hazards ? { hazards: () => hazards.items() } : {}),
-    findings: () => findings.items(),
+    findings: () => ({ items: findings.items(), recent: findings.recent() }),
     onBrief: (send) => send(brief.message()),
     onReplay: (bbox, send) => send(replayFor(store.snapshot(), (id) => store.paths.get(id), bbox, Date.now())),
   });

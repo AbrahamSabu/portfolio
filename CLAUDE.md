@@ -461,10 +461,20 @@ that could have been fetched before they arrived.
   `AircraftDb.fleetSize` knows N. **Privacy-flagged aircraft are skipped**
   (`isPrivate`, from `trackDetails`): the map still draws them, but a card,
   ping, tour stop and log line spotlight them. Logged on start only.
-  Start the 8088 server through Explorer (`Start-Process explorer.exe
-  -ArgumentList '"…\watchfloor-server.cmd"'`), not from a tool shell: a
-  supervisor started from a tool shell died with that shell (no crash log;
-  the picture's last save gives the time).
+  Ended rare sightings are kept 24 h (max 60, newest first, re-sighting
+  replaces) and ride on the findings message as optional `recent` (each
+  with `endedAt`); `onChange(items, recent)`. The **Rare aircraft tab**
+  (`ui/rarePanel.ts`, U key, top-bar button with a live count, Layers →
+  Rare aircraft): in the air now (pick = select + follow) and the last
+  24 h (pick = fly to last position); closes on pick. It and the handover
+  hide the news briefing underneath via `body:has(...)`: the panels are
+  glass and the text read through.
+- Alert corner: `.alerts` is bottom-left, growing upward (72px clears the
+  scale tape and the timeline's band), max-height leaves the map buttons
+  (they end ~240px down). When the groups (plus 8px gaps between shown
+  groups) exceed it, `.alerts-overflow` fades the oldest at the top; a
+  bottom-anchored flex stack overflows *upward*, which scrollHeight
+  doesn't count, so main.ts measures the groups.
 - Watch handover (`server/src/brief/`, protocol v16 `brief`
   request/reply): BriefService keeps a rolling 24 h / 500-event log —
   emergency squawks starting/ending (its own 5 s sweep over the store),
@@ -583,8 +593,19 @@ that could have been fetched before they arrived.
   opens the Edge kiosk on it, install-screensaver.cmd adds a Startup-
   folder stub plus a schtasks 10-minute idle trigger (user runs it
   themselves: installing persistence is denied to the agent), and
-  uninstall-screensaver.cmd removes both. `*.cmd` is CRLF in
-  .gitattributes.
+  uninstall-screensaver.cmd removes both and stops the server. `*.cmd`
+  is CRLF in .gitattributes. **The server runs with no window**
+  (watchfloor-server.cmd → hidden `Start-Process` of
+  watchfloor-server-loop.cmd): Windows 11 hosts new consoles in Windows
+  Terminal, where `start /min` gives an ordinary window; the user closed
+  it (twice, Nov 2026) and the server died with no crash log. The loop
+  appends node's output to `.cache/server.log` (rotated at 5 MB), waits
+  with `ping -n 6` (`timeout` quits at once without console input, which
+  let the loop re-check the port while the dead socket still listened
+  and bow out), and restarts. `stop-watchfloor-server.cmd` (+ .ps1)
+  stops the loop first, then node. To redeploy: stop script, build,
+  `Start-Process explorer.exe -ArgumentList '"…\watchfloor-server.cmd"'`;
+  a client-only change is live on reload (static files are read per request).
 - Scope UI (Nov 2026, from ATC/CIC research): data block
   (`map/dataBlock.ts`): a DOM Marker beside the selected track, callsign +
   a second row timesharing altitude/speed with typeCode/squawk every 4 s
