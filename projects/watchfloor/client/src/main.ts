@@ -24,6 +24,8 @@ import { NewsHotspots } from './map/newsHotspots';
 import { isDrawing, RegionDraw } from './map/regionDraw';
 import { RegionLayer } from './map/regionLayer';
 import { NightLayer } from './map/nightLayer';
+import { NightLights } from './map/nightLights';
+import { paintSpace } from './map/space';
 import { RadarLayer } from './map/radarLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
@@ -128,6 +130,8 @@ async function main(): Promise<void> {
   // redraw steps buy nothing there, so render at 1:1 and take whole-pixel
   // steps (the inline script in index.html also caps the page at 30 fps).
   const screensaver = new URLSearchParams(location.search).has('screensaver');
+  // Space around the globe: deep navy and still stars, behind the map's transparent canvas.
+  paintSpace(el('map'));
   const { map, userHasMoved } = createMap(el('map'), screensaver ? { pixelRatio: 1 } : {});
   if (screensaver) setPaceScale(2);
   await waitForFonts();
@@ -147,8 +151,9 @@ async function main(): Promise<void> {
   // The plotting surface: a faint graticule under everything, and hairlines under the pointer.
   new Graticule(map);
   new Crosshair(map);
-  // Night, under the basemap's labels and everything of ours.
+  // Night, under the basemap's labels and everything of ours, and city lights on it.
   new NightLayer(map, () => clock.now());
+  new NightLights(map, () => clock.now());
   // News hotspots next: a glow under airports, tracks and markers.
   new NewsHotspots(map, news, newsSettings, () => clock.now());
   // First, so its layers sit under trails, tracks and news.
