@@ -25,7 +25,7 @@ import { isDrawing, RegionDraw } from './map/regionDraw';
 import { RegionLayer } from './map/regionLayer';
 import { NightLayer } from './map/nightLayer';
 import { NightLights } from './map/nightLights';
-import { paintSpace } from './map/space';
+import { SpaceBackdrop } from './map/space';
 import { RadarLayer } from './map/radarLayer';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
@@ -130,9 +130,9 @@ async function main(): Promise<void> {
   // redraw steps buy nothing there, so render at 1:1 and take whole-pixel
   // steps (the inline script in index.html also caps the page at 30 fps).
   const screensaver = new URLSearchParams(location.search).has('screensaver');
-  // Space around the globe: deep navy and still stars, behind the map's transparent canvas.
-  paintSpace(el('map'));
   const { map, userHasMoved } = createMap(el('map'), screensaver ? { pixelRatio: 1 } : {});
+  // Space around the globe, behind the map's transparent canvas: it drifts as the globe turns.
+  new SpaceBackdrop(el('space'), map);
   if (screensaver) setPaceScale(2);
   await waitForFonts();
 
