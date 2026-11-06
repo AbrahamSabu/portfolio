@@ -35,7 +35,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Reads back a watch handover (V): the server keeps a rolling 24-hour log — emergency squawks starting and ending, findings beginning and resolving, significant hazards appearing — each line worded when it happened from the facts at hand; newest first, a click flies to where it happened, and Read aloud speaks the latest
 - Scrubs through time on one bar (Z): drag left of NOW to replay the last six hours from the paths the server already keeps (play at 60×, 300× or 900×), drag right to project up to thirty minutes ahead by dead reckoning, ghosts threaded back to the present — and the tag always says which moment is on screen, LIVE, REPLAY or PROJECTED
 - Tells you what that plane is (`/sky.html`, on a phone): point the phone at an aircraft in the sky and it locks on and names it: callsign, airline, type, route ("Manchester → Zürich"), altitude, speed and distance, with a disc of the sky that turns as you do and tells you which way to move to find one. Needs the live server over https (phones only share location and compass with secure pages)
-- Makes every screen in the room one ops room (Q): the main screen (a TV or laptop) shows a QR code and a room code; phones that scan it join as consoles under a callsign such as CONSOLE ALFA, browse and search the picture, open a track, and send it to the main screen, which flies there and selects it. Each console's open track is tagged on the main map, so the room sees who is looking at what. Rooms live in the server's memory only, and phones can join over your network only once you opt in (see Ops room)
+- Makes every screen in the room one ops room (Q): the main screen (a laptop or TV) opens a room and shows a QR code and a room code; other screens (a TV) join with the code and show their own view, and phones that scan the code join as consoles under a callsign such as CONSOLE ALFA. A phone picks which screen it steers and can send it a track, move and zoom its map with a touch pad, switch its layers, start its tour, or fly it to an airport or chokepoint; screens never steer each other. Each console's open track is tagged on every screen's map, so the room sees who is looking at what. Rooms live in the server's memory only, and devices can join over your network only once you opt in (see Ops room)
 - Turns into a phosphor scope (Layers → Display): the whole plotting surface through one green gun, and a long-exposure film that lets every route burn in as a glowing thread while the camera holds still
 - Works as a screensaver: open `/?screensaver` and the tour starts itself and resumes after a quiet minute; `scripts/watchfloor-screensaver.cmd` opens it as a full-screen kiosk
 - Can ping on an alert: a short synthesised two-note sound for squawks and watch-area crossings, off by default (the Layers menu's Alerts section)
@@ -82,15 +82,25 @@ stops, and logs to `.cache\server.log`. To stop it, run
 `scripts\watchfloor-server.cmd` again (each AISStream instance also holds
 one of the key's three connections).
 
-### Ops room: phones as consoles
+### Ops room: phones and other screens
 
-Press `Q` on the screen everyone can see. It opens a room and shows a QR
-code, the join link and a four-character room code. Phones that scan the
-code (or open `/console.html` and type the code) join as consoles: a track
-list with search, a details card, and a **Send to main screen** button that
-flies the main screen to that track. While a phone has a track open, the main
-map tags it with the console's callsign. Close the room from the dialog, or
-just close the main screen; nothing about a room is saved.
+Press `Q` (or Layers → Ops room) on the screen everyone can see and choose
+**Open a room here**. It shows a QR code, the join link and a four-character
+room code. Then:
+
+- **Another screen**, such as a TV with its own browser: open Watchfloor on
+  it, press `Q` or use Layers → Ops room, and join as a screen with the code
+  (or open the `/?screen=CODE` link the dialog shows). It becomes SCREEN 2,
+  keeps its own view, and is never steered by the main screen, nor steers it.
+- **Phones**: scan the QR code (or open `/console.html` and type the code).
+  A phone picks which screen it steers at the top, then has four tabs:
+  Tracks (list, search, details, **Send to** that screen), Remote (drag a
+  pad to move the map, zoom, home, follow, clear, tour), Layers (the
+  screen's own switches) and Places (airports and chokepoints to fly to).
+
+Every screen tags the tracks phones have open with their callsign. Close the
+room from the dialog, or just close the main screen; nothing about a room is
+saved.
 
 By default the server listens on `127.0.0.1`, so only this computer can reach
 it and the dialog says so instead of showing a QR code. To let phones on your
@@ -136,7 +146,7 @@ Keyboard shortcuts:
 | `F` | Open or close the filter |
 | `S` | Switch between vehicle shapes and MIL-STD-2525C symbols |
 | `?` | Open the map key: what colours, symbols, dots, rings and lines mean |
-| `Q` | Ops room: open a room for phones to join, and show its QR code |
+| `Q` | Ops room: open a room for phones and other screens, or join one as a screen |
 | `Esc` | Close the filter, or clear the selection |
 
 Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator (`SCENARIO=world` simulates the whole globe, as the demo does), `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
@@ -292,7 +302,7 @@ client/   MapLibre map, symbology, UI
 
 **Server time, not browser time.** Track ages and dead reckoning compare server timestamps with "now". The client estimates its clock offset from every message, so a browser clock that's a few seconds off doesn't make tracks look stale.
 
-**The ops room is a few messages on the same socket.** A phone console needs the picture for its list anyway, so it uses the same WebSocket as the main screen, and the room is a handful of `room-*` messages on top (protocol v17), parsed as strictly as everything else a browser sends. Rooms live in the server's memory only. A room code is four characters with no vowels and no look-alikes (it never spells a word or gets misread), which makes it short enough to type and also short enough to guess. So joining is paced per browser, and after 20 wrong codes in a minute every join waits out the minute, so a refusal says nothing about which codes exist. The main screen holds a secret key and each console a token, compared in constant time, so after a dropped connection the screen reclaims its room and a phone keeps its callsign. The server picks the callsigns (CONSOLE ALFA, BRAVO...) from a fixed list: nothing a phone types ever reaches the wall. The QR code comes from a small encoder of our own (Reed–Solomon error correction, the zigzag layout, the eight masks) rather than a dependency, and the server listens beyond this computer only when told to (`HOST=0.0.0.0`).
+**The ops room is a few messages on the same socket.** A phone console needs the picture for its list anyway, so it uses the same WebSocket as the main screen, and the room is a handful of `room-*` messages on top (protocol v17), parsed as strictly as everything else a browser sends. Everything a phone can ask of a screen is one `room-control` message naming the screen and an action from a closed list (show, pan, zoom, home, follow, clear, tour, layer, fly), each number range-checked; the server delivers it to that screen only, so screens can't steer each other. Screens report what they show (layers, tour, follow), so a phone's switches show the screen's real state. Rooms live in the server's memory only. A room code is four characters with no vowels and no look-alikes (it never spells a word or gets misread), which makes it short enough to type and also short enough to guess. So joining is paced per browser, and after 20 wrong codes in a minute every join waits out the minute, so a refusal says nothing about which codes exist. The main screen holds a secret key and each console a token, compared in constant time, so after a dropped connection the screen reclaims its room and a phone keeps its callsign. The server picks the callsigns (CONSOLE ALFA, BRAVO...) from a fixed list: nothing a phone types ever reaches the wall. The QR code comes from a small encoder of our own (Reed–Solomon error correction, the zigzag layout, the eight masks) rather than a dependency, and the server listens beyond this computer only when told to (`HOST=0.0.0.0`).
 
 **Deterministic simulation.** The simulator uses a seeded random number generator and an injectable clock, so tests can run an hour of traffic in milliseconds and get the same result every time. Ships only move along defined lanes, routes and areas, which keeps them at sea without coastline data. Aircraft and ships have realistic turn rates, acceleration and report intervals, and transponders occasionally go quiet.
 

@@ -590,10 +590,12 @@ that could have been fetched before they arrived.
   backspace byte once.
 - Ops room (Nov 2026; `shared/src/room.ts`, `server/src/rooms/`,
   `client/src/room/`, `client/console.html` + `src/console/`; protocol
-  v17 `room-*`): Q on the main screen opens a room (in server memory only)
-  and a modal dialog (the map key's frame) with a QR code, link and code;
-  phones join as consoles on the same `/ws` (they need the tracks for their
-  list). Codes: 4 chars from `BCDFGHJKMNPQRSTVWXZ23456789`; the main holds a
+  v17 `room-*`): Q (or Layers → Ops room) opens a modal dialog (the map
+  key's frame): open a room here (MAIN: QR code, link and code for phones,
+  a `/?screen=CODE` link for screens) or join one as another screen by
+  typing its code (SCREEN 2-5: a TV with a remote). Rooms live in server
+  memory only. Phones join as consoles on the same `/ws` (they need the
+  tracks for their list). Codes: 4 chars from `BCDFGHJKMNPQRSTVWXZ23456789`; the main holds a
   `key`, each console a `token` (16 random bytes, base64url, compared with
   timingSafeEqual) to reclaim after a reconnect (main grace 5 min, since a
   hidden tab closes its socket after 60 s; closing the page sends
@@ -602,10 +604,18 @@ that could have been fetched before they arrived.
   reaches the wall. Limits: 16 rooms, 12 consoles, open/join paced 500 ms
   per socket, one send a second, and after 20 wrong codes a minute *every*
   join gets `busy` (a refusal must not reveal which codes exist). Presence
-  (connected consoles + each one's open track, `main` connected) goes to all
-  members, coalesced 100 ms; `room-send` reaches the main only, as
-  `room-show`, which stops the tour, closes the timeline, selects and
-  `fly()`s. Network: HOST stays 127.0.0.1 by default; `HOST=0.0.0.0` is the
+  (connected screens with their `status` + connected consoles with their
+  open track) goes to all members, coalesced 100 ms. A console's
+  `room-control { to, action }` reaches the named screen only (screens never
+  steer each other); actions are a closed list (show, pan in screen
+  fractions, zoom ±1, home = hello's scenario frame, follow, clear, tour,
+  layer, fly), quick ones paced 50 ms, show 1 s. Screens run them in
+  `RoomHost.act` (camera moves stop the tour and close the timeline first;
+  layers go through `screenControl.ts` onto the Layers menu's own settings)
+  and report `room-status` (layers, tour, follow) on change plus a 1 s check
+  (the tour has no event). **`layerDeps()` also holds plain functions**:
+  subscribing to `Object.values` of it crashed the page at startup;
+  `onLayerChange` names the eight settings. Network: HOST stays 127.0.0.1 by default; `HOST=0.0.0.0` is the
   opt-in (startup warning). `lanOrigins` (pure) lists private IPv4s, Wi-Fi
   192.168 first, virtual adapters (vEthernet/WSL/Docker...) last;
   `joinOrigins` (shared) prefers the page's own origin unless it's loopback,
@@ -614,8 +624,13 @@ that could have been fetched before they arrived.
   versions 1-10), tested against the standard's tables and by un-masking and
   decoding every version. Presence tags are DOM Markers below-left of the
   track (data block is above-right), HUD lines only. The console page has no
-  MapLibre: windowed list (`queryTracks`, `visibleRange`, `shapeSvg`), Back
-  closes details (pushState), socket closed after 60 s hidden. The demo
+  MapLibre: a Steering picker (kept while its screen is away), tabs Tracks
+  (windowed list: `queryTracks`, `visibleRange`, `shapeSvg`), Remote (pad:
+  pointer moves as pad fractions, sent at most every 100 ms;
+  `touch-action: none`), Layers (a tap waits up to 3 s for the screen's
+  status to agree) and Places (`searchPalette` over airports, fetched on
+  first open, and chokepoints); Back closes details (pushState), socket
+  closed after 60 s hidden. The demo
   build leaves the page out and its Q dialog says rooms need the server.
   Headless check: two CDP pages on one server (1600x900 main, 390x844
   phone), **each in its own window** (`Target.createTarget` with
