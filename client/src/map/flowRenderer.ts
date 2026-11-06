@@ -59,15 +59,26 @@ void main() {
   gl_FragColor = texture2D(u_tex, v_uv);
 }`;
 
+// One instance per segment, straight from Particles.segments: the six corners
+// of a thin quad are built here, so the CPU uploads five floats a segment and
+// loops over nothing. Opacity scales with the segment's length, so a slow
+// particle (several frames a pixel) lays down as much light as a fast one.
 const LINE_VERT = `
-attribute vec2 a_pos;
-attribute float a_alpha;
+attribute vec2 a_corner;
+attribute vec4 a_segment;
+attribute float a_bright;
 uniform vec2 u_size;
+uniform float u_half;
+uniform float u_alpha;
 varying float v_alpha;
 void main() {
-  vec2 clip = a_pos / u_size * 2.0 - 1.0;
+  vec2 d = a_segment.zw - a_segment.xy;
+  float len = length(d);
+  vec2 dir = len > 0.001 ? d / len : vec2(1.0, 0.0);
+  vec2 p = mix(a_segment.xy, a_segment.zw, a_corner.x) + vec2(-dir.y, dir.x) * u_half * a_corner.y;
+  vec2 clip = p / u_size * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
-  v_alpha = a_alpha;
+  v_alpha = a_bright * u_alpha * min(1.0, len);
 }`;
 
 const LINE_FRAG = `
@@ -79,11 +90,11 @@ void main() {
 }`;
 
 /** Vertex attribute slots, bound before linking so every program agrees. */
-const POS = 0;
-const ALPHA = 1;
-/** x, y, alpha per vertex; six vertices (two triangles) per segment. */
-const FLOATS_PER_VERTEX = 3;
-const VERTICES_PER_SEGMENT = 6;
+const POS = 0; // the full-screen quad's corners, and a streak quad's (along, across)
+const SEGMENT = 1;
+const BRIGHT = 2;
+/** A streak quad's six corners as (along 0..1, across -1..1): two triangles. */
+const CORNERS = [0, 1, 0, -1, 1, 1, 1, 1, 0, -1, 1, -1];
 
 interface Program {
   program: WebGLProgram;
@@ -113,12 +124,13 @@ export class FlowRenderer {
   private fade: Program | null = null;
   private copy: Program | null = null;
   private line: Program | null = null;
+  private instancing: ANGLE_instanced_arrays | null = null;
   private quad: WebGLBuffer | null = null;
+  private corners: WebGLBuffer | null = null;
   private lines: WebGLBuffer | null = null;
   private targets: Target[] = [];
   /** Which target holds the latest picture. */
   private current = 0;
-  private vertices = new Float32Array(0);
   private frame = 0;
   private cssWidth = 1;
   private cssHeight = 1;
@@ -190,28 +202,37 @@ export class FlowRenderer {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     // 2. This frame's moves, added as light: where currents overlap they glow.
-    const used = this.fillVertices(batches);
-    if (used > 0) {
+    if (batches.some((b) => b.count > 0)) {
+      const ext = this.instancing!;
+      const u = this.line.uniforms;
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE);
       gl.useProgram(this.line.program);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.lines);
-      gl.bufferData(gl.ARRAY_BUFFER, this.vertices.subarray(0, used * FLOATS_PER_VERTEX), gl.STREAM_DRAW);
-      const stride = FLOATS_PER_VERTEX * 4;
+      gl.uniform2f(u.u_size!, this.cssWidth, this.cssHeight);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.corners);
       gl.enableVertexAttribArray(POS);
-      gl.vertexAttribPointer(POS, 2, gl.FLOAT, false, stride, 0);
-      gl.enableVertexAttribArray(ALPHA);
-      gl.vertexAttribPointer(ALPHA, 1, gl.FLOAT, false, stride, 8);
-      gl.uniform2f(this.line.uniforms.u_size!, this.cssWidth, this.cssHeight);
-      let first = 0;
+      gl.vertexAttribPointer(POS, 2, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(SEGMENT);
+      gl.enableVertexAttribArray(BRIGHT);
+      ext.vertexAttribDivisorANGLE(SEGMENT, 1);
+      ext.vertexAttribDivisorANGLE(BRIGHT, 1);
+      const stride = SEGMENT_STRIDE * 4;
       for (const b of batches) {
-        const n = b.count * VERTICES_PER_SEGMENT;
-        if (n === 0) continue;
-        gl.uniform3f(this.line.uniforms.u_color!, b.style.rgb[0], b.style.rgb[1], b.style.rgb[2]);
-        gl.drawArrays(gl.TRIANGLES, first, n);
-        first += n;
+        if (b.count === 0) continue;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.lines);
+        gl.bufferData(gl.ARRAY_BUFFER, b.segments.subarray(0, b.count * SEGMENT_STRIDE), gl.STREAM_DRAW);
+        gl.vertexAttribPointer(SEGMENT, 4, gl.FLOAT, false, stride, 0);
+        gl.vertexAttribPointer(BRIGHT, 1, gl.FLOAT, false, stride, 16);
+        gl.uniform3f(u.u_color!, b.style.rgb[0], b.style.rgb[1], b.style.rgb[2]);
+        gl.uniform1f(u.u_half!, b.style.width / 2);
+        gl.uniform1f(u.u_alpha!, b.style.alpha);
+        ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, b.count);
       }
-      gl.disableVertexAttribArray(ALPHA);
+      // Divisors are global state: leave them as the quad passes expect.
+      ext.vertexAttribDivisorANGLE(SEGMENT, 0);
+      ext.vertexAttribDivisorANGLE(BRIGHT, 0);
+      gl.disableVertexAttribArray(SEGMENT);
+      gl.disableVertexAttribArray(BRIGHT);
       gl.disable(gl.BLEND);
     }
 
@@ -223,43 +244,6 @@ export class FlowRenderer {
     gl.uniform1i(this.copy.uniforms.u_tex!, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     this.current = 1 - this.current;
-  }
-
-  /**
-   * Each segment becomes a thin quad (two triangles), its opacity scaled by
-   * its length: a slow particle lays light down over several frames per
-   * pixel, a fast one over one, and both should come out alike.
-   */
-  private fillVertices(batches: readonly StreakBatch[]): number {
-    const segments = batches.reduce((sum, b) => sum + b.count, 0);
-    const needed = segments * VERTICES_PER_SEGMENT * FLOATS_PER_VERTEX;
-    if (this.vertices.length < needed) this.vertices = new Float32Array(Math.ceil(needed * 1.5));
-    const v = this.vertices;
-    let o = 0;
-    for (const { segments: seg, count, style } of batches) {
-      const half = style.width / 2;
-      for (let i = 0; i < count; i++) {
-        const b = i * SEGMENT_STRIDE;
-        const x0 = seg[b]!;
-        const y0 = seg[b + 1]!;
-        const x1 = seg[b + 2]!;
-        const y1 = seg[b + 3]!;
-        const dx = x1 - x0;
-        const dy = y1 - y0;
-        const length = Math.hypot(dx, dy);
-        const a = seg[b + 4]! * style.alpha * Math.min(1, length);
-        const nx = length > 1e-3 ? (-dy / length) * half : 0;
-        const ny = length > 1e-3 ? (dx / length) * half : half;
-        // (p0 + n, p0 - n, p1 + n) and (p1 + n, p0 - n, p1 - n)
-        o = put(v, o, x0 + nx, y0 + ny, a);
-        o = put(v, o, x0 - nx, y0 - ny, a);
-        o = put(v, o, x1 + nx, y1 + ny, a);
-        o = put(v, o, x1 + nx, y1 + ny, a);
-        o = put(v, o, x0 - nx, y0 - ny, a);
-        o = put(v, o, x1 - nx, y1 - ny, a);
-      }
-    }
-    return o / FLOATS_PER_VERTEX;
   }
 
   private bindQuad(gl: WebGLRenderingContext): void {
@@ -279,10 +263,13 @@ export class FlowRenderer {
     });
     this.gl = gl;
     if (!gl) return;
+    // Instancing is an extension in WebGL 1, but one every implementation has.
+    this.instancing = gl.getExtension('ANGLE_instanced_arrays');
     try {
+      if (!this.instancing) throw new Error('no ANGLE_instanced_arrays');
       this.fade = link(gl, QUAD_VERT, FADE_FRAG, ['u_tex', 'u_keep', 'u_shift', 'u_seed']);
       this.copy = link(gl, QUAD_VERT, COPY_FRAG, ['u_tex']);
-      this.line = link(gl, LINE_VERT, LINE_FRAG, ['u_size', 'u_color']);
+      this.line = link(gl, LINE_VERT, LINE_FRAG, ['u_size', 'u_color', 'u_half', 'u_alpha']);
     } catch (error) {
       console.warn('Traffic currents unavailable:', error);
       this.gl = null;
@@ -291,6 +278,9 @@ export class FlowRenderer {
     this.quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    this.corners = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.corners);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(CORNERS), gl.STATIC_DRAW);
     this.lines = gl.createBuffer();
     this.makeTargets();
   }
@@ -322,13 +312,6 @@ export class FlowRenderer {
   }
 }
 
-function put(v: Float32Array, o: number, x: number, y: number, a: number): number {
-  v[o] = x;
-  v[o + 1] = y;
-  v[o + 2] = a;
-  return o + 3;
-}
-
 function link(gl: WebGLRenderingContext, vertex: string, fragment: string, uniforms: readonly string[]): Program {
   const program = gl.createProgram()!;
   for (const [type, source] of [
@@ -341,8 +324,11 @@ function link(gl: WebGLRenderingContext, vertex: string, fragment: string, unifo
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader) ?? 'shader');
     gl.attachShader(program, shader);
   }
+  // A program without one of these names just ignores it.
   gl.bindAttribLocation(program, POS, 'a_pos');
-  gl.bindAttribLocation(program, ALPHA, 'a_alpha');
+  gl.bindAttribLocation(program, POS, 'a_corner');
+  gl.bindAttribLocation(program, SEGMENT, 'a_segment');
+  gl.bindAttribLocation(program, BRIGHT, 'a_bright');
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? 'program');
   return { program, uniforms: Object.fromEntries(uniforms.map((u) => [u, gl.getUniformLocation(program, u)])) };

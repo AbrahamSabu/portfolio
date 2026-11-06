@@ -139,7 +139,7 @@ export class Particles {
       }
       const x1 = x0 + p.vx * dt;
       const y1 = y0 + p.vy * dt;
-      const speed = Math.hypot(p.vx, p.vy);
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy); // not Math.hypot: several times slower, every particle every frame
       const b = s * SEGMENT_STRIDE;
       seg[b] = x0;
       seg[b + 1] = y0;

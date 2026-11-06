@@ -78,8 +78,8 @@ const GLOBE_NUDGE_PX = 12;
 const REFILL_PX = 40;
 /** Crisp streaks without 4K-sized textures to fade every frame. */
 const MAX_PIXEL_RATIO = 1.5;
-/** With the globe filling the screen, further than this from the centre (100°) is round the back. */
-const FAR_COS = Math.cos((100 * Math.PI) / 180);
+/** Most tracks per medium projected for one field (see fairShare). */
+const MAX_PICKS = 3000;
 /** The field stops this far (px) inside the globe's rim. */
 const RIM_MARGIN_PX = 3;
 const DEG = Math.PI / 180;
@@ -88,6 +88,21 @@ interface Disc {
   x: number;
   y: number;
   r: number;
+}
+
+/**
+ * An average flow doesn't need every aircraft. Past MAX_PICKS, every k-th
+ * candidate is projected, counted as the k it stands for, so the field's
+ * densities stay right and a 10,000-aircraft picture costs no more to sample
+ * than a 3,000 one. (The store's order has nothing to do with place, so the
+ * share is fair across the screen.)
+ */
+function fairShare(candidates: Candidate[]): Candidate[] {
+  if (candidates.length <= MAX_PICKS) return candidates;
+  const k = candidates.length / MAX_PICKS;
+  const picks: Candidate[] = [];
+  for (let i = 0; i < MAX_PICKS; i++) picks.push({ ...candidates[Math.floor(i * k)]!, weight: k });
+  return picks;
 }
 
 /** Dot product of two places as unit vectors: the cosine of the angle between them at the earth's centre. */
@@ -134,9 +149,21 @@ function bandBuffers(): SampleBuffer[] {
 const total = (buffers: readonly SampleBuffer[]) => buffers.reduce((sum, b) => sum + b.count, 0);
 
 /** One field's sampling, done a slice at a time, for the camera as it was when it began. */
+/** A track that could be on screen, where it's drawn, and how many tracks it stands for. */
+interface Candidate {
+  track: Track;
+  lat: number;
+  lon: number;
+  weight: number;
+}
+
 interface Job {
   tracks: readonly Track[];
+  /** Tracks looked at so far (first pass), then picks projected so far (second). */
   next: number;
+  /** First pass: what could be on screen. Second: a fair share of it, to project. */
+  candidates: { air: Candidate[]; sea: Candidate[] };
+  picks: Candidate[] | null;
   /** Main-thread time spent sampling so far. */
   ms: number;
   air: SampleBuffer[];
@@ -149,7 +176,10 @@ interface Job {
   height: number;
   /** Metres for a STEP_PX step at the centre. */
   stepM: number;
-  /** The map's centre as a unit vector, and the least dot product with it that the camera can still see. */
+  /**
+   * The map's centre as a unit vector, and the least dot product with it that
+   * can be on screen: the horizon zoomed out, the farthest corner zoomed in.
+   */
   cx: number;
   cy: number;
   cz: number;
@@ -359,6 +389,8 @@ export class FlowLayer {
       ...this.horizon(width, height),
       tracks: this.live(),
       next: 0,
+      candidates: { air: [], sea: [] },
+      picks: null,
       ms: 0,
       air: bandBuffers(),
       sea: bandBuffers(),
@@ -375,34 +407,43 @@ export class FlowLayer {
   }
 
   /**
-   * How far round the globe the camera can see, and the globe's outline on
-   * screen when it doesn't fill the screen. Found by walking out from the
-   * centre to the rim, the first pixel a projection round trip no longer
-   * comes back to (public API only; about 25 round trips per field).
+   * How far from the centre a track can be and still be on screen, and the
+   * globe's outline when it doesn't fill the screen. Zoomed in, the screen's
+   * corners are on the globe and the farthest of them sets the limit, so the
+   * first pass can drop nearly everything without projecting it. Zoomed
+   * out, it's the horizon: found by walking out from the centre to the rim,
+   * the first pixel a projection round trip no longer comes back to. Public
+   * API only; at most about 30 round trips per field.
    */
   private horizon(width: number, height: number): { minFacing: number; disc: Disc | null } {
-    const c = this.map.project(this.map.getCenter());
-    const onGlobe = (d: number) => {
-      const back = this.map.project(this.map.unproject([c.x + d, c.y]));
-      return Math.abs(back.x - c.x - d) < 0.5 && Math.abs(back.y - c.y) < 0.5;
+    const centre = this.map.getCenter();
+    const c = this.map.project(centre);
+    const onGlobe = (x: number, y: number) => {
+      const back = this.map.project(this.map.unproject([x, y]));
+      return Math.abs(back.x - x) < 0.5 && Math.abs(back.y - y) < 0.5;
     };
-    const corner = Math.hypot(Math.max(c.x, width - c.x), Math.max(c.y, height - c.y));
-    let hi = corner;
-    while (onGlobe(hi)) {
-      hi *= 2;
-      // The rim is far off screen: as good as a flat map, where nothing is round the back.
-      if (hi > corner * 64) return { minFacing: FAR_COS, disc: null };
+    const corners: Array<[number, number]> = [
+      [0, 0],
+      [width, 0],
+      [0, height],
+      [width, height],
+    ];
+    if (corners.every(([x, y]) => onGlobe(x, y))) {
+      const facing = corners.map(([x, y]) => dotFromCentre(this.map.unproject([x, y]), centre));
+      return { minFacing: Math.min(...facing) - 1e-9, disc: null };
     }
+    // The rim is on screen somewhere: it lies closer than the farthest corner.
     let lo = 0;
+    let hi = Math.hypot(Math.max(c.x, width - c.x), Math.max(c.y, height - c.y));
     for (let i = 0; i < 20; i++) {
       const mid = (lo + hi) / 2;
-      if (onGlobe(mid)) lo = mid;
+      if (onGlobe(c.x + mid, c.y)) lo = mid;
       else hi = mid;
     }
     const rim = this.map.unproject([c.x + lo, c.y]);
     return {
-      minFacing: dotFromCentre(rim, this.map.getCenter()) + 1e-4,
-      disc: lo < corner ? { x: c.x, y: c.y, r: lo - RIM_MARGIN_PX } : null,
+      minFacing: dotFromCentre(rim, centre) + 1e-4,
+      disc: { x: c.x, y: c.y, r: lo - RIM_MARGIN_PX },
     };
   }
 
@@ -420,30 +461,47 @@ export class FlowLayer {
     });
   }
 
-  /** Samples tracks until the deadline. True when the job is done. */
+  /** Samples until the deadline. True when the job is done. */
   private sampleSome(job: Job, deadline: number): boolean {
-    while (job.next < job.tracks.length) {
-      const end = Math.min(job.tracks.length, job.next + 64);
-      for (; job.next < end; job.next++) this.sample(job, job.tracks[job.next]!);
+    // First pass: which tracks could be on screen? A dot product each, no projection.
+    while (!job.picks) {
+      const end = Math.min(job.tracks.length, job.next + 256);
+      for (; job.next < end; job.next++) this.consider(job, job.tracks[job.next]!);
+      if (job.next >= job.tracks.length) {
+        job.picks = [...fairShare(job.candidates.air), ...fairShare(job.candidates.sea)];
+        job.next = 0;
+      } else if (performance.now() > deadline) {
+        return false;
+      }
+    }
+    // Second pass: project the picks.
+    while (job.next < job.picks.length) {
+      const end = Math.min(job.picks.length, job.next + 64);
+      for (; job.next < end; job.next++) this.sample(job, job.picks[job.next]!);
       if (performance.now() > deadline) break;
     }
-    return job.next >= job.tracks.length;
+    return job.next >= job.picks.length;
   }
 
-  private sample(job: Job, t: Track): void {
-    const medium = t.domain === 'air' ? AIR : SEA;
-    if (!(t.speedMps >= medium.minMps)) return;
+  private consider(job: Job, t: Track): void {
+    if (!(t.speedMps >= (t.domain === 'air' ? AIR : SEA).minMps)) return;
     // Where the symbol is drawn (dead-reckoned), not the last report.
     const at = this.tracks.positionOf(t.id) ?? t;
     // The copy of the world nearest the view, so the antimeridian can't fling a track a world away.
     const lon = job.anchor.lng + normalizeLon(at.lon - job.anchor.lng);
     const lat = at.lat;
     const cosLat = Math.cos(lat * DEG);
-    // Beyond the horizon. The far side of the globe projects into the disc too (behind the
-    // near side), so this has to be decided on the sphere, not on screen.
+    // Beyond the horizon, or beyond the screen's farthest corner. The far side of the globe
+    // projects into the disc too (behind the near side), so this is decided on the sphere.
     const facing =
       cosLat * Math.cos(lon * DEG) * job.cx + cosLat * Math.sin(lon * DEG) * job.cy + Math.sin(lat * DEG) * job.cz;
     if (facing < job.minFacing) return;
+    job.candidates[t.domain].push({ track: t, lat, lon, weight: 1 });
+  }
+
+  private sample(job: Job, pick: Candidate): void {
+    const { track: t, lat, lon, weight } = pick;
+    const medium = t.domain === 'air' ? AIR : SEA;
     const p = this.map.project([lon, lat]);
     if (!(p.x >= 0 && p.y >= 0 && p.x < job.width && p.y < job.height)) return;
     // Direction and local scale come from the projection (the globe foreshortens towards its rim).
@@ -455,8 +513,8 @@ export class FlowLayer {
     // Shared between the two direction bands either side of its heading on screen.
     const s = directionBands(Math.atan2(vy, vx), BANDS, this.share);
     const buffers = t.domain === 'air' ? job.air : job.sea;
-    if (s.wa > 1e-3) buffers[s.a]!.push(p.x, p.y, vx, vy, s.wa);
-    if (s.wb > 1e-3) buffers[s.b]!.push(p.x, p.y, vx, vy, s.wb);
+    if (s.wa > 1e-3) buffers[s.a]!.push(p.x, p.y, vx, vy, s.wa * weight);
+    if (s.wb > 1e-3) buffers[s.b]!.push(p.x, p.y, vx, vy, s.wb * weight);
   }
 
   private install(job: Job): void {
@@ -480,6 +538,7 @@ export class FlowLayer {
     this.slid = Math.hypot(offsetX, offsetY);
     // Read by the headless checks: band-weighted samples per medium, and what sampling cost.
     this.canvas.dataset.samples = `${total(job.air)} ${total(job.sea)}`;
+    this.canvas.dataset.candidates = `${job.candidates.air.length} ${job.candidates.sea.length}`;
     this.canvas.dataset.sampleMs = job.ms.toFixed(1);
     this.canvas.dataset.disc = job.disc ? `${job.disc.x.toFixed(0)} ${job.disc.y.toFixed(0)} ${job.disc.r.toFixed(0)}` : 'none';
     this.budget();
