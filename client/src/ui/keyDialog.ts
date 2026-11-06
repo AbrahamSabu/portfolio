@@ -24,6 +24,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['P', 'Leaderboard: highest, fastest, biggest, busiest airlines, fastest ships'],
   ['E', 'The Stack: aircraft at their real altitude on a tilted map'],
   ['J', 'Ride along: the view from the selected aircraft'],
+  ['Q', 'Ops room: host a room for phones and other screens, or join one'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['I', 'Traffic currents: the average flow of air and sea traffic'],

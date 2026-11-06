@@ -115,7 +115,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 15`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 18`, v18 the ops room (`room-*` both ways), v17 `records` (the leaderboard), v16 `findings`, `brief` and `replay`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -614,6 +614,57 @@ that could have been fetched before they arrived.
   null angles in headless — dispatch `DeviceOrientationEvent`s instead.
   Write regexes with the Edit tool, not Python heredocs: `"\b"` became a
   backspace byte once.
+- Ops room (Nov 2026; `shared/src/room.ts`, `server/src/rooms/`,
+  `client/src/room/`, `client/console.html` + `src/console/`; protocol
+  v18 `room-*`): Q (or Layers → Ops room) opens a modal dialog (the map
+  key's frame): open a room here (MAIN: QR code, link and code for phones,
+  a `/?screen=CODE` link for screens) or join one as another screen by
+  typing its code (SCREEN 2-5: a TV with a remote). Rooms live in server
+  memory only. Phones join as consoles on the same `/ws` (they need the
+  tracks for their list). Codes: 4 chars from `BCDFGHJKMNPQRSTVWXZ23456789`; the main holds a
+  `key`, each console a `token` (16 random bytes, base64url, compared with
+  timingSafeEqual) to reclaim after a reconnect (main grace 5 min, since a
+  hidden tab closes its socket after 60 s; closing the page sends
+  `room-leave` on `pagehide`; console seat 2 min); callsigns are
+  server-picked NATO words, so no phone text
+  reaches the wall. Limits: 16 rooms, 12 consoles, open/join paced 500 ms
+  per socket, one send a second, and after 20 wrong codes a minute *every*
+  join gets `busy` (a refusal must not reveal which codes exist). Presence
+  (connected screens with their `status` + connected consoles with their
+  open track) goes to all members, coalesced 100 ms. A console's
+  `room-control { to, action }` reaches the named screen only (screens never
+  steer each other); actions are a closed list (show, pan in screen
+  fractions, zoom ±1, home = hello's scenario frame, follow, clear, tour,
+  layer, fly), quick ones paced 50 ms, show 1 s. Screens run them in
+  `RoomHost.act` (camera moves stop the tour and close the timeline first;
+  layers go through `screenControl.ts` onto the Layers menu's own settings)
+  and report `room-status` (layers, tour, follow) on change plus a 1 s check
+  (the tour has no event). **`layerDeps()` also holds plain functions**:
+  subscribing to `Object.values` of it crashed the page at startup;
+  `onLayerChange` names the eight settings. Network: HOST stays 127.0.0.1 by default; `HOST=0.0.0.0` is the
+  opt-in (startup warning). `lanOrigins` (pure) lists private IPv4s, Wi-Fi
+  192.168 first, virtual adapters (vEthernet/WSL/Docker...) last;
+  `joinOrigins` (shared) prefers the page's own origin unless it's loopback,
+  and with no reachable origin the dialog shows no QR and explains the
+  opt-in. `client/src/room/qr.ts`: our own QR encoder (byte mode, level M,
+  versions 1-10), tested against the standard's tables and by un-masking and
+  decoding every version. Presence tags are DOM Markers below-left of the
+  track (data block is above-right), HUD lines only. The console page has no
+  MapLibre: a Steering picker (kept while its screen is away), tabs Tracks
+  (windowed list: `queryTracks`, `visibleRange`, `shapeSvg`), Remote (pad:
+  pointer moves as pad fractions, sent at most every 100 ms;
+  `touch-action: none`), Layers (a tap waits up to 3 s for the screen's
+  status to agree) and Places (`searchPalette` over airports, fetched on
+  first open, and chokepoints); Back closes details (pushState), socket
+  closed after 60 s hidden. The demo
+  build leaves the page out and its Q dialog says rooms need the server.
+  Headless check: two CDP pages on one server (1600x900 main, 390x844
+  phone), **each in its own window** (`Target.createTarget` with
+  `newWindow`): a second tab hides the first, whose socket then closes
+  after 60 s. Chrome's `--host-resolver-rules="MAP wall.test 127.0.0.1"`
+  gives the main page a non-loopback origin, so the dialog shows its QR
+  without binding the LAN. Headless Chrome on Windows has no
+  BarcodeDetector. The dialog stops key propagation; Escape closes it.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to

@@ -42,6 +42,7 @@ import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
 import { mapSource, SkyScore, type CueKind } from './sound/skyScore';
+import { RoomHost } from './room/roomHost';
 import { ServerClock } from './state/clock';
 import { chokepointCounts } from './state/chokepoints';
 import { FindingStore } from './state/findings';
@@ -588,6 +589,7 @@ async function main(): Promise<void> {
       rarePanel.setOpen(!rarePanel.open);
     }
     if (event.key === 'p' || event.key === 'P') recordsPanel.setOpen(!recordsPanel.open);
+    if (event.key === 'q' || event.key === 'Q') room.toggle();
     if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === 'e' || event.key === 'E') stack.toggle();
@@ -622,6 +624,7 @@ async function main(): Promise<void> {
       handover: () => handover.setOpen(true),
       rare: () => rarePanel.setOpen(true),
       records: () => recordsPanel.setOpen(true),
+      room: () => room.toggle(),
       timeline: () => timeline.setOpen(true),
       phosphor,
       currents: currentsShown,
@@ -697,6 +700,18 @@ async function main(): Promise<void> {
       });
     },
   });
+  // The ops room (Q): host a room for phones and other screens, or join one as a screen.
+  const room = new RoomHost({
+    map,
+    store,
+    layer,
+    selection,
+    tour,
+    timeline,
+    layers: layerDeps,
+    live: !demo,
+    send: (message) => connection.send(message),
+  });
   const handlers: ConnectionHandlers = {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
@@ -714,6 +729,13 @@ async function main(): Promise<void> {
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
+          room.reconnected(message.scenario);
+          break;
+        case 'room':
+        case 'room-presence':
+        case 'room-control':
+        case 'room-closed':
+          room.handle(message);
           break;
         case 'snapshot': {
           const applyStart = performance.now();

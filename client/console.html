@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#04111F" />
+    <title>Console · Watchfloor</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306121F'/%3E%3Cpath d='M7 12V7h5M20 7h5v5M25 20v5h-5M12 25H7v-5' fill='none' stroke='%233FB6FF' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%2380E0FF'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap"
+    />
+  </head>
+  <body>
+    <main class="console">
+      <header class="console-head">
+        <div class="console-head-row">
+          <span class="console-brand">WATCHFLOOR</span>
+          <span class="console-lamp" id="lamp" data-state="connecting" title="Connecting"></span>
+        </div>
+        <h1 class="console-name" id="name">Console</h1>
+        <p class="console-sub" id="sub">Connecting…</p>
+        <div class="console-steer" id="steer" hidden>
+          <label class="console-steer-label" for="target">Steering</label>
+          <select class="console-steer-select" id="target"></select>
+        </div>
+        <p class="console-main-away" id="main-away" hidden></p>
+      </header>
+
+      <section class="console-join" id="join" hidden aria-labelledby="join-title">
+        <h2 class="console-title" id="join-title">Join the ops room</h2>
+        <p class="console-lede" id="join-lede">Type the code shown on the main screen. Press Q there to show it.</p>
+        <form class="console-join-form" id="join-form" autocomplete="off">
+          <input
+            class="console-code-input"
+            id="join-code"
+            name="code"
+            maxlength="7"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+            enterkeyhint="go"
+            placeholder="K7QX"
+            aria-label="Room code"
+          />
+          <button class="console-button" type="submit">Join</button>
+        </form>
+        <p class="console-error" id="join-error" role="alert" hidden></p>
+      </section>
+
+      <section class="console-list" id="list" hidden aria-label="Tracks">
+        <div class="console-tools">
+          <input class="console-search" id="search" type="search" placeholder="Search callsign or aircraft type" aria-label="Search tracks" />
+          <div class="console-domains" role="group" aria-label="Show">
+            <button type="button" data-domain="all" aria-pressed="true">All</button>
+            <button type="button" data-domain="air" aria-pressed="false">Air</button>
+            <button type="button" data-domain="sea" aria-pressed="false">Sea</button>
+          </div>
+          <p class="console-count" id="count" aria-live="polite"></p>
+        </div>
+        <div class="console-rows" id="rows">
+          <div class="console-rows-sizer" id="rows-sizer" role="list"></div>
+        </div>
+      </section>
+
+      <section class="console-details" id="details" hidden aria-labelledby="details-name">
+        <button class="console-back" id="back" type="button">‹ Tracks</button>
+        <article class="console-card">
+          <div class="console-card-head">
+            <span class="console-card-icon" id="details-icon" aria-hidden="true"></span>
+            <div>
+              <h2 class="console-card-name" id="details-name"></h2>
+              <p class="console-card-what" id="details-what"></p>
+            </div>
+          </div>
+          <p class="console-gone" id="details-gone" hidden>This track has left the picture.</p>
+          <dl class="console-facts" id="details-facts"></dl>
+        </article>
+        <button class="console-send" id="send" type="button">Send to main screen</button>
+      </section>
+
+      <section class="console-remote" id="remote" hidden aria-label="Remote">
+        <div class="console-pad" id="pad" aria-label="Drag to move the map on the screen you are steering">
+          <span class="console-pad-hint">Drag to move the map</span>
+        </div>
+        <div class="console-remote-row">
+          <button class="console-key" type="button" data-act="zoom-out" aria-label="Zoom out">−</button>
+          <button class="console-key" type="button" data-act="home">Home</button>
+          <button class="console-key" type="button" data-act="zoom-in" aria-label="Zoom in">+</button>
+        </div>
+        <div class="console-remote-row">
+          <button class="console-key" type="button" data-act="follow" aria-pressed="false">Follow</button>
+          <button class="console-key" type="button" data-act="clear">Clear</button>
+          <button class="console-key" type="button" data-act="tour" aria-pressed="false">Tour</button>
+        </div>
+      </section>
+
+      <section class="console-layers" id="layers" hidden aria-label="Layers">
+        <p class="console-lede" id="layers-lede"></p>
+        <div class="console-switches" id="layer-switches"></div>
+      </section>
+
+      <section class="console-places" id="places" hidden aria-label="Places">
+        <input class="console-search" id="place-search" type="search" placeholder="Airport code or name, or a chokepoint" aria-label="Search places" />
+        <div class="console-place-list" id="place-list"></div>
+      </section>
+
+      <p class="console-note" id="note" role="status"></p>
+      <nav class="console-tabs" id="tabs" hidden aria-label="Console">
+        <button type="button" data-tab="tracks" aria-current="page">Tracks</button>
+        <button type="button" data-tab="remote">Remote</button>
+        <button type="button" data-tab="layers">Layers</button>
+        <button type="button" data-tab="places">Places</button>
+      </nav>
+    </main>
+    <script type="module" src="/src/console/main.ts"></script>
+  </body>
+</html>

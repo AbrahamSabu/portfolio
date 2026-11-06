@@ -36,6 +36,8 @@ export interface LayerDeps {
   handover: () => void;
   rare: () => void;
   records: () => void;
+  /** The ops room's join dialog (Q). */
+  room: () => void;
   timeline: () => void;
   phosphor: Toggle;
   currents: Toggle;
@@ -190,6 +192,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         { kind: 'action', label: 'Timeline', key: 'Z', run: d.timeline },
         { kind: 'action', label: 'Rare aircraft', key: 'U', run: d.rare },
         { kind: 'action', label: 'Leaderboard', key: 'P', run: d.records },
+        { kind: 'action', label: 'Ops room: phones and screens', key: 'Q', run: d.room },
       ],
     },
     {
