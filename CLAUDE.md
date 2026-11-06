@@ -54,6 +54,8 @@ that could have been fetched before they arrived.
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
 - `npm test`: Vitest from the root config (490 tests after the Layers menu).
+- `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
+  sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -597,6 +599,53 @@ that could have been fetched before they arrived.
   at its *drawn* position, never cleared while the camera holds still;
   movestart clears — the film moved; sleeps when hidden/off; globe far-side
   guarded by a bounds check before `project()`).
+- Sky score (`client/src/sound/`, Y / Layers → Sound of the sky,
+  `watchfloor.score` off by default, `watchfloor.scoreVolume` 0.6 via
+  `StoredLevel`): ambient music from the live, filter-shown tracks on
+  screen (`picture.ts` `summarise`: counts, a reservoir sample of 48
+  aircraft with pan = screen x; `facesViewer` drops the globe's far side).
+  `climb.ts` derives vertical rate in the browser (no protocol change):
+  reports < 8 s apart aren't compared (25 ft altitude steps look like
+  climbs), > 180 s restart, ±40 m/s clip, halved averaging; ±2.5 m/s =
+  climbing/descending. `conductor.ts` (pure, seeded random): A minor
+  pentatonic only (`scale.ts`, step 0 = A3; the ping's A5/E6 are in it);
+  log fullness (sky full at 2,000, sea at 300) glided with time constants
+  2.5–4 s; 60 bpm sixteenth grid — quarters always, eighths over 0.35,
+  sixteenths over 0.65 — busier = more, softer, shorter notes; note = 2 +
+  altitude band (1,600 m) + id hash % 3, climbing/descending add a note two
+  steps up/down (capped at D6: E6 and up belong to the calls); ≤ 6 bells;
+  pad voicing low/mid/high by climb lean with hysteresis and a 10 s dwell;
+  calls (emergency E6→A5 twice, finding A5 C6 E6, area E6) one at a time,
+  a third within 3 s dropped. `engine.ts` (Web Audio, `BaseAudioContext`
+  so offline works): drone/pad/bells → bed → duck, calls skip the duck,
+  → fader → volume (squared) → limiter (DynamicsCompressor −10 dB, knee 0,
+  20:1, 3 ms; **Web Audio adds its own make-up gain, ~+5.7 dB below
+  threshold**, so levels were set by measurement) → 0.9 → out; generated
+  convolver reverb; every change is `setTargetAtTime` or a ramp from 0.
+  `skyScore.ts`: lookahead scheduler (100 ms timer books 0.4 s ahead on the
+  audio clock, 1.6 s when hidden). **Creating a live AudioContext blocked
+  headless Chrome's main thread 2–5 s here, and starting oscillators on a
+  context the browser hasn't allowed logs a warning each**: so a
+  remembered-on score creates nothing until the first click/key
+  (`waitForGesture`; a Y press is left to `toggle()`, which treats "on but
+  held" as go-ahead), except `eager` screensaver mode, which tries at load
+  (a kiosk needs Edge's autoplay allowed for the site; flags on
+  `msedge --kiosk` are ignored when Edge is already running). Y is handled
+  before the tour's any-key stop (sound isn't camera). While playing,
+  alerts are calls in the score (`alertCue` in main.ts) instead of the
+  ping. The switch's hint says what it hears ("hearing 312 aircraft and
+  40 ships"). `RangeRow` in layersMenu.ts is the volume slider; the score
+  is an optional LayerDeps field so the menu test's deps stand unchanged.
+  Verify: `npm run sound-check -w @watchfloor/server [-- --wav f.wav]`
+  bundles `renderCheck.ts` with esbuild, renders a scripted 64 s in
+  headless Chrome's OfflineAudioContext (Node has no Web Audio) and checks
+  silence, loudness, scale share, flatness, climb centroid, ship low end,
+  call prominence, peak and `clickSize` (second difference; first
+  differences are dominated by legit high tones). To record the live app,
+  inject `AudioNode.prototype.connect` wrapping (tap anything connected to
+  the destination with a ScriptProcessor) via
+  `Page.addScriptToEvaluateOnNewDocument`, launch with `--mute-audio`, and
+  press Y with `Input.dispatchKeyEvent` (counts as a user gesture).
 - Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
   click a basemap country label (`place_country_1/2`, `name:en` else
   `name`; cursor turns to a pointer) -> the day's stories whose GDELT place
