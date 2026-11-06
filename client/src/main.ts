@@ -35,6 +35,7 @@ import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl'
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
+import { RoomHost } from './room/roomHost';
 import { ServerClock } from './state/clock';
 import { chokepointCounts } from './state/chokepoints';
 import { FindingStore } from './state/findings';
@@ -515,6 +516,7 @@ async function main(): Promise<void> {
     if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
     if (event.key === 'u' || event.key === 'U') rarePanel.setOpen(!rarePanel.open);
+    if (event.key === 'q' || event.key === 'Q') room.toggle();
     if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === '?') keyDialog.toggle();
@@ -545,6 +547,7 @@ async function main(): Promise<void> {
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),
       rare: () => rarePanel.setOpen(true),
+      room: () => room.toggle(),
       timeline: () => timeline.setOpen(true),
       phosphor,
       exposure: exposureShown,
@@ -614,6 +617,19 @@ async function main(): Promise<void> {
       });
     },
   });
+  // The ops room (Q): phones join this screen as consoles and can send it tracks.
+  const room = new RoomHost({
+    map,
+    store,
+    layer,
+    selection,
+    live: !demo,
+    send: (message) => connection.send(message),
+    takeCamera: () => {
+      if (tour.active) tour.stop();
+      if (timeline.open) timeline.setOpen(false);
+    },
+  });
   const handlers: ConnectionHandlers = {
     onMessage(message, receivedAt) {
       clock.update(message.serverTime, receivedAt);
@@ -631,6 +647,13 @@ async function main(): Promise<void> {
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
+          room.reconnected();
+          break;
+        case 'room':
+        case 'room-presence':
+        case 'room-show':
+        case 'room-closed':
+          room.handle(message);
           break;
         case 'snapshot': {
           const applyStart = performance.now();

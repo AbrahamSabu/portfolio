@@ -1,0 +1,229 @@
+/*
+ * The ops room (Q): the join dialog, the top-bar chip, the tags on tracks
+ * consoles have open, and the line saying what a console sent. HUD lines on
+ * glass throughout; never an identity colour or the selection's orchid.
+ */
+
+.room-dialog {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.room-body {
+  display: flex;
+  gap: 24px;
+  padding: 20px;
+  overflow: auto;
+}
+
+/* Dark on light, the way every phone scanner reads; the glow ties it to the HUD. */
+.room-qr {
+  flex: none;
+  width: min(300px, 38vw);
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px var(--rule),
+    0 0 22px var(--hud-glow);
+}
+
+.room-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.room-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room-label {
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.room-code {
+  margin: 2px 0 0;
+  color: var(--hud-bright);
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 16px var(--hud-glow);
+}
+
+.room-message {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+
+.room-link {
+  color: var(--hud-bright);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.room-also {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.room-consoles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  letter-spacing: 0.05em;
+}
+
+.room-consoles-empty {
+  color: var(--ink-muted);
+}
+
+.room-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.room-fine {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.room-leave {
+  flex: none;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.room-leave:hover {
+  background: var(--surface-raised);
+}
+
+@media (max-width: 640px) {
+  .room-body {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .room-qr {
+    width: min(260px, 70vw);
+  }
+}
+
+.room-chip-count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgb(63 182 255 / 0.22);
+  color: var(--ink);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+/* Where the tour's banner sits: a console taking the camera has just stopped the tour. */
+.room-toast {
+  position: absolute;
+  z-index: 6;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--hud);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .room-toast:not([hidden]) {
+    animation: room-toast-in 240ms ease-out;
+  }
+}
+
+@keyframes room-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+/*
+ * A console's tag, below-left of its track (the selection's data block is
+ * above-right). The marker element itself must get no position or
+ * transform: MapLibre owns both.
+ */
+.room-presence {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.room-presence::before {
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 14px;
+  height: 1px;
+  background: var(--hud);
+  opacity: 0.7;
+  transform: rotate(-45deg);
+  transform-origin: right center;
+}
+
+.room-presence-tag {
+  position: absolute;
+  right: 15px;
+  top: 12px;
+  padding: 1px 6px 2px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.room-presence-stale {
+  opacity: 0.5;
+}

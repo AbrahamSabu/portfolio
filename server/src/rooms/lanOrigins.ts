@@ -1,11 +1,7 @@
 import type { NetworkInterfaceInfo } from 'node:os';
-import { MAX_JOIN_ORIGINS, isJoinOrigin } from '@watchfloor/shared';
+import { MAX_JOIN_ORIGINS, isJoinOrigin, isLoopbackHost } from '@watchfloor/shared';
 
-/** Whether a host the server binds (or a page is served from) is reachable from this computer only. */
-export function isLoopbackHost(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
-  return h === 'localhost' || h.endsWith('.localhost') || h === '::1' || /^127\.\d+\.\d+\.\d+$/.test(h);
-}
+export { isLoopbackHost };
 
 /** Binding these means every network interface. */
 const ALL_INTERFACES = new Set(['0.0.0.0', '::', '']);

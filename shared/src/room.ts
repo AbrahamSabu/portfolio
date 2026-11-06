@@ -59,6 +59,25 @@ export const isConsoleCallsign = (v: unknown): v is ConsoleCallsign =>
 export const isJoinOrigin = (v: unknown): v is string =>
   typeof v === 'string' && v.length <= 100 && /^https?:\/\/(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$/.test(v);
 
+/**
+ * Whether a host (one the server binds, or a page's) is reachable from this
+ * computer only, so a phone can't use it.
+ */
+export function isLoopbackHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
+  return h === 'localhost' || h.endsWith('.localhost') || h === '::1' || /^127\.\d+\.\d+\.\d+$/.test(h);
+}
+
+/**
+ * Where phones should be sent to join: the page's own address when other
+ * devices can use it (opened by network address, or a public https host),
+ * otherwise the server's network addresses, which are none while it listens
+ * on this computer only.
+ */
+export function joinOrigins(page: { origin: string; hostname: string }, serverOrigins: readonly string[]): string[] {
+  return isLoopbackHost(page.hostname) ? [...serverOrigins] : [page.origin];
+}
+
 /** A code as someone typed it: any case, spaces or a dash in the middle. */
 export function normalizeRoomCode(raw: string): string {
   return raw.toUpperCase().replace(/[\s-]+/g, '');
