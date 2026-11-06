@@ -515,6 +515,7 @@
   .brand-scenario,
   #list-toggle > span,
   .rare-chip > span:not(.rare-count),
+  .records-chip > span,
   #key-toggle,
   .dtg-ring {
     display: none;

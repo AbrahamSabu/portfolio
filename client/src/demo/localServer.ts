@@ -13,6 +13,7 @@ import {
 import { BriefService } from '../../../server/src/brief/briefService';
 import { Simulator } from '../../../server/src/feeds/sim/simulator';
 import { FindingsService } from '../../../server/src/findings/findingsService';
+import { RecordsService } from '../../../server/src/records/records';
 import { replayFor } from '../../../server/src/replay/replay';
 import { getScenario } from '../../../server/src/scenarios';
 import { TrackStore } from '../../../server/src/trackStore';
@@ -76,6 +77,9 @@ export class LocalServer implements Link {
   private readonly sim: Simulator;
   private readonly findings: FindingsService;
   private readonly brief: BriefService;
+  private readonly records: RecordsService;
+  /** Whether the page has had the leaderboard yet: changes go out only after it has. */
+  private recordsSent = false;
   private readonly scenario: ScenarioInfo;
   private tickTimer: number | undefined;
   private stepTimer: number | undefined;
@@ -108,6 +112,13 @@ export class LocalServer implements Link {
       },
       onEvent: (kind, finding, time, resolved) => this.brief.onFinding(kind, finding, time, resolved),
     });
+    // The leaderboard, from the same picture; the demo has no registers, so airlines show as their codes.
+    this.records = new RecordsService({
+      tracks: () => this.store.snapshot(),
+      onChange: (boards) => {
+        if (this.recordsSent) this.emit({ type: 'records', serverTime: Date.now(), boards });
+      },
+    });
   }
 
   start(): void {
@@ -137,6 +148,10 @@ export class LocalServer implements Link {
       this.emit({ type: 'snapshot', serverTime: now, tracks: this.store.snapshot(), trails: this.store.trailSnapshot() });
       this.store.flush(); // the snapshot carried it all
       this.emit({ type: 'findings', serverTime: now, items: this.findings.items(), recent: this.findings.recent() });
+      this.records.update();
+      this.emit({ type: 'records', serverTime: now, boards: this.records.boards() });
+      this.recordsSent = true;
+      this.records.start();
       this.tickTimer = window.setInterval(() => this.tick(), TICK_MS);
       this.newsSeen = null; // a fresh hello: send all of them again
       void this.readNews();
@@ -150,6 +165,8 @@ export class LocalServer implements Link {
     window.clearInterval(this.stepTimer);
     window.clearInterval(this.newsTimer);
     this.findings.stop();
+    this.records.stop();
+    this.recordsSent = false;
     this.brief.stop();
   }
 

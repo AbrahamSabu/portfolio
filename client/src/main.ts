@@ -63,6 +63,7 @@ import { RegionControl, RegionPanel } from './ui/regionPanel';
 import { FilterPanel } from './ui/filterPanel';
 import { HandoverPanel } from './ui/handoverPanel';
 import { RarePanel } from './ui/rarePanel';
+import { RecordsPanel } from './ui/recordsPanel';
 import { HoverCard } from './ui/hoverCard';
 import { KeyDialog } from './ui/keyDialog';
 import { Timeline } from './ui/timeline';
@@ -285,6 +286,19 @@ async function main(): Promise<void> {
   new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => sound.ping());
   // The Rare aircraft tab: what's flying now and the last day's, whenever you want them.
   const rarePanel = new RarePanel(el('rare-panel'), el('rare-toggle') as HTMLButtonElement, findings, map, () => clock.now(), showFinding);
+  // The Leaderboard tab: the server's boards of who's highest, fastest, biggest. It shares the Rare tab's place.
+  const recordsPanel = new RecordsPanel(
+    el('records-panel'),
+    el('records-toggle') as HTMLButtonElement,
+    map,
+    (id) => {
+      if (!store.get(id)) return false;
+      selection.select(id);
+      return true;
+    },
+    () => rarePanel.setOpen(false),
+  );
+  el('rare-toggle').addEventListener('click', () => recordsPanel.setOpen(false));
 
   // The alert corner fades its oldest cards when it's full. A bottom-anchored
   // stack overflows upward, which scrollHeight doesn't count, so the cards are measured.
@@ -493,6 +507,7 @@ async function main(): Promise<void> {
       else if (layersPanel.open) layersPanel.setOpen(false);
       else if (handover.open) handover.setOpen(false);
       else if (rarePanel.open) rarePanel.setOpen(false);
+      else if (recordsPanel.open) recordsPanel.setOpen(false);
       else if (timeline.open) timeline.setOpen(false);
       else if (hook.armed || hook.active) hook.clear();
       else selection.select(null);
@@ -514,7 +529,11 @@ async function main(): Promise<void> {
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
-    if (event.key === 'u' || event.key === 'U') rarePanel.setOpen(!rarePanel.open);
+    if (event.key === 'u' || event.key === 'U') {
+      recordsPanel.setOpen(false);
+      rarePanel.setOpen(!rarePanel.open);
+    }
+    if (event.key === 'p' || event.key === 'P') recordsPanel.setOpen(!recordsPanel.open);
     if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === '?') keyDialog.toggle();
@@ -545,6 +564,7 @@ async function main(): Promise<void> {
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),
       rare: () => rarePanel.setOpen(true),
+      records: () => recordsPanel.setOpen(true),
       timeline: () => timeline.setOpen(true),
       phosphor,
       exposure: exposureShown,
@@ -657,6 +677,9 @@ async function main(): Promise<void> {
           break;
         case 'findings':
           findings.apply(message.items, message.recent ?? []);
+          break;
+        case 'records':
+          recordsPanel.load(message.boards);
           break;
         case 'brief':
           handover.load(message);

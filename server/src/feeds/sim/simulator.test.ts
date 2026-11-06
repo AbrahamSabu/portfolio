@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { distanceM, sanitizeTrack, type Track } from '@watchfloor/shared';
 import { englishChannel } from '../../scenarios/englishChannel';
 import { world } from '../../scenarios/world';
+import { RARE_TYPES } from '../../findings/rare';
 import { Simulator } from './simulator';
 
 const START = 1_700_000_000_000;
@@ -46,7 +47,8 @@ describe('Simulator', () => {
   it('produces believable speeds', () => {
     const { reports } = run(4, 10);
     for (const r of reports) {
-      const max = r.domain === 'air' ? 260 : 13;
+      // Over the ground: an airliner in a jet-stream tailwind makes about 600 kt; a turboprop never 400.
+      const max = r.domain === 'sea' ? 13 : r.typeCode === 'AT76' || r.typeCode === 'DH8D' ? 205 : 310;
       expect(r.speedMps).toBeLessThanOrEqual(max);
     }
   });
@@ -96,6 +98,10 @@ describe('Simulator, the world', () => {
       const d = distanceM(from!, to!);
       expect(d).toBeGreaterThanOrEqual(300_000);
       expect(d).toBeLessThanOrEqual(15_000_000);
+      // A type fit for the distance, never a rare one: those are simulated on purpose, elsewhere.
+      expect(e.typeCode).toMatch(/^[A-Z0-9]{3,4}$/);
+      expect(RARE_TYPES[e.typeCode!]).toBeUndefined();
+      if (d > 8_000_000) expect(['B77W', 'B789', 'A359', 'B788', 'A333', 'B78X', 'A388', 'A35K', 'B772', 'A332', 'B763', 'B744', 'B748', 'A346']).toContain(e.typeCode);
     }
   });
 
@@ -104,7 +110,7 @@ describe('Simulator, the world', () => {
     const reports: Track[] = [];
     sim.attach({ upsert: (r) => reports.push(r as Track), remove: () => {} }, START);
     sim.step(START + 1000);
-    const rare = sim.snapshot.filter((e) => e.typeCode);
+    const rare = sim.snapshot.filter((e) => e.typeCode && RARE_TYPES[e.typeCode]);
     expect(new Set(rare.map((e) => e.typeCode))).toEqual(new Set(['A337', 'A3ST', 'BLCF', 'A124', 'C5M', 'B52', 'E3TF', 'Q4']));
     for (const e of rare) {
       const mission = world.missions![e.archetype]!;

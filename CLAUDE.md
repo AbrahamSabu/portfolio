@@ -484,6 +484,17 @@ that could have been fetched before they arrived.
   24 h (pick = fly to last position); closes on pick. It and the handover
   hide the news briefing underneath via `body:has(...)`: the panels are
   glass and the text read through.
+- **Leaderboard** (protocol 17 `records`): `server/src/records/records.ts`,
+  pure `leaderboards(tracks, now, sources)` (three places per board, a board
+  nobody qualifies for left out; glitch caps: 40 km, 380 m/s air, 30 m/s
+  sea, 460 m ships; private aircraft excluded via `isPrivate`, airline names
+  via `airlineFor`, ship lengths via AIS static) and `RecordsService`
+  (30 s, `onChange` only when the JSON changes). "Biggest" ranks distinct
+  types by `aircraftTypes.ts` MTOW, shown as "~575 t". Client
+  `ui/recordsPanel.ts`, P key, top-bar Leaderboard button, Layers menu; it
+  and the Rare tab close each other. Simulated airliners carry types by
+  route length with per-class speed, whole flight levels and a wind, so the
+  boards aren't ties.
 - Alert corner: `.alerts` is bottom-left, growing upward (72px clears the
   scale tape and the timeline's band), max-height leaves the map buttons
   (they end ~240px down). When the groups (plus 8px gaps between shown

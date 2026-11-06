@@ -10,6 +10,8 @@ import {
   type FeedStatus,
   type Finding,
   type FindingsMessage,
+  type Board,
+  type RecordsMessage,
   type HelloMessage,
   type Hazard,
   type HazardsMessage,
@@ -103,6 +105,8 @@ export interface HubOptions {
   hazards?: () => Hazard[];
   /** The watchers' current findings, and the last day's ended rare sightings, sent after the hazards. */
   findings?: () => { items: Finding[]; recent: Finding[] };
+  /** The leaderboard, sent after the findings. */
+  records?: () => Board[];
   /** Answers a browser's request for the handover brief. */
   onBrief?: (send: (message: BriefMessage) => void) => void;
   /** Answers a browser's request for recent paths through an area. */
@@ -207,6 +211,8 @@ export class Hub {
       if (hazards) this.send(client, { type: 'hazards', serverTime: Date.now(), items: hazards });
       const findings = this.opts.findings?.();
       if (findings) this.send(client, { type: 'findings', serverTime: Date.now(), ...findings });
+      const records = this.opts.records?.();
+      if (records) this.send(client, { type: 'records', serverTime: Date.now(), boards: records });
     });
   }
 
@@ -229,7 +235,13 @@ export class Hub {
     for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
   }
 
-  private send(client: Client, message: NewsMessage | HazardsMessage | FindingsMessage): void {
+  /** The whole leaderboard to every browser, whenever a record moves. */
+  broadcastRecords(boards: Board[]): void {
+    const payload = encodeServerMessage({ type: 'records', serverTime: Date.now(), boards });
+    for (const client of this.clients) if (client.ws.readyState === WebSocket.OPEN) client.ws.send(payload);
+  }
+
+  private send(client: Client, message: NewsMessage | HazardsMessage | FindingsMessage | RecordsMessage): void {
     if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
   }
 

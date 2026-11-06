@@ -179,6 +179,35 @@ function jitter(points: (LatLon & { spreadDeg?: number })[], rng: Rng, deg: numb
   });
 }
 
+/**
+ * What an airline would put on a route this long: narrowbodies and regional
+ * jets on short hops, widebodies across oceans, in roughly the shares the
+ * world's fleets have. Common types only; none of the rare ones.
+ */
+const SHORT_HAUL_TYPES: [string, number][] = [
+  ['B738', 22], ['A320', 20], ['A20N', 18], ['B38M', 10], ['A321', 8], ['A21N', 8], ['A319', 6], ['E190', 5],
+  ['E195', 3], ['CRJ9', 3], ['DH8D', 3], ['AT76', 3], ['BCS3', 2],
+];
+const MEDIUM_HAUL_TYPES: [string, number][] = [
+  ['A21N', 14], ['B738', 14], ['A20N', 10], ['A321', 10], ['B38M', 8], ['A320', 8], ['B739', 6], ['B788', 4],
+  ['A332', 4], ['B763', 4], ['B752', 3],
+];
+const LONG_HAUL_TYPES: [string, number][] = [
+  ['B77W', 18], ['B789', 16], ['A359', 14], ['B788', 8], ['A333', 8], ['B78X', 6], ['A388', 6], ['A35K', 6],
+  ['B772', 6], ['A332', 4], ['B763', 3], ['B744', 3], ['B748', 3], ['A346', 1],
+];
+
+function airlinerType(rng: Rng, distance: number): string {
+  const table = distance < 1_500_000 ? SHORT_HAUL_TYPES : distance < 4_500_000 ? MEDIUM_HAUL_TYPES : LONG_HAUL_TYPES;
+  return pickWeighted(table, ([, w]) => w, rng)[0];
+}
+
+function routeLengthM(points: readonly LatLon[]): number {
+  let m = 0;
+  for (let i = 1; i < points.length; i++) m += distanceM(points[i - 1]!, points[i]!);
+  return m;
+}
+
 /** One of the items, more likely the heavier it is. */
 function pickWeighted<T>(items: readonly T[], weight: (item: T) => number, rng: Rng): T {
   let total = 0;
@@ -393,6 +422,7 @@ export function spawn(archetype: Archetype, ctx: SpawnContext): SimEntity | null
   };
 
   if (profile.typeCode) entity.typeCode = profile.typeCode;
+  else if (archetype === 'airliner' && placement.behaviour.kind === 'route') entity.typeCode = airlinerType(rng, routeLengthM(placement.behaviour.points));
   const callsign = uniqueName(() => profile.callsign(rng), ctx.takenCallsigns);
   if (callsign) entity.callsign = callsign;
 
@@ -403,5 +433,46 @@ export function spawn(archetype: Archetype, ctx: SpawnContext): SimEntity | null
     // New arrivals at the edge are already at cruise; nothing in this sim takes off yet.
     entity.altitudeM = alt;
   }
+  if (archetype === 'airliner' && entity.typeCode) fly(entity, entity.typeCode, rng);
   return entity;
+}
+
+/**
+ * How each class of airliner cruises: true airspeed (m/s) and the flight
+ * levels it uses. Turboprops at 250-290 kt in the low twenties, jets at
+ * 420-500 kt in the thirties, the newest big twins up to FL430.
+ */
+const TURBOPROPS = new Set(['AT72', 'AT76', 'DH8D']);
+const REGIONAL_JETS = new Set(['E170', 'E75L', 'E190', 'E195', 'CRJ7', 'CRJ9', 'BCS1', 'BCS3']);
+/** Certified to about FL430: the 777, 787 and A350. */
+const NEW_WIDEBODIES = new Set(['A359', 'A35K', 'B772', 'B77L', 'B77W', 'B788', 'B789', 'B78X']);
+/** About FL410: the A330, A340 and 767. */
+const WIDEBODIES = new Set(['A332', 'A333', 'A339', 'A346', 'B763', 'B764']);
+const JUMBOS = new Set(['A388', 'B744', 'B748']);
+
+function cruiseOf(code: string): { tasMps: [number, number]; flightLevels: [number, number] } {
+  if (TURBOPROPS.has(code)) return { tasMps: [130, 150], flightLevels: [17, 25] };
+  if (REGIONAL_JETS.has(code)) return { tasMps: [215, 235], flightLevels: [31, 39] };
+  if (NEW_WIDEBODIES.has(code)) return { tasMps: [240, 255], flightLevels: [33, 43] };
+  if (WIDEBODIES.has(code)) return { tasMps: [235, 250], flightLevels: [33, 41] };
+  if (JUMBOS.has(code)) return { tasMps: [245, 258], flightLevels: [33, 41] };
+  return { tasMps: [220, 240], flightLevels: [32, 39] };
+}
+
+/**
+ * Cruise as the type does, at a whole flight level (as aircraft really do,
+ * so several share one), over the ground at its airspeed plus a wind: a
+ * headwind to a jet-stream tailwind, so the fastest over the ground aren't
+ * simply the fastest types.
+ */
+function fly(e: SimEntity, code: string, rng: Rng): void {
+  const { tasMps, flightLevels } = cruiseOf(code);
+  const ground = rng.range(...tasMps) + rng.range(-25, 50);
+  e.cruiseSpeedMps = ground;
+  e.speedMps = ground;
+  e.speedRangeMps = [ground, ground];
+  const altitude = rng.int(...flightLevels) * 1000 * 0.3048;
+  e.altitudeM = altitude;
+  e.targetAltitudeM = altitude;
+  e.altitudeRangeM = [altitude, altitude];
 }

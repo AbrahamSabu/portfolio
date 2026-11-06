@@ -96,6 +96,10 @@
             <span>Rare</span>
             <span class="rare-count" data-count hidden></span>
           </button>
+          <button class="topbar-button records-chip" id="records-toggle" type="button" aria-expanded="false" aria-controls="records-panel" title="Leaderboard: highest, fastest, biggest (P)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 14h11M3.5 14v-4h3v4M6.5 14V6h3v8M9.5 14V8.5h3V14" /></svg>
+            <span>Leaderboard</span>
+          </button>
           <button class="topbar-button news-switch" id="news-toggle" type="button" role="switch" aria-checked="true" title="News on the map, ticker and briefing (N)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6 6-6 6-6-6z" /></svg>
             <span class="news-switch-label">News</span>
@@ -303,6 +307,18 @@
           <ol class="rare-list" data-recent></ol>
           <p class="briefing-empty" data-recent-empty>None yet since the server started.</p>
         </div>
+      </aside>
+
+      <aside class="briefing rare-panel records-panel" id="records-panel" hidden aria-labelledby="records-title">
+        <header class="briefing-head">
+          <h2 class="briefing-title" id="records-title">Leaderboard</h2>
+          <p class="briefing-sub">Records in the picture right now, updated every half minute</p>
+          <button class="icon-button briefing-close" type="button" data-close aria-label="Close the leaderboard">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+          </button>
+        </header>
+        <div class="rare-body" data-boards></div>
+        <p class="briefing-empty" data-empty>Waiting for the first records from the server.</p>
       </aside>
 
       <aside class="briefing handover" id="handover" hidden aria-labelledby="handover-title">

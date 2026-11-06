@@ -2,6 +2,7 @@ import type { FeedStatus } from './feedStatus';
 import { parseBriefEvent, parseFinding, type BriefEvent, type Finding } from './findings';
 import { parseHazard, type Hazard } from './hazards';
 import { parseNewsItem, type NewsItem } from './news';
+import { parseBoard, type Board } from './records';
 import type { BBox } from './geo';
 import type { StalenessRules } from './staleness';
 import { TRACK_VALUES, type Affiliation, type Domain, type Platform, type Track } from './track';
@@ -45,8 +46,10 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *      lost, converging military), whole list like hazards; `brief` request
  *      and reply (the last 24 h as events, for the handover brief); `replay`
  *      request and reply (recent paths through an area, for the scrubber)
+ *  17  `records`: the leaderboard (highest, fastest, biggest...), whole like
+ *      findings, after the findings and every half minute
  */
-export const PROTOCOL_VERSION = 16;
+export const PROTOCOL_VERSION = 17;
 
 export interface HelloMessage {
   type: 'hello';
@@ -183,6 +186,16 @@ export interface FindingsMessage {
   recent?: Finding[];
 }
 
+/**
+ * The leaderboard (records.ts): every board each time, after the findings
+ * and whenever a record changes hands or moves (every half minute at most).
+ */
+export interface RecordsMessage {
+  type: 'records';
+  serverTime: number;
+  boards: Board[];
+}
+
 /** The last day's events, in answer to a browser's `brief` request. Oldest first. */
 export interface BriefMessage {
   type: 'brief';
@@ -224,6 +237,7 @@ export type ServerMessage =
   | NewsMessage
   | HazardsMessage
   | FindingsMessage
+  | RecordsMessage
   | BriefMessage
   | ReplayMessage;
 
@@ -279,6 +293,7 @@ export function encodeServerMessage(message: ServerMessage): string {
     case 'news':
     case 'hazards':
     case 'findings':
+    case 'records':
     case 'brief':
       return JSON.stringify(message);
     case 'replay': {
@@ -380,6 +395,11 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       const message: FindingsMessage = { type: 'findings', serverTime: m.serverTime, items };
       if (Array.isArray(m.recent)) message.recent = m.recent.map(parseFinding).filter((f): f is Finding => f !== null);
       return message;
+    }
+    case 'records': {
+      if (!Array.isArray(m.boards)) return null;
+      const boards = m.boards.map(parseBoard).filter((b): b is Board => b !== null);
+      return { type: 'records', serverTime: m.serverTime, boards };
     }
     case 'brief': {
       if (!Array.isArray(m.events) || typeof m.sinceTime !== 'number') return null;

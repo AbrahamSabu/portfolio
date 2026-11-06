@@ -6,6 +6,7 @@ import {
   type ScenarioInfo,
   type StalenessRule,
   type StalenessRules,
+  type Track,
   type TrackSource,
 } from '@watchfloor/shared';
 import { appendFileSync, mkdirSync } from 'node:fs';
@@ -24,12 +25,13 @@ import { PathService } from './paths/pathService';
 import { replayFor } from './replay/replay';
 import { nearbyAircraft, SkyWatchers } from './sky/nearby';
 import { trackDetails } from './details/trackDetails';
-import { readAirlines } from './feeds/adsb/airlines';
+import { airlineFor, readAirlines } from './feeds/adsb/airlines';
 import { createHttpServer } from './http';
 import { createLogger } from './log';
 import { loadPicture, pictureOf, restorePicture, savePicture } from './pictureCache';
 import { BriefService } from './brief/briefService';
 import { FindingsService } from './findings/findingsService';
+import { RecordsService } from './records/records';
 import { HazardService } from './hazards/hazardService';
 import { WeatherService } from './weather/weatherService';
 import { loadNews, NewsService, saveNews } from './news/newsService';
@@ -186,6 +188,16 @@ async function main(): Promise<void> {
     ...(aircraftDb ? { fleetOf: (code: string) => aircraftDb.db.fleetSize(code) } : {}),
     isPrivate: (t) => trackDetails(t, detailSources).private === true,
   });
+  // The leaderboard: highest, fastest, biggest... Private aircraft are left off it, as off the rare tab.
+  const records = new RecordsService({
+    tracks: () => store.snapshot(),
+    onChange: (boards) => hub?.broadcastRecords(boards),
+    sources: {
+      isPrivate: (t) => trackDetails(t, detailSources).private === true,
+      ...(airlines ? { airlineOf: (callsign: string) => airlineFor(callsign, airlines) } : {}),
+      ...(ais ? { shipLengthM: (t: Track) => trackDetails(t, detailSources).ship?.lengthM } : {}),
+    },
+  });
   const weather = new WeatherService();
 
   // Who is watching: browsers over the socket, plus plane-spotter phones,
@@ -258,6 +270,7 @@ async function main(): Promise<void> {
     ...(news ? { news: () => news.items() } : {}),
     ...(hazards ? { hazards: () => hazards.items() } : {}),
     findings: () => ({ items: findings.items(), recent: findings.recent() }),
+    records: () => records.boards(),
     onBrief: (send) => send(brief.message()),
     onReplay: (bbox, send) => send(replayFor(store.snapshot(), (id) => store.paths.get(id), bbox, Date.now())),
   });
@@ -300,6 +313,7 @@ async function main(): Promise<void> {
   news?.start();
   hazards?.start();
   findings.start();
+  records.start();
   brief.start();
 
   await new Promise<void>((resolve, reject) => {
@@ -321,6 +335,7 @@ async function main(): Promise<void> {
     news?.stop();
     hazards?.stop();
     findings.stop();
+    records.stop();
     brief.stop();
     clearInterval(saveTimer);
     await savePictureNow();
