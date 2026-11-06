@@ -6,14 +6,21 @@ const open = (origins: string[]): RoomState => ({ kind: 'open', code: 'K7QX', ke
 const localhost = { origin: 'http://localhost:8103', hostname: 'localhost' };
 
 describe('roomView', () => {
-  it("sends phones to the server's network address when this page is on localhost", () => {
+  it('offers to open a room or join one as a screen when not in a room', () => {
+    expect(roomView({ kind: 'none' }, localhost, true)).toMatchObject({ mode: 'choose', qr: null, code: null });
+    expect(roomView({ kind: 'opening' }, localhost, true)).toMatchObject({ mode: 'wait', qr: null });
+    expect(roomView({ kind: 'joining', code: 'K7QX' }, localhost, true)).toMatchObject({ mode: 'wait', message: 'Joining room K7QX as a screen…' });
+  });
+
+  it("sends phones and screens to the server's network address when this page is on localhost", () => {
     const view = roomView(open(['http://192.168.1.20:8103', 'http://10.0.0.7:8103']), localhost, true);
     expect(view).toMatchObject({
+      mode: 'host',
       code: 'K7QX',
       qr: 'http://192.168.1.20:8103/console.html?room=K7QX',
       link: 'http://192.168.1.20:8103/console.html?room=K7QX',
       also: ['http://10.0.0.7:8103'],
-      canClose: true,
+      screenLink: 'http://192.168.1.20:8103/?screen=K7QX',
     });
   });
 
@@ -36,17 +43,24 @@ describe('roomView', () => {
     expect(view.message).toContain('anyone on that network');
   });
 
+  it('names this screen when it joined someone else’s room', () => {
+    const view = roomView({ kind: 'screen', code: 'K7QX', name: 'SCREEN 2', token: KEY }, localhost, true);
+    expect(view).toMatchObject({ mode: 'screen', code: 'K7QX', name: 'SCREEN 2', qr: null, screenLink: null });
+    expect(view.message).toContain('never steer each other');
+  });
+
   it('explains that the static demo has no room', () => {
     const view = roomView(open(['http://192.168.1.20:8103']), localhost, false);
-    expect(view.qr).toBeNull();
-    expect(view.code).toBeNull();
+    expect(view).toMatchObject({ mode: 'demo', qr: null, code: null });
     expect(view.message).toMatch(/demo/);
   });
 
-  it('says why a room ended', () => {
-    expect(roomView({ kind: 'ended', reason: 'not-found' }, localhost, true).message).toMatch(/while this screen was away/);
-    expect(roomView({ kind: 'ended', reason: 'full' }, localhost, true).message).toMatch(/as many rooms/);
-    expect(roomView({ kind: 'opening' }, localhost, true)).toMatchObject({ qr: null, canClose: false });
+  it('says why a room ended or a join was refused, and offers the choice again', () => {
+    const ended = (reason: 'not-found' | 'full' | 'closed', as: 'main' | 'screen') => roomView({ kind: 'ended', reason, as }, localhost, true);
+    expect(ended('not-found', 'main').message).toMatch(/while this screen was away/);
+    expect(ended('not-found', 'screen').message).toMatch(/no room with that code/);
+    expect(ended('full', 'screen').message).toMatch(/as many screens/);
+    expect(ended('closed', 'main').mode).toBe('choose');
   });
 });
 

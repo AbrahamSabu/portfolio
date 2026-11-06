@@ -617,18 +617,17 @@ async function main(): Promise<void> {
       });
     },
   });
-  // The ops room (Q): phones join this screen as consoles and can send it tracks.
+  // The ops room (Q): host a room for phones and other screens, or join one as a screen.
   const room = new RoomHost({
     map,
     store,
     layer,
     selection,
+    tour,
+    timeline,
+    layers: layerDeps,
     live: !demo,
     send: (message) => connection.send(message),
-    takeCamera: () => {
-      if (tour.active) tour.stop();
-      if (timeline.open) timeline.setOpen(false);
-    },
   });
   const handlers: ConnectionHandlers = {
     onMessage(message, receivedAt) {
@@ -647,7 +646,7 @@ async function main(): Promise<void> {
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
-          room.reconnected();
+          room.reconnected(message.scenario);
           break;
         case 'room':
         case 'room-presence':

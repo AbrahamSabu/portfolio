@@ -129,6 +129,73 @@
   background: var(--surface-raised);
 }
 
+/* Open a room, or join one as another screen: big enough to reach with a TV remote's arrows. */
+.room-choose {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.room-primary {
+  align-self: flex-start;
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--hud);
+  border-radius: 3px;
+  background: rgb(63 182 255 / 0.16);
+  color: var(--ink);
+  font: 600 var(--text-md) var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgb(63 182 255 / 0.2);
+}
+
+.room-primary:hover {
+  background: rgb(63 182 255 / 0.26);
+}
+
+.room-join {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.room-join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.room-join-input {
+  width: 8ch;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--hud-bright);
+  font: 600 1.4rem var(--font-display);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.room-secondary {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.room-secondary:hover {
+  background: var(--surface-raised);
+}
+
 @media (max-width: 640px) {
   .room-body {
     flex-direction: column;
