@@ -144,9 +144,8 @@ async function main(): Promise<void> {
 
   // Political news: markers, hotspots, pop-up cards, ticker and briefing share one store.
   const news = new NewsStore();
-  // The demo has no news (GDELT is fetched by the server, and there isn't
-  // one), so the ticker and briefing start hidden rather than wait forever.
-  const newsSettings = new NewsSettings(demo ? { shown: false, voice: false } : loadNewsSettings());
+  // The demo has news too: the stories published beside it (demo/localServer.ts).
+  const newsSettings = new NewsSettings(loadNewsSettings());
 
   // The plotting surface: a faint graticule under everything, and hairlines under the pointer.
   new Graticule(map);

@@ -1,11 +1,13 @@
 import { cork } from './cork';
 import { englishChannel } from './englishChannel';
 import type { Scenario } from './types';
+import { world } from './world';
 
 /** Add new areas here. The id is what SCENARIO selects. */
 const scenarios: Record<string, Scenario> = {
   [cork.id]: cork,
   [englishChannel.id]: englishChannel,
+  [world.id]: world,
 };
 
 export function getScenario(id: string): Scenario {
@@ -18,4 +20,4 @@ export function getScenario(id: string): Scenario {
   return scenario;
 }
 
-export type { Scenario } from './types';
+export type { Airport, Scenario } from './types';

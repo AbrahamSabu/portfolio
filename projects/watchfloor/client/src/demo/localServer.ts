@@ -4,6 +4,7 @@ import {
   encodeServerMessage,
   parseServerMessage,
   type ClientMessage,
+  type NewsItem,
   type ScenarioInfo,
   type ServerMessage,
 } from '@watchfloor/shared';
@@ -26,9 +27,21 @@ const SEED = 7;
  * this far through the past at full speed (each step stamps its reports with
  * simulated time), so paths, trails and findings exist from the first frame.
  */
-const HISTORY_MS = 60 * 60_000;
-/** The motion model clamps steps at a second, so the past runs in whole seconds. */
-const HISTORY_STEP_MS = 1000;
+const HISTORY_MS = 30 * 60_000;
+/**
+ * Strides through the past. A world is thousands of tracks, so the past runs
+ * in 15-second steps, not the live second: an airliner covers under 4 km in
+ * one, inside its turning circle, and a ship 150 m. Paths and trails look the
+ * same for a fifteenth of the work.
+ */
+const HISTORY_STEP_MS = 15_000;
+/**
+ * Reports filed while running the past: one a minute per track (a path keeps
+ * a point every few minutes on a straight leg anyway), and every one for the
+ * last few minutes, which the trails show.
+ */
+const HISTORY_REPORT_GAP_MS = 60_000;
+const HISTORY_FULL_RATE_MS = 6 * 60_000;
 /**
  * Work per slice before yielding to the page. Sliced by time, not by
  * simulated span: every yield waits behind a frame, and on a slow GPU a
@@ -36,7 +49,18 @@ const HISTORY_STEP_MS = 1000;
  * finish far sooner than many tiny ones.
  */
 const HISTORY_SLICE_BUDGET_MS = 50;
+/** Where a frame is slow (a weak GPU), slices grow to match it, up to this: at least half the time goes on the past. */
+const HISTORY_SLICE_MAX_MS = 400;
 const LIVE_STEP_MS = 250;
+/**
+ * Real news, not simulated: GDELT's political stories, read by the server's
+ * own news code when the demo is published (`npm run demo-news`) and served
+ * beside the page. A browser can't read GDELT itself (it sends no CORS
+ * headers), and inventing headlines is out of the question. Read again now
+ * and then, in case the page has been open across a refresh of the file.
+ */
+const NEWS_URL = './news.json';
+const NEWS_CHECK_MS = 10 * 60_000;
 
 /**
  * The whole server, in the page: what the static demo build (`npm run
@@ -55,14 +79,21 @@ export class LocalServer implements Link {
   private readonly scenario: ScenarioInfo;
   private tickTimer: number | undefined;
   private stepTimer: number | undefined;
+  private newsTimer: number | undefined;
+  /** Stories already sent, so a re-read sends only what's new. Null until the first read. */
+  private newsSeen: Set<string> | null = null;
   private running = false;
   /** The past being run (or run): started once, awaited by every start. */
   private history: Promise<void> | null = null;
   /** Simulated time while the past is being run; null once it's live. */
   private simNow: number | null = null;
 
-  constructor(private readonly handlers: ConnectionHandlers) {
-    const scenario = getScenario('english-channel');
+  constructor(
+    private readonly handlers: ConnectionHandlers,
+    /** The world, unless a test wants something smaller and quicker. */
+    opts: { scenario?: string } = {},
+  ) {
+    const scenario = getScenario(opts.scenario ?? 'world');
     this.scenario = { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
     this.sim = new Simulator({ scenario, seed: SEED });
     this.brief = new BriefService({ tracks: () => this.store.snapshot() });
@@ -101,6 +132,9 @@ export class LocalServer implements Link {
       this.store.flush(); // the snapshot carried it all
       this.emit({ type: 'findings', serverTime: now, items: this.findings.items(), recent: this.findings.recent() });
       this.tickTimer = window.setInterval(() => this.tick(), TICK_MS);
+      this.newsSeen = null; // a fresh hello: send all of them again
+      void this.readNews();
+      this.newsTimer = window.setInterval(() => void this.readNews(), NEWS_CHECK_MS);
     });
   }
 
@@ -108,6 +142,7 @@ export class LocalServer implements Link {
     this.running = false;
     window.clearInterval(this.tickTimer);
     window.clearInterval(this.stepTimer);
+    window.clearInterval(this.newsTimer);
     this.findings.stop();
     this.brief.stop();
   }
@@ -153,27 +188,49 @@ export class LocalServer implements Link {
     };
     this.sim.attach(sink, t);
     let lastPrune = t;
+    let budget = HISTORY_SLICE_BUDGET_MS;
     // The wall clock moves while we yield, so "now" is re-read each slice, and
     // the run stops within a step of it rather than exactly on it (a target
     // that moves on every yield is never met). The live stepper takes the rest.
     while (Date.now() - t > HISTORY_STEP_MS) {
       const sliceStart = performance.now();
       const end = Date.now();
-      while (t < end && performance.now() - sliceStart < HISTORY_SLICE_BUDGET_MS) {
+      while (t < end && performance.now() - sliceStart < budget) {
         t = Math.min(end, t + HISTORY_STEP_MS);
         this.simNow = t;
-        this.sim.step(t);
-        if (t - lastPrune >= 10_000) {
+        this.sim.step(t, HISTORY_STEP_MS, end - t > HISTORY_FULL_RATE_MS ? HISTORY_REPORT_GAP_MS : 0);
+        if (t - lastPrune >= 60_000) {
           this.store.prune(t);
           lastPrune = t;
         }
       }
+      const yielded = performance.now();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
+      budget = Math.min(HISTORY_SLICE_MAX_MS, Math.max(HISTORY_SLICE_BUDGET_MS, performance.now() - yielded));
     }
     this.simNow = null;
     this.store.prune(Date.now());
     this.store.flush(); // the snapshot carries it all
     performance.measure('wf:demo-history', { start: started });
+  }
+
+  /** The published stories: all of them the first time, then only new ones. Quietly nothing if there's no file. */
+  private async readNews(): Promise<void> {
+    let items: NewsItem[];
+    try {
+      const res = await fetch(NEWS_URL, { cache: 'no-cache' });
+      if (!res.ok) return;
+      const file = (await res.json()) as { items?: NewsItem[] };
+      items = Array.isArray(file.items) ? file.items : [];
+    } catch {
+      return;
+    }
+    if (!this.running) return;
+    const first = this.newsSeen === null;
+    const seen = (this.newsSeen ??= new Set());
+    const fresh = items.filter((s) => !seen.has(s.id));
+    for (const s of fresh) seen.add(s.id);
+    if (first || fresh.length) this.emit({ type: 'news', serverTime: Date.now(), items: fresh, replace: first });
   }
 
   private tick(): void {

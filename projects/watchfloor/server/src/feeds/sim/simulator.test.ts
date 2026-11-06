@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeTrack, type Track } from '@watchfloor/shared';
+import { distanceM, sanitizeTrack, type Track } from '@watchfloor/shared';
 import { englishChannel } from '../../scenarios/englishChannel';
+import { world } from '../../scenarios/world';
 import { Simulator } from './simulator';
 
 const START = 1_700_000_000_000;
@@ -78,5 +79,34 @@ describe('Simulator', () => {
       return subset.length / new Set(subset.map((r) => r.id)).size;
     };
     expect(perTrack('air')).toBeGreaterThan(perTrack('sea') * 2);
+  });
+});
+
+describe('Simulator, the world', () => {
+  it('flies airliners between two different hubs, never too short or beyond any airliner range', () => {
+    const sim = new Simulator({ scenario: world, seed: 3 });
+    sim.attach({ upsert: () => {}, remove: () => {} }, START);
+    const hubs = new Set(world.airports!.map((a) => `${a.lat},${a.lon}`));
+    const flights = sim.snapshot.filter((e) => e.archetype === 'airliner');
+    expect(flights.length).toBe(world.population.airliner);
+    for (const e of flights) {
+      if (e.behaviour.kind !== 'route') throw new Error('an airliner without a route');
+      const [from, to] = e.behaviour.points;
+      expect(hubs.has(`${from!.lat},${from!.lon}`) && hubs.has(`${to!.lat},${to!.lon}`)).toBe(true);
+      const d = distanceM(from!, to!);
+      expect(d).toBeGreaterThanOrEqual(300_000);
+      expect(d).toBeLessThanOrEqual(15_000_000);
+    }
+  });
+
+  it('runs through the past in long strides, flights still arriving and being replaced', () => {
+    const sim = new Simulator({ scenario: world, seed: 3 });
+    let removals = 0;
+    sim.attach({ upsert: () => {}, remove: () => removals++ }, START);
+    for (let t = START; t <= START + 20 * 60_000; t += 15_000) sim.step(t, 15_000, 60_000);
+    // Flights land and are replaced as they would at one-second steps: some, not none and not a flood.
+    expect(removals).toBeGreaterThan(20);
+    expect(removals).toBeLessThan(world.population.airliner! / 2);
+    expect(sim.entityCount).toBeGreaterThan(4000);
   });
 });

@@ -2,7 +2,18 @@ import type { BBox, LatLon } from '@watchfloor/shared';
 
 export interface Route {
   name: string;
-  points: LatLon[];
+  /** A point may carry its own spread: how far ships wander off it (degrees), tight in a strait, wide at sea. */
+  points: (LatLon & { spreadDeg?: number })[];
+  /** How likely a ship is to take this lane rather than another (default 1). */
+  weight?: number;
+}
+
+/** An airport airliners fly between, weighted by how busy it is. */
+export interface Airport {
+  code: string;
+  lat: number;
+  lon: number;
+  weight: number;
 }
 
 export interface Racetrack {
@@ -27,8 +38,10 @@ export interface Scenario {
   name: string;
   center: LatLon;
   zoom: number;
-  /** Air traffic enters and leaves through the edges of this box. */
+  /** Air traffic enters and leaves through the edges of this box, unless there are airports. */
   bounds: BBox;
+  /** When set, airliners fly between these instead of crossing the box: a world needs real routes. */
+  airports?: Airport[];
   /** Directional shipping lanes; ships traverse them start to end. */
   shippingLanes: Route[];
   /** Port-to-port routes; ferries shuttle back and forth. */

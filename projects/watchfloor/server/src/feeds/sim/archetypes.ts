@@ -9,7 +9,7 @@ import {
   type LatLon,
   type Platform,
 } from '@watchfloor/shared';
-import type { Scenario } from '../../scenarios';
+import type { Airport, Scenario } from '../../scenarios';
 import type { Behaviour, SimEntity } from './entity';
 import { randomPointIn } from './motion';
 import { names, uniqueName } from './names';
@@ -121,9 +121,52 @@ export function isArchetype(name: string): name is Archetype {
 // ---------------------------------------------------------------------------
 // Geometry helpers
 
-/** Nudge each waypoint so ships in the same lane don't sit on one line. */
-function jitter(points: LatLon[], rng: Rng, deg: number): LatLon[] {
-  return points.map((p) => ({ lat: p.lat + rng.range(-deg, deg) * 0.6, lon: p.lon + rng.range(-deg, deg) }));
+/** Nudge each waypoint so ships in the same lane don't sit on one line; a point's own spread wins. */
+function jitter(points: (LatLon & { spreadDeg?: number })[], rng: Rng, deg: number): LatLon[] {
+  return points.map((p) => {
+    const d = p.spreadDeg ?? deg;
+    return { lat: p.lat + rng.range(-d, d) * 0.6, lon: p.lon + rng.range(-d, d) };
+  });
+}
+
+/** One of the items, more likely the heavier it is. */
+function pickWeighted<T>(items: readonly T[], weight: (item: T) => number, rng: Rng): T {
+  let total = 0;
+  for (const item of items) total += weight(item);
+  let r = rng.next() * total;
+  for (const item of items) {
+    r -= weight(item);
+    if (r <= 0) return item;
+  }
+  return items[items.length - 1]!;
+}
+
+/** Most flights are short; a few cross oceans. Beyond this, no airliner flies non-stop. */
+const SHORT_HAUL_M = 2_500_000;
+const LONGEST_FLIGHT_M = 15_000_000;
+const SHORTEST_FLIGHT_M = 300_000;
+
+/**
+ * A flight between two airports, both picked by how busy they are, the
+ * destination also by distance: busy pairs close together most, the long
+ * haul now and then. Two points: the motion model steers for the next one
+ * all the way, which is a great circle, as airliners fly.
+ */
+function flight(airports: readonly Airport[], rng: Rng): LatLon[] {
+  const from = pickWeighted(airports, (a) => a.weight, rng);
+  const to = pickWeighted(
+    airports,
+    (a) => {
+      const d = distanceM(from, a);
+      if (d < SHORTEST_FLIGHT_M || d > LONGEST_FLIGHT_M) return 0;
+      return a.weight * (Math.exp(-d / SHORT_HAUL_M) + 0.06);
+    },
+    rng,
+  );
+  return [
+    { lat: from.lat, lon: from.lon },
+    { lat: to.lat, lon: to.lon },
+  ];
 }
 
 /** A random spot along a polyline, weighted by segment length, plus the index of the next waypoint. */
@@ -204,7 +247,7 @@ function place(archetype: Archetype, ctx: SpawnContext): Placement | null {
   const { rng, scenario: s } = ctx;
   switch (archetype) {
     case 'airliner':
-      return routePlacement(airway(s.bounds, rng), 'once', ctx);
+      return routePlacement(s.airports?.length ? flight(s.airports, rng) : airway(s.bounds, rng), 'once', ctx);
     case 'light-aircraft':
       return s.lightAircraftAreas.length ? loiterPlacement(s.lightAircraftAreas, ctx, 0, [0, 0]) : null;
     case 'helicopter':
@@ -230,7 +273,8 @@ function place(archetype: Archetype, ctx: SpawnContext): Placement | null {
     case 'cargo':
     case 'tanker': {
       if (!s.shippingLanes.length) return null;
-      return routePlacement(jitter(rng.pick(s.shippingLanes).points, rng, 0.03), 'once', ctx);
+      const lane = pickWeighted(s.shippingLanes, (l) => l.weight ?? 1, rng);
+      return routePlacement(jitter(lane.points, rng, 0.03), 'once', ctx);
     }
     case 'ferry': {
       if (!s.ferryRoutes.length) return null;

@@ -2,7 +2,7 @@
 
 A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn as vehicle shapes or as NATO-standard MIL-STD-2525 symbols.
 
-**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs the built-in English Channel simulation entirely in the page: nothing to install, no account, no live data.
+**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, with the day's real political news from [GDELT](https://www.gdeltproject.org/) on top: nothing to install, no account. The traffic is simulated and labelled so; the headlines are real and verbatim.
 
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
@@ -109,7 +109,7 @@ Keyboard shortcuts:
 | `?` | Open the map key: what colours, symbols, dots, rings and lines mean |
 | `Esc` | Close the filter, or clear the selection |
 
-Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator, `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
+Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator (`SCENARIO=world` simulates the whole globe, as the demo does), `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
 
 ### Live aircraft
 

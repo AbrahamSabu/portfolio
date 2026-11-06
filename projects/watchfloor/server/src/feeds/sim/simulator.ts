@@ -46,6 +46,8 @@ export class Simulator implements Feed {
   private timer: ReturnType<typeof setInterval> | undefined;
   private lastStepAt = 0;
   private seq = 0;
+  /** Callsigns in use, kept as entities come and go: a world has thousands, too many to gather per spawn. */
+  private callsigns = new Set<string>();
 
   constructor(private readonly opts: SimulatorOptions) {
     this.rng = new Rng(opts.seed);
@@ -85,6 +87,7 @@ export class Simulator implements Feed {
     this.sink = sink;
     this.lastStepAt = now;
     this.entities = [];
+    this.callsigns = new Set();
     for (const [name, count] of Object.entries(this.opts.scenario.population)) {
       if (!isArchetype(name)) {
         log.warn('unknown archetype in scenario population', { name, known: ARCHETYPES });
@@ -97,9 +100,14 @@ export class Simulator implements Feed {
     }
   }
 
-  step(now: number): void {
-    // Clamp so a stalled event loop doesn't teleport everything.
-    const dt = Math.min(Math.max(now - this.lastStepAt, 0), 1000);
+  /**
+   * Move everything on to `now`. The step is clamped (to a second, unless
+   * asked otherwise) so a stalled event loop doesn't teleport everything; a
+   * caller running through the past on purpose can take longer strides,
+   * and ask for fewer reports (no closer than `minReportGapMs` per entity).
+   */
+  step(now: number, maxStepMs = 1000, minReportGapMs = 0): void {
+    const dt = Math.min(Math.max(now - this.lastStepAt, 0), maxStepMs);
     this.lastStepAt = now;
 
     for (let i = 0; i < this.entities.length; i++) {
@@ -110,28 +118,29 @@ export class Simulator implements Feed {
 
       if (e.done) {
         this.sink?.remove(makeTrackId('sim', e.id));
+        // Made before the departing name is freed, so it isn't reused at once.
         const replacement = this.create(e.archetype as Archetype, now, false);
+        if (e.callsign) this.callsigns.delete(e.callsign);
         if (replacement) this.entities[i] = replacement;
         else this.entities.splice(i--, 1);
         continue;
       }
 
-      this.maybeReport(e, now);
+      this.maybeReport(e, now, minReportGapMs);
     }
   }
 
   private create(archetype: Archetype, now: number, initial: boolean): SimEntity | null {
     const prefix = archetype.slice(0, 3);
     const id = `${prefix}-${(++this.seq).toString().padStart(4, '0')}`;
-    // Includes any entity being replaced, so a departing name isn't reused at once.
-    const takenCallsigns = new Set<string>();
-    for (const e of this.entities) if (e.callsign) takenCallsigns.add(e.callsign);
-    return spawn(archetype, { rng: this.rng, scenario: this.opts.scenario, now, id, initial, takenCallsigns });
+    const entity = spawn(archetype, { rng: this.rng, scenario: this.opts.scenario, now, id, initial, takenCallsigns: this.callsigns });
+    if (entity?.callsign) this.callsigns.add(entity.callsign);
+    return entity;
   }
 
-  private maybeReport(e: SimEntity, now: number): void {
+  private maybeReport(e: SimEntity, now: number, minGapMs: number): void {
     if (now < e.nextReportAt || now < e.silentUntil) return;
-    e.nextReportAt = now + this.rng.range(...e.reportIntervalMs);
+    e.nextReportAt = now + Math.max(this.rng.range(...e.reportIntervalMs), minGapMs);
 
     if (this.dropouts) {
       const d = DROPOUT[e.domain];
