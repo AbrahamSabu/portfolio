@@ -765,7 +765,11 @@ that could have been fetched before they arrived.
     redone on `loaded`) and `keyframes.ts` keeps frames 5 s apart (26 m from
     the true arc), at most two requests in flight, and never drops a late
     frame (the layer extrapolates one step). Satellite.js lives only in the
-    worker and tests; the page imports its types only.
+    worker and tests; the page imports its types only. Nothing loads until
+    the layer is first shown (catalogue fetch and worker are lazy; turning it
+    off stops the re-checks), so satellites switched off cost nothing.
+    Screensaver (`setPaceScale(2)`, read via `paceScaleNow()`): keyframes
+    10 s apart and redraws half as often, like the tracks.
   - `SatelliteLayer`: a MapLibre custom layer of WebGL points, one draw
     call. The vertex shader blends two keyframes and projects with the
     prelude MapLibre passes (`projectTileFor3D` takes Mercator 0..1 with

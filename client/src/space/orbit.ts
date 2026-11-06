@@ -1,5 +1,5 @@
 import type { SatelliteElements } from '@watchfloor/shared';
-import { metresPerPixel, MIN_RENDER_INTERVAL_MS } from '../map/renderRate';
+import { metresPerPixel, MIN_RENDER_INTERVAL_MS, paceScaleNow } from '../map/renderRate';
 
 /**
  * Orbit facts worked out from the elements alone: no propagation needed.
@@ -101,11 +101,12 @@ const MAX_INTERVAL_MS = 1000;
 /**
  * How often the satellites need a fresh frame, the same rule as the tracks'
  * (map/renderRate.ts): when the fastest could have moved half a pixel. About
- * once a second at world view, ten times a second from zoom 5.
+ * once a second at world view, ten times a second from zoom 5. Under the
+ * screensaver's slowdown, half as often, like the tracks.
  */
 export function satelliteIntervalMs(zoom: number, latDeg: number): number {
   const ms = ((metresPerPixel(zoom, latDeg) * MAX_PIXEL_STEP) / SATELLITE_MPS) * 1000;
-  return Math.min(MAX_INTERVAL_MS, Math.max(MIN_RENDER_INTERVAL_MS, ms));
+  return paceScaleNow() * Math.min(MAX_INTERVAL_MS, Math.max(MIN_RENDER_INTERVAL_MS, ms));
 }
 
 /** Web Mercator, 0..1 across and down the world, as MapLibre's shaders take positions. */

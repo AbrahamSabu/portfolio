@@ -1,5 +1,6 @@
 import { SATELLITE_GROUPS, type SatelliteCatalog, type SatelliteElements, type SatelliteGroup } from '@watchfloor/shared';
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import { paceScaleNow } from '../map/renderRate';
 import { LOWEST_TRACK_LAYER } from '../map/trackLayer';
 import type { HoverText } from '../ui/hoverCard';
 import { CatalogClient } from './catalogClient';
@@ -65,7 +66,7 @@ export class Satellites {
   private readonly dockedTo = new Map<number, number[]>();
   private counts: Partial<Record<SatelliteGroup, number>> = {};
   private readonly fetchedAt = new Map<SatelliteGroup, number | null>();
-  private readonly worker: Worker;
+  private worker: Worker | null = null;
   /** Bumped on every new catalogue: answers about an older one are dropped. */
   private generation = 0;
   private seq = 0;
@@ -89,15 +90,17 @@ export class Satellites {
     private readonly map: MapLibreMap,
     private readonly deps: SatellitesDeps,
   ) {
-    this.keyframes = new Keyframes(STEP_MS, (t) => this.post({ type: 'positions', seq: this.ask(t), t }));
+    // Under the screensaver's slowdown, keyframes twice as far apart: half the worker's work,
+    // and over 10 s the blend still keeps within about 100 m of the true arc.
+    this.keyframes = new Keyframes(STEP_MS * paceScaleNow(), (t) => this.post({ type: 'positions', seq: this.ask(t), t }));
     this.layer = new SatelliteLayer({ now: () => this.now(), pairAt: (t) => this.pairAt(t) });
     this.layer.setHiddenMask(deps.filter.mask);
     // Ground tracks first, so on a style load they go in under the satellites.
     this.tracks = new GroundTrackLayer(map);
     this.panel = new SatellitePanel(deps.detailsPanel, () => this.selectIndex(null));
     this.section = new SatelliteFilterSection(deps.filterPanel, deps.filter);
-    this.worker = new Worker(new URL('./satWorker.ts', import.meta.url), { type: 'module' });
-    this.worker.onmessage = (event: MessageEvent<WorkerReply>) => this.onReply(event.data);
+    // The catalogue (half a megabyte) and the worker wait until the layer is first shown:
+    // someone who has turned satellites off pays nothing for them.
     this.catalog = new CatalogClient(
       (catalog) => this.load(catalog),
       () => this.notify(),
@@ -120,7 +123,6 @@ export class Satellites {
     map.on('moveend', () => this.schedulePass(800));
     window.setInterval(() => this.tick(), 1_000);
     this.applyShown();
-    this.catalog.start();
   }
 
   /** True while a satellite's card is open (Escape closes it). */
@@ -167,6 +169,9 @@ export class Satellites {
 
   private applyShown(): void {
     const on = this.deps.shown.value;
+    // Off means off: no re-checks of the catalogue either (back on, one cheap re-check catches up).
+    if (on) this.catalog.start();
+    else this.catalog.stop();
     if (on) this.install();
     else if (this.map.getLayer(this.layer.id)) this.map.removeLayer(this.layer.id);
     this.tracks.setVisible(on);
@@ -175,7 +180,12 @@ export class Satellites {
     this.notify();
   }
 
+  /** Started on first use, which only comes once the layer is shown and a catalogue has arrived. */
   private post(message: WorkerRequest): void {
+    if (!this.worker) {
+      this.worker = new Worker(new URL('./satWorker.ts', import.meta.url), { type: 'module' });
+      this.worker.onmessage = (event: MessageEvent<WorkerReply>) => this.onReply(event.data);
+    }
     this.worker.postMessage(message);
   }
 

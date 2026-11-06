@@ -39,6 +39,11 @@ export function setPaceScale(scale: number): void {
   paceScale = scale;
 }
 
+/** The slowdown in force, for redraw clocks kept outside this module (the satellites'). */
+export function paceScaleNow(): number {
+  return paceScale;
+}
+
 export function renderIntervalMs(zoom: number, latDeg: number, domain: Domain = 'air'): number {
   const { fastestMps, maxIntervalMs } = PACE[domain];
   const ms = ((metresPerPixel(zoom, latDeg) * MAX_PIXEL_STEP) / fastestMps) * 1000;

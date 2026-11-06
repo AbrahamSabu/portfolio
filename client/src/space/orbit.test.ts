@@ -1,5 +1,6 @@
 import type { SatelliteElements } from '@watchfloor/shared';
 import { describe, expect, it } from 'vitest';
+import { setPaceScale } from '../map/renderRate';
 import {
   apsidesKm,
   dockedStacks,
@@ -81,6 +82,16 @@ describe('drawing', () => {
     const mid = satelliteIntervalMs(3, 0);
     expect(mid).toBeGreaterThan(100);
     expect(mid).toBeLessThan(1000);
+  });
+
+  it('slows down with the screensaver, like the tracks', () => {
+    setPaceScale(2);
+    try {
+      expect(satelliteIntervalMs(1, 0)).toBe(2000);
+      expect(satelliteIntervalMs(6, 50)).toBe(200);
+    } finally {
+      setPaceScale(1);
+    }
   });
 
   it('projects latitude as Web Mercator', () => {

@@ -18,6 +18,9 @@ export class CatalogClient {
   /** Some group not downloaded yet by the server: look again soon. */
   private pending = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private running = false;
+  /** Bumped by every start and stop, so an answer from an earlier run is dropped, not acted on. */
+  private run = 0;
   status: CatalogStatus = 'loading';
 
   constructor(
@@ -25,15 +28,25 @@ export class CatalogClient {
     private readonly onStatus: () => void,
   ) {}
 
+  /** Checks now, then every so often until stopped. Starting twice is harmless. */
   start(): void {
-    void this.check();
+    if (this.running) return;
+    this.running = true;
+    void this.check(++this.run);
   }
 
-  private async check(): Promise<void> {
+  stop(): void {
+    this.running = false;
+    this.run++;
+    clearTimeout(this.timer);
+  }
+
+  private async check(run: number): Promise<void> {
     let wait = REFRESH_MS;
     try {
       // no-cache: the browser revalidates with the ETag, and a 304 hands back its stored copy.
       const res = await fetch('/api/satellites', { cache: 'no-cache' });
+      if (run !== this.run) return;
       if (res.status === 503) {
         wait = 5_000;
       } else if (!res.ok || !res.headers.get('content-type')?.includes('json')) {
@@ -43,6 +56,7 @@ export class CatalogClient {
         const etag = res.headers.get('etag');
         if (etag === null || etag !== this.etag) {
           const catalog = parseSatelliteCatalog(await res.json());
+          if (run !== this.run) return;
           if (!catalog) throw new Error('not a satellite catalogue');
           this.etag = etag;
           this.pending = catalog.groups.some((g) => g.status === 'pending');
@@ -52,19 +66,16 @@ export class CatalogClient {
         if (this.pending) wait = PENDING_MS;
       }
     } catch {
+      if (run !== this.run) return;
       if (this.status !== 'ready') this.setStatus('unavailable');
       wait = 60_000;
     }
-    this.timer = setTimeout(() => void this.check(), wait);
+    if (run === this.run) this.timer = setTimeout(() => void this.check(run), wait);
   }
 
   private setStatus(status: CatalogStatus): void {
     if (status === this.status) return;
     this.status = status;
     this.onStatus();
-  }
-
-  stop(): void {
-    clearTimeout(this.timer);
   }
 }
