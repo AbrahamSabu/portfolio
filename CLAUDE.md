@@ -26,13 +26,25 @@ that could have been fetched before they arrived.
   and `process.env.LOG_LEVEL` (the server logger reads it at load). `main()`
   loads the demo module *first*, before anything can reach for the
   connection; in the normal build the switch folds away (the normal bundle
-  was byte-identical before and after). News starts hidden (no GDELT without
-  a server), and details are `{}` (the aircraft/airline DBs are on disk). On
-  first start it fast-forwards the simulator through the last hour so the
-  timeline has a past: sliced by a 50 ms *work budget* (yields wait behind a
-  frame, and software rendering makes frames slow), ingesting with simulated
-  time (`ingest(report, simNow)`, or the store drops it as too old), and
-  stopping within a step of now. Don't loop `while (t < Date.now())`: the
+  was byte-identical before and after). It simulates the `world` scenario
+  (`server/src/scenarios/world.ts`: ~4,100 tracks; airliners fly great
+  circles between 190 hubs whose positions come from `airports.json`, ships
+  follow hand-placed ocean lanes with a per-point `spreadDeg`, tight in
+  straits; the Channel keeps all its own detail). News is real: `npm run
+  demo-news` runs the server's NewsService once (seeded from `.cache/news.json`,
+  so it only fetches missing batches; `news.stop()` after `check()` or it never
+  exits) into `client/public-demo/news.json` (gitignored, the demo build's
+  `publicDir`), which the page reads as `./news.json`. Never invent or
+  re-date headlines. The client drops stories over 24 h old, so a published
+  snapshot goes quiet a day later unless refreshed. Details are `{}` (the
+  aircraft/airline DBs are on disk). On first start it fast-forwards the
+  simulator through the last 30 minutes so the timeline has a past: 15 s
+  strides (`step(t, maxStepMs, minReportGapMs)`; arrival radius grows with
+  the stride so nothing overshoots), one report a minute per track until the
+  last 6 minutes, sliced by a 50 ms *work budget* that grows to match slow
+  frames (up to 400 ms), ingesting with simulated time (`ingest(report,
+  simNow)`, or the store drops it as too old), and stopping within a step of
+  now. Don't loop `while (t < Date.now())`: the
   target moves on every yield and is never met. Published to the portfolio
   repo at `demos/watchfloor/` (served by its GitHub Pages). Server code the
   demo imports must stay browser-safe: no `node:` imports, and timers typed

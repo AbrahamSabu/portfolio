@@ -12,11 +12,15 @@ import type { Rng } from './rng';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Distance at which a waypoint counts as reached: a bit more than the current turn radius. */
-function arrivalRadiusM(e: SimEntity): number {
+/**
+ * Distance at which a waypoint counts as reached: a bit more than the current
+ * turn radius, or one step's travel if that's more (a long step through the
+ * past would otherwise overshoot and circle back).
+ */
+function arrivalRadiusM(e: SimEntity, dt: number): number {
   const turnRateRad = (e.maxTurnRateDps * Math.PI) / 180;
   const turnRadius = Math.max(e.speedMps, e.cruiseSpeedMps * 0.25) / turnRateRad;
-  return Math.max(250, turnRadius * 1.3);
+  return Math.max(250, turnRadius * 1.3, e.speedMps * dt);
 }
 
 export function randomPointIn(area: BBox, rng: Rng): LatLon {
@@ -43,7 +47,7 @@ export function advance(e: SimEntity, dtMs: number, now: number, rng: Rng): void
     switch (b.kind) {
       case 'route': {
         let target = b.points[b.next]!;
-        if (distanceM(e.pos, target) < arrivalRadiusM(e)) {
+        if (distanceM(e.pos, target) < arrivalRadiusM(e, dt)) {
           if (b.next < b.points.length - 1) {
             b.next++;
           } else if (b.mode === 'once') {
@@ -77,7 +81,7 @@ export function advance(e: SimEntity, dtMs: number, now: number, rng: Rng): void
         break;
       }
       case 'loiter': {
-        if (distanceM(e.pos, b.target) < arrivalRadiusM(e)) {
+        if (distanceM(e.pos, b.target) < arrivalRadiusM(e, dt)) {
           b.target = randomPointIn(b.area, rng);
           e.cruiseSpeedMps = rng.range(...e.speedRangeMps);
           if (e.altitudeRangeM) e.targetAltitudeM = rng.range(...e.altitudeRangeM);

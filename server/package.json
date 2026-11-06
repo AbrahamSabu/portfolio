@@ -9,7 +9,8 @@
     "start": "node --enable-source-maps dist/index.js",
     "typecheck": "tsc -p tsconfig.json",
     "aircraft-db": "tsx src/tools/fetchAircraftDb.ts",
-    "airports": "tsx src/tools/fetchAirports.ts"
+    "airports": "tsx src/tools/fetchAirports.ts",
+    "demo-news": "tsx src/tools/demoNews.ts"
   },
   "dependencies": {
     "ws": "8.22.0"

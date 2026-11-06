@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => {
     // Relative asset paths, so the demo works from any folder (GitHub Pages
     // serves it under /portfolio/demos/watchfloor/, not the site root).
     base: demo ? './' : '/',
+    // The demo's news file (npm run demo-news) is served beside the page.
+    publicDir: demo ? 'public-demo' : 'public',
     define: demo
       ? {
           'import.meta.env.VITE_DEMO': JSON.stringify('sim'),

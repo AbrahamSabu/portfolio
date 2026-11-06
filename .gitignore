@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist-demo/
+# The demo's news, written by npm run demo-news: real headlines, refreshed, not source
+client/public-demo/
 *.log
 .DS_Store
 .env
