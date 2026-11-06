@@ -43,6 +43,7 @@ function deps(): LayerDeps {
     exposure: toggle(),
     satellites: toggle(),
     satellitesDetail: () => '',
+    stack: toggle(),
   };
 }
 
@@ -52,7 +53,7 @@ describe('the Layers menu', () => {
     expect(new Set(keys).size).toBe(keys.length);
     const listed = new Set(SHORTCUTS.map(([k]) => k));
     expect(keys.filter((k) => !listed.has(k))).toEqual([]);
-    expect(keys).toEqual(['S', 'T', 'O', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'V', 'Z', 'U', 'P', 'W', 'I']);
+    expect(keys).toEqual(['S', 'T', 'O', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'V', 'Z', 'U', 'P', 'W', 'I', 'E']);
   });
 
   it('turns news on when the briefing is asked for with news off', () => {

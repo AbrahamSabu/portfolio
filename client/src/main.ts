@@ -16,6 +16,9 @@ import { ReplayLayer } from './map/replayLayer';
 import { DataCredits } from './map/dataCredits';
 import { HookTool } from './map/hook';
 import { ExposureLayer } from './map/exposureLayer';
+import { StackMode } from './map/stackMode';
+import { RideAlong } from './map/rideAlong';
+import { addRideButton } from './ui/rideButton';
 import { FilterControl } from './map/filterControl';
 import { FindingLayer } from './map/findingLayer';
 import { FlowLayer } from './map/flowLayer';
@@ -358,6 +361,13 @@ async function main(): Promise<void> {
     const now = clock.now();
     return [...store.all()].filter((t) => store.status(t, now) === 'live');
   }, exposureShown);
+  // The Stack (E): aircraft at their real altitude on a tilted map.
+  const stack = new StackMode(map, store, clock, layer, selection, filter, trails);
+  // Ride Along (J): the view from the selected aircraft. One camera mode at a time.
+  const ride = new RideAlong(map, store, clock, layer, selection, filter, details);
+  addRideButton(el('details'), store, selection, ride);
+  ride.beforeStart = () => stack.leaveNow();
+  stack.beforeEnter = () => ride.stop();
 
   // The search palette: everything with a place on the map, one box, camera there.
   const palette = new Palette(
@@ -580,6 +590,8 @@ async function main(): Promise<void> {
     if (event.key === 'p' || event.key === 'P') recordsPanel.setOpen(!recordsPanel.open);
     if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
+    if (event.key === 'e' || event.key === 'E') stack.toggle();
+    if (event.key === 'j' || event.key === 'J') ride.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
@@ -616,6 +628,7 @@ async function main(): Promise<void> {
       exposure: exposureShown,
       satellites: satellitesShown,
       satellitesDetail: () => satellites.detail(),
+      stack,
     };
   }
 

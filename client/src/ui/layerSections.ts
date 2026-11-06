@@ -1,4 +1,5 @@
 import type { TrailMode, TrailStyle } from '../map/trailLayer';
+import { STACK_EXAGGERATION } from '../map/stackBuffers';
 import type { SymbolStyle } from '../state/symbolStyle';
 import type { LayerSection } from './layersMenu';
 
@@ -41,6 +42,7 @@ export interface LayerDeps {
   exposure: Toggle;
   satellites: Toggle;
   satellitesDetail: () => string;
+  stack: Toggle;
   /** The sky score (optional: the menu works without it). */
   score?: {
     on: Toggle;
@@ -209,6 +211,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
         toggle('Traffic currents', 'Particles follow the average flow of the traffic, not wind', 'I', d.currents),
         toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),
+        toggle('The Stack', `Tilts the map; aircraft at their real altitude, drawn ×${STACK_EXAGGERATION} taller`, 'E', d.stack),
       ],
     },
   ];
