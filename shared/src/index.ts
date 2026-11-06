@@ -13,3 +13,4 @@ export * from './findings';
 export * from './records';
 export * from './weather';
 export * from './sky';
+export * from './satellites';

@@ -31,6 +31,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['H', 'Show or hide earthquakes and disasters'],
   ['D', 'Show or hide findings (rare aircraft, circling, converging, gone silent)'],
   ['C', 'Show or hide shipping chokepoints'],
+  ['O', 'Show or hide satellites (space stations, weather, Starlink)'],
   ['W', 'Draw a watch area'],
   ['X', 'Hook a second track: range, bearing, closest approach'],
   ['R', 'Show or hide weather radar'],
@@ -105,6 +106,7 @@ function content(style: SymbolStyle): string {
       <ul class="key-list">
         <li><span class="key-glyph key-dot" aria-hidden="true"></span>Aircraft, zoomed out</li>
         <li><span class="key-glyph key-ring" aria-hidden="true"></span>Ship, zoomed out</li>
+        <li><span class="key-glyph key-satellite" aria-hidden="true"></span>Satellite. Zoomed out, the low ones sit at their true height, a thin shell round the globe. Positions are predicted from <a href="https://celestrak.org/" target="_blank" rel="noopener">CelesTrak</a>'s orbital elements, not observed</li>
         <li><span class="key-glyph key-leader" aria-hidden="true"></span>Speed leader: where it will be in 1 minute (aircraft) or 10 (ships)</li>
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
         <li><span class="key-glyph key-flow" aria-hidden="true"></span><span>Currents (<kbd>I</kbd>): particles drift with the average direction and speed of the moving traffic around them, split by heading so a lane used both ways shows both currents, aircraft and ships as separate fields. It is the traffic on the map, not wind, sped up to be seen (ships about 13 times more than aircraft)</span></li>

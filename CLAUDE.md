@@ -839,6 +839,96 @@ that could have been fetched before they arrived.
   recolouring. Under basemap labels. Off by default; R / Layers menu /
   `watchfloor.radar`; the frame list is fetched only while shown, every 10
   min. Not animated (13x the tiles). Credit via source attribution.
+- Satellites, the third domain (Nov 2026; `server/src/space/`,
+  `shared/src/satellites.ts`, `client/src/space/`; O key, Layers → Space,
+  `watchfloor.satellites` on by default, filter group
+  `watchfloor.satelliteGroups`). No protocol change: plain HTTP.
+  - **CelesTrak's rules** (gp-data-formats page, Nov 2026): data changes
+    every 2 h; since 2026-03-26 one download per update per group (a repeat
+    gets 403 until it changes); 50 errors (301/403/404) in 2 h put the IP
+    on its firewall; use `celestrak.org` (`.com` answers 301); on a refusal
+    "stop and report to a human". Observed: 503s and a Starlink request
+    that ran past 90 s while busy.
+  - `SatelliteService`: groups `stations`, `weather`, `starlink`
+    (`SATELLITES`, `off`; never `active`, which contains Starlink) as OMM
+    JSON: TLEs can't carry six-digit catalogue numbers, which ran out on
+    2026-07-11 (the stations group already has Soyuz MS-29, 100057). Each
+    group at most every `SATELLITES_REFRESH_H` (6, min 2) plus up to 10%,
+    kept in `.cache/satellites/<group>.json` (`SATELLITES_CACHE`), so
+    restarts never download. Refusal (3xx/4xx, `redirect: 'manual'`): wait
+    the refresh interval, three in a row stop the group until restart (logged
+    as an error). 5xx: 30 min doubling, never stops. No answer: 15 min
+    doubling. Timeout 3 min. `CELESTRAK_URL` for a stub.
+  - `/api/satellites`: groups with status and `SatelliteTuple`s, built and
+    gzipped once per change (11,299 satellites: 1.52 MB, 495 KB on the wire),
+    ETag with `no-cache` (re-checks are 304s), 503 before the first build,
+    404 when off. `CatalogClient` re-checks every 30 min (20 s while a group
+    is pending); the static demo has no server, so the layer says
+    "not available".
+  - SGP4 in a module worker (`satWorker.ts`, satellite.js 7.1.0, chosen over
+    ootk (AGPL), ootk-core (stale), tle.js (TLE-only wrapper) and `sgp4`
+    (no licence)). **Its index re-exports a WASM build with top-level
+    await**: vite.config makes the worker `format: 'es'` and marks
+    satellite.js free of side effects there (worker 25 KB, main bundle no
+    SGP4). Under load here, `json2satrec` cost 0.2-0.5 ms and a propagation
+    8-120 µs per satellite (expect ~5 µs idle), so the worker sets up 1,000
+    at a time (stations and weather first, `complete: false` frames are
+    redone on `loaded`) and `keyframes.ts` keeps frames 5 s apart (26 m from
+    the true arc), at most two requests in flight, and never drops a late
+    frame (the layer extrapolates one step). Satellite.js lives only in the
+    worker and tests; the page imports its types only. Nothing loads until
+    the layer is first shown (catalogue fetch and worker are lazy; turning it
+    off stops the re-checks), so satellites switched off cost nothing.
+    Screensaver (`setPaceScale(2)`, read via `paceScaleNow()`): keyframes
+    10 s apart and redraws half as often, like the tracks.
+  - `SatelliteLayer`: a MapLibre custom layer of WebGL points, one draw
+    call. The vertex shader blends two keyframes and projects with the
+    prelude MapLibre passes (`projectTileFor3D` takes Mercator 0..1 with
+    `defaultProjectionData`), raises low orbits (< 2,000 km) to their true
+    height × `shellScale(zoom)` (1 to zoom 3, 0 by zoom 5: zoomed in the
+    camera would be below them), hides what the planet is in front of with
+    a ray test (camera from the matrix, `projection.ts`) and, on the ground,
+    MapLibre's horizon plane. A plus sign per satellite (aircraft are dots,
+    ships rings), pale steel, fainter zoomed out; selected: orchid ring.
+    Redraws when one could move half a pixel (`satelliteIntervalMs`), and
+    rides the map's other frames. **Bind GL state only in render()**:
+    MapLibre calls `setDirty()` after a custom layer renders, not after
+    `onAdd`. **A uniform both stages declare needs one precision**
+    (`u_pixel_ratio` failed to link). `getStyle()` doesn't list custom
+    layers; `map.getLayer('satellites').implementation` reaches it.
+  - Picking mirrors the shader on the CPU (`projectSatellite` with the last
+    frame's matrices), Mercator box first when zoomed in; tracks win a
+    click, then satellites, then airports; hook armed: no satellite pick.
+    Craft docked to a station (within 25 km when a catalogue loads) draw as
+    it, under its oldest catalogue number (ISS = Zarya 25544, Tiangong =
+    Tianhe 48274), and its card lists them.
+  - Ground tracks (`groundTrackLayer.ts`, under the tracks): half an orbit
+    back dashed, one ahead, for the two crewed stations always and the
+    selected satellite in orchid; redone every 5 s. Cut at the antimeridian
+    (`splitAtAntimeridian`); an unwrapped track passes 540° and the tiler
+    keeps only one world copy either side.
+  - Card (`satellitePanel.ts`, `.details` classes in #details's place;
+    `.app.sat-open` hides the briefing): altitude, speed, orbit family and
+    sun-synchronous (from J2 precession), ground point and sunlight,
+    docked craft, next pass over the map centre (10°, `findNextPass`;
+    visible = sunlit at the peak and sun below -6° there), element age.
+    Selecting a satellite clears the track selection and closes the
+    airport/country panels; selecting a track closes the card; Escape too.
+  - Timeline: replay puts satellites at the replayed moment (exact frames,
+    newest wish wins), projection at now + offset; no recording needed.
+  - Phone spotter (`sky/iss.ts`): `/api/satellites?groups=stations` (a few
+    KB, built on demand per version) and the same worker in the page, asked
+    for a `look` four times a second (azimuth, elevation, range, sunlit, the
+    sun's elevation there). The ISS joins the sky list as `sat:25544` only
+    while `visibleToEye` (≥ 10°, sunlit, sun below -6°): a plus sign on the
+    scope, locks and taps like an aircraft, card in km and km/h, no hexdb
+    lookup. Headless test: work out where it's visible soon (propagate.ts
+    in a tsx script), CDP geolocation override, then dispatch
+    `deviceorientationabsolute` with alpha = 360 - azimuth, beta = 90 +
+    elevation, gamma = 0 (upright portrait, back camera at it).
+  - Headless under 100% CPU (other sessions, Nov 2026): GeoJSON lines took
+    ~20 s to appear and the first satellite frame ~6 s; wait before judging
+    something missing.
 - Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):
   eight hand-drawn boxes (Hormuz, Bab-el-Mandeb, Suez, Singapore Strait,
   Bosphorus, Gibraltar, Dover, Panama); live (not stale) ships in each and

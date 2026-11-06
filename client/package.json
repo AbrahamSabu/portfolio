@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "maplibre-gl": "6.13.0",
-    "milsymbol": "3.0.4"
+    "milsymbol": "3.0.4",
+    "satellite.js": "7.1.0"
   },
   "devDependencies": {
     "@types/geojson": "7946.0.16",

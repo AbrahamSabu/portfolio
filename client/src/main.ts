@@ -28,6 +28,8 @@ import { NightLayer } from './map/nightLayer';
 import { NightLights } from './map/nightLights';
 import { SpaceBackdrop } from './map/space';
 import { RadarLayer } from './map/radarLayer';
+import { SatelliteFilter } from './space/satelliteFilter';
+import { Satellites } from './space/satellites';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
@@ -197,12 +199,29 @@ async function main(): Promise<void> {
   // Weather radar, off until asked for: R or the Layers menu.
   const radarShown = new StoredToggle('watchfloor.radar', false);
   const radar = new RadarLayer(map, radarShown);
+  // Satellites, the third domain: CelesTrak's elements from our server, positions
+  // computed in a worker (space/). O or the Layers menu; their own group in the filter.
+  const satellitesShown = new StoredToggle('watchfloor.satellites', true);
+  const satellites = new Satellites(map, {
+    shown: satellitesShown,
+    filter: new SatelliteFilter(),
+    now: () => clock.now(),
+    detailsPanel: el('details'),
+    filterPanel: el('filter-panel'),
+    selection,
+    onOpen: () => {
+      airportPanel.close();
+      countryPanel.close();
+    },
+  });
   const reticle = new Reticle(map);
   // The selected track's ATC-style data block, riding the same dead-reckoned position.
   new DataBlock(map, store, clock, layer, selection);
   // The hook (X): range, bearing and closest approach between the selection and a second track.
   const hook = new HookTool(map, store, clock, layer, selection);
   new HoverCard(map, store, clock, layer, (point) => {
+    const satellite = satellites.describeAt(point);
+    if (satellite) return satellite;
     const airport = airports.airportAt(point);
     return airport && describeAirport(airport, countryName);
   });
@@ -241,6 +260,7 @@ async function main(): Promise<void> {
   const countryPanel = new CountryPanel(el('country-panel'), map, store, news, hazards, clock, selection, (id) => cards.open(id), (id) => hazardLayer.open(id));
   map.on('click', (event) => {
     if (isDrawing() || layer.trackAt(event.point)) return;
+    if (!hook.armed && satellites.pick(event.point)) return;
     const airport = airports.airportAt(event.point);
     const country = airport ? undefined : countryPanel.countryAt(event.point);
     if (airport) {
@@ -531,6 +551,7 @@ async function main(): Promise<void> {
       else if (recordsPanel.open) recordsPanel.setOpen(false);
       else if (timeline.open) timeline.setOpen(false);
       else if (hook.armed || hook.active) hook.clear();
+      else if (satellites.selected) satellites.selectIndex(null);
       else selection.select(null);
     }
     // Single-letter shortcuts must not fire while the operator is typing.
@@ -546,6 +567,7 @@ async function main(): Promise<void> {
     if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
     if (event.key === 'd' || event.key === 'D') findingsShown.toggle();
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
+    if (event.key === 'o' || event.key === 'O') satellitesShown.toggle();
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'i' || event.key === 'I') currentsShown.toggle();
@@ -592,6 +614,8 @@ async function main(): Promise<void> {
       phosphor,
       currents: currentsShown,
       exposure: exposureShown,
+      satellites: satellitesShown,
+      satellitesDetail: () => satellites.detail(),
     };
   }
 
@@ -650,6 +674,7 @@ async function main(): Promise<void> {
       }
       ghosts.setOffset(s.mode === 'project' ? s.offsetMs : null);
       replayLayer.setTime(replaying ? s.t : null);
+      satellites.setTimeline(replaying ? { at: s.t } : s.mode === 'project' ? { offsetMs: s.offsetMs } : null);
     },
     requestReplay: () => {
       const b = map.getBounds();

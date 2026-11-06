@@ -33,6 +33,7 @@ import { BriefService } from './brief/briefService';
 import { FindingsService } from './findings/findingsService';
 import { RecordsService } from './records/records';
 import { HazardService } from './hazards/hazardService';
+import { SatelliteService } from './space/satelliteService';
 import { WeatherService } from './weather/weatherService';
 import { loadNews, NewsService, saveNews } from './news/newsService';
 import { getScenario } from './scenarios';
@@ -199,6 +200,8 @@ async function main(): Promise<void> {
     },
   });
   const weather = new WeatherService();
+  // Satellites' orbital elements from CelesTrak, a few downloads a day, served to browsers.
+  const satellites = config.satellites.groups.length > 0 ? new SatelliteService(config.satellites) : null;
 
   // Who is watching: browsers over the socket, plus plane-spotter phones,
   // which only make HTTP requests (sky/nearby.ts). Demand and areas are set
@@ -223,6 +226,7 @@ async function main(): Promise<void> {
   const server = createHttpServer({
     staticDir: config.staticDir,
     weather: (station) => weather.get(station),
+    ...(satellites ? { satellites: (groups) => (groups ? satellites.responseFor(groups) : satellites.response()) } : {}),
     sky: (lat, lon) => {
       const now = Date.now();
       const wasActive = skyWatchers.active;
@@ -239,6 +243,7 @@ async function main(): Promise<void> {
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
       news: news?.health() ?? null,
       hazards: hazards?.health() ?? null,
+      satellites: satellites?.health() ?? null,
       findings: findings.health(),
       brief: brief.health(),
     }),
@@ -312,6 +317,7 @@ async function main(): Promise<void> {
   hub.start();
   news?.start();
   hazards?.start();
+  satellites?.start().catch((err: unknown) => log.warn('satellites did not start', { error: String(err) }));
   findings.start();
   records.start();
   brief.start();
@@ -334,6 +340,7 @@ async function main(): Promise<void> {
     for (const feed of feeds) feed.stop();
     news?.stop();
     hazards?.stop();
+    satellites?.stop();
     findings.stop();
     records.stop();
     brief.stop();

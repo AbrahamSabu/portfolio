@@ -44,5 +44,14 @@ export default defineConfig(({ mode }) => {
       // MapLibre and milsymbol (all symbol standards) are large; they're cached after first load.
       chunkSizeWarningLimit: 2500,
     },
+    worker: {
+      // The SGP4 worker (src/space) uses satellite.js's plain JavaScript. Its index also
+      // re-exports an optional WebAssembly build written with top-level await, which only a
+      // module worker can hold; declared free of side effects, those unused parts are left out.
+      format: 'es' as const,
+      rolldownOptions: {
+        treeshake: { moduleSideEffects: (id: string) => !/[\\/]satellite\.js[\\/]/.test(id) },
+      },
+    },
   };
 });

@@ -39,6 +39,8 @@ export interface LayerDeps {
   phosphor: Toggle;
   currents: Toggle;
   exposure: Toggle;
+  satellites: Toggle;
+  satellitesDetail: () => string;
   /** The sky score (optional: the menu works without it). */
   score?: {
     on: Toggle;
@@ -132,6 +134,10 @@ export function layerSections(d: LayerDeps): LayerSection[] {
           watch: [d.trails],
         },
       ],
+    },
+    {
+      title: 'Space',
+      rows: [toggle('Satellites', 'Space stations, weather, Starlink: predicted, not observed', 'O', d.satellites, d.satellitesDetail)],
     },
     {
       title: 'News',

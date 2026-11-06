@@ -2,6 +2,7 @@ import './sky.css';
 import { deadReckon, metresToFeet, parseSkyResponse, type SkyAircraft } from '@watchfloor/shared';
 import airportsUrl from '../data/airports.json?url';
 import { parseAirports } from '../map/airports';
+import { issAsSeen, IssWatch, ISS_SKY_ID } from './iss';
 import {
   anglesOf,
   blend,
@@ -57,6 +58,12 @@ let seenNow: Seen[] = [];
 const airportCity = new Map<string, string>();
 /** Type and route looked up from hexdb.io, once per aircraft. */
 const extras = new Map<string, { type?: string; route?: string } | 'pending'>();
+/** The ISS joins the sky whenever it can be seen from here. */
+const iss = new IssWatch(
+  () => observer,
+  () => Date.now() + clockOffset,
+);
+const SATELLITE = '#e6f0fa';
 
 $('go').addEventListener('click', () => void start());
 
@@ -104,6 +111,7 @@ async function start(): Promise<void> {
   $('live').hidden = false;
   void keepAwake();
   void loadAirports();
+  iss.start();
   window.setInterval(() => void poll(), POLL_MS);
   window.setTimeout(() => {
     if (!compass) $('hint').textContent = 'No compass on this device: tap a plane on the scope to see what it is.';
@@ -151,6 +159,11 @@ function frame(): void {
       const pos = skyPosition(observer, { lat: at.lat, lon: at.lon, altitudeM: p.altitudeM }, observer.altM);
       if (pos.elevationDeg >= 0) seenNow.push({ plane: p, pos, dir: directionOf(pos) });
     }
+    const station = iss.sighting;
+    if (station?.visible) {
+      const seen = issAsSeen(station, serverNow);
+      seenNow.push({ ...seen, dir: directionOf(seen.pos) });
+    }
   }
 
   let target: Seen | undefined;
@@ -194,16 +207,21 @@ const TAG: Record<CardState, string> = {
 
 function renderCard(state: CardState, target: Seen | undefined): void {
   const p = target?.plane;
-  const extra = p ? extrasOf(p) : undefined;
+  const station = p?.id === ISS_SKY_ID;
+  const extra = p && !station ? extrasOf(p) : undefined;
   const what = p ? [p.airline, p.model ?? extra?.type, p.military ? 'Military' : undefined].filter(Boolean).join(' · ') : '';
-  const route = extra?.route ? extra.route.split('-').map((code) => airportCity.get(code) ?? code).join(' → ') : '';
+  const route = station
+    ? 'Lit by the sun in a dark sky: a steady light, no blinking, crossing in minutes'
+    : extra?.route
+      ? extra.route.split('-').map((code) => airportCity.get(code) ?? code).join(' → ')
+      : '';
   const card = {
     tag: TAG[state],
     name: p ? (p.callsign?.trim() ?? 'No callsign') : '',
     what,
     route,
-    alt: p ? feet(p.altitudeM) : '—',
-    speed: p ? `${Math.round(p.speedMps * 3.6)} km/h` : '—',
+    alt: p ? (station ? `${Math.round(p.altitudeM / 1000)} km` : feet(p.altitudeM)) : '—',
+    speed: p ? `${Math.round(p.speedMps * 3.6).toLocaleString('en-GB')} km/h` : '—',
     dist: target ? km(target.pos.groundM) : '—',
     where: target ? `${Math.round(target.pos.elevationDeg)}° up, ${compassPoint(target.pos.azimuthDeg)}` : '—',
   };
@@ -325,6 +343,28 @@ function drawScope(target: Seen | undefined): void {
   for (const s of seenNow) {
     const [x, y] = xy(s.pos.azimuthDeg, s.pos.elevationDeg);
     const isTarget = s === target;
+    if (s.plane.id === ISS_SKY_ID) {
+      // The map's satellite mark, a plus sign, never an aircraft's arrow.
+      const k = isTarget ? 1.5 : 1;
+      ctx.strokeStyle = isTarget ? ACCENT : SATELLITE;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 7 * k, y);
+      ctx.lineTo(x + 7 * k, y);
+      ctx.moveTo(x, y - 7 * k);
+      ctx.lineTo(x, y + 7 * k);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      if (isTarget) {
+        ctx.strokeStyle = ACCENT;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 15, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+      continue;
+    }
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(((s.plane.courseDeg - up) * Math.PI) / 180);
