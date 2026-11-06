@@ -38,6 +38,8 @@ export default defineConfig(({ mode }) => {
         input: {
           main: fileURLToPath(new URL('./index.html', import.meta.url)),
           ...(demo ? {} : { sky: fileURLToPath(new URL('./sky.html', import.meta.url)) }),
+          // The ops room's phone console needs a live server too.
+          ...(demo ? {} : { console: fileURLToPath(new URL('./console.html', import.meta.url)) }),
         },
       },
       sourcemap: !demo,
