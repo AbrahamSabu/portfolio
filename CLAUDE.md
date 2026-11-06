@@ -588,6 +588,42 @@ that could have been fetched before they arrived.
   null angles in headless — dispatch `DeviceOrientationEvent`s instead.
   Write regexes with the Edit tool, not Python heredocs: `"\b"` became a
   backspace byte once.
+- Ops room (Nov 2026; `shared/src/room.ts`, `server/src/rooms/`,
+  `client/src/room/`, `client/console.html` + `src/console/`; protocol
+  v17 `room-*`): Q on the main screen opens a room (in server memory only)
+  and a modal dialog (the map key's frame) with a QR code, link and code;
+  phones join as consoles on the same `/ws` (they need the tracks for their
+  list). Codes: 4 chars from `BCDFGHJKMNPQRSTVWXZ23456789`; the main holds a
+  `key`, each console a `token` (16 random bytes, base64url, compared with
+  timingSafeEqual) to reclaim after a reconnect (main grace 5 min, since a
+  hidden tab closes its socket after 60 s; closing the page sends
+  `room-leave` on `pagehide`; console seat 2 min); callsigns are
+  server-picked NATO words, so no phone text
+  reaches the wall. Limits: 16 rooms, 12 consoles, open/join paced 500 ms
+  per socket, one send a second, and after 20 wrong codes a minute *every*
+  join gets `busy` (a refusal must not reveal which codes exist). Presence
+  (connected consoles + each one's open track, `main` connected) goes to all
+  members, coalesced 100 ms; `room-send` reaches the main only, as
+  `room-show`, which stops the tour, closes the timeline, selects and
+  `fly()`s. Network: HOST stays 127.0.0.1 by default; `HOST=0.0.0.0` is the
+  opt-in (startup warning). `lanOrigins` (pure) lists private IPv4s, Wi-Fi
+  192.168 first, virtual adapters (vEthernet/WSL/Docker...) last;
+  `joinOrigins` (shared) prefers the page's own origin unless it's loopback,
+  and with no reachable origin the dialog shows no QR and explains the
+  opt-in. `client/src/room/qr.ts`: our own QR encoder (byte mode, level M,
+  versions 1-10), tested against the standard's tables and by un-masking and
+  decoding every version. Presence tags are DOM Markers below-left of the
+  track (data block is above-right), HUD lines only. The console page has no
+  MapLibre: windowed list (`queryTracks`, `visibleRange`, `shapeSvg`), Back
+  closes details (pushState), socket closed after 60 s hidden. The demo
+  build leaves the page out and its Q dialog says rooms need the server.
+  Headless check: two CDP pages on one server (1600x900 main, 390x844
+  phone), **each in its own window** (`Target.createTarget` with
+  `newWindow`): a second tab hides the first, whose socket then closes
+  after 60 s. Chrome's `--host-resolver-rules="MAP wall.test 127.0.0.1"`
+  gives the main page a non-loopback origin, so the dialog shows its QR
+  without binding the LAN. Headless Chrome on Windows has no
+  BarcodeDetector. The dialog stops key propagation; Escape closes it.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to
