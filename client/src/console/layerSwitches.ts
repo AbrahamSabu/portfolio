@@ -9,6 +9,10 @@ const LABEL: Record<LayerName, string> = {
   hazards: 'Earthquakes and disasters',
   findings: 'Findings',
   chokepoints: 'Shipping chokepoints',
+  satellites: 'Satellites',
+  currents: 'Traffic currents',
+  stack: 'The Stack (3D)',
+  score: 'Sound of the sky',
 };
 
 /** A tap waits this long for the screen to confirm before the switch shows the screen's word again. */

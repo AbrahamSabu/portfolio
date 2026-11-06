@@ -3,8 +3,8 @@
  * that joined it (a TV showing its own view), and the phones that joined it
  * as consoles. A console browses the picture, says which track it has open
  * (presence, tagged on every screen's map), and steers one screen of its
- * choosing: show a track, pan and zoom, switch layers, start the tour, fly
- * to a place. Screens never steer each other. Rooms live in the server's
+ * choosing: show a track, pan and zoom, switch layers, start the tour, ride
+ * along with an aircraft, fly to a place. Screens never steer each other. Rooms live in the server's
  * memory only, and end when the main screen leaves.
  *
  * Flow (protocol v18):
@@ -12,7 +12,7 @@
  *   screen       room-join { code, as: 'screen' } -> room { role: 'screen', name, token }
  *   console      room-join { code }               -> room { role: 'console', callsign, token }
  *   everyone in the room                          <- room-presence, whenever it changes
- *   screens      room-status { status }              (layers, tour, follow: for consoles' switches)
+ *   screens      room-status { status }              (layers, tour, follow, riding: for consoles' switches)
  *   console      room-look { id | null }             (the track it has open)
  *   console      room-control { to, action }      -> that screen gets room-control { from, action }
  *   anyone       room-leave                          (the main screen leaving closes the room)
@@ -58,9 +58,14 @@ export const MAX_JOIN_ORIGINS = 8;
 
 /**
  * The map layers a console can switch on a screen. Trails count as on
- * unless off; `symbols` on means military symbols instead of vehicle shapes.
+ * unless off; `symbols` on means military symbols instead of vehicle shapes;
+ * `stack` is the tilted 3D view (E), and `score` the sound of the sky (Y),
+ * which a browser lets a page play only once someone has touched it.
  */
-export const LAYER_NAMES = ['news', 'trails', 'symbols', 'radar', 'airports', 'hazards', 'findings', 'chokepoints'] as const;
+export const LAYER_NAMES = [
+  'news', 'trails', 'symbols', 'radar', 'airports', 'hazards', 'findings', 'chokepoints',
+  'satellites', 'currents', 'stack', 'score',
+] as const;
 export type LayerName = (typeof LAYER_NAMES)[number];
 export type LayerState = Partial<Record<LayerName, boolean>>;
 
@@ -71,6 +76,8 @@ export interface ScreenStatus {
   tour: boolean;
   /** The camera follows the selected track. */
   follow: boolean;
+  /** The aircraft this screen is riding along with (J), while it is. */
+  riding?: string;
 }
 
 /**
@@ -88,6 +95,8 @@ export type RoomAction =
   | { do: 'clear' }
   | { do: 'tour'; on: boolean }
   | { do: 'layer'; layer: LayerName; on: boolean }
+  /** Ride along with an aircraft, as J would; null leaves the ride. */
+  | { do: 'ride'; id: string | null }
   | { do: 'fly'; lon: number; lat: number; zoom: number };
 
 export const isRoomCode = (v: unknown): v is string => typeof v === 'string' && ROOM_CODE.test(v);

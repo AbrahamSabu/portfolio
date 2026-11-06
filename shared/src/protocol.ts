@@ -584,6 +584,9 @@ function parseRoomAction(value: unknown): RoomAction | null {
       return typeof a.on === 'boolean' ? { do: 'tour', on: a.on } : null;
     case 'layer':
       return isLayerName(a.layer) && typeof a.on === 'boolean' ? { do: 'layer', layer: a.layer, on: a.on } : null;
+    case 'ride':
+      if (a.id === null) return { do: 'ride', id: null };
+      return isTrackId(a.id) ? { do: 'ride', id: a.id } : null;
     case 'fly':
       return inRange(a.lon, -180, 180) && inRange(a.lat, -85, 85) && inRange(a.zoom, 0, 18)
         ? { do: 'fly', lon: a.lon, lat: a.lat, zoom: a.zoom }
@@ -593,7 +596,7 @@ function parseRoomAction(value: unknown): RoomAction | null {
   }
 }
 
-/** What a screen says it is showing: known layers only, each a boolean. */
+/** What a screen says it is showing: known layers only, each a boolean, and a track id if it is riding along. */
 function parseScreenStatus(value: unknown): ScreenStatus | null {
   if (typeof value !== 'object' || value === null) return null;
   const s = value as Record<string, unknown>;
@@ -605,7 +608,11 @@ function parseScreenStatus(value: unknown): ScreenStatus | null {
     const on = given[name];
     if (typeof on === 'boolean') layers[name] = on;
   }
-  return { layers, tour: s.tour, follow: s.follow };
+  const riding = s.riding;
+  if (riding !== undefined && !isTrackId(riding)) return null;
+  const status: ScreenStatus = { layers, tour: s.tour, follow: s.follow };
+  if (typeof riding === 'string') status.riding = riding;
+  return status;
 }
 
 /** The server's ops-room messages, checked: callsigns and addresses end up on screen and in a QR code. */

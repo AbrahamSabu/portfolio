@@ -19,6 +19,7 @@ import type { TrackStore } from '../state/trackStore';
 import { PresenceMarkers } from './presenceMarkers';
 import { RoomDialog } from './roomDialog';
 import { roomView, trackName, type RoomState } from './roomView';
+import { canRide } from '../map/rideAlong';
 import { LAYER_LABEL, layerState, onLayerChange, setLayer, type LayerSettings } from './screenControl';
 import './room.css';
 
@@ -30,6 +31,8 @@ export interface RoomHostDeps {
   send: (message: ClientMessage) => void;
   tour: { readonly active: boolean; start(): void; stop(): void };
   timeline: { readonly open: boolean; setOpen(open: boolean): void };
+  /** Ride Along (J): a console can put this screen in an aircraft's cockpit. */
+  ride: { readonly riding: string | null; start(id: string): void; stop(): void; subscribe(listener: () => void): unknown };
   /** The layer settings, the same objects the keys and the Layers menu change. */
   layers: () => LayerSettings;
   /** False in the static demo: there is no server for phones to join. */
@@ -87,6 +90,7 @@ export class RoomHost {
     // Tell the room what this screen shows whenever that changes.
     onLayerChange(deps.layers(), () => this.reportStatus());
     deps.selection.subscribe(() => this.reportStatus());
+    deps.ride.subscribe(() => this.reportStatus());
     window.setInterval(() => this.reportStatus(), STATUS_CHECK_MS);
     this.render();
   }
@@ -232,6 +236,12 @@ export class RoomHost {
         setLayer(this.deps.layers(), action.layer, action.on);
         this.say(`${who} turned ${LAYER_LABEL[action.layer]} ${action.on ? 'on' : 'off'}`);
         return;
+      case 'ride':
+        if (action.id === null) {
+          this.deps.ride.stop();
+          this.say(`${who} ended the ride`);
+        } else this.ride(action.id, who);
+        return;
     }
   }
 
@@ -251,6 +261,21 @@ export class RoomHost {
     this.say(`${who} sent ${trackName(track)}`);
   }
 
+  /** A console asked to ride along with an aircraft: select it, then into the cockpit, as J would. */
+  private ride(id: string, who: string): void {
+    const { store, selection, ride } = this.deps;
+    const track = store.get(id);
+    if (!canRide(track)) {
+      this.say(track ? `${who} picked ${trackName(track)}, which reports no altitude to ride at` : `${who} sent a track that has left the picture`);
+      return;
+    }
+    this.takeCamera();
+    // Selecting another aircraft ends a ride already under way (rideAlong.ts), so this one can start.
+    selection.select(id);
+    ride.start(id);
+    this.say(`${who} is riding along with ${trackName(track)}`);
+  }
+
   private takeCamera(): void {
     this.dialog.close();
     if (this.deps.tour.active) this.deps.tour.stop();
@@ -261,6 +286,8 @@ export class RoomHost {
   private reportStatus(): void {
     if (!this.inRoom) return;
     const status: ScreenStatus = { layers: layerState(this.deps.layers()), tour: this.deps.tour.active, follow: this.deps.selection.follow };
+    const riding = this.deps.ride.riding;
+    if (riding) status.riding = riding;
     const json = JSON.stringify(status);
     if (json === this.sentStatus) return;
     this.sentStatus = json;

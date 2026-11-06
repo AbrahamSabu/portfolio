@@ -719,6 +719,7 @@ async function main(): Promise<void> {
     selection,
     tour,
     timeline,
+    ride,
     layers: layerDeps,
     live: !demo,
     send: (message) => connection.send(message),

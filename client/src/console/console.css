@@ -696,3 +696,15 @@ button {
   color: var(--ink-muted);
   font-size: 13px;
 }
+
+/* Ride along: second to Send, so outlined rather than filled until a ride is under way. */
+.console-send.console-ride {
+  height: 48px;
+  margin-top: 8px;
+  background: transparent;
+  font-size: 16px;
+}
+
+.console-send.console-ride[aria-pressed='true'] {
+  background: rgb(63 182 255 / 0.18);
+}

@@ -196,6 +196,15 @@ el('send').addEventListener('click', () => {
   render();
 });
 
+// Ride along: the screen selects the aircraft and drops into its cockpit (J there); again to leave.
+el('ride').addEventListener('click', () => {
+  if (!opened) return;
+  const riding = targetStatus()?.riding === opened;
+  control({ do: 'ride', id: riding ? null : opened });
+  note(riding ? `Left the ride on ${target}.` : `Riding along on ${target}.`);
+  render();
+});
+
 const targetSelect = el<HTMLSelectElement>('target');
 targetSelect.addEventListener('change', () => {
   if (isScreenName(targetSelect.value)) target = targetSelect.value;
@@ -398,6 +407,14 @@ function renderDetails(): void {
   const resting = Date.now() - sentAt < SEND_REST_MS;
   send.disabled = !track || !targetHere() || resting || link.status !== 'open';
   send.textContent = targetHere() ? `Send to ${target}` : `${target} is away`;
+  // Only an aircraft reporting its altitude can be ridden (canRide in rideAlong.ts).
+  const ride = el<HTMLButtonElement>('ride');
+  const rideable = track !== undefined && track.domain === 'air' && track.altitudeM !== undefined;
+  const riding = rideable && targetStatus()?.riding === track.id;
+  ride.hidden = !rideable;
+  ride.disabled = !targetHere() || link.status !== 'open';
+  ride.textContent = riding ? `Leave the ride on ${target}` : `Ride along on ${target}`;
+  ride.setAttribute('aria-pressed', String(riding));
 }
 
 render();

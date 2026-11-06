@@ -13,24 +13,50 @@ function settings() {
     hazards: toggle(true),
     findings: toggle(false),
     chokepoints: toggle(true),
+    satellites: toggle(false),
+    currents: toggle(false),
+    stack: toggle(false),
+    score: {
+      on: toggle(false),
+      volume: { value: 0.6, set() {}, subscribe: () => {} },
+      hearing: { describe: () => '', subscribe: () => {} },
+    },
   };
   return s as typeof s & LayerSettings;
 }
 
 describe('screen layer switches', () => {
-  it('listens to the eight settings only, not the rest of the Layers menu', () => {
+  it('listens to the twelve settings only, not the rest of the Layers menu', () => {
     let subscribed = 0;
     const s = settings();
-    for (const setting of Object.values(s)) setting.subscribe = () => void subscribed++;
+    const count = () => void subscribed++;
+    for (const [name, setting] of Object.entries(s)) {
+      if (name === 'score') s.score.on.subscribe = count;
+      else (setting as { subscribe: unknown }).subscribe = count;
+    }
     // The real object also carries plain functions, which have no subscribe.
     onLayerChange({ ...s, search: () => {}, tour: () => {} } as LayerSettings, () => {});
-    expect(subscribed).toBe(8);
+    expect(subscribed).toBe(12);
   });
 
   it('reads what the screen shows', () => {
     expect(layerState(settings())).toEqual({
       news: true, trails: true, symbols: false, radar: false, airports: true, hazards: true, findings: false, chokepoints: true,
+      satellites: false, currents: false, stack: false, score: false,
     });
+  });
+
+  it('switches the satellites, the currents, the Stack and the sound of the sky', () => {
+    const s = settings();
+    for (const layer of ['satellites', 'currents', 'stack', 'score'] as const) setLayer(s, layer, true);
+    expect(layerState(s)).toMatchObject({ satellites: true, currents: true, stack: true, score: true });
+    expect(s.score.on.value).toBe(true);
+  });
+
+  it('reads the sound as off on a screen without it, and leaves it alone', () => {
+    const s = { ...settings(), score: undefined } as unknown as LayerSettings;
+    setLayer(s, 'score', true);
+    expect(layerState(s).score).toBe(false);
   });
 
   it('switches each layer the way a console asked', () => {
