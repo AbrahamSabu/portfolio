@@ -80,6 +80,11 @@ describe('LocalServer (the static demo)', () => {
     expect(tracks.some((t) => t.lat < -20)).toBe(true);
     expect(tracks.some((t) => t.lon < -100)).toBe(true);
     expect(tracks.some((t) => t.lon > 100)).toBe(true);
+    // Rare aircraft too, found by the real rare watcher from their type codes.
+    const findings = messages.find((m) => m.type === 'findings');
+    const rare = findings?.type === 'findings' ? findings.items.filter((f) => f.kind === 'rare') : [];
+    expect(rare.length).toBeGreaterThanOrEqual(8);
+    expect(rare.map((f) => f.detail).join(' ')).toMatch(/BelugaXL|Dreamlifter|Ruslan|Galaxy|Sentry|Global Hawk/);
   });
 
   it('sends the published news, all of it first', async () => {

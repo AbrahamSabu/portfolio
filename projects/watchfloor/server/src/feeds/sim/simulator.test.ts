@@ -99,6 +99,25 @@ describe('Simulator, the world', () => {
     }
   });
 
+  it('flies the rare types with their ICAO codes, between their own sites or round their orbits', () => {
+    const sim = new Simulator({ scenario: world, seed: 5 });
+    const reports: Track[] = [];
+    sim.attach({ upsert: (r) => reports.push(r as Track), remove: () => {} }, START);
+    sim.step(START + 1000);
+    const rare = sim.snapshot.filter((e) => e.typeCode);
+    expect(new Set(rare.map((e) => e.typeCode))).toEqual(new Set(['A337', 'A3ST', 'BLCF', 'A124', 'C5M', 'B52', 'E3TF', 'Q4']));
+    for (const e of rare) {
+      const mission = world.missions![e.archetype]!;
+      if (e.behaviour.kind === 'orbit') expect(mission.orbits).toBeDefined();
+      else if (e.behaviour.kind === 'route') {
+        const sites = new Set(mission.sites!.map((p) => `${p.lat},${p.lon}`));
+        for (const p of e.behaviour.points) expect(sites.has(`${p.lat},${p.lon}`)).toBe(true);
+      } else throw new Error(`${e.archetype} has no mission`);
+    }
+    // The code reaches the wire, where the rare watcher reads it.
+    expect(reports.some((r) => r.typeCode === 'A337')).toBe(true);
+  });
+
   it('runs through the past in long strides, flights still arriving and being replaced', () => {
     const sim = new Simulator({ scenario: world, seed: 3 });
     let removals = 0;

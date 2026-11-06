@@ -380,6 +380,31 @@ const fishingAreas = [
   { south: 63.0, west: -27.0, north: 65.5, east: -24.5 }, // off Iceland
 ];
 
+/** Sites the rare types fly between (positions from OurAirports), and where the watchers orbit. */
+const site = (lat: number, lon: number): LatLon => ({ lat, lon });
+const TOULOUSE = site(43.6291, 1.3638);
+const HAMBURG_FINKENWERDER = site(53.5353, 9.8356);
+const BROUGHTON = site(53.1781, -2.9778);
+const BREMEN = site(53.0468, 8.7893);
+const SAINT_NAZAIRE = site(47.3114, -2.1526);
+const GETAFE = site(40.2941, -3.7238);
+const missions: Scenario['missions'] = {
+  // Airbus's outsize freighters carry wings, fuselages and tails between its factories.
+  'beluga-xl': { sites: [TOULOUSE, HAMBURG_FINKENWERDER, BROUGHTON, BREMEN, SAINT_NAZAIRE, GETAFE] },
+  beluga: { sites: [TOULOUSE, HAMBURG_FINKENWERDER, BROUGHTON, BREMEN, SAINT_NAZAIRE] },
+  // Boeing's 787 parts: Everett, Charleston, Nagoya, Grottaglie, Wichita.
+  dreamlifter: { sites: [site(47.9063, -122.282), site(32.8962, -80.0382), site(34.8584, 136.805), site(40.5175, 17.4032), site(37.6503, -97.4286)] },
+  // Outsize charters out of Leipzig.
+  'an-124': { sites: [site(51.4207, 12.2327), site(29.9844, -95.3414), site(25.2498, 55.371), site(22.3118, 113.9149), site(-26.1401, 28.2468)] },
+  // Dover, Travis, McGuire, Ramstein, Rota, Andersen.
+  'c-5': { sites: [site(39.1295, -75.466), site(38.2627, -121.927), site(40.0156, -74.5917), site(49.4369, 7.6003), site(36.6452, -6.3495), site(13.584, 144.93)] },
+  // Barksdale, Fairford, Andersen.
+  'b-52': { sites: [site(32.5018, -93.6627), site(51.6836, -1.7892), site(13.584, 144.93)] },
+  // A NATO AWACS orbit over eastern Poland, a Global Hawk's over the Black Sea.
+  awacs: { orbits: [{ center: site(52.2, 21.6), radiusM: 45_000, altitudeM: 9_100 }] },
+  'global-hawk': { orbits: [{ center: site(43.6, 33.0), radiusM: 40_000, altitudeM: 16_500 }] },
+};
+
 export const world: Scenario = {
   id: 'world',
   name: 'World',
@@ -397,9 +422,19 @@ export const world: Scenario = {
   lightAircraftAreas: englishChannel.lightAircraftAreas,
   patrolRacetracks: englishChannel.patrolRacetracks,
   uavOrbits: englishChannel.uavOrbits,
+  missions,
 
   population: {
     airliner: 2400,
+    // The rare ones: a dozen in the air at once, worldwide.
+    'beluga-xl': 2,
+    beluga: 1,
+    dreamlifter: 2,
+    'an-124': 2,
+    'c-5': 2,
+    'b-52': 1,
+    awacs: 1,
+    'global-hawk': 1,
     'light-aircraft': 4,
     helicopter: 2,
     'military-helicopter': 1,

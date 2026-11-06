@@ -2,7 +2,7 @@
 
 A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn as vehicle shapes or as NATO-standard MIL-STD-2525 symbols.
 
-**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, with the day's real political news from [GDELT](https://www.gdeltproject.org/) on top: nothing to install, no account. The traffic is simulated and labelled so; the headlines are real and verbatim.
+**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, a dozen rare aircraft among them for the rare-sightings watcher to find (BelugaXLs between Airbus factories, Dreamlifters, An-124s, C-5s, a B-52, a NATO AWACS, a Global Hawk), with the day's real political news from [GDELT](https://www.gdeltproject.org/) on top: nothing to install, no account. The traffic is simulated and labelled so; the headlines are real and verbatim.
 
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
