@@ -422,6 +422,7 @@ export const world: Scenario = {
   lightAircraftAreas: englishChannel.lightAircraftAreas,
   patrolRacetracks: englishChannel.patrolRacetracks,
   uavOrbits: englishChannel.uavOrbits,
+  holds: englishChannel.holds,
   missions,
 
   population: {
@@ -440,6 +441,7 @@ export const world: Scenario = {
     'military-helicopter': 1,
     'maritime-patrol': 1,
     uav: 1,
+    holding: 12,
     cargo: 1000,
     tanker: 450,
     ferry: 6,

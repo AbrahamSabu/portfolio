@@ -13,6 +13,16 @@ export type Behaviour =
     }
   | { kind: 'orbit'; center: LatLon; radiusM: number; clockwise: boolean }
   | {
+      kind: 'hold';
+      /** The racetrack's corners in flying order, starting at the fix. */
+      points: LatLon[];
+      next: number;
+      /** A level (1,000 ft) lower after each lap, down to this. */
+      floorM: number;
+      /** Off the bottom of the stack: these points, once, then landed. */
+      exit: LatLon[];
+    }
+  | {
       kind: 'loiter';
       area: BBox;
       target: LatLon;

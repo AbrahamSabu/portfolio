@@ -18,7 +18,9 @@ function run(seed: number, minutes: number, dropouts = true) {
 
 const expectedPopulation = Object.values(englishChannel.population).reduce<number>((a, b) => a + (b ?? 0), 0);
 
-describe('Simulator', () => {
+// Each test simulates up to an hour of the Channel at four steps a second,
+// which a busy machine can take past the 5 s default to do.
+describe('Simulator', { timeout: 20_000 }, () => {
   it('keeps the scenario population constant as traffic comes and goes', () => {
     const { sim, removals } = run(1, 30);
     expect(sim.entityCount).toBe(expectedPopulation);

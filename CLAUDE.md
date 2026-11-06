@@ -205,6 +205,18 @@ that could have been fetched before they arrived.
   - The `englishChannel` scenario follows the real Dover Strait traffic
     separation scheme and has three ferry routes plus fishing, leisure, naval,
     helicopter and light-aircraft areas.
+  - Holds (Nov 2026, so the Stack shows corkscrews on simulated traffic):
+    `Scenario.holds` and the `holding` archetype (an airliner at ~220 kt,
+    rate-one turns). Heathrow's four stacks at their real fixes (BNN, LAM,
+    OCK, BIG), 7,000-13,000 ft; racetracks are ours (inbound legs at
+    Heathrow), not the published ones. Behaviour `hold` loops the four
+    corners from `racetrack()` (1-min legs, ~4 min a lap), steps the target
+    down 1,000 ft each time it passes the fix, and off the floor switches to
+    a `route` once via a westerly approach gate to the runway (landed, then
+    replaced at the top of a stack). Startup spreads aircraft over levels.
+    The world scenario shares the Channel's holds (`holding: 12` in both).
+    The `Simulator` test group has a 20 s timeout: its hour-long runs sat
+    right at the 5 s default on a busy machine and the holds tipped them over.
   - Ships move only inside lanes, routes and areas, which is how they stay off
     land without coastline data.
   - About 85 contacts across 12 archetypes. All names and callsigns are invented.

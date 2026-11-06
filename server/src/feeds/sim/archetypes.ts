@@ -10,9 +10,9 @@ import {
   type Platform,
 } from '@watchfloor/shared';
 import type { Airport, Scenario } from '../../scenarios';
-import type { Orbit } from '../../scenarios/types';
+import type { Hold, Orbit } from '../../scenarios/types';
 import type { Behaviour, SimEntity } from './entity';
-import { randomPointIn } from './motion';
+import { HOLD_LEVEL_M, randomPointIn } from './motion';
 import { names, uniqueName } from './names';
 import type { Rng } from './rng';
 
@@ -53,6 +53,13 @@ const PROFILES = {
     domain: 'air', platform: 'airliner', affiliation: 'neutral',
     speedRangeMps: [215, 250], altitudeRangeM: [8500, 12000],
     maxTurnRateDps: 2.5, accelMps2: 1.5, climbRateMps: 8,
+    reportIntervalMs: AIR_REPORT, callsign: names.airliner,
+  },
+  /** An arrival in a holding stack: an airliner at holding speed (about 220 kt), turning at rate one (3°/s). */
+  holding: {
+    domain: 'air', platform: 'airliner', affiliation: 'neutral',
+    speedRangeMps: [108, 118],
+    maxTurnRateDps: 3, accelMps2: 1.5, climbRateMps: 8,
     reportIntervalMs: AIR_REPORT, callsign: names.airliner,
   },
   'light-aircraft': {
@@ -268,6 +275,46 @@ interface Placement {
   pos: LatLon;
   courseDeg: number;
   dwellUntil?: number;
+  /** A set altitude (m), rather than one picked from the profile's range. */
+  altitudeM?: number;
+}
+
+/** A rate-one turn at holding speed is about 2.2 km across the turn's radius. */
+const HOLD_TURN_RADIUS_M = 2_200;
+/** The straight legs: a minute at holding speed, so a lap takes about four minutes. */
+const HOLD_LEG_M = 7_000;
+
+/**
+ * A hold's racetrack corners in flying order: the fix, abeam it after the
+ * turn, the end of the outbound leg, the start of the inbound leg. Flown
+ * with the simulator's turn limits, the corners round off into the oval.
+ */
+export function racetrack(hold: Hold, turnRadiusM = HOLD_TURN_RADIUS_M, legM = HOLD_LEG_M): LatLon[] {
+  const side = hold.inboundDeg + (hold.rightHand ? 90 : -90);
+  const outbound = hold.inboundDeg + 180;
+  const abeam = destination(hold.fix, side, 2 * turnRadiusM);
+  return [hold.fix, abeam, destination(abeam, outbound, legM), destination(hold.fix, outbound, legM)];
+}
+
+/**
+ * A place in a holding stack. New arrivals join at the top, over the fix;
+ * at startup the stacks are already busy, so aircraft are spread over the
+ * levels and round the racetrack.
+ */
+function holdPlacement(holds: readonly Hold[], ctx: SpawnContext): Placement {
+  const { rng } = ctx;
+  const hold = rng.pick(holds);
+  const points = racetrack(hold);
+  const levels = Math.round((hold.topM - hold.floorM) / HOLD_LEVEL_M);
+  const level = ctx.initial ? rng.int(0, levels) : levels;
+  const from = ctx.initial ? rng.int(0, points.length - 1) : 0;
+  const next = (from + 1) % points.length;
+  return {
+    behaviour: { kind: 'hold', points, next, floorM: hold.floorM, exit: hold.exit },
+    pos: { ...points[from]! },
+    courseDeg: bearingDeg(points[from]!, points[next]!),
+    altitudeM: hold.floorM + level * HOLD_LEVEL_M,
+  };
 }
 
 function routePlacement(
@@ -323,6 +370,8 @@ function place(archetype: Archetype, ctx: SpawnContext): Placement | null {
     }
     case 'uav':
       return s.uavOrbits.length ? orbitPlacement(s.uavOrbits, rng) : null;
+    case 'holding':
+      return s.holds?.length ? holdPlacement(s.holds, ctx) : null;
     case 'beluga-xl':
     case 'beluga':
     case 'dreamlifter':
@@ -402,6 +451,10 @@ export function spawn(archetype: Archetype, ctx: SpawnContext): SimEntity | null
     entity.targetAltitudeM = alt;
     // New arrivals at the edge are already at cruise; nothing in this sim takes off yet.
     entity.altitudeM = alt;
+  }
+  if (placement.altitudeM !== undefined) {
+    entity.altitudeM = placement.altitudeM;
+    entity.targetAltitudeM = placement.altitudeM;
   }
   return entity;
 }

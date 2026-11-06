@@ -45,7 +45,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Counts the ships in eight shipping chokepoints (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) and how many are under way, as tags on the map (C to show or hide); free AIS coverage is mostly European, so some counts are thin, and the key says so
 - Marks about 6,000 airports: the largest from the globe, more as you zoom in, with codes and then names, and the name, city and codes on hover (A to show or hide); click one for its latest weather report (decoded, with the raw METAR) and the aircraft arriving and leaving right now
 - Survives network trouble: automatic reconnect with backoff, a heartbeat watchdog, and resync for slow clients
-- Simulates about 85 contacts: airliners on airways, a maritime patrol racetrack, an unidentified drone, merchant ships in the real Dover Strait shipping lanes, cross-channel ferries, fishing and leisure boats
+- Simulates about 100 contacts: airliners on airways, arrivals stepping down Heathrow's four holding stacks, a maritime patrol racetrack, an unidentified drone, merchant ships in the real Dover Strait shipping lanes, cross-channel ferries, fishing and leisure boats
 
 ## Quick start
 
