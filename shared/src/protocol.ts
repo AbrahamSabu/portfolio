@@ -3,6 +3,18 @@ import { parseBriefEvent, parseFinding, type BriefEvent, type Finding } from './
 import { parseHazard, type Hazard } from './hazards';
 import { parseNewsItem, type NewsItem } from './news';
 import type { BBox } from './geo';
+import {
+  CONSOLE_CALLSIGNS,
+  MAX_JOIN_ORIGINS,
+  ROOM_CLOSED_REASONS,
+  isConsoleCallsign,
+  isJoinOrigin,
+  isRoomCode,
+  isRoomSecret,
+  type ConsolePresence,
+  type RoomClientMessage,
+  type RoomServerMessage,
+} from './room';
 import type { StalenessRules } from './staleness';
 import { TRACK_VALUES, type Affiliation, type Domain, type Platform, type Track } from './track';
 import type { TrailPoint } from './trail';
@@ -45,8 +57,10 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *      lost, converging military), whole list like hazards; `brief` request
  *      and reply (the last 24 h as events, for the handover brief); `replay`
  *      request and reply (recent paths through an area, for the scrubber)
+ *  17  the ops room (room.ts): phones join a main screen as consoles;
+ *      `room-*` messages both ways
  */
-export const PROTOCOL_VERSION = 16;
+export const PROTOCOL_VERSION = 17;
 
 export interface HelloMessage {
   type: 'hello';
@@ -225,7 +239,8 @@ export type ServerMessage =
   | HazardsMessage
   | FindingsMessage
   | BriefMessage
-  | ReplayMessage;
+  | ReplayMessage
+  | RoomServerMessage;
 
 /** Where the picture is centred, so the client can frame the map on first load. */
 export interface ScenarioInfo {
@@ -275,6 +290,10 @@ interface WireReplay {
 export function encodeServerMessage(message: ServerMessage): string {
   switch (message.type) {
     case 'hello':
+    case 'room':
+    case 'room-presence':
+    case 'room-show':
+    case 'room-closed':
     case 'details':
     case 'news':
     case 'hazards':
@@ -331,6 +350,11 @@ export function parseServerMessage(raw: string): ServerMessage | null {
   switch (m.type) {
     case 'hello':
       return typeof m.protocol === 'number' ? (m as unknown as HelloMessage) : null;
+    case 'room':
+    case 'room-presence':
+    case 'room-show':
+    case 'room-closed':
+      return parseRoomNotice(m, m.serverTime);
     case 'snapshot': {
       if (!Array.isArray(m.tracks) || !Array.isArray(m.trails) || !m.tracks.every(Array.isArray)) return null;
       const w = m as unknown as WireSnapshot;
@@ -441,7 +465,7 @@ export interface ReplayRequestMessage {
   bbox: BBox;
 }
 
-export type ClientMessage = ViewMessage | TrackRequestMessage | BriefRequestMessage | ReplayRequestMessage;
+export type ClientMessage = ViewMessage | TrackRequestMessage | BriefRequestMessage | ReplayRequestMessage | RoomClientMessage;
 
 /** As validation allows track ids: 1-128 characters, here printable ASCII only. */
 const TRACK_ID = /^[!-~]{1,128}$/;
@@ -461,6 +485,7 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   }
   if (typeof data !== 'object' || data === null) return null;
   const m = data as Record<string, unknown>;
+  if (typeof m.type === 'string' && m.type.startsWith('room-')) return parseRoomRequest(m);
   if (m.type === 'track') return typeof m.id === 'string' && TRACK_ID.test(m.id) ? { type: 'track', id: m.id } : null;
   if (m.type === 'brief') return { type: 'brief' };
   if (m.type !== 'view' && m.type !== 'replay') return null;
@@ -470,4 +495,70 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   if (south > north || west > east) return null;
   if (south < -90 || north > 90 || west < -720 || east > 720) return null;
   return { type: m.type, bbox: { south, west, north, east } };
+}
+
+const isTrackId = (v: unknown): v is string => typeof v === 'string' && TRACK_ID.test(v);
+
+/**
+ * A browser's ops-room message (room.ts), strictly: a field out of shape
+ * drops the whole message, and only known fields are copied.
+ */
+function parseRoomRequest(m: Record<string, unknown>): RoomClientMessage | null {
+  switch (m.type) {
+    case 'room-open':
+      if (m.code === undefined && m.key === undefined) return { type: 'room-open' };
+      return isRoomCode(m.code) && isRoomSecret(m.key) ? { type: 'room-open', code: m.code, key: m.key } : null;
+    case 'room-join':
+      if (!isRoomCode(m.code)) return null;
+      if (m.token === undefined) return { type: 'room-join', code: m.code };
+      return isRoomSecret(m.token) ? { type: 'room-join', code: m.code, token: m.token } : null;
+    case 'room-leave':
+      return { type: 'room-leave' };
+    case 'room-look':
+      if (m.id === null) return { type: 'room-look', id: null };
+      return isTrackId(m.id) ? { type: 'room-look', id: m.id } : null;
+    case 'room-send':
+      return isTrackId(m.id) ? { type: 'room-send', id: m.id } : null;
+    default:
+      return null;
+  }
+}
+
+/** The server's ops-room messages, checked: callsigns and addresses end up on screen and in a QR code. */
+function parseRoomNotice(m: Record<string, unknown>, serverTime: number): RoomServerMessage | null {
+  switch (m.type) {
+    case 'room':
+      if (!isRoomCode(m.code)) return null;
+      if (m.role === 'main') {
+        const { key, origins } = m;
+        if (!isRoomSecret(key) || !Array.isArray(origins) || origins.length > MAX_JOIN_ORIGINS) return null;
+        if (!origins.every(isJoinOrigin)) return null;
+        return { type: 'room', serverTime, role: 'main', code: m.code, key, origins };
+      }
+      if (m.role === 'console') {
+        const { callsign, token } = m;
+        if (!isConsoleCallsign(callsign) || !isRoomSecret(token)) return null;
+        return { type: 'room', serverTime, role: 'console', code: m.code, callsign, token };
+      }
+      return null;
+    case 'room-presence': {
+      if (typeof m.main !== 'boolean' || !Array.isArray(m.consoles) || m.consoles.length > CONSOLE_CALLSIGNS.length) return null;
+      const consoles: ConsolePresence[] = [];
+      for (const c of m.consoles as unknown[]) {
+        if (typeof c !== 'object' || c === null) return null;
+        const { callsign, id } = c as Record<string, unknown>;
+        if (!isConsoleCallsign(callsign) || (id !== null && !isTrackId(id))) return null;
+        consoles.push({ callsign, id });
+      }
+      return { type: 'room-presence', serverTime, main: m.main, consoles };
+    }
+    case 'room-show':
+      return isTrackId(m.id) && isConsoleCallsign(m.from) ? { type: 'room-show', serverTime, id: m.id, from: m.from } : null;
+    case 'room-closed': {
+      const reason = ROOM_CLOSED_REASONS.find((r) => r === m.reason);
+      return reason ? { type: 'room-closed', serverTime, reason } : null;
+    }
+    default:
+      return null;
+  }
 }

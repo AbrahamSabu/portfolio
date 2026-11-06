@@ -12,3 +12,4 @@ export * from './hazards';
 export * from './findings';
 export * from './weather';
 export * from './sky';
+export * from './room';

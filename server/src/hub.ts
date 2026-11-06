@@ -4,6 +4,7 @@ import {
   PROTOCOL_VERSION,
   parseClientMessage,
   encodeServerMessage,
+  isRoomRequest,
   type BBox,
   type BriefMessage,
   type DeltaMessage,
@@ -313,6 +314,7 @@ export class Hub {
       log.debug('ignored client message', { address: client.address });
       return;
     }
+    if (isRoomRequest(message)) return;
     const reply = (message: ServerReply) => {
       if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
     };
