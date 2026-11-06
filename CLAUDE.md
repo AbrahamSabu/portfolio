@@ -658,6 +658,56 @@ that could have been fetched before they arrived.
   the destination with a ScriptProcessor) via
   `Page.addScriptToEvaluateOnNewDocument`, launch with `--mute-audio`, and
   press Y with `Input.dispatchKeyEvent` (counts as a user gesture).
+- Traffic currents (Nov 2026; I key, Layers → Display beside phosphor,
+  `watchfloor.currents`, off by default): particles drift with the average
+  direction and speed of the traffic around them, earth.nullschool-style.
+  Continuous motion, so it's opt-in: turning it on is the consent the
+  reduced-motion rule asks for (as the screensaver's URL is).
+  `map/flowField.ts` (pure, tested): samples (x, y, vx, vy, weight) splatted
+  bilinearly into a screen grid (8 px cells), three box blurs per axis
+  (≈ Gaussian, cost independent of radius), mean = blurred sum / blurred
+  weight (Nadaraya-Watson); strength = weight in "tracks' worth"
+  (`kernelPeak`). `directionBands`: **one average per point cancels a lane
+  used both ways** (the first build showed nothing over busy Europe or
+  two-way shipping lanes), so each medium keeps 4 band fields and a heading
+  is shared cos² between the two bands either side (opposites never meet).
+  `clipToDisc`: the blur otherwise spreads currents off the globe into
+  space. `map/flowParticles.ts` (pure, tested): particles in screen space,
+  births weighted by node strength, reborn when life ends or strength <
+  0.04, `shift` for camera slides. `map/flowRenderer.ts`: **its own WebGL1
+  canvas** (a MapLibre custom layer would force a full map redraw every
+  frame; renderRate paces the map on purpose), inserted right after the
+  map canvas so markers stay above; two RGBA8 textures take turns: fade
+  pass (dithered floor: round-to-nearest leaves ghosts stuck at ~10/255,
+  plain floor cuts faint tails short), streaks as instanced quads
+  (`ANGLE_instanced_arrays`, 5 floats per segment straight from
+  `Particles.segments`), additive, then a copy to screen. `map/flowLayer.ts`:
+  every 3 s in `requestIdleCallback` slices (≤ 12 ms) a two-pass job: (1) a
+  dot product per live track that passes the PictureFilter against the
+  horizon (zoomed out; found by bisecting a project/unproject round trip
+  from the centre to the rim) or the farthest screen corner (zoomed in);
+  (2) `fairShare`: past 3,000 candidates per medium every k-th is
+  projected, weighted k; position + a point 4 px along its course through
+  `map.project` gives the screen velocity with the globe's foreshortening.
+  Air ≥ 40 m/s, 230 m/s → 55 px/s; sea ≥ 1 m/s, 7.7 m/s → 24 px/s (13×
+  more sped up; the map key says so). A pan slides particles and trails
+  (texture shifted by whole device pixels; follow mode's 1 px nudges
+  included); a zoom, or a pan > 12 px below zoom 4 (the globe turns rather
+  than slides), restarts once the camera stops. Hidden during timeline
+  replay (`setHidden` from onState). `map/frameGovernor.ts` (pure, tested):
+  each second's median frame against the best recent one; trims ×0.75
+  after 2 late seconds, gives ×1.25 after 2 calm ones, floor 0.3, holds
+  3 s after each restart (tiles loading); below 0.5 the canvas drops to
+  1x. The canvas carries `data-particles/samples/sampleMs/candidates/
+  scale/disc` for headless checks. Measured (headless Chrome on the real
+  GPU): world sim globe 21% of a core on vs 10% off, frames 16.7 ms; live
+  world 10.8k aircraft 28-31% vs 22%, sampling 23 ms a field (was 263 ms
+  before the corner test and fair share). Headless Chrome **can use the
+  GPU** here: `--headless=new --use-angle=d3d11 --ignore-gpu-blocklist`
+  gives ANGLE D3D11 and ~60 fps (SwiftShader gave ~2), so fps checks mean
+  something. `.key-list li` is flex: wrap text that contains `<kbd>` or
+  `<a>` in a `<span>`, or each piece becomes a column. When `npx` hangs
+  (npm's cache busy with other sessions), `node node_modules/vitest/vitest.mjs run`.
 - Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
   click a basemap country label (`place_country_1/2`, `name:en` else
   `name`; cursor turns to a pointer) -> the day's stories whose GDELT place

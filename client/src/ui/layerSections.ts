@@ -37,6 +37,7 @@ export interface LayerDeps {
   records: () => void;
   timeline: () => void;
   phosphor: Toggle;
+  currents: Toggle;
   exposure: Toggle;
   /** The sky score (optional: the menu works without it). */
   score?: {
@@ -200,6 +201,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       title: 'Display',
       rows: [
         toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
+        toggle('Traffic currents', 'Particles follow the average flow of the traffic, not wind', 'I', d.currents),
         toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),
       ],
     },

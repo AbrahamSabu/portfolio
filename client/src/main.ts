@@ -18,6 +18,7 @@ import { HookTool } from './map/hook';
 import { ExposureLayer } from './map/exposureLayer';
 import { FilterControl } from './map/filterControl';
 import { FindingLayer } from './map/findingLayer';
+import { FlowLayer } from './map/flowLayer';
 import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
 import { NewsHotspots } from './map/newsHotspots';
@@ -326,6 +327,12 @@ async function main(): Promise<void> {
   const applyPhosphor = () => el('map').classList.toggle('phosphor', phosphor.value);
   phosphor.subscribe(applyPhosphor);
   applyPhosphor();
+  // Traffic currents (I): particles drift with the average flow of the tracks on the map.
+  const currentsShown = new StoredToggle('watchfloor.currents', false);
+  const currents = new FlowLayer(map, layer, () => {
+    const now = clock.now();
+    return [...store.all()].filter((t) => store.status(t, now) === 'live' && filter.passes(t, false));
+  }, currentsShown);
   const exposureShown = new StoredToggle('watchfloor.exposure', false);
   new ExposureLayer(map, layer, () => {
     const now = clock.now();
@@ -541,6 +548,7 @@ async function main(): Promise<void> {
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
+    if (event.key === 'i' || event.key === 'I') currentsShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
     if (event.key === 'u' || event.key === 'U') {
@@ -582,6 +590,7 @@ async function main(): Promise<void> {
       records: () => recordsPanel.setOpen(true),
       timeline: () => timeline.setOpen(true),
       phosphor,
+      currents: currentsShown,
       exposure: exposureShown,
     };
   }
@@ -634,6 +643,7 @@ async function main(): Promise<void> {
       const replaying = s.mode === 'replay';
       layer.setHidden(replaying);
       trailLayer.setHidden(replaying);
+      currents.setHidden(replaying);
       if (replaying) {
         selection.select(null);
         hook.clear();

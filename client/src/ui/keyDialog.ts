@@ -23,6 +23,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['P', 'Leaderboard: highest, fastest, biggest, busiest airlines, fastest ships'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
+  ['I', 'Traffic currents: the average flow of air and sea traffic'],
   ['S', 'Vehicle shapes or military symbols'],
   ['N', 'Show or hide the news'],
   ['B', 'Open or close the briefing'],
@@ -106,6 +107,7 @@ function content(style: SymbolStyle): string {
         <li><span class="key-glyph key-ring" aria-hidden="true"></span>Ship, zoomed out</li>
         <li><span class="key-glyph key-leader" aria-hidden="true"></span>Speed leader: where it will be in 1 minute (aircraft) or 10 (ships)</li>
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
+        <li><span class="key-glyph key-flow" aria-hidden="true"></span><span>Currents (<kbd>I</kbd>): particles drift with the average direction and speed of the moving traffic around them, split by heading so a lane used both ways shows both currents, aircraft and ships as separate fields. It is the traffic on the map, not wind, sped up to be seen (ships about 13 times more than aircraft)</span></li>
         <li><span class="key-glyph key-stale" aria-hidden="true"></span>Faded: no recent report, so its position is an estimate</li>
         <li><span class="key-glyph key-emergency" aria-hidden="true"></span>Amber ring: the aircraft is squawking an emergency code (7500, 7600 or 7700), as its transponder broadcasts it. Click the ring, or the amber chip in the top bar, to find it again after hiding its alert</li>
         <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain). Click one for its weather and the aircraft arriving and leaving</li>
