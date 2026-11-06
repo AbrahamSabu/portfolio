@@ -35,6 +35,7 @@ import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl'
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
+import { mapSource, SkyScore, type CueKind } from './sound/skyScore';
 import { ServerClock } from './state/clock';
 import { chokepointCounts } from './state/chokepoints';
 import { FindingStore } from './state/findings';
@@ -255,9 +256,16 @@ async function main(): Promise<void> {
   // The alert ping is off by default; its switch is in the Layers menu.
   const soundOn = new StoredToggle('watchfloor.sound', false);
   const sound = new AlertSound(soundOn);
-  const emergencyAlerts = new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement, () => sound.ping());
+  // The sky score (Y, Layers menu): ambient music played by the traffic on
+  // screen. While it plays, alerts are calls within it instead of the ping:
+  // one sound per alert, in the same key.
+  const score = new SkyScore(mapSource(map, store, filter, clock), { eager: screensaver });
+  const alertCue = (kind: CueKind) => {
+    if (!score.cue(kind)) sound.ping();
+  };
+  const emergencyAlerts = new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement, () => alertCue('emergency'));
   // Watch areas: who crossed in or out, checked each second.
-  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings, () => sound.ping());
+  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings, () => alertCue('area'));
   window.setInterval(() => {
     // Mid-reconnect the store is empty: that's not every track leaving at once.
     // And with no areas drawn there's nothing to watch: don't copy 30k
@@ -282,7 +290,7 @@ async function main(): Promise<void> {
     fly(map, { center: [f.lon, f.lat], zoom: Math.max(map.getZoom(), 8) });
   };
   new FindingLayer(map, findings, findingsShown, layer, () => clock.now(), showFinding);
-  new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => sound.ping());
+  new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => alertCue('finding'));
   // The Rare aircraft tab: what's flying now and the last day's, whenever you want them.
   const rarePanel = new RarePanel(el('rare-panel'), el('rare-toggle') as HTMLButtonElement, findings, map, () => clock.now(), showFinding);
 
@@ -472,6 +480,12 @@ async function main(): Promise<void> {
   document.addEventListener('keydown', (event) => {
     // The key is a modal dialog: it handles its own Escape, and nothing behind it should react.
     if (keyDialog.open) return;
+    // The score is sound, not camera: Y turns it on or off and leaves the tour
+    // riding, so music can start under the screensaver.
+    if ((event.key === 'y' || event.key === 'Y') && !isTyping(event) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      score.toggle();
+      return;
+    }
     // Any key hands the camera back from the tour, and does nothing else.
     if (tour.active) {
       tour.stop();
@@ -541,6 +555,7 @@ async function main(): Promise<void> {
       drawArea: () => regionPanel.startDrawing(),
       manageAreas: () => regionPanel.setOpen(true),
       sound: soundOn,
+      score,
       search: () => palette.setOpen(true),
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),

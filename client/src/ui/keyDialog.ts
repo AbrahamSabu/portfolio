@@ -16,6 +16,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['L', 'Open or close the track list'],
   ['/', 'Search tracks, airports, chokepoints and areas'],
   ['G', 'Cinematic tour of what is happening'],
+  ['Y', 'Sound of the sky: ambient music played by the traffic on screen'],
   ['V', 'Watch handover: the last 24 hours, read back'],
   ['Z', 'Timeline: replay six hours back, project thirty minutes ahead'],
   ['U', 'Rare aircraft: in the air now, and the last 24 hours'],
@@ -129,6 +130,18 @@ function content(style: SymbolStyle): string {
     <section>
       <h3>Shipping chokepoints</h3>
       <p>Tags at eight narrows (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) count the ships in each now and how many are under way; closer in, a dashed box shows the area counted. Ship positions come from AIS receivers, which are mostly in Europe: a low count far away can mean few receivers rather than few ships.</p>
+    </section>
+    <section>
+      <h3>Sound of the sky</h3>
+      <p>Press <kbd>Y</kbd> (or use the Layers menu) for ambient music played by the traffic on screen. It is off until you start it and keeps playing through the tour. Only live tracks the filter shows count, and everything is in one scale (A minor pentatonic), so no two notes clash.</p>
+      <ul class="key-list key-sound">
+        <li>Ships hum a low drone: louder the more there are in view, brighter the more are under way.</li>
+        <li>Aircraft swell a soft chord, and each rings its own note: the higher it flies, the higher the note, heard from its side of the screen.</li>
+        <li>A climbing aircraft plays a rising pair of notes and a descending one a falling pair. When most are climbing the chord lifts; when most descend, it sinks.</li>
+        <li>A few aircraft ring slowly and clearly; hundreds patter softly on a quicker beat.</li>
+        <li>An emergency squawk sounds a clear falling call, a new finding a rising chime, a watch-area crossing one high note, and the music dips beneath them. While the score plays, these replace the alert ping.</li>
+        <li>An empty sea or sky is silent.</li>
+      </ul>
     </section>
     <section>
       <h3>Earthquakes and disasters</h3>
