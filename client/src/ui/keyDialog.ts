@@ -3,6 +3,7 @@ import { airportIconSvg } from '../map/airports';
 import { HAZARD_KIND_LABEL, hazardIconSvg } from '../map/hazardIcons';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { trackIconSvg } from '../map/trackIcon';
+import { STACK_EXAGGERATION } from '../map/stackBuffers';
 import type { SymbolStyle, SymbolStyleSetting } from '../state/symbolStyle';
 import { AFFILIATION_LABEL, PLATFORM_LABEL } from './format';
 
@@ -19,6 +20,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['V', 'Watch handover: the last 24 hours, read back'],
   ['Z', 'Timeline: replay six hours back, project thirty minutes ahead'],
   ['U', 'Rare aircraft: in the air now, and the last 24 hours'],
+  ['E', 'The Stack: aircraft at their real altitude on a tilted map'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['S', 'Vehicle shapes or military symbols'],
@@ -117,6 +119,10 @@ function content(style: SymbolStyle): string {
     <section>
       <h3>Weather radar</h3>
       <p>Rain and snow from <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> (free for personal use), the latest 10-minute picture, in grey so it never reads as an identity colour: the brighter, the heavier. Its detail stops at zoom 7, so closer in it is stretched. Coverage is where weather radars are: mostly North America, Europe, East Asia and Australia. Press <kbd>R</kbd> or use the Layers menu (<kbd>M</kbd>).</p>
+    </section>
+    <section>
+      <h3>The Stack</h3>
+      <p>Press <kbd>E</kbd> (or Layers › Display) to tilt the map and lift each aircraft to its reported altitude, drawn <strong>×${STACK_EXAGGERATION} taller than life</strong> so a few hundred metres show. A thin line drops to the point below it, where its flat symbol stays as a faint shadow; ships stay on the sea, and an aircraft that reports no altitude stays on the ground. Trails climb and descend with the heights flown since this page opened. Holding stacks read as corkscrews, ocean crossings as a layer at cruise height. Turn the map with a right-drag; tilt it with Shift and the up and down arrows.</p>
     </section>
     <section>
       <h3>Watch areas</h3>

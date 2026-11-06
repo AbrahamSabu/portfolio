@@ -1,4 +1,5 @@
 import type { TrailMode, TrailStyle } from '../map/trailLayer';
+import { STACK_EXAGGERATION } from '../map/stackBuffers';
 import type { SymbolStyle } from '../state/symbolStyle';
 import type { LayerSection } from './layersMenu';
 
@@ -37,6 +38,7 @@ export interface LayerDeps {
   timeline: () => void;
   phosphor: Toggle;
   exposure: Toggle;
+  stack: Toggle;
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -160,6 +162,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       rows: [
         toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
         toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),
+        toggle('The Stack', `Tilts the map; aircraft at their real altitude, drawn ×${STACK_EXAGGERATION} taller`, 'E', d.stack),
       ],
     },
   ];

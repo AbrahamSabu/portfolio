@@ -126,6 +126,8 @@ export class TrackLayer {
   /** True while the timeline shows another moment instead of the live picture. */
   private hidden = false;
   private readonly frameListeners = new Set<() => void>();
+  /** Asked first by `trackAt` while set: the Stack draws aircraft away from their flat positions. */
+  private picker: ((point: { x: number; y: number }, pad: number) => string | null) | null = null;
 
   constructor(
     private readonly map: MapLibreMap,
@@ -267,6 +269,16 @@ export class TrackLayer {
     this.applyHidden();
   }
 
+  /** True while the timeline shows another moment (the 3D modes hide with it). */
+  get isHidden(): boolean {
+    return this.hidden;
+  }
+
+  /** Let a 3D mode answer hit-tests first (null: fall back to the flat map's symbols). */
+  setPicker(picker: ((point: { x: number; y: number }, pad: number) => string | null) | null): void {
+    this.picker = picker;
+  }
+
   private applyHidden(): void {
     const visibility = this.hidden ? 'none' : 'visible';
     for (const domain of DOMAINS) {
@@ -290,6 +302,8 @@ export class TrackLayer {
    * card both use it, so they always agree on which track is under the pointer.
    */
   trackAt(point: { x: number; y: number }, pad = 6): string | null {
+    const picked = this.picker?.(point, pad);
+    if (picked) return picked;
     const map = this.map;
     const layers = HIT_LAYERS.filter((layer) => map.getLayer(layer));
     if (layers.length === 0) return null;
