@@ -19,7 +19,7 @@ import type { TrackStore } from '../state/trackStore';
 import { PresenceMarkers } from './presenceMarkers';
 import { RoomDialog } from './roomDialog';
 import { roomView, trackName, type RoomState } from './roomView';
-import { LAYER_LABEL, layerState, setLayer, type LayerSettings } from './screenControl';
+import { LAYER_LABEL, layerState, onLayerChange, setLayer, type LayerSettings } from './screenControl';
 import './room.css';
 
 export interface RoomHostDeps {
@@ -85,7 +85,7 @@ export class RoomHost {
       if (!event.persisted && (this.state.kind === 'open' || this.state.kind === 'screen')) deps.send({ type: 'room-leave' });
     });
     // Tell the room what this screen shows whenever that changes.
-    for (const setting of Object.values(deps.layers())) setting.subscribe(() => this.reportStatus());
+    onLayerChange(deps.layers(), () => this.reportStatus());
     deps.selection.subscribe(() => this.reportStatus());
     window.setInterval(() => this.reportStatus(), STATUS_CHECK_MS);
     this.render();

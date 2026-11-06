@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { layerState, setLayer, type LayerSettings } from './screenControl';
+import { layerState, onLayerChange, setLayer, type LayerSettings } from './screenControl';
 
 /** The settings as the Layers menu has them, recording every change. */
 function settings() {
@@ -18,6 +18,15 @@ function settings() {
 }
 
 describe('screen layer switches', () => {
+  it('listens to the eight settings only, not the rest of the Layers menu', () => {
+    let subscribed = 0;
+    const s = settings();
+    for (const setting of Object.values(s)) setting.subscribe = () => void subscribed++;
+    // The real object also carries plain functions, which have no subscribe.
+    onLayerChange({ ...s, search: () => {}, tour: () => {} } as LayerSettings, () => {});
+    expect(subscribed).toBe(8);
+  });
+
   it('reads what the screen shows', () => {
     expect(layerState(settings())).toEqual({
       news: true, trails: true, symbols: false, radar: false, airports: true, hazards: true, findings: false, chokepoints: true,

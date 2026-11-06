@@ -4,6 +4,15 @@ import type { LayerDeps } from '../ui/layerSections';
 /** The settings a console can switch: the same objects the keys and the Layers menu change. */
 export type LayerSettings = Pick<LayerDeps, 'news' | 'trails' | 'style' | 'radar' | 'airports' | 'hazards' | 'findings' | 'chokepoints'>;
 
+/**
+ * Calls `listener` whenever one of these settings changes. Named one by one:
+ * the object handed in is usually the whole Layers menu's deps, whose other
+ * members are plain functions.
+ */
+export function onLayerChange(s: LayerSettings, listener: () => void): void {
+  for (const setting of [s.news, s.trails, s.style, s.radar, s.airports, s.hazards, s.findings, s.chokepoints]) setting.subscribe(listener);
+}
+
 /** What the screen shows now, as the consoles' switches read it. */
 export function layerState(s: LayerSettings): Required<LayerState> {
   return {
