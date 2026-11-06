@@ -34,6 +34,14 @@ export const MIN_REFRESH_MS = 2 * 3_600_000;
 export const MAX_REFUSALS = 3;
 /** No answer at all (offline, DNS, timeout) never reached CelesTrak's counters: try again sooner, backing off. */
 const NETWORK_RETRY_MS = 15 * 60_000;
+/**
+ * A 5xx is CelesTrak's server struggling, not a refusal (seen Nov 2026: 503s
+ * and a Starlink request that never finished). Leave it alone a while,
+ * backing off, without counting towards giving up.
+ */
+const SERVER_ERROR_RETRY_MS = 30 * 60_000;
+/** Starlink's ten thousand records arrive slowly when CelesTrak is busy. */
+const DOWNLOAD_TIMEOUT_MS = 3 * 60_000;
 /** Groups due at startup go one after another, smallest first, so the space stations arrive in seconds. */
 const STARTUP_GAP_MS = 5_000;
 
@@ -57,6 +65,7 @@ interface GroupState {
   fetchedAt: number | null;
   lastError: string | null;
   refusals: number;
+  serverErrors: number;
   networkFailures: number;
   /** When to ask CelesTrak next; null once it has refused too often. */
   nextAttemptAt: number | null;
@@ -91,6 +100,8 @@ export class SatelliteService {
   private version = 0;
   private readonly startedAt: number;
   private latest: SatelliteResponse | null = null;
+  private work: Promise<void> = Promise.resolve();
+  private rebuilding: Promise<void> = Promise.resolve();
 
   constructor(private readonly opts: SatelliteServiceOptions) {
     this.fetchFn = opts.fetch ?? fetch;
@@ -107,6 +118,7 @@ export class SatelliteService {
       fetchedAt: null,
       lastError: null,
       refusals: 0,
+      serverErrors: 0,
       networkFailures: 0,
       nextAttemptAt: null,
     }));
@@ -171,7 +183,7 @@ export class SatelliteService {
     if (!next) return;
     this.timer = this.setTimer(() => {
       this.timer = undefined;
-      void this.download(next).then(() => this.schedule());
+      this.work = this.download(next).then(() => this.schedule());
     }, Math.max(0, (next.nextAttemptAt ?? 0) - this.now()));
   }
 
@@ -200,7 +212,7 @@ export class SatelliteService {
           headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
           // A redirect is an error in CelesTrak's books: see it, don't follow it.
           redirect: 'manual',
-          signal: AbortSignal.timeout(90_000),
+          signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
         });
         text = await res.text();
       } catch (err) {
@@ -215,6 +227,12 @@ export class SatelliteService {
       if (!parsed || parsed.satellites.length === 0) {
         // CelesTrak's 403 explains itself ("...Data is updated once every 2 hours"): keep its words.
         const detail = res.status === 200 ? 'no usable satellites in the answer' : `HTTP ${res.status}: ${text.slice(0, 200).trim()}`;
+        if (res.status >= 500) {
+          state.serverErrors++;
+          const wait = Math.min(this.refreshMs, SERVER_ERROR_RETRY_MS * 2 ** (state.serverErrors - 1));
+          this.fail(state, `HTTP ${res.status} (CelesTrak busy)`, this.jitter(wait));
+          return;
+        }
         state.refusals++;
         if (state.refusals >= MAX_REFUSALS) {
           state.lastError = detail;
@@ -227,6 +245,7 @@ export class SatelliteService {
         return;
       }
       state.refusals = 0;
+      state.serverErrors = 0;
       state.satellites = parsed.satellites;
       state.fetchedAt = this.now();
       state.lastError = null;
@@ -247,7 +266,13 @@ export class SatelliteService {
     state.lastError = detail;
     state.nextAttemptAt = this.now() + waitMs;
     log.warn(`could not download ${state.group}`, { error: detail, retryInMin: Math.round(waitMs / 60_000) });
-    void this.rebuild();
+    this.rebuilding = this.rebuild();
+  }
+
+  /** For tests: resolves once the download under way (if any) and the response it changed are done. */
+  async settled(): Promise<void> {
+    await this.work;
+    await this.rebuilding;
   }
 
   /** Serialises and compresses the response once per change, off the request path. */

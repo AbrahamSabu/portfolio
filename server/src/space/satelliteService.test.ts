@@ -69,7 +69,7 @@ describe('SatelliteService', () => {
     // Stations first, then weather a few seconds later: one timer at a time, never two downloads at once.
     expect(timers).toHaveLength(1);
     timers.shift()!.fn();
-    await settle();
+    await service.settled();
     expect(asked).toEqual(['stations']);
     const response = service.response()!;
     const catalog = parseSatelliteCatalog(JSON.parse(zlib.gunzipSync(response.gzip!).toString()))!;
@@ -83,7 +83,7 @@ describe('SatelliteService', () => {
     const first = setup(() => new Response(STATIONS), { groups: ['stations'] });
     await first.service.start();
     first.timers.shift()!.fn();
-    await settle();
+    await first.service.settled();
     expect(loadGroup(first.cacheDir, 'stations')?.satellites).toHaveLength(5);
 
     const again = setup(() => new Response(STATIONS), { groups: ['stations'], cacheDir: first.cacheDir });
@@ -103,14 +103,14 @@ describe('SatelliteService', () => {
     );
     await service.start();
     timers.shift()!.fn();
-    await settle();
+    await service.settled();
     refuse = true;
     for (let i = 1; i <= MAX_REFUSALS; i++) {
       const timer = timers.shift()!;
       expect(timer.ms).toBeGreaterThanOrEqual(i === 1 ? 6 * HOUR : MIN_REFRESH_MS);
       advance(timer.ms);
       timer.fn();
-      await settle();
+      await service.settled();
       expect(service.state('stations').satellites).toHaveLength(5);
     }
     // Repeating a refused request won't change the answer: no timer is left, and the log says so.
@@ -128,14 +128,28 @@ describe('SatelliteService', () => {
     );
     await service.start();
     timers.shift()!.fn();
-    await settle();
+    await service.settled();
     const first = timers.shift()!;
     expect(first.ms).toBe(15 * 60_000);
     advance(first.ms);
     first.fn();
-    await settle();
+    await service.settled();
     expect(timers.shift()!.ms).toBe(30 * 60_000);
     expect(service.health()).toMatchObject({ stations: { status: 'failing', satellites: 0 } });
+  });
+
+  it('leaves a busy CelesTrak alone a while, without giving up', async () => {
+    const { service, timers, advance } = setup(() => new Response('Service Unavailable', { status: 503 }), { groups: ['stations'] });
+    await service.start();
+    for (const minutes of [30, 60, 120, 240, 360, 360]) {
+      timers.shift()!.fn();
+      await service.settled();
+      const next = timers[0]!;
+      expect(next.ms).toBe(minutes * 60_000);
+      advance(next.ms);
+    }
+    expect(service.state('stations').refusals).toBe(0);
+    expect(service.health()).toMatchObject({ stations: { status: 'failing', lastError: 'HTTP 503 (CelesTrak busy)' } });
   });
 
   it('never follows a redirect, which CelesTrak counts as an error', async () => {
@@ -144,12 +158,7 @@ describe('SatelliteService', () => {
     });
     await service.start();
     timers.shift()!.fn();
-    await settle();
+    await service.settled();
     expect(service.state('stations').refusals).toBe(1);
   });
 });
-
-/** Lets the download's awaits (fetch, body, file writes, gzip) finish. */
-async function settle(): Promise<void> {
-  for (let i = 0; i < 20; i++) await new Promise((resolve) => setTimeout(resolve, 5));
-}
