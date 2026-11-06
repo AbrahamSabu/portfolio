@@ -21,8 +21,8 @@ export interface RoomHostDeps {
   live: boolean;
 }
 
-/** How long "CONSOLE ALFA sent BAW123" stays up. */
-const TOAST_MS = 5_000;
+/** How long "CONSOLE ALFA sent BAW123" stays up: past the camera's flight (up to 5 s), so it's read on arrival. */
+const TOAST_MS = 8_000;
 
 /**
  * The main screen's side of the ops room (Q): opens a room, shows how to
@@ -51,6 +51,11 @@ export class RoomHost {
     this.toast.setAttribute('role', 'status');
     this.toast.hidden = true;
     (document.querySelector('.app') ?? document.body).append(this.toast);
+    // Closing this page (not hiding it, not the back-forward cache) ends the
+    // room at once, instead of the phones waiting out the server's grace period.
+    window.addEventListener('pagehide', (event) => {
+      if (!event.persisted && this.state.kind === 'open') this.deps.send({ type: 'room-leave' });
+    });
   }
 
   /** Q: the first press opens a room and shows how to join; later presses show or hide that. */
@@ -87,6 +92,8 @@ export class RoomHost {
       case 'room-closed':
         // After Close room the server confirms; nothing more to do.
         if (this.state.kind === 'none') return;
+        // The dialog may be closed: say so where everyone looks.
+        if (this.state.kind === 'open') this.say(message.reason === 'not-found' ? 'The ops room closed while this screen was away' : 'The ops room has closed');
         this.state = { kind: 'ended', reason: message.reason };
         this.consoles = [];
         this.markers.set([]);

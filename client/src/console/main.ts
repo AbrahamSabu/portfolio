@@ -263,7 +263,7 @@ function renderDetails(): void {
   const send = el<HTMLButtonElement>('send');
   const resting = Date.now() - sentAt < SEND_REST_MS;
   send.disabled = !track || !mainHere || resting || link.status !== 'open';
-  send.textContent = mainHere ? 'Send to main screen' : 'Main screen is reconnecting';
+  send.textContent = mainHere ? 'Send to main screen' : 'Main screen is away';
   el('sent').textContent = Date.now() - sentAt < SENT_SHOWN_MS ? 'Sent to the main screen.' : '';
 }
 

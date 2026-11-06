@@ -21,8 +21,14 @@ export interface RoomPeer {
 
 /** The most rooms open at once: a household has a TV or two, not dozens. */
 export const MAX_ROOMS = 16;
-/** A main screen that drops off has this long to come back before its room closes. */
-export const MAIN_GRACE_MS = 60_000;
+/**
+ * A main screen that drops off has this long to come back before its room
+ * closes. Generous, because a hidden tab closes its socket after a quiet
+ * minute (main.ts) and a laptop on the main screen may be behind another
+ * window for a while; closing the page itself sends room-leave, so a room
+ * whose screen is really gone doesn't linger.
+ */
+export const MAIN_GRACE_MS = 5 * 60_000;
 /** A console that drops off (a phone locking its screen) keeps its callsign this long. */
 export const CONSOLE_GRACE_MS = 120_000;
 /** Opening and joining are paced per browser: a person taps, a script hammers. */

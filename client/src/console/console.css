@@ -321,6 +321,8 @@ button {
 .console-row-facts {
   grid-column: 3;
   grid-row: 1 / 3;
+  align-self: center;
+  padding-right: 6px;
   color: var(--ink-muted);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
