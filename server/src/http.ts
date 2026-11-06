@@ -25,6 +25,8 @@ export interface HttpOptions {
   weather?: (station: string) => Promise<unknown>;
   /** The live aircraft near a point, for the plane-spotter's `/api/sky?lat=…&lon=…`. */
   sky?: (lat: number, lon: number) => unknown;
+  /** Satellites' orbital elements for `/api/satellites`; null until the first copy is ready. */
+  satellites?: () => { json: Buffer; gzip: Buffer | null; etag: string } | null;
 }
 
 /**
@@ -54,6 +56,12 @@ export function createHttpServer(opts: HttpOptions): http.Server {
       }
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       res.end(JSON.stringify(opts.sky(lat, lon)));
+      return;
+    }
+
+    if (url.pathname === '/api/satellites') {
+      if (opts.satellites) serveSatellites(opts.satellites(), req, res);
+      else res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Satellites are off on this server.\n');
       return;
     }
 
@@ -135,4 +143,32 @@ function isFile(p: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The satellites' elements: about a megabyte of JSON with Starlink, gzipped
+ * once per change (a third of that). Browsers re-check every so often with
+ * If-None-Match and usually get a bodiless 304.
+ */
+function serveSatellites(
+  body: { json: Buffer; gzip: Buffer | null; etag: string } | null,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): void {
+  if (!body) {
+    res.writeHead(503, { 'retry-after': '5', 'cache-control': 'no-store' }).end();
+    return;
+  }
+  const headers = { etag: body.etag, 'cache-control': 'no-cache', vary: 'accept-encoding' };
+  if (req.headers['if-none-match'] === body.etag) {
+    res.writeHead(304, headers).end();
+    return;
+  }
+  const gzip = body.gzip && /\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''));
+  res.writeHead(200, {
+    ...headers,
+    'content-type': 'application/json',
+    ...(gzip ? { 'content-encoding': 'gzip' } : {}),
+  });
+  res.end(gzip ? body.gzip : body.json);
 }
