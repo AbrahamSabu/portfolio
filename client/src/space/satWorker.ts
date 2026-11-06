@@ -1,6 +1,6 @@
 import type { SatelliteElements } from '@watchfloor/shared';
 import type { SatRec } from 'satellite.js';
-import { ecfAt, groundTrack, nextPass, satelliteNow, toSatrec, writePositions } from './propagate';
+import { ecfAt, groundTrack, lookFrom, nextPass, satelliteNow, toSatrec, writePositions } from './propagate';
 import type { WorkerReply, WorkerRequest } from './workerProtocol';
 
 /**
@@ -79,6 +79,11 @@ scope.onmessage = ({ data: req }) => {
       const satrec = satrecs[req.index];
       const pass = satrec ? nextPass(satrec, elements[req.index]!.meanMotion, req.observer, req.t) : { kind: 'none' as const };
       scope.postMessage({ type: 'pass', seq: req.seq, index: req.index, pass });
+      break;
+    }
+    case 'look': {
+      const satrec = satrecs[req.index];
+      scope.postMessage({ type: 'look', seq: req.seq, index: req.index, t: req.t, look: satrec ? lookFrom(satrec, req.observer, req.t) : null });
       break;
     }
   }

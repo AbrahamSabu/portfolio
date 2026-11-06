@@ -13,6 +13,7 @@ import {
   satelliteIntervalMs,
   shellScale,
   splitAtAntimeridian,
+  visibleToEye,
 } from './orbit';
 
 const base: SatelliteElements = {
@@ -144,6 +145,15 @@ describe('findNextPass', () => {
   it('knows a satellite that never sets, and one that never rises', () => {
     expect(findNextPass(() => 25, 0, opts)).toEqual({ kind: 'always', elevation: 25 });
     expect(findNextPass(() => -5, 0, opts)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('visibleToEye', () => {
+  it('needs height, sunlight on the satellite and a dark sky', () => {
+    expect(visibleToEye({ elevationDeg: 40, sunlit: true, sunElevationDeg: -10 })).toBe(true);
+    expect(visibleToEye({ elevationDeg: 40, sunlit: false, sunElevationDeg: -10 })).toBe(false); // in Earth's shadow
+    expect(visibleToEye({ elevationDeg: 40, sunlit: true, sunElevationDeg: 5 })).toBe(false); // daylight
+    expect(visibleToEye({ elevationDeg: 5, sunlit: true, sunElevationDeg: -10 })).toBe(false); // in the haze
   });
 });
 

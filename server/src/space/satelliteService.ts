@@ -7,6 +7,7 @@ import {
   encodeSatelliteGroup,
   parseSatelliteGroup,
   SATELLITE_FORMAT,
+  SATELLITE_GROUPS,
   type SatelliteElements,
   type SatelliteGroup,
   type SatelliteGroupStatus,
@@ -102,6 +103,7 @@ export class SatelliteService {
   private latest: SatelliteResponse | null = null;
   private work: Promise<void> = Promise.resolve();
   private rebuilding: Promise<void> = Promise.resolve();
+  private readonly subsets = new Map<string, { version: number; response: SatelliteResponse }>();
 
   constructor(private readonly opts: SatelliteServiceOptions) {
     this.fetchFn = opts.fetch ?? fetch;
@@ -152,6 +154,29 @@ export class SatelliteService {
   /** The current response, or null before the first is built. */
   response(): SatelliteResponse | null {
     return this.latest;
+  }
+
+  /**
+   * Just some groups: the phone spotter wants the space stations (a few
+   * kilobytes), not all of Starlink. Built on demand, kept until the next change.
+   */
+  responseFor(groups: readonly SatelliteGroup[]): SatelliteResponse | null {
+    if (!this.latest) return null;
+    const key = SATELLITE_GROUPS.filter((g) => groups.includes(g)).join(',');
+    const cached = this.subsets.get(key);
+    if (cached && cached.version === this.version) return cached.response;
+    const catalog = {
+      groups: this.states
+        .filter((s) => groups.includes(s.group))
+        .map((s) => ({ group: s.group, status: this.statusOf(s), fetchedAt: s.fetchedAt, satellites: s.satellites })),
+    };
+    const response = {
+      json: Buffer.from(JSON.stringify(encodeSatelliteCatalog(catalog))),
+      gzip: null,
+      etag: `W/"sat-${this.startedAt.toString(36)}-${this.version}-${key}"`,
+    };
+    this.subsets.set(key, { version: this.version, response });
+    return response;
   }
 
   health(): Record<string, unknown> {

@@ -214,7 +214,7 @@ async function main(): Promise<void> {
   const server = createHttpServer({
     staticDir: config.staticDir,
     weather: (station) => weather.get(station),
-    ...(satellites ? { satellites: () => satellites.response() } : {}),
+    ...(satellites ? { satellites: (groups) => (groups ? satellites.responseFor(groups) : satellites.response()) } : {}),
     sky: (lat, lon) => {
       const now = Date.now();
       const wasActive = skyWatchers.active;

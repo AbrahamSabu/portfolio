@@ -801,6 +801,16 @@ that could have been fetched before they arrived.
     airport/country panels; selecting a track closes the card; Escape too.
   - Timeline: replay puts satellites at the replayed moment (exact frames,
     newest wish wins), projection at now + offset; no recording needed.
+  - Phone spotter (`sky/iss.ts`): `/api/satellites?groups=stations` (a few
+    KB, built on demand per version) and the same worker in the page, asked
+    for a `look` four times a second (azimuth, elevation, range, sunlit, the
+    sun's elevation there). The ISS joins the sky list as `sat:25544` only
+    while `visibleToEye` (≥ 10°, sunlit, sun below -6°): a plus sign on the
+    scope, locks and taps like an aircraft, card in km and km/h, no hexdb
+    lookup. Headless test: work out where it's visible soon (propagate.ts
+    in a tsx script), CDP geolocation override, then dispatch
+    `deviceorientationabsolute` with alpha = 360 - azimuth, beta = 90 +
+    elevation, gamma = 0 (upright portrait, back camera at it).
   - Headless under 100% CPU (other sessions, Nov 2026): GeoJSON lines took
     ~20 s to appear and the first satellite frame ~6 s; wait before judging
     something missing.

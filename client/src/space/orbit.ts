@@ -151,6 +151,18 @@ export function splitAtAntimeridian(lons: readonly number[], lats: readonly numb
   return pieces.filter((p) => p.length >= 2);
 }
 
+/** Rises above 10°: lower, buildings and haze hide it, and it's what spotting guides quote. */
+export const MIN_PASS_ELEVATION = 10;
+
+/**
+ * Seen with the eye: high enough to clear buildings and haze, lit by the sun,
+ * from a sky dark enough to show it (the sun 6° or more below the horizon).
+ * A satellite in Earth's shadow, or overhead at noon, is there but invisible.
+ */
+export function visibleToEye(look: { elevationDeg: number; sunlit: boolean; sunElevationDeg: number }): boolean {
+  return look.elevationDeg >= MIN_PASS_ELEVATION && look.sunlit && look.sunElevationDeg < -6;
+}
+
 export interface Pass {
   /** When it rises above the minimum elevation; null when it was already up at the start. */
   rise: number | null;

@@ -79,6 +79,18 @@ describe('SatelliteService', () => {
     expect(timers).toHaveLength(1);
   });
 
+  it('answers for some groups only: the phone wants the space stations, not Starlink', async () => {
+    const { service, timers } = setup((group) => new Response(group === 'stations' ? STATIONS : '[]'));
+    await service.start();
+    timers.shift()!.fn();
+    await service.settled();
+    const some = service.responseFor(['stations'])!;
+    const catalog = parseSatelliteCatalog(JSON.parse(some.json.toString()))!;
+    expect(catalog.groups.map((g) => g.group)).toEqual(['stations']);
+    expect(some.etag).not.toBe(service.response()!.etag);
+    expect(service.responseFor(['stations'])).toBe(some); // kept until something changes
+  });
+
   it('keeps a downloaded group on disk, so a restart does not download it again', async () => {
     const first = setup(() => new Response(STATIONS), { groups: ['stations'] });
     await first.service.start();

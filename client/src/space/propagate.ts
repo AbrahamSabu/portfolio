@@ -12,7 +12,7 @@ import {
   type OMMJsonObject,
   type SatRec,
 } from 'satellite.js';
-import { findNextPass, mercatorX, mercatorY, periodMinutes, type PassResult } from './orbit';
+import { findNextPass, mercatorX, mercatorY, MIN_PASS_ELEVATION, periodMinutes, type PassResult } from './orbit';
 
 /**
  * SGP4 through satellite.js: the arithmetic the worker runs. Kept apart from
@@ -187,11 +187,37 @@ export function satelliteNow(satrec: SatRec, ms: number): SatelliteNow | null {
   };
 }
 
+/** Where a satellite is in one observer's sky, and whether they could see it. */
+export interface Look {
+  azimuthDeg: number;
+  elevationDeg: number;
+  rangeKm: number;
+  altKm: number;
+  speedKmS: number;
+  sunlit: boolean;
+  /** The sun's elevation for the observer: below -6° the sky is dark enough. */
+  sunElevationDeg: number;
+}
+
+export function lookFrom(satrec: SatRec, observer: Observer, ms: number): Look | null {
+  const s = stateAt(satrec, ms);
+  if (!s) return null;
+  const gmst = gstime(julian(ms));
+  const angles = ecfToLookAngles(observerGeodetic(observer), eciToEcf(s.position, gmst));
+  const v = s.velocity;
+  return {
+    azimuthDeg: ((angles.azimuth * DEG) % 360 + 360) % 360,
+    elevationDeg: angles.elevation * DEG,
+    rangeKm: angles.rangeSat,
+    altKm: eciToGeodetic(s.position, gmst).height,
+    speedKmS: Math.hypot(v.x, v.y, v.z),
+    sunlit: isSunlit(s.position, ms),
+    sunElevationDeg: sunElevation(observer, ms),
+  };
+}
+
 /** A pass, plus whether it can be seen with the eye: sunlit at its peak while the observer's sky is dark. */
 export type PassInfo = PassResult & { visible?: boolean };
-
-/** Rises above 10°: lower, buildings and haze hide it, and it's what spotting guides quote. */
-export const MIN_PASS_ELEVATION = 10;
 
 export function nextPass(satrec: SatRec, meanMotion: number, observer: Observer, ms: number): PassInfo {
   // A low orbit is above 10° for a few minutes: steps of a 60th of an orbit can't jump one.

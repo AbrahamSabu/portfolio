@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import { isSatelliteGroup, type SatelliteGroup } from '@watchfloor/shared';
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -25,8 +26,8 @@ export interface HttpOptions {
   weather?: (station: string) => Promise<unknown>;
   /** The live aircraft near a point, for the plane-spotter's `/api/sky?lat=…&lon=…`. */
   sky?: (lat: number, lon: number) => unknown;
-  /** Satellites' orbital elements for `/api/satellites`; null until the first copy is ready. */
-  satellites?: () => { json: Buffer; gzip: Buffer | null; etag: string } | null;
+  /** Satellites' orbital elements for `/api/satellites` (`?groups=stations` for some); null until the first copy is ready. */
+  satellites?: (groups?: SatelliteGroup[]) => { json: Buffer; gzip: Buffer | null; etag: string } | null;
 }
 
 /**
@@ -60,7 +61,10 @@ export function createHttpServer(opts: HttpOptions): http.Server {
     }
 
     if (url.pathname === '/api/satellites') {
-      if (opts.satellites) serveSatellites(opts.satellites(), req, res);
+      const asked = url.searchParams.get('groups');
+      const groups = asked === null ? undefined : asked.split(',').filter(isSatelliteGroup);
+      if (groups && groups.length === 0) res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('groups: stations, weather, starlink\n');
+      else if (opts.satellites) serveSatellites(opts.satellites(groups), req, res);
       else res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Satellites are off on this server.\n');
       return;
     }
