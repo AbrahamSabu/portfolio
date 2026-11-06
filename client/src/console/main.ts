@@ -85,7 +85,7 @@ const connection = new Connection(defaultSocketUrl(), {
         connection.send({ type: 'room-look', id: opened });
         break;
       case 'room-presence':
-        mainHere = message.main;
+        mainHere = message.screens.some((s) => s.name === 'MAIN');
         break;
       case 'room-closed':
         leaveRoom(message.reason);
@@ -143,7 +143,7 @@ el('back').addEventListener('click', () => {
 
 el('send').addEventListener('click', () => {
   if (!opened || !callsign) return;
-  connection.send({ type: 'room-send', id: opened });
+  connection.send({ type: 'room-control', to: 'MAIN', action: { do: 'show', id: opened } });
   sentAt = Date.now();
   window.clearTimeout(sentTimer);
   sentTimer = window.setTimeout(render, SENT_SHOWN_MS);

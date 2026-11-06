@@ -5,15 +5,23 @@ import { parseNewsItem, type NewsItem } from './news';
 import type { BBox } from './geo';
 import {
   CONSOLE_CALLSIGNS,
+  LAYER_NAMES,
   MAX_JOIN_ORIGINS,
   ROOM_CLOSED_REASONS,
+  SCREEN_NAMES,
   isConsoleCallsign,
   isJoinOrigin,
+  isLayerName,
   isRoomCode,
   isRoomSecret,
+  isScreenName,
   type ConsolePresence,
+  type LayerState,
+  type RoomAction,
   type RoomClientMessage,
   type RoomServerMessage,
+  type ScreenPresence,
+  type ScreenStatus,
 } from './room';
 import type { StalenessRules } from './staleness';
 import { TRACK_VALUES, type Affiliation, type Domain, type Platform, type Track } from './track';
@@ -57,8 +65,8 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *      lost, converging military), whole list like hazards; `brief` request
  *      and reply (the last 24 h as events, for the handover brief); `replay`
  *      request and reply (recent paths through an area, for the scrubber)
- *  17  the ops room (room.ts): phones join a main screen as consoles;
- *      `room-*` messages both ways
+ *  17  the ops room (room.ts): other screens and phone consoles join a
+ *      main screen's room, and consoles steer a screen; `room-*` both ways
  */
 export const PROTOCOL_VERSION = 17;
 
@@ -292,7 +300,7 @@ export function encodeServerMessage(message: ServerMessage): string {
     case 'hello':
     case 'room':
     case 'room-presence':
-    case 'room-show':
+    case 'room-control':
     case 'room-closed':
     case 'details':
     case 'news':
@@ -352,7 +360,7 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       return typeof m.protocol === 'number' ? (m as unknown as HelloMessage) : null;
     case 'room':
     case 'room-presence':
-    case 'room-show':
+    case 'room-control':
     case 'room-closed':
       return parseRoomNotice(m, m.serverTime);
     case 'snapshot': {
@@ -508,20 +516,76 @@ function parseRoomRequest(m: Record<string, unknown>): RoomClientMessage | null 
     case 'room-open':
       if (m.code === undefined && m.key === undefined) return { type: 'room-open' };
       return isRoomCode(m.code) && isRoomSecret(m.key) ? { type: 'room-open', code: m.code, key: m.key } : null;
-    case 'room-join':
-      if (!isRoomCode(m.code)) return null;
-      if (m.token === undefined) return { type: 'room-join', code: m.code };
-      return isRoomSecret(m.token) ? { type: 'room-join', code: m.code, token: m.token } : null;
+    case 'room-join': {
+      const { code, token, as } = m;
+      if (!isRoomCode(code)) return null;
+      if (token !== undefined && !isRoomSecret(token)) return null;
+      if (as !== undefined && as !== 'screen') return null;
+      return { type: 'room-join', code, ...(token !== undefined ? { token } : {}), ...(as === 'screen' ? { as } : {}) };
+    }
     case 'room-leave':
       return { type: 'room-leave' };
     case 'room-look':
       if (m.id === null) return { type: 'room-look', id: null };
       return isTrackId(m.id) ? { type: 'room-look', id: m.id } : null;
-    case 'room-send':
-      return isTrackId(m.id) ? { type: 'room-send', id: m.id } : null;
+    case 'room-control': {
+      const action = parseRoomAction(m.action);
+      return isScreenName(m.to) && action ? { type: 'room-control', to: m.to, action } : null;
+    }
+    case 'room-status': {
+      const status = parseScreenStatus(m.status);
+      return status ? { type: 'room-status', status } : null;
+    }
     default:
       return null;
   }
+}
+
+const inRange = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
+
+/** One thing a console asks a screen to do (room.ts): a closed list, every number in range. */
+function parseRoomAction(value: unknown): RoomAction | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const a = value as Record<string, unknown>;
+  switch (a.do) {
+    case 'show':
+      return isTrackId(a.id) ? { do: 'show', id: a.id } : null;
+    case 'pan':
+      return inRange(a.dx, -1, 1) && inRange(a.dy, -1, 1) ? { do: 'pan', dx: a.dx, dy: a.dy } : null;
+    case 'zoom':
+      return a.by === 1 || a.by === -1 ? { do: 'zoom', by: a.by } : null;
+    case 'home':
+      return { do: 'home' };
+    case 'clear':
+      return { do: 'clear' };
+    case 'follow':
+      return typeof a.on === 'boolean' ? { do: 'follow', on: a.on } : null;
+    case 'tour':
+      return typeof a.on === 'boolean' ? { do: 'tour', on: a.on } : null;
+    case 'layer':
+      return isLayerName(a.layer) && typeof a.on === 'boolean' ? { do: 'layer', layer: a.layer, on: a.on } : null;
+    case 'fly':
+      return inRange(a.lon, -180, 180) && inRange(a.lat, -85, 85) && inRange(a.zoom, 0, 18)
+        ? { do: 'fly', lon: a.lon, lat: a.lat, zoom: a.zoom }
+        : null;
+    default:
+      return null;
+  }
+}
+
+/** What a screen says it is showing: known layers only, each a boolean. */
+function parseScreenStatus(value: unknown): ScreenStatus | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const s = value as Record<string, unknown>;
+  if (typeof s.tour !== 'boolean' || typeof s.follow !== 'boolean') return null;
+  if (typeof s.layers !== 'object' || s.layers === null) return null;
+  const given = s.layers as Record<string, unknown>;
+  const layers: LayerState = {};
+  for (const name of LAYER_NAMES) {
+    const on = given[name];
+    if (typeof on === 'boolean') layers[name] = on;
+  }
+  return { layers, tour: s.tour, follow: s.follow };
 }
 
 /** The server's ops-room messages, checked: callsigns and addresses end up on screen and in a QR code. */
@@ -535,6 +599,11 @@ function parseRoomNotice(m: Record<string, unknown>, serverTime: number): RoomSe
         if (!origins.every(isJoinOrigin)) return null;
         return { type: 'room', serverTime, role: 'main', code: m.code, key, origins };
       }
+      if (m.role === 'screen') {
+        const { name, token } = m;
+        if (!isScreenName(name) || !isRoomSecret(token)) return null;
+        return { type: 'room', serverTime, role: 'screen', code: m.code, name, token };
+      }
       if (m.role === 'console') {
         const { callsign, token } = m;
         if (!isConsoleCallsign(callsign) || !isRoomSecret(token)) return null;
@@ -542,7 +611,21 @@ function parseRoomNotice(m: Record<string, unknown>, serverTime: number): RoomSe
       }
       return null;
     case 'room-presence': {
-      if (typeof m.main !== 'boolean' || !Array.isArray(m.consoles) || m.consoles.length > CONSOLE_CALLSIGNS.length) return null;
+      if (!Array.isArray(m.screens) || m.screens.length > SCREEN_NAMES.length) return null;
+      if (!Array.isArray(m.consoles) || m.consoles.length > CONSOLE_CALLSIGNS.length) return null;
+      const screens: ScreenPresence[] = [];
+      for (const s of m.screens as unknown[]) {
+        if (typeof s !== 'object' || s === null) return null;
+        const { name, status } = s as Record<string, unknown>;
+        if (!isScreenName(name)) return null;
+        if (status === undefined) {
+          screens.push({ name });
+          continue;
+        }
+        const parsed = parseScreenStatus(status);
+        if (!parsed) return null;
+        screens.push({ name, status: parsed });
+      }
       const consoles: ConsolePresence[] = [];
       for (const c of m.consoles as unknown[]) {
         if (typeof c !== 'object' || c === null) return null;
@@ -550,10 +633,12 @@ function parseRoomNotice(m: Record<string, unknown>, serverTime: number): RoomSe
         if (!isConsoleCallsign(callsign) || (id !== null && !isTrackId(id))) return null;
         consoles.push({ callsign, id });
       }
-      return { type: 'room-presence', serverTime, main: m.main, consoles };
+      return { type: 'room-presence', serverTime, screens, consoles };
     }
-    case 'room-show':
-      return isTrackId(m.id) && isConsoleCallsign(m.from) ? { type: 'room-show', serverTime, id: m.id, from: m.from } : null;
+    case 'room-control': {
+      const action = parseRoomAction(m.action);
+      return isConsoleCallsign(m.from) && action ? { type: 'room-control', serverTime, from: m.from, action } : null;
+    }
     case 'room-closed': {
       const reason = ROOM_CLOSED_REASONS.find((r) => r === m.reason);
       return reason ? { type: 'room-closed', serverTime, reason } : null;

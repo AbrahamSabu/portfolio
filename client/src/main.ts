@@ -651,7 +651,7 @@ async function main(): Promise<void> {
           break;
         case 'room':
         case 'room-presence':
-        case 'room-show':
+        case 'room-control':
         case 'room-closed':
           room.handle(message);
           break;

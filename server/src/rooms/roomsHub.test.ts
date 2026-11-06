@@ -65,8 +65,8 @@ describe('the ops room through the hub', () => {
     expect(seat).toMatchObject({ role: 'console', code: room.code });
 
     phone.send({ type: 'room-look', id: 'sim:air-0001' });
-    phone.send({ type: 'room-send', id: 'sim:air-0001' });
-    expect(await main.next('room-show')).toMatchObject({ id: 'sim:air-0001', from: seat.callsign });
+    phone.send({ type: 'room-control', to: 'MAIN', action: { do: 'show', id: 'sim:air-0001' } });
+    expect(await main.next('room-control')).toMatchObject({ from: seat.callsign, action: { do: 'show', id: 'sim:air-0001' } });
 
     // Presence comes in coalesced batches, so wait for the state rather than count messages.
     type Consoles = Array<{ callsign: string; id: string | null }>;

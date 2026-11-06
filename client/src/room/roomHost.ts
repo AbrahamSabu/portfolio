@@ -86,8 +86,8 @@ export class RoomHost {
         this.consoles = message.consoles;
         this.markers.set(message.consoles);
         break;
-      case 'room-show':
-        if (this.state.kind === 'open') this.show(message.id, message.from);
+      case 'room-control':
+        if (this.state.kind === 'open' && message.action.do === 'show') this.show(message.action.id, message.from);
         return;
       case 'room-closed':
         // After Close room the server confirms; nothing more to do.

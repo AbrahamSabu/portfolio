@@ -1,38 +1,42 @@
 /**
- * The ops room: one main screen (the map on a TV or laptop) and the phones
- * that joined it as consoles. A console browses the picture, says which
- * track it has open (presence, drawn on the main map) and can send a track
- * to the main screen. Rooms live in the server's memory only: nothing about
- * them is saved, and they end when the main screen leaves.
+ * The ops room: one main screen (the map on a laptop or TV), other screens
+ * that joined it (a TV showing its own view), and the phones that joined it
+ * as consoles. A console browses the picture, says which track it has open
+ * (presence, tagged on every screen's map), and steers one screen of its
+ * choosing: show a track, pan and zoom, switch layers, start the tour, fly
+ * to a place. Screens never steer each other. Rooms live in the server's
+ * memory only, and end when the main screen leaves.
  *
  * Flow (protocol v17):
- *   main screen  room-open                 -> room { role: 'main', code, key, origins }
- *   console      room-join { code }        -> room { role: 'console', callsign, token }
- *   everyone in the room                   <- room-presence, whenever it changes
- *   console      room-look { id | null }      (the track it has open)
- *   console      room-send { id }          -> the main screen gets room-show { id, from }
- *   either       room-leave                   (the main screen leaving closes the room)
- *   refusals and endings                   <- room-closed { reason }
+ *   main screen  room-open                        -> room { role: 'main', code, key, origins }
+ *   screen       room-join { code, as: 'screen' } -> room { role: 'screen', name, token }
+ *   console      room-join { code }               -> room { role: 'console', callsign, token }
+ *   everyone in the room                          <- room-presence, whenever it changes
+ *   screens      room-status { status }              (layers, tour, follow: for consoles' switches)
+ *   console      room-look { id | null }             (the track it has open)
+ *   console      room-control { to, action }      -> that screen gets room-control { from, action }
+ *   anyone       room-leave                          (the main screen leaving closes the room)
+ *   refusals and endings                          <- room-closed { reason }
  *
  * After a reconnect the main screen reclaims its room with `code` and `key`,
- * and a console rejoins with its `token`, which keeps its callsign.
+ * and a screen or console rejoins with its `token`, which keeps its name.
  */
 
 /**
- * Room codes are short enough to type on a phone: four characters, without
- * vowels (so a code never spells a word) and without the characters people
- * misread (0 and O, 1, I and L).
+ * Room codes are short enough to type on a phone or with a TV remote: four
+ * characters, without vowels (so a code never spells a word) and without
+ * the characters people misread (0 and O, 1, I and L).
  */
 export const ROOM_CODE_ALPHABET = 'BCDFGHJKMNPQRSTVWXZ23456789';
 export const ROOM_CODE_LENGTH = 4;
 const ROOM_CODE = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`);
 
-/** The main screen's key and a console's token: 16 random bytes in base64url. */
+/** The main screen's key and a screen's or console's token: 16 random bytes in base64url. */
 const ROOM_SECRET = /^[A-Za-z0-9_-]{22}$/;
 
 /**
- * What consoles are called on the wall, as in CONSOLE ALFA. The server picks
- * one, so nothing a phone types ever reaches the main screen.
+ * What consoles are called on the screens, as in CONSOLE ALFA. The server
+ * picks one, so nothing a phone types ever reaches a screen.
  */
 export const CONSOLE_CALLSIGNS = [
   'ALFA', 'BRAVO', 'CHARLIE', 'DELTA', 'ECHO', 'FOXTROT', 'GOLF', 'HOTEL', 'INDIA',
@@ -41,15 +45,57 @@ export const CONSOLE_CALLSIGNS = [
 ] as const;
 export type ConsoleCallsign = (typeof CONSOLE_CALLSIGNS)[number];
 
+/** Screens by name: the one that opened the room, then the others in the order of the free names. */
+export const SCREEN_NAMES = ['MAIN', 'SCREEN 2', 'SCREEN 3', 'SCREEN 4', 'SCREEN 5'] as const;
+export type ScreenName = (typeof SCREEN_NAMES)[number];
+
 /** The most consoles one room takes (fewer than there are callsigns). */
 export const MAX_CONSOLES = 12;
+/** The most screens besides the main one. */
+export const MAX_SCREENS = SCREEN_NAMES.length - 1;
 /** The most addresses the server offers for the join link. */
 export const MAX_JOIN_ORIGINS = 8;
+
+/**
+ * The map layers a console can switch on a screen. Trails count as on
+ * unless off; `symbols` on means military symbols instead of vehicle shapes.
+ */
+export const LAYER_NAMES = ['news', 'trails', 'symbols', 'radar', 'airports', 'hazards', 'findings', 'chokepoints'] as const;
+export type LayerName = (typeof LAYER_NAMES)[number];
+export type LayerState = Partial<Record<LayerName, boolean>>;
+
+/** What a screen is showing, so a console's switches tell the truth. */
+export interface ScreenStatus {
+  layers: LayerState;
+  /** The cinematic tour is running. */
+  tour: boolean;
+  /** The camera follows the selected track. */
+  follow: boolean;
+}
+
+/**
+ * Everything a console can ask a screen to do: a closed list, each checked
+ * strictly. Pan is a fraction of the screen (drag the map with your finger),
+ * zoom one step either way, fly to a place, or show a track as a search pick
+ * would.
+ */
+export type RoomAction =
+  | { do: 'show'; id: string }
+  | { do: 'pan'; dx: number; dy: number }
+  | { do: 'zoom'; by: 1 | -1 }
+  | { do: 'home' }
+  | { do: 'follow'; on: boolean }
+  | { do: 'clear' }
+  | { do: 'tour'; on: boolean }
+  | { do: 'layer'; layer: LayerName; on: boolean }
+  | { do: 'fly'; lon: number; lat: number; zoom: number };
 
 export const isRoomCode = (v: unknown): v is string => typeof v === 'string' && ROOM_CODE.test(v);
 export const isRoomSecret = (v: unknown): v is string => typeof v === 'string' && ROOM_SECRET.test(v);
 export const isConsoleCallsign = (v: unknown): v is ConsoleCallsign =>
   typeof v === 'string' && (CONSOLE_CALLSIGNS as readonly string[]).includes(v);
+export const isScreenName = (v: unknown): v is ScreenName => typeof v === 'string' && (SCREEN_NAMES as readonly string[]).includes(v);
+export const isLayerName = (v: unknown): v is LayerName => typeof v === 'string' && (LAYER_NAMES as readonly string[]).includes(v);
 
 /**
  * An address a phone can open, and nothing else: http or https, a host name,
@@ -88,6 +134,11 @@ export function joinUrl(origin: string, code: string): string {
   return `${origin}/console.html?room=${code}`;
 }
 
+/** Where another screen joins: the map itself, with the code in the link. */
+export function screenUrl(origin: string, code: string): string {
+  return `${origin}/?screen=${code}`;
+}
+
 // Browser -> server
 
 /** Main screen: open a room, or reclaim its own after a reconnect (`code` and `key` together). */
@@ -97,14 +148,15 @@ export interface RoomOpenMessage {
   key?: string;
 }
 
-/** Console: join by code; `token` (from an earlier `room`) keeps its callsign. */
+/** A console (or, with `as: 'screen'`, another screen) joins by code; `token` keeps its name. */
 export interface RoomJoinMessage {
   type: 'room-join';
   code: string;
   token?: string;
+  as?: 'screen';
 }
 
-/** Either side leaves. The main screen leaving closes the room. */
+/** Anyone leaves. The main screen leaving closes the room. */
 export interface RoomLeaveMessage {
   type: 'room-leave';
 }
@@ -115,15 +167,28 @@ export interface RoomLookMessage {
   id: string | null;
 }
 
-/** Console: ask the main screen to show this track. */
-export interface RoomSendMessage {
-  type: 'room-send';
-  id: string;
+/** Console: ask one screen to do something. */
+export interface RoomControlMessage {
+  type: 'room-control';
+  to: ScreenName;
+  action: RoomAction;
 }
 
-export type RoomClientMessage = RoomOpenMessage | RoomJoinMessage | RoomLeaveMessage | RoomLookMessage | RoomSendMessage;
+/** A screen (the main one included): what it is showing now. */
+export interface RoomStatusMessage {
+  type: 'room-status';
+  status: ScreenStatus;
+}
 
-const ROOM_CLIENT_TYPES: readonly string[] = ['room-open', 'room-join', 'room-leave', 'room-look', 'room-send'];
+export type RoomClientMessage =
+  | RoomOpenMessage
+  | RoomJoinMessage
+  | RoomLeaveMessage
+  | RoomLookMessage
+  | RoomControlMessage
+  | RoomStatusMessage;
+
+const ROOM_CLIENT_TYPES: readonly string[] = ['room-open', 'room-join', 'room-leave', 'room-look', 'room-control', 'room-status'];
 
 /** Whether a (parsed) browser message belongs to the ops room. */
 export function isRoomRequest<M extends { type: string }>(message: M): message is Extract<M, RoomClientMessage> {
@@ -147,6 +212,17 @@ export interface RoomMainMessage {
   origins: string[];
 }
 
+/** You joined this room as another screen. */
+export interface RoomScreenMessage {
+  type: 'room';
+  serverTime: number;
+  role: 'screen';
+  code: string;
+  name: ScreenName;
+  /** Send it with the next join (after a reconnect) to keep this name. */
+  token: string;
+}
+
 /** You joined this room as a console. */
 export interface RoomConsoleMessage {
   type: 'room';
@@ -158,7 +234,7 @@ export interface RoomConsoleMessage {
   token: string;
 }
 
-export type RoomMessage = RoomMainMessage | RoomConsoleMessage;
+export type RoomMessage = RoomMainMessage | RoomScreenMessage | RoomConsoleMessage;
 
 /** One console in the room and the track it has open, if any. */
 export interface ConsolePresence {
@@ -166,22 +242,28 @@ export interface ConsolePresence {
   id: string | null;
 }
 
+/** One connected screen, and what it last said it is showing. */
+export interface ScreenPresence {
+  name: ScreenName;
+  status?: ScreenStatus;
+}
+
 /** Who is in the room now. Sent to every member whenever it changes. */
 export interface RoomPresenceMessage {
   type: 'room-presence';
   serverTime: number;
-  /** Whether the main screen is connected (it may be reconnecting). */
-  main: boolean;
+  /** Connected screens only; MAIN missing means the main screen is away (hidden or reconnecting). */
+  screens: ScreenPresence[];
   /** Connected consoles only. */
   consoles: ConsolePresence[];
 }
 
-/** To the main screen: a console asks it to show this track. */
-export interface RoomShowMessage {
-  type: 'room-show';
+/** To one screen: a console asks it to do this. */
+export interface RoomControlNotice {
+  type: 'room-control';
   serverTime: number;
-  id: string;
   from: ConsoleCallsign;
+  action: RoomAction;
 }
 
 /**
@@ -199,4 +281,4 @@ export interface RoomClosedMessage {
   reason: RoomClosedReason;
 }
 
-export type RoomServerMessage = RoomMessage | RoomPresenceMessage | RoomShowMessage | RoomClosedMessage;
+export type RoomServerMessage = RoomMessage | RoomPresenceMessage | RoomControlNotice | RoomClosedMessage;

@@ -2,13 +2,19 @@ import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import {
   CONSOLE_CALLSIGNS,
   MAX_CONSOLES,
+  MAX_SCREENS,
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,
+  SCREEN_NAMES,
   type ConsoleCallsign,
+  type RoomAction,
   type RoomClientMessage,
   type RoomClosedReason,
   type RoomPresenceMessage,
   type RoomServerMessage,
+  type ScreenName,
+  type ScreenPresence,
+  type ScreenStatus,
 } from '@watchfloor/shared';
 import { createLogger } from '../log';
 
@@ -29,12 +35,14 @@ export const MAX_ROOMS = 16;
  * whose screen is really gone doesn't linger.
  */
 export const MAIN_GRACE_MS = 5 * 60_000;
-/** A console that drops off (a phone locking its screen) keeps its callsign this long. */
+/** A console or screen that drops off (a phone locking its screen) keeps its name this long. */
 export const CONSOLE_GRACE_MS = 120_000;
 /** Opening and joining are paced per browser: a person taps, a script hammers. */
 export const ATTEMPT_GAP_MS = 500;
-/** A console can send the main screen a track at most this often. */
+/** A console can show a screen a track at most this often... */
 export const SEND_GAP_MS = 1_000;
+/** ...and send it other actions this often: a dragged pad sends ten a second. */
+export const CONTROL_GAP_MS = 50;
 /**
  * Wrong codes allowed across the whole server per minute. Past that, every
  * join waits out the minute, right code or not, so trying all ~530,000 codes
@@ -46,6 +54,7 @@ const WRONG_CODE_WINDOW_MS = 60_000;
 const PRESENCE_COALESCE_MS = 100;
 const SWEEP_MS = 5_000;
 
+/** A console's place in a room. */
 interface Seat {
   callsign: ConsoleCallsign;
   /** The console's secret: rejoining with it keeps the callsign. */
@@ -55,7 +64,17 @@ interface Seat {
   leftAt: number;
   /** The track it has open, if any. */
   looking: string | null;
-  lastSendAt: number;
+  lastShowAt: number;
+  lastControlAt: number;
+}
+
+/** Another screen's place in a room. */
+interface ScreenSeat {
+  name: ScreenName;
+  token: string;
+  peer: RoomPeer | null;
+  leftAt: number;
+  status: ScreenStatus | null;
 }
 
 interface Room {
@@ -65,16 +84,18 @@ interface Room {
   /** Null while the main screen is reconnecting; the room closes MAIN_GRACE_MS later. */
   main: RoomPeer | null;
   mainLeftAt: number;
+  mainStatus: ScreenStatus | null;
   /** By token, in the order they joined. */
+  screens: Map<string, ScreenSeat>;
   seats: Map<string, Seat>;
   presenceTimer: ReturnType<typeof setTimeout> | undefined;
 }
 
-/** A browser's place: a room's main screen (no seat) or one of its consoles. */
-interface Membership {
-  room: Room;
-  seat: Seat | null;
-}
+/** A browser's place: a room's main screen, one of its other screens, or one of its consoles. */
+type Membership =
+  | { room: Room; kind: 'main' }
+  | { room: Room; kind: 'screen'; screen: ScreenSeat }
+  | { room: Room; kind: 'console'; seat: Seat };
 
 export interface RoomsOptions {
   /** Addresses phones can use to reach this server, best first (lanOrigins.ts); asked when a room opens. */
@@ -87,11 +108,12 @@ export interface RoomsOptions {
 }
 
 /**
- * The ops room's server side: rooms in memory, each with one main screen
- * and up to MAX_CONSOLES consoles. Presence goes to every member whenever
- * it changes; a console's track goes to its main screen only. Nothing is
- * saved: a room ends when its main screen leaves, or doesn't come back
- * within MAIN_GRACE_MS after its connection dropped.
+ * The ops room's server side: rooms in memory, each with one main screen,
+ * up to MAX_SCREENS other screens and up to MAX_CONSOLES consoles. Presence
+ * goes to every member whenever it changes; a console's action goes only to
+ * the screen it names. Nothing is saved: a room ends when its main screen
+ * leaves, or doesn't come back within MAIN_GRACE_MS after its connection
+ * dropped.
  */
 export class Rooms {
   private readonly rooms = new Map<string, Room>();
@@ -130,7 +152,7 @@ export class Rooms {
         else this.open(peer);
         return;
       case 'room-join':
-        this.join(peer, message.code, message.token);
+        this.join(peer, message.code, message.token, message.as === 'screen');
         return;
       case 'room-leave':
         this.leave(peer);
@@ -138,29 +160,33 @@ export class Rooms {
       case 'room-look':
         this.look(peer, message.id);
         return;
-      case 'room-send':
-        this.relay(peer, message.id);
+      case 'room-control':
+        this.relay(peer, message.to, message.action);
+        return;
+      case 'room-status':
+        this.status(peer, message.status);
         return;
     }
   }
 
-  /** The browser's connection is gone. It may come back: its room or seat waits for it. */
+  /** The browser's connection is gone. It may come back: its room or place waits for it. */
   drop(peer: RoomPeer): void {
     const membership = this.members.get(peer);
     if (!membership) return;
     this.members.delete(peer);
-    const { room, seat } = membership;
-    if (seat) {
-      seat.peer = null;
-      seat.leftAt = this.now();
+    const now = this.now();
+    if (membership.kind === 'main') {
+      membership.room.main = null;
+      membership.room.mainLeftAt = now;
     } else {
-      room.main = null;
-      room.mainLeftAt = this.now();
+      const place = membership.kind === 'screen' ? membership.screen : membership.seat;
+      place.peer = null;
+      place.leftAt = now;
     }
-    this.presenceChanged(room);
+    this.presenceChanged(membership.room);
   }
 
-  /** Close rooms whose main screen didn't come back, and free seats nobody came back to. */
+  /** Close rooms whose main screen didn't come back, and free places nobody came back to. */
   sweep(): void {
     const now = this.now();
     for (const room of [...this.rooms.values()]) {
@@ -168,8 +194,8 @@ export class Rooms {
         this.close(room, 'main screen did not come back');
         continue;
       }
-      for (const [token, seat] of room.seats) {
-        if (!seat.peer && now - seat.leftAt >= CONSOLE_GRACE_MS) room.seats.delete(token);
+      for (const places of [room.seats, room.screens] as Array<Map<string, Seat | ScreenSeat>>) {
+        for (const [token, place] of places) if (!place.peer && now - place.leftAt >= CONSOLE_GRACE_MS) places.delete(token);
       }
     }
     this.forgetOldWrongCodes(now);
@@ -178,7 +204,7 @@ export class Rooms {
   private open(peer: RoomPeer): void {
     if (!this.paced(peer)) return;
     const current = this.members.get(peer);
-    if (current && !current.seat) {
+    if (current?.kind === 'main') {
       // Already this room's main screen (a second press of Q): say so again.
       this.sendMain(current.room);
       return;
@@ -193,11 +219,13 @@ export class Rooms {
       key: this.randomSecret(),
       main: peer,
       mainLeftAt: 0,
+      mainStatus: null,
+      screens: new Map(),
       seats: new Map(),
       presenceTimer: undefined,
     };
     this.rooms.set(room.code, room);
-    this.members.set(peer, { room, seat: null });
+    this.members.set(peer, { room, kind: 'main' });
     log.info('room opened', { rooms: this.rooms.size });
     this.sendMain(room);
     this.presenceChanged(room);
@@ -222,12 +250,12 @@ export class Rooms {
     if (room.main && room.main !== peer) this.replaced(room.main);
     room.main = peer;
     room.mainLeftAt = 0;
-    this.members.set(peer, { room, seat: null });
+    this.members.set(peer, { room, kind: 'main' });
     this.sendMain(room);
     this.presenceChanged(room);
   }
 
-  private join(peer: RoomPeer, code: string, token: string | undefined): void {
+  private join(peer: RoomPeer, code: string, token: string | undefined, asScreen: boolean): void {
     if (!this.paced(peer)) return;
     const now = this.now();
     this.forgetOldWrongCodes(now);
@@ -242,13 +270,18 @@ export class Rooms {
       return;
     }
     const current = this.members.get(peer);
-    if (current?.room === room && current.seat) {
+    if (current?.room === room && current.kind === (asScreen ? 'screen' : 'console')) {
       // Already in (a double tap): say so again.
-      this.sendSeat(room, current.seat);
+      if (current.kind === 'screen') this.sendScreen(room, current.screen);
+      if (current.kind === 'console') this.sendSeat(room, current.seat);
       return;
     }
     if (current) this.leave(peer);
+    if (asScreen) this.seatScreen(room, peer, token);
+    else this.seatConsole(room, peer, token);
+  }
 
+  private seatConsole(room: Room, peer: RoomPeer, token: string | undefined): void {
     let seat = token ? room.seats.get(token) : undefined;
     if (seat) {
       // The same phone, back after a reconnect. If its old connection hasn't
@@ -259,61 +292,105 @@ export class Rooms {
         this.refuse(peer, 'full');
         return;
       }
-      seat = { callsign: this.freeCallsign(room), token: this.randomSecret(), peer: null, leftAt: 0, looking: null, lastSendAt: 0 };
+      seat = {
+        callsign: this.freeCallsign(room),
+        token: this.randomSecret(),
+        peer: null,
+        leftAt: 0,
+        looking: null,
+        lastShowAt: 0,
+        lastControlAt: 0,
+      };
       room.seats.set(seat.token, seat);
       log.info('console joined', { callsign: seat.callsign, consoles: room.seats.size });
     }
     seat.peer = peer;
     seat.leftAt = 0;
-    this.members.set(peer, { room, seat });
+    this.members.set(peer, { room, kind: 'console', seat });
     this.sendSeat(room, seat);
     this.presenceChanged(room);
   }
 
-  /** Leaving on purpose: a console gives up its seat; the main screen closes the room. */
+  private seatScreen(room: Room, peer: RoomPeer, token: string | undefined): void {
+    let screen = token ? room.screens.get(token) : undefined;
+    if (screen) {
+      if (screen.peer && screen.peer !== peer) this.replaced(screen.peer);
+    } else {
+      if (room.screens.size >= MAX_SCREENS) {
+        this.refuse(peer, 'full');
+        return;
+      }
+      screen = { name: this.freeScreenName(room), token: this.randomSecret(), peer: null, leftAt: 0, status: null };
+      room.screens.set(screen.token, screen);
+      log.info('screen joined', { name: screen.name, screens: room.screens.size });
+    }
+    screen.peer = peer;
+    screen.leftAt = 0;
+    this.members.set(peer, { room, kind: 'screen', screen });
+    this.sendScreen(room, screen);
+    this.presenceChanged(room);
+  }
+
+  /** Leaving on purpose: a console or screen gives up its place; the main screen closes the room. */
   private leave(peer: RoomPeer): void {
     const membership = this.members.get(peer);
     if (!membership) return;
-    const { room, seat } = membership;
-    if (!seat) {
+    const { room } = membership;
+    if (membership.kind === 'main') {
       this.close(room, 'closed by the main screen');
       return;
     }
     this.members.delete(peer);
-    room.seats.delete(seat.token);
+    if (membership.kind === 'screen') room.screens.delete(membership.screen.token);
+    else room.seats.delete(membership.seat.token);
     this.presenceChanged(room);
   }
 
   private look(peer: RoomPeer, id: string | null): void {
     const membership = this.members.get(peer);
-    const seat = membership?.seat;
-    if (!membership || !seat || seat.looking === id) return;
-    seat.looking = id;
+    if (membership?.kind !== 'console' || membership.seat.looking === id) return;
+    membership.seat.looking = id;
     this.presenceChanged(membership.room);
   }
 
   /**
-   * A console's track goes to the main screen as `room-show`. While the main
-   * screen is reconnecting it's dropped: the consoles know from presence.
+   * A console's action goes to the screen it names, and nowhere else: screens
+   * never steer each other. One the room doesn't have, or that is away, gets
+   * nothing; the console knows from presence which screens are there.
    */
-  private relay(peer: RoomPeer, id: string): void {
+  private relay(peer: RoomPeer, to: ScreenName, action: RoomAction): void {
     const membership = this.members.get(peer);
-    const seat = membership?.seat;
-    if (!membership || !seat) return;
+    if (membership?.kind !== 'console') return;
+    const { seat, room } = membership;
     const now = this.now();
-    if (now - seat.lastSendAt < SEND_GAP_MS) return;
-    seat.lastSendAt = now;
-    membership.room.main?.send({ type: 'room-show', serverTime: now, id, from: seat.callsign });
+    if (action.do === 'show') {
+      if (now - seat.lastShowAt < SEND_GAP_MS) return;
+      seat.lastShowAt = now;
+    } else {
+      if (now - seat.lastControlAt < CONTROL_GAP_MS) return;
+      seat.lastControlAt = now;
+    }
+    const target = to === 'MAIN' ? room.main : ([...room.screens.values()].find((s) => s.name === to)?.peer ?? null);
+    target?.send({ type: 'room-control', serverTime: now, from: seat.callsign, action });
+  }
+
+  /** A screen says what it's showing: consoles get it with the presence. */
+  private status(peer: RoomPeer, status: ScreenStatus): void {
+    const membership = this.members.get(peer);
+    if (membership?.kind === 'main') membership.room.mainStatus = status;
+    else if (membership?.kind === 'screen') membership.screen.status = status;
+    else return;
+    this.presenceChanged(membership.room);
   }
 
   private close(room: Room, why: string): void {
     this.rooms.delete(room.code);
     clearTimeout(room.presenceTimer);
     const closed: RoomServerMessage = { type: 'room-closed', serverTime: this.now(), reason: 'closed' };
-    for (const seat of room.seats.values()) {
-      if (!seat.peer) continue;
-      this.members.delete(seat.peer);
-      seat.peer.send(closed);
+    for (const place of [...room.seats.values(), ...room.screens.values()]) {
+      if (!place.peer) continue;
+      this.members.delete(place.peer);
+      place.peer.send(closed);
     }
     if (room.main) {
       this.members.delete(room.main);
@@ -336,6 +413,10 @@ export class Rooms {
     room.main?.send({ type: 'room', serverTime: this.now(), role: 'main', code: room.code, key: room.key, origins: this.opts.origins() });
   }
 
+  private sendScreen(room: Room, screen: ScreenSeat): void {
+    screen.peer?.send({ type: 'room', serverTime: this.now(), role: 'screen', code: room.code, name: screen.name, token: screen.token });
+  }
+
   private sendSeat(room: Room, seat: Seat): void {
     seat.peer?.send({ type: 'room', serverTime: this.now(), role: 'console', code: room.code, callsign: seat.callsign, token: seat.token });
   }
@@ -349,14 +430,18 @@ export class Rooms {
 
   private sendPresence(room: Room): void {
     if (this.rooms.get(room.code) !== room) return; // closed meanwhile
+    const screen = (name: ScreenName, status: ScreenStatus | null): ScreenPresence => (status ? { name, status } : { name });
     const message: RoomPresenceMessage = {
       type: 'room-presence',
       serverTime: this.now(),
-      main: room.main !== null,
+      screens: [
+        ...(room.main ? [screen('MAIN', room.mainStatus)] : []),
+        ...[...room.screens.values()].filter((s) => s.peer).map((s) => screen(s.name, s.status)),
+      ],
       consoles: [...room.seats.values()].filter((s) => s.peer).map((s) => ({ callsign: s.callsign, id: s.looking })),
     };
     room.main?.send(message);
-    for (const seat of room.seats.values()) seat.peer?.send(message);
+    for (const place of [...room.screens.values(), ...room.seats.values()]) place.peer?.send(message);
   }
 
   /** True if this browser may try opening or joining now. */
@@ -385,6 +470,12 @@ export class Rooms {
     const taken = new Set([...room.seats.values()].map((s) => s.callsign));
     const free = CONSOLE_CALLSIGNS.filter((c) => !taken.has(c));
     return free[this.randomInt(free.length)]!;
+  }
+
+  /** The lowest screen number not taken: people count screens, so these go in order. */
+  private freeScreenName(room: Room): ScreenName {
+    const taken = new Set([...room.screens.values()].map((s) => s.name));
+    return SCREEN_NAMES.slice(1).find((n) => !taken.has(n))!;
   }
 }
 
