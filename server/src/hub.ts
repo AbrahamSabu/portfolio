@@ -15,6 +15,7 @@ import {
   type Hazard,
   type HazardsMessage,
   type ReplayMessage,
+  type RoomClientMessage,
   type NewsItem,
   type NewsMessage,
   type DetailsMessage,
@@ -25,6 +26,7 @@ import {
   type TrafficKind,
 } from '@watchfloor/shared';
 import type { TrackStore } from './trackStore';
+import type { RoomPeer } from './rooms/rooms';
 import { createLogger } from './log';
 
 const log = createLogger('hub');
@@ -60,6 +62,8 @@ interface Client {
   /** The area this browser last said it was looking at, if it has said. */
   view: BBox | null;
   address: string;
+  /** How the ops room reaches this browser. */
+  peer: RoomPeer;
   /** When this browser last asked about a track; requests closer together are ignored. */
   lastTrackRequestAt: number;
   /** When it last asked for the brief or a replay: both are built to order, so they're rationed harder. */
@@ -96,6 +100,11 @@ export interface HubOptions {
   onViewsChanged?: (views: BBox[]) => void;
   /** Current status of each feed that can fail; sent in hello and whenever it changes. */
   feedStatus?: () => FeedStatus[];
+  /** The ops room (rooms/rooms.ts): browsers' room-* messages, and their going away. */
+  rooms?: {
+    handle(peer: RoomPeer, message: RoomClientMessage): void;
+    drop(peer: RoomPeer): void;
+  };
   /** Answers a browser's question about one track (its path, its details); `send` may be called more than once. */
   onTrackRequest?: (id: string, send: (message: PathMessage | DetailsMessage) => void) => void;
   /** The day's news stories, sent to each browser after its snapshot. */
@@ -173,6 +182,11 @@ export class Hub {
       snapshotInFlight: false,
       view: null,
       address,
+      peer: {
+        send: (message) => {
+          if (ws.readyState === WebSocket.OPEN) ws.send(encodeServerMessage(message));
+        },
+      },
       lastTrackRequestAt: 0,
       lastBriefAt: 0,
       lastReplayAt: 0,
@@ -302,6 +316,7 @@ export class Hub {
   /** Safe to call twice (terminate() is followed by a close event): only a real removal notifies. */
   private dropClient(client: Client, reason: string): void {
     if (!this.clients.delete(client)) return;
+    this.opts.rooms?.drop(client.peer);
     log.info(reason, { address: client.address, clients: this.clients.size });
     if (client.view) this.viewsChanged();
     this.opts.onClientsChanged?.(this.clients.size);
@@ -314,7 +329,10 @@ export class Hub {
       log.debug('ignored client message', { address: client.address });
       return;
     }
-    if (isRoomRequest(message)) return;
+    if (isRoomRequest(message)) {
+      this.opts.rooms?.handle(client.peer, message);
+      return;
+    }
     const reply = (message: ServerReply) => {
       if (client.ws.readyState === WebSocket.OPEN) client.ws.send(encodeServerMessage(message));
     };

@@ -9,6 +9,7 @@ import {
   type TrackSource,
 } from '@watchfloor/shared';
 import { appendFileSync, mkdirSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
 import { loadConfig, trafficKind } from './config';
 import { readAircraftDb } from './feeds/adsb/aircraftDb';
 import type { Feed } from './feeds/feed';
@@ -22,6 +23,8 @@ import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { PathService } from './paths/pathService';
 import { replayFor } from './replay/replay';
+import { isLoopbackHost, lanOrigins } from './rooms/lanOrigins';
+import { Rooms } from './rooms/rooms';
 import { nearbyAircraft, SkyWatchers } from './sky/nearby';
 import { trackDetails } from './details/trackDetails';
 import { readAirlines } from './feeds/adsb/airlines';
@@ -232,6 +235,10 @@ async function main(): Promise<void> {
     }),
   });
 
+  // The ops room: phones join a main screen as consoles (rooms/). Memory only.
+  const joinOrigins = () => lanOrigins(config.host, config.port, networkInterfaces());
+  const rooms = new Rooms({ origins: joinOrigins });
+
   hub = new Hub({
     onTrackRequest: (id, send) => {
       paths.request(id, send);
@@ -255,6 +262,7 @@ async function main(): Promise<void> {
       applyAreas();
     },
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
+    rooms,
     ...(news ? { news: () => news.items() } : {}),
     ...(hazards ? { hazards: () => hazards.items() } : {}),
     findings: () => ({ items: findings.items(), recent: findings.recent() }),
@@ -297,6 +305,7 @@ async function main(): Promise<void> {
     feed.start(sink);
   }
   hub.start();
+  rooms.start();
   news?.start();
   hazards?.start();
   findings.start();
@@ -311,6 +320,10 @@ async function main(): Promise<void> {
     health: '/healthz',
     feeds: feeds.map((f) => f.name),
   });
+  // Listening beyond this computer is the opt-in for phones on the network (README, "Ops room").
+  if (!isLoopbackHost(config.host)) {
+    log.warn(`HOST=${config.host}: anyone on this network can open Watchfloor`, { phonesJoinAt: joinOrigins() });
+  }
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
@@ -318,6 +331,7 @@ async function main(): Promise<void> {
     shuttingDown = true;
     log.info('shutting down', { signal });
     for (const feed of feeds) feed.stop();
+    rooms.stop();
     news?.stop();
     hazards?.stop();
     findings.stop();
