@@ -85,6 +85,8 @@ export class Satellites {
   private passAt = 0;
   private passTimer: ReturnType<typeof setTimeout> | undefined;
   private styleReady = false;
+  /** Out of the picture for a while (see setHidden), whatever the switch says. */
+  private hidden = false;
 
   constructor(
     private readonly map: MapLibreMap,
@@ -133,6 +135,7 @@ export class Satellites {
   /** For the Layers menu: how many, or why none. */
   detail(): string {
     if (this.catalog.status === 'unavailable') return 'not available from this server';
+    if (this.hidden && this.deps.shown.value) return 'hidden while you ride along';
     const total = this.sats.length - [...this.dockedTo.values()].reduce((n, m) => n + m.length, 0);
     if (total === 0) return 'loading';
     return `${total.toLocaleString('en')} from CelesTrak, positions computed here`;
@@ -161,21 +164,38 @@ export class Satellites {
     for (const listener of this.listeners) listener();
   }
 
+  /**
+   * Out of the picture for a while, without touching the switch: a ride
+   * (rideAlong.ts) flattens the map, where satellites and their ground tracks
+   * would lie on the ground like decals in the pilot's view.
+   */
+  setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    this.applyShown(); // notifies, so the Layers menu says why they've gone
+  }
+
+  private get visible(): boolean {
+    return this.deps.shown.value && !this.hidden;
+  }
+
   private install(): void {
     const map = this.map;
-    if (!this.styleReady || !this.deps.shown.value || map.getLayer(this.layer.id)) return;
+    if (!this.styleReady || !this.visible || map.getLayer(this.layer.id)) return;
     map.addLayer(this.layer, map.getLayer(LOWEST_TRACK_LAYER) ? LOWEST_TRACK_LAYER : undefined);
   }
 
   private applyShown(): void {
     const on = this.deps.shown.value;
     // Off means off: no re-checks of the catalogue either (back on, one cheap re-check catches up).
+    // Hidden for a ride keeps the catalogue: the satellites come back the moment it ends.
     if (on) this.catalog.start();
     else this.catalog.stop();
-    if (on) this.install();
+    const visible = this.visible;
+    if (visible) this.install();
     else if (this.map.getLayer(this.layer.id)) this.map.removeLayer(this.layer.id);
-    this.tracks.setVisible(on);
-    if (!on) this.selectIndex(null);
+    this.tracks.setVisible(visible);
+    if (!visible) this.selectIndex(null);
     this.refreshTracks();
     this.notify();
   }
@@ -309,7 +329,7 @@ export class Satellites {
 
   /** Once a second: the card's live numbers; every few seconds the ground tracks; every minute the next pass. */
   private tick(): void {
-    if (document.hidden || !this.deps.shown.value || this.sats.length === 0) return;
+    if (document.hidden || !this.visible || this.sats.length === 0) return;
     const index = this.selectedIndex();
     const now = this.now();
     if (index >= 0) this.post({ type: 'now', seq: this.ask(now), index, t: now });
@@ -331,7 +351,7 @@ export class Satellites {
 
   /** The crewed stations' tracks always (unless their group is filtered out), and the selected satellite's. */
   private trackWanted(index: number): boolean {
-    if (!this.deps.shown.value) return false;
+    if (!this.visible) return false;
     if (index === this.selectedIndex()) return true;
     const sat = this.sats[index];
     return !!sat && CREWED_STATIONS.has(sat.e.id) && this.groupOf[index] !== DOCKED && !this.deps.filter.isHidden('stations');
@@ -422,7 +442,7 @@ export class Satellites {
    */
   satelliteAt(point: { x: number; y: number }): number {
     const frame = this.layer.lastFrame;
-    if (!this.deps.shown.value || !frame || frame.pair.a.length !== this.groupOf.length * 3) return -1;
+    if (!this.visible || !frame || frame.pair.a.length !== this.groupOf.length * 3) return -1;
     const { pair, projection, elevationScale, t } = frame;
     const u = pair.tb > pair.ta ? Math.min(2, Math.max(0, (t - pair.ta) / (pair.tb - pair.ta))) : 0;
     const centerX = (this.map.getCenter().wrap().lng + 180) / 360;

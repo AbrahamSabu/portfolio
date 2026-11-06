@@ -358,7 +358,7 @@ async function main(): Promise<void> {
     return [...store.all()].filter((t) => store.status(t, now) === 'live' && filter.passes(t, false));
   }, currentsShown);
   const exposureShown = new StoredToggle('watchfloor.exposure', false);
-  new ExposureLayer(map, layer, () => {
+  const exposure = new ExposureLayer(map, layer, () => {
     const now = clock.now();
     return [...store.all()].filter((t) => store.status(t, now) === 'live');
   }, exposureShown);
@@ -369,6 +369,16 @@ async function main(): Promise<void> {
   addRideButton(el('details'), store, selection, ride);
   ride.beforeStart = () => stack.leaveNow();
   stack.beforeEnter = () => ride.stop();
+  // What a ride and the timeline's replay hide that the flat layers' own hiding can't reach:
+  // canvases of their own (currents, long exposure), and the satellites' layer, which the
+  // ride's flat map would draw on the ground. Decided here, so the two never undo each other.
+  let timelineReplaying = false;
+  const hideOverlays = () => {
+    currents.setHidden(timelineReplaying || ride.value);
+    exposure.setHidden(timelineReplaying || ride.value);
+    satellites.setHidden(ride.value);
+  };
+  ride.subscribe(hideOverlays);
 
   // The search palette: everything with a place on the map, one box, camera there.
   const palette = new Palette(
@@ -683,7 +693,8 @@ async function main(): Promise<void> {
       const replaying = s.mode === 'replay';
       layer.setHidden(replaying);
       trailLayer.setHidden(replaying);
-      currents.setHidden(replaying);
+      timelineReplaying = replaying;
+      hideOverlays();
       if (replaying) {
         selection.select(null);
         hook.clear();

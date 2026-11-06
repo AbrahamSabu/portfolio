@@ -203,8 +203,9 @@ interface Job {
  * The camera: a pan slides particles and trails with the map (follow
  * mode's one-pixel nudges included); a zoom, or a pan that turns the globe,
  * starts the picture afresh once the camera stops — the long exposure's
- * rule. It sleeps while off, while the tab is hidden and while the timeline
- * replays the past (the currents are the present's), and a FrameGovernor
+ * rule. It sleeps while off, while the tab is hidden and while main.ts hides
+ * it (the timeline's replay: the currents are the present's; a ride: its
+ * canvas would paint over the cockpit view), and a FrameGovernor
  * trims the particles on machines that can't keep up.
  */
 export class FlowLayer {
@@ -231,7 +232,7 @@ export class FlowLayer {
   private settled = false;
   /** The camera zoomed or turned the globe: nothing until it stops. */
   private jumping = false;
-  private replaying = false;
+  private hidden = false;
   /** The installed field's anchor, where it was last seen on screen, and how far it has slid in all. */
   private anchor: LngLat | null = null;
   private anchorAt = { x: 0, y: 0 };
@@ -262,19 +263,19 @@ export class FlowLayer {
     this.apply();
   }
 
-  /** Hidden while the timeline replays the past: the currents are the present's. */
+  /** Hidden whatever the switch says: during the timeline's replay and during a ride (main.ts). */
   setHidden(hidden: boolean): void {
-    if (this.replaying === hidden) return;
-    this.replaying = hidden;
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
     this.apply();
   }
 
   private get active(): boolean {
-    return this.shown.value && !this.replaying && !document.hidden && this.renderer.ready;
+    return this.shown.value && !this.hidden && !document.hidden && this.renderer.ready;
   }
 
   private apply(): void {
-    this.canvas.style.display = this.shown.value && !this.replaying ? '' : 'none';
+    this.canvas.style.display = this.shown.value && !this.hidden ? '' : 'none';
     if (this.active) {
       if (this.raf) return;
       this.restart();

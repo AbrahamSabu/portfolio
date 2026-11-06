@@ -16,12 +16,14 @@ const MAX_DPR = 1.5;
  * holds still, so every aircraft and ship burns its route in as a glowing
  * thread — the night-photography view of the picture, in the same identity
  * colours. A pan or zoom starts a fresh exposure (the film moved), and the
- * layer sleeps entirely while its switch is off or the page is hidden.
+ * layer sleeps entirely while its switch is off, the page is hidden, or
+ * main.ts hides it (the timeline's replay, a ride).
  */
 export class ExposureLayer {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private timer: number | undefined;
+  private hidden = false;
 
   constructor(
     private readonly map: MapLibreMap,
@@ -42,13 +44,21 @@ export class ExposureLayer {
     this.apply();
   }
 
+  /** Hidden whatever the switch says: its dots are the live picture's, so not during a replay or a ride. */
+  setHidden(hidden: boolean): void {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    this.apply();
+  }
+
   private apply(): void {
-    const on = this.shown.value && !document.hidden;
-    this.canvas.style.display = this.shown.value ? '' : 'none';
+    const shown = this.shown.value && !this.hidden;
+    const on = shown && !document.hidden;
+    this.canvas.style.display = shown ? '' : 'none';
     window.clearInterval(this.timer);
     this.timer = undefined;
     if (on) this.timer = window.setInterval(() => this.expose(), EXPOSE_MS);
-    if (!this.shown.value) this.clear();
+    if (!shown) this.clear();
   }
 
   private fit(): void {
