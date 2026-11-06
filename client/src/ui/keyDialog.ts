@@ -21,6 +21,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['Z', 'Timeline: replay six hours back, project thirty minutes ahead'],
   ['U', 'Rare aircraft: in the air now, and the last 24 hours'],
   ['E', 'The Stack: aircraft at their real altitude on a tilted map'],
+  ['J', 'Ride along: the view from the selected aircraft'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['S', 'Vehicle shapes or military symbols'],
@@ -123,6 +124,10 @@ function content(style: SymbolStyle): string {
     <section>
       <h3>The Stack</h3>
       <p>Press <kbd>E</kbd> (or Layers › Display) to tilt the map and lift each aircraft to its reported altitude, drawn <strong>×${STACK_EXAGGERATION} taller than life</strong> so a few hundred metres show. A thin line drops to the point below it, where its flat symbol stays as a faint shadow; ships stay on the sea, and an aircraft that reports no altitude stays on the ground. Trails climb and descend with the heights flown since this page opened. Holding stacks read as corkscrews, ocean crossings as a layer at cruise height. Turn the map with a right-drag; tilt it with Shift and the up and down arrows.</p>
+    </section>
+    <section>
+      <h3>Ride along</h3>
+      <p>Select an aircraft and press <kbd>J</kbd> (or Ride along in its details) to see from where it is: its position, altitude and course, by dead reckoning between reports. The ground is real terrain (<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Mapzen terrain tiles</a>, from SRTM and other open elevation data), and the sky and shading follow the sun's true position. Other aircraft show as their navigation lights, where they really are: red on the left wingtip, green on the right, white on the tail, each seen only from the side it faces, with flashing strobes. Red and green together means it's coming towards you. Esc, <kbd>J</kbd>, or any pan or zoom brings the map back as it was.</p>
     </section>
     <section>
       <h3>Watch areas</h3>

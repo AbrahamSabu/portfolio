@@ -1,0 +1,89 @@
+/* Ride Along: we're inside the aircraft the reticle marks, so it goes. */
+.map.riding .reticle {
+  display: none;
+}
+
+/* The head-up display: who we're with, how high, how fast, which way. */
+.ride-hud {
+  position: absolute;
+  top: calc(var(--topbar-h) + var(--safe-top) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-width: 300px;
+  max-width: calc(100% - 32px);
+  padding: 8px 16px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: center;
+  pointer-events: none;
+}
+
+.ride-hud[hidden] {
+  display: none;
+}
+
+.ride-hud-head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.ride-hud-callsign {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.ride-hud-tag {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.ride-hud-tag.stale {
+  color: var(--warn);
+}
+
+.ride-hud-readouts {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin: 4px 0 0;
+}
+
+.ride-hud-readouts div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ride-hud-readouts dt {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+}
+
+.ride-hud-readouts dd {
+  margin: 0;
+  color: var(--hud-bright);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px var(--hud-glow);
+}
+
+.ride-hud-route {
+  margin-top: 3px;
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+}
+
+.ride-hud-hint {
+  margin-top: 4px;
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+}
