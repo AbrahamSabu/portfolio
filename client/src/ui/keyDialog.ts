@@ -110,13 +110,13 @@ function content(style: SymbolStyle): string {
       <ul class="key-list">
         <li><span class="key-glyph key-dot" aria-hidden="true"></span>Aircraft, zoomed out</li>
         <li><span class="key-glyph key-ring" aria-hidden="true"></span>Ship, zoomed out</li>
-        <li><span class="key-glyph key-satellite" aria-hidden="true"></span>Satellite. Zoomed out, the low ones sit at their true height, a thin shell round the globe. Positions are predicted from <a href="https://celestrak.org/" target="_blank" rel="noopener">CelesTrak</a>'s orbital elements, not observed</li>
+        <li><span class="key-glyph key-satellite" aria-hidden="true"></span><span>Satellite. Zoomed out, the low ones sit at their true height, a thin shell round the globe. Positions are predicted from <a href="https://celestrak.org/" target="_blank" rel="noopener">CelesTrak</a>'s orbital elements, not observed</span></li>
         <li><span class="key-glyph key-leader" aria-hidden="true"></span>Speed leader: where it will be in 1 minute (aircraft) or 10 (ships)</li>
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
         <li><span class="key-glyph key-flow" aria-hidden="true"></span><span>Currents (<kbd>I</kbd>): particles drift with the average direction and speed of the moving traffic around them, split by heading so a lane used both ways shows both currents, aircraft and ships as separate fields. It is the traffic on the map, not wind, sped up to be seen (ships about 13 times more than aircraft)</span></li>
         <li><span class="key-glyph key-stale" aria-hidden="true"></span>Faded: no recent report, so its position is an estimate</li>
         <li><span class="key-glyph key-emergency" aria-hidden="true"></span>Amber ring: the aircraft is squawking an emergency code (7500, 7600 or 7700), as its transponder broadcasts it. Click the ring, or the amber chip in the top bar, to find it again after hiding its alert</li>
-        <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain). Click one for its weather and the aircraft arriving and leaving</li>
+        <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span><span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain). Click one for its weather and the aircraft arriving and leaving</span></li>
       </ul>
     </section>
     <section>
@@ -134,7 +134,7 @@ function content(style: SymbolStyle): string {
     </section>
     <section>
       <h3>Ride along</h3>
-      <p>Select an aircraft and press <kbd>J</kbd> (or Ride along in its details) to see from where it is: its position, altitude and course, by dead reckoning between reports. The ground is real terrain (<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Mapzen terrain tiles</a>, from SRTM and other open elevation data), and the sky and shading follow the sun's true position. Other aircraft show as their navigation lights, where they really are: red on the left wingtip, green on the right, white on the tail, each seen only from the side it faces, with flashing strobes. Red and green together means it's coming towards you. Esc, <kbd>J</kbd>, or any pan or zoom brings the map back as it was.</p>
+      <p>Select an aircraft and press <kbd>J</kbd> (or Ride along in its details) to see from where it is: its position, altitude and course, by dead reckoning between reports. The ground is real terrain (<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Mapzen terrain tiles</a>, from SRTM and other open elevation data), and the sky and shading follow the sun's true position. Other aircraft show as their navigation lights, where they really are: red on the left wingtip, green on the right, white on the tail, each seen only from the side it faces, with flashing strobes. Red and green together means it's coming towards you. Esc, <kbd>J</kbd>, or any pan or zoom brings the map back as it was. The satellites, the currents and the long exposure step aside during a ride: they are drawn for the map, not for a cockpit.</p>
     </section>
     <section>
       <h3>Watch areas</h3>
@@ -159,6 +159,10 @@ function content(style: SymbolStyle): string {
         <li>An emergency squawk sounds a clear falling call, a new finding a rising chime, a watch-area crossing one high note, and the music dips beneath them. While the score plays, these replace the alert ping.</li>
         <li>An empty sea or sky is silent.</li>
       </ul>
+    </section>
+    <section>
+      <h3>Ops room</h3>
+      <p>Press <kbd>Q</kbd> to open a room on this screen. Phones that scan its code become consoles, and other screens can join with the code. A console can show a track here, move the map, start the tour, switch layers (the satellites, the currents, the Stack and the sound of the sky among them) and ride along with an aircraft on this screen. A browser plays sound only once someone has touched that screen, so the score may wait for a tap here. The room lasts while this page is open.</p>
     </section>
     <section>
       <h3>Earthquakes and disasters</h3>

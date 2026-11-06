@@ -33,10 +33,10 @@ function deps(score: LayerDeps['score']): LayerDeps {
 }
 
 describe('the sky score in the Layers menu', () => {
-  it('has its own section, keyed Y, with Y in the map key and nowhere else', () => {
+  it('sits in the Sound section after the alert ping, keyed Y, with Y in the map key and nowhere else', () => {
     const sections = layerSections(deps({ on: toggle(), volume: new StoredLevel('v', 0.6, memory()), hearing: new ScoreHearing() }));
-    const section = sections.find((s) => s.title === 'Sound of the sky')!;
-    expect(section.rows.map((r) => r.kind)).toEqual(['switch', 'range']);
+    const section = sections.find((s) => s.title === 'Sound')!;
+    expect(section.rows.map((r) => r.label)).toEqual(['Alert ping', 'Ambient score', 'Score volume']);
     const keys = menuKeys(sections);
     expect(keys.filter((k) => k === 'Y')).toEqual(['Y']);
     expect(new Set(keys).size).toBe(keys.length);
@@ -48,7 +48,7 @@ describe('the sky score in the Layers menu', () => {
     const storage = memory();
     const volume = new StoredLevel('watchfloor.scoreVolume', 0.6, storage);
     const hearing = new ScoreHearing();
-    const [onRow, volumeRow] = layerSections(deps({ on, volume, hearing })).find((s) => s.title === 'Sound of the sky')!.rows as [SwitchRow, RangeRow];
+    const [, onRow, volumeRow] = layerSections(deps({ on, volume, hearing })).find((s) => s.title === 'Sound')!.rows as [SwitchRow, SwitchRow, RangeRow];
     onRow.set(true);
     expect(on.value).toBe(true);
     hearing.set(hearingOf(312, 1));
@@ -59,8 +59,9 @@ describe('the sky score in the Layers menu', () => {
     expect(storage.data.get('watchfloor.scoreVolume')).toBe('0.25');
   });
 
-  it('leaves the menu as it was without a score', () => {
-    expect(layerSections(deps(undefined)).some((s) => s.title === 'Sound of the sky')).toBe(false);
+  it('leaves the Sound section to the alert ping without a score', () => {
+    const sound = layerSections(deps(undefined)).find((s) => s.title === 'Sound')!;
+    expect(sound.rows.map((r) => r.label)).toEqual(['Alert ping']);
   });
 });
 

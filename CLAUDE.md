@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (490 tests after the Layers menu).
+- `npm test`: Vitest from the root config (857 tests after the five design concepts were merged, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -635,10 +635,13 @@ that could have been fetched before they arrived.
   `room-control { to, action }` reaches the named screen only (screens never
   steer each other); actions are a closed list (show, pan in screen
   fractions, zoom ±1, home = hello's scenario frame, follow, clear, tour,
-  layer, fly), quick ones paced 50 ms, show 1 s. Screens run them in
+  layer, fly, ride), quick ones paced 50 ms, show 1 s. Screens run them in
   `RoomHost.act` (camera moves stop the tour and close the timeline first;
-  layers go through `screenControl.ts` onto the Layers menu's own settings)
-  and report `room-status` (layers, tour, follow) on change plus a 1 s check
+  layers go through `screenControl.ts` onto the Layers menu's own settings: the
+  twelve `LAYER_NAMES`, the score optional there and audible only once that
+  screen has had a gesture; `ride` (id or null) selects the aircraft, then
+  `RideAlong.start`, as J would)
+  and report `room-status` (layers, tour, follow, `riding` while riding) on change plus a 1 s check
   (the tour has no event). **`layerDeps()` also holds plain functions**:
   subscribing to `Object.values` of it crashed the page at startup;
   `onLayerChange` names the eight settings. Network: HOST stays 127.0.0.1 by default; `HOST=0.0.0.0` is the
@@ -805,7 +808,12 @@ that could have been fetched before they arrived.
     point), FOV 60°, pitch 82°, `calculateCameraOptionsFromCameraLngLatAltRotation`
     every frame with `PoseSmoother` easing report corrections. The flat
     aircraft *and trail* layers are dimmed to 0 (decals on the ground from
-    a cockpit). Lights are ≥ 14 px with a solid core: a 6 px glow read as
+    a cockpit). What dimming can't reach, main.ts's `hideOverlays` hides:
+    the currents and the long exposure (canvases of their own) and the
+    satellites (`Satellites.setHidden`: the flat map draws them on the
+    ground; their Layers row says why they've gone). The timeline's replay
+    hides the currents and exposure through the same function, so the two
+    never undo each other: add new overlays there. Lights are ≥ 14 px with a solid core: a 6 px glow read as
     a 2 px speck in screenshots. Leaving:
     Esc (window capture phase, before main's Escape chain), J, any user
     camera input (`dragstart`/`wheel`/`touchstart`, or `movestart` with an
@@ -865,7 +873,7 @@ that could have been fetched before they arrived.
   follow but keeps the selection). EmergencyAlerts exposes `get active`
   for the tour. Alert ping: `ui/alertSound.ts`
   (WebAudio two-note, synthesised, try/catch), `watchfloor.sound` off by
-  default, Layers menu "Alerts" section; EmergencyAlerts/RegionAlerts take
+  default, Layers menu "Sound" section (beside the sky score, which sounds the alerts instead while it plays); EmergencyAlerts/RegionAlerts take
   an optional `ping` callback. Screensaver mode (`/?screensaver`, in
   main.ts): the tour starts itself once the store has tracks and restarts
   after 60 s without input (the URL is the consent the motion rule asks

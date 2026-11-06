@@ -54,35 +54,32 @@ export interface LayerDeps {
   };
 }
 
-/** The sky score: on and off (Y), and how loud. */
-function scoreSection(score: NonNullable<LayerDeps['score']>): LayerSection {
-  return {
-    title: 'Sound of the sky',
-    rows: [
-      {
-        kind: 'switch',
-        label: 'Ambient score',
-        hint: 'Music played by the traffic on screen',
-        key: 'Y',
-        get: () => score.on.value,
-        set: (on) => score.on.set(on),
-        detail: () => score.hearing.describe() || 'starting',
-        watch: [score.on, score.hearing],
-      },
-      {
-        kind: 'range',
-        label: 'Score volume',
-        hint: 'How loud it plays',
-        min: 0,
-        max: 1,
-        step: 0.05,
-        get: () => score.volume.value,
-        set: (volume) => score.volume.set(volume),
-        format: (volume) => `${Math.round(volume * 100)}%`,
-        watch: [score.volume],
-      },
-    ],
-  };
+/** The sky score's rows in the Sound section: on and off (Y), and how loud. */
+function scoreRows(score: NonNullable<LayerDeps['score']>): LayerSection['rows'] {
+  return [
+    {
+      kind: 'switch',
+      label: 'Ambient score',
+      hint: 'Music played by the traffic on screen',
+      key: 'Y',
+      get: () => score.on.value,
+      set: (on) => score.on.set(on),
+      detail: () => score.hearing.describe() || 'starting',
+      watch: [score.on, score.hearing],
+    },
+    {
+      kind: 'range',
+      label: 'Score volume',
+      hint: 'How loud it plays',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      get: () => score.volume.value,
+      set: (volume) => score.volume.set(volume),
+      format: (volume) => `${Math.round(volume * 100)}%`,
+      watch: [score.volume],
+    },
+  ];
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -204,10 +201,13 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       ],
     },
     {
-      title: 'Alerts',
-      rows: [toggle('Sound', 'A short ping for squawks and area alerts', undefined, d.sound)],
+      // One section, since the two meet: while the score plays, it sounds the alerts instead of the ping.
+      title: 'Sound',
+      rows: [
+        toggle('Alert ping', 'Squawks, findings and area alerts; the score sounds them while it plays', undefined, d.sound),
+        ...(d.score ? scoreRows(d.score) : []),
+      ],
     },
-    ...(d.score ? [scoreSection(d.score)] : []),
     {
       title: 'Display',
       rows: [
