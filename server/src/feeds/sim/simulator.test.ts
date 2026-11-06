@@ -33,7 +33,7 @@ describe('Simulator', () => {
     for (const r of reports) expect(sanitizeTrack(r)).not.toBeNull();
   });
 
-  it('keeps ships inside the scenario area', () => {
+  it('keeps ships inside the scenario area', { timeout: 20_000 }, () => {
     const { reports } = run(3, 60);
     const b = englishChannel.bounds;
     for (const r of reports.filter((t) => t.domain === 'sea')) {

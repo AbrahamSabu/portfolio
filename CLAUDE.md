@@ -486,8 +486,9 @@ that could have been fetched before they arrived.
   glass and the text read through.
 - **Leaderboard** (protocol 17 `records`): `server/src/records/records.ts`,
   pure `leaderboards(tracks, now, sources)` (three places per board, a board
-  nobody qualifies for left out; glitch caps: 40 km, 380 m/s air, 30 m/s
-  sea, 460 m ships; private aircraft excluded via `isPrivate`, airline names
+  nobody qualifies for left out; glitch caps: 40 km; air 380 m/s, but
+  200 for turboprops/pistons by type and less for helicopters and light
+  aircraft; sea by platform, cargo 27 kn to leisure 50; ships over 400 m; private aircraft excluded via `isPrivate`, airline names
   via `airlineFor`, ship lengths via AIS static) and `RecordsService`
   (30 s, `onChange` only when the JSON changes). "Biggest" ranks distinct
   types by `aircraftTypes.ts` MTOW, shown as "~575 t". Client

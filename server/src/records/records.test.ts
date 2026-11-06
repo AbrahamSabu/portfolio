@@ -57,6 +57,8 @@ describe('leaderboards', () => {
         plane('taxi', { altitudeM: 0, speedMps: 10 }),
         plane('ladd', { altitudeM: 15_500 }),
         plane('ok', { altitudeM: 10_000 }),
+        plane('cessna', { typeCode: 'C172', speedMps: 320 }),
+        plane('heli', { platform: 'helicopter', speedMps: 160 }),
       ],
       NOW,
       { isPrivate: (t) => t.id === 'adsb:ladd' },
@@ -101,18 +103,21 @@ describe('leaderboards', () => {
       [
         plane('n', { lat: 78.25 }),
         plane('s', { lat: -54.5 }),
-        ship('fast', { speedMps: 19 }),
+        ship('fast', { platform: 'vessel', speedMps: 19 }),
         ship('slow', { speedMps: 5 }),
         ship('junk', { speedMps: 52.6 }),
+        ship('coaster', { speedMps: 28 }),
+        ship('ferry', { platform: 'passenger', speedMps: 20 }),
         ship('moored', { speedMps: 0 }),
       ],
       NOW,
-      { shipLengthM: (t) => ({ 'ais:fast': 120, 'ais:slow': 399, 'ais:junk': 900 })[t.id] },
+      { shipLengthM: (t) => ({ 'ais:fast': 120, 'ais:slow': 399, 'ais:junk': 900, 'ais:coaster': 420 })[t.id] },
     );
     expect(board(boards, 'north')!.entries[0]).toMatchObject({ name: 'N', value: '78.3°N' });
     expect(board(boards, 'south')!.entries[0]).toMatchObject({ name: 'S', value: '54.5°S' });
-    expect(names(boards, 'fastest-ship')).toEqual(['FAST', 'SLOW']);
-    expect(board(boards, 'fastest-ship')!.entries[0]!.value).toBe('37 kn');
+    // A cargo ship at 54 kn is junk; a fast ferry at 39 kn is real.
+    expect(names(boards, 'fastest-ship')).toEqual(['FERRY', 'FAST', 'SLOW']);
+    expect(board(boards, 'fastest-ship')!.entries[1]!.value).toBe('37 kn');
     expect(names(boards, 'longest-ship')).toEqual(['SLOW', 'FAST']);
   });
 

@@ -15,15 +15,38 @@ const AIRBORNE_MIN_SPEED_MPS = 30;
 /**
  * Past these, a figure is a garbled message, not a record: nothing with a
  * transponder flies above 40 km (a stratospheric balloon reaches about 35),
- * no airliner beats 740 kt over the ground even in the jet stream, and AIS
- * speeds over 58 kn are "not available" codes or junk. The longest ships
- * afloat are about 400 m.
+ * and no airliner beats 740 kt over the ground even in the jet stream.
  */
 const MAX_ALTITUDE_M = 40_000;
 const MAX_AIR_SPEED_MPS = 380;
-const MAX_SEA_SPEED_MPS = 30;
 const MIN_SEA_SPEED_MPS = 0.5;
-const MAX_SHIP_LENGTH_M = 460;
+/** The largest ships afloat are just under 400 m; a longer report has its dimensions wrong. */
+const MAX_SHIP_LENGTH_M = 400;
+/**
+ * The most each kind could make over the ground, tailwind or not: a "Cessna
+ * 172" at 600 kt or a coaster at 55 kn is a wrong type or a garbled message.
+ * Turboprops and pistons by type code, since the platform rarely says.
+ */
+const SLOW_TYPES = new Set([
+  'C150', 'C152', 'C172', 'C182', 'C206', 'C208', 'P28A', 'PA28', 'PA32', 'PA34', 'SR20', 'SR22', 'DA40', 'DA42', 'BE20',
+  'B350', 'BE9L', 'PC12', 'AT43', 'AT45', 'AT72', 'AT75', 'AT76', 'DH8A', 'DH8B', 'DH8C', 'DH8D', 'DHC6', 'SF34', 'JS41', 'D228',
+]);
+const MAX_SLOW_AIR_MPS = 200;
+const MAX_AIR_MPS_BY_PLATFORM: Partial<Record<Track['platform'], number>> = {
+  helicopter: 100,
+  'military-helicopter': 110,
+  'light-aircraft': 150,
+};
+const KNOT = 0.514444;
+const MAX_SEA_MPS_BY_PLATFORM: Partial<Record<Track['platform'], number>> = {
+  cargo: 27 * KNOT,
+  tanker: 22 * KNOT,
+  fishing: 20 * KNOT,
+  passenger: 45 * KNOT,
+  leisure: 50 * KNOT,
+  warship: 45 * KNOT,
+  vessel: 50 * KNOT,
+};
 const MIN_SHIP_LENGTH_M = 20;
 /** An airline's ICAO designator starts its callsign, then a flight number: RYR4XW. */
 const AIRLINE_CALLSIGN = /^([A-Z]{3})\d/;
@@ -47,7 +70,7 @@ export function leaderboards(tracks: readonly Track[], now: number, sources: Rec
   const sea: Track[] = [];
   for (const t of tracks) {
     if (t.domain === 'air') {
-      if (now - t.observedAt > AIR_FRESH_MS || t.speedMps < AIRBORNE_MIN_SPEED_MPS || t.speedMps > MAX_AIR_SPEED_MPS) continue;
+      if (now - t.observedAt > AIR_FRESH_MS || t.speedMps < AIRBORNE_MIN_SPEED_MPS || t.speedMps > maxAirSpeed(t)) continue;
       if (t.altitudeM === undefined || t.altitudeM < AIRBORNE_MIN_ALTITUDE_M || t.altitudeM > MAX_ALTITUDE_M) continue;
       if (sources.isPrivate?.(t)) continue;
       air.push(t);
@@ -89,7 +112,7 @@ export function leaderboards(tracks: readonly Track[], now: number, sources: Rec
   );
   add('north', 'air', 'Farthest north', top(air, (t) => t.lat).map((t) => entry(t, latitude(t.lat), typeOf(t))));
   add('south', 'air', 'Farthest south', top(air, (t) => -t.lat).map((t) => entry(t, latitude(t.lat), typeOf(t))));
-  const moving = sea.filter((t) => t.speedMps >= MIN_SEA_SPEED_MPS && t.speedMps <= MAX_SEA_SPEED_MPS);
+  const moving = sea.filter((t) => t.speedMps >= MIN_SEA_SPEED_MPS && t.speedMps <= (MAX_SEA_MPS_BY_PLATFORM[t.platform] ?? 50 * KNOT));
   add('fastest-ship', 'sea', 'Fastest ships', top(moving, (t) => t.speedMps).map((t) => entry(t, `${knots(t.speedMps)} kn`, `${kmh(t.speedMps)} km/h`)));
   if (sources.shipLengthM) {
     const lengths = new Map<Track, number>();
@@ -100,6 +123,11 @@ export function leaderboards(tracks: readonly Track[], now: number, sources: Rec
     add('longest-ship', 'sea', 'Longest ships', top([...lengths.keys()], (t) => lengths.get(t)!).map((t) => entry(t, `${lengths.get(t)!} m`)), 'As the ship itself reports');
   }
   return boards;
+}
+
+function maxAirSpeed(t: Track): number {
+  if (t.typeCode && SLOW_TYPES.has(t.typeCode)) return MAX_SLOW_AIR_MPS;
+  return MAX_AIR_MPS_BY_PLATFORM[t.platform] ?? MAX_AIR_SPEED_MPS;
 }
 
 /** The biggest types in the air, one place each: three A380s are one A380 with a count. */
