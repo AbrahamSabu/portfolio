@@ -85,6 +85,11 @@ describe('LocalServer (the static demo)', () => {
     const rare = findings?.type === 'findings' ? findings.items.filter((f) => f.kind === 'rare') : [];
     expect(rare.length).toBeGreaterThanOrEqual(8);
     expect(rare.map((f) => f.detail).join(' ')).toMatch(/BelugaXL|Dreamlifter|Ruslan|Galaxy|Sentry|Global Hawk/);
+    // And the leaderboard, every board the simulator can fill (ships report no lengths here).
+    const records = messages.find((m) => m.type === 'records');
+    const boards = records?.type === 'records' ? records.boards : [];
+    expect(boards.map((b) => b.id)).toEqual(['highest', 'fastest', 'biggest', 'types', 'airlines', 'north', 'south', 'fastest-ship']);
+    expect(boards.every((b) => b.entries.length === 3)).toBe(true);
   });
 
   it('sends the published news, all of it first', async () => {

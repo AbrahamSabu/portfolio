@@ -36,6 +36,7 @@ function deps(): LayerDeps {
     tour: () => {},
     handover: () => {},
     rare: () => {},
+    records: () => {},
     timeline: () => {},
     phosphor: toggle(),
     exposure: toggle(),
@@ -48,7 +49,7 @@ describe('the Layers menu', () => {
     expect(new Set(keys).size).toBe(keys.length);
     const listed = new Set(SHORTCUTS.map(([k]) => k));
     expect(keys.filter((k) => !listed.has(k))).toEqual([]);
-    expect(keys).toEqual(['S', 'T', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'V', 'Z', 'U', 'W']);
+    expect(keys).toEqual(['S', 'T', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'V', 'Z', 'U', 'P', 'W']);
   });
 
   it('turns news on when the briefing is asked for with news off', () => {
