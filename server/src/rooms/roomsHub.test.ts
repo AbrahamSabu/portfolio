@@ -68,12 +68,18 @@ describe('the ops room through the hub', () => {
     phone.send({ type: 'room-send', id: 'sim:air-0001' });
     expect(await main.next('room-show')).toMatchObject({ id: 'sim:air-0001', from: seat.callsign });
 
+    // Presence comes in coalesced batches, so wait for the state rather than count messages.
+    type Consoles = Array<{ callsign: string; id: string | null }>;
+    const presenceWhere = async (ok: (consoles: Consoles) => boolean) => {
+      for (;;) {
+        const consoles = (await main.next('room-presence')).consoles as Consoles;
+        if (ok(consoles)) return consoles;
+      }
+    };
+    expect(await presenceWhere((c) => c[0]?.id === 'sim:air-0001')).toEqual([{ callsign: seat.callsign, id: 'sim:air-0001' }]);
     // The phone's socket closing takes it out of the room's presence.
-    let presence = await main.next('room-presence');
-    while ((presence.consoles as unknown[]).length === 0) presence = await main.next('room-presence');
-    expect(presence.consoles).toEqual([{ callsign: seat.callsign, id: 'sim:air-0001' }]);
     phone.ws.close();
-    while ((presence.consoles as unknown[]).length > 0) presence = await main.next('room-presence');
+    expect(await presenceWhere((c) => c.length === 0)).toEqual([]);
     main.ws.close();
   });
 });
