@@ -1,5 +1,15 @@
 import './console.css';
-import { isRoomCode, normalizeRoomCode, type ConsoleCallsign, type RoomClosedReason, type TrackDetails } from '@watchfloor/shared';
+import {
+  isRoomCode,
+  isScreenName,
+  normalizeRoomCode,
+  type ConsoleCallsign,
+  type RoomAction,
+  type RoomClosedReason,
+  type ScreenName,
+  type ScreenPresence,
+  type TrackDetails,
+} from '@watchfloor/shared';
 import { shapeFor, shapeSvg } from '../map/shapes';
 import { Connection, defaultSocketUrl, type ConnectionState } from '../net/connection';
 import { trackName } from '../room/roomView';
@@ -9,12 +19,16 @@ import { DEFAULT_QUERY, queryTracks, type DomainFilter } from '../state/trackQue
 import { trafficLabel } from '../ui/format';
 import { ConsoleList } from './consoleList';
 import { REFUSAL, codeFromSearch, detailFacts, trackKind } from './consoleText';
+import { LayerSwitches } from './layerSwitches';
+import { PlacesPanel } from './places';
+import { RemotePad } from './remotePad';
 
 /**
- * The phone console of the ops room (console.html): join a main screen's
- * room by code, browse and search the picture, open a track, and send it to
- * the main screen. The main screen sees what this phone has open. No map
- * library: it's a list, light enough for any phone.
+ * The phone console of the ops room (console.html): join a room by code,
+ * pick which screen to steer (the main one, or another such as a TV), then
+ * send it a track from the list, move its map with the remote, switch its
+ * layers, or fly it to a place. Every screen shows what this phone has
+ * open. No map library: light enough for any phone.
  */
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => {
@@ -23,11 +37,14 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) => {
   return node as T;
 };
 
-/** A send is answered by the main screen moving; the button rests this long so a double tap sends once. */
+/** A send is answered by the screen moving; the button rests this long so a double tap sends once. */
 const SEND_REST_MS = 1_000;
-const SENT_SHOWN_MS = 3_000;
+/** How long a line such as "Sent to MAIN." stays. */
+const NOTE_MS = 2_500;
 /** Like the main page: a phone in a pocket closes its socket after a quiet minute hidden. */
 const HIDDEN_STOP_MS = 60_000;
+
+type Tab = 'tracks' | 'remote' | 'layers' | 'places';
 
 const store = new TrackStore();
 const clock = new ServerClock();
@@ -37,21 +54,46 @@ let code = codeFromSearch(location.search);
 if (code) el<HTMLInputElement>('join-code').value = code;
 let token: string | undefined;
 let callsign: ConsoleCallsign | null = null;
-let mainHere = true;
 let refusal: string | null = null;
 let link: ConnectionState = { status: 'connecting' };
 let traffic = '';
+
+/** The connected screens, and the one this phone steers (kept while it's away, so it comes back to it). */
+let screens: ScreenPresence[] = [];
+let target: ScreenName = 'MAIN';
+let tab: Tab = 'tracks';
 
 // What this phone has open.
 let opened: string | null = null;
 let details: TrackDetails | undefined;
 let sentAt = 0;
-let sentTimer: number | undefined;
+let noteTimer: number | undefined;
 
 let domain: DomainFilter = 'all';
 let search = '';
 
+const targetHere = () => screens.some((s) => s.name === target);
+const targetStatus = () => screens.find((s) => s.name === target)?.status;
+
+/** Ask the steered screen to do something; nothing goes out while it's away. */
+function control(action: RoomAction): void {
+  if (callsign && targetHere()) connection.send({ type: 'room-control', to: target, action });
+}
+
+function note(text: string): void {
+  const line = el('note');
+  line.textContent = text;
+  window.clearTimeout(noteTimer);
+  noteTimer = window.setTimeout(() => (line.textContent = ''), NOTE_MS);
+}
+
 const list = new ConsoleList(el('rows'), el('rows-sizer'), (id) => openTrack(id));
+const switches = new LayerSwitches(el('layer-switches'), (layer, on) => control({ do: 'layer', layer, on }));
+const places = new PlacesPanel(el<HTMLInputElement>('place-search'), el('place-list'), (place) => {
+  control({ do: 'fly', lon: place.lon, lat: place.lat, zoom: place.zoom });
+  note(`${target} is flying to ${place.label}.`);
+});
+new RemotePad(el('pad'), (dx, dy) => control({ do: 'pan', dx, dy }));
 
 const connection = new Connection(defaultSocketUrl(), {
   onMessage(message, receivedAt) {
@@ -64,12 +106,13 @@ const connection = new Connection(defaultSocketUrl(), {
         if (code) join();
         if (opened) connection.send({ type: 'track', id: opened });
         break;
+      // The store's own subscription redraws the list for these.
       case 'snapshot':
         store.applySnapshot(message.tracks, message.trails);
-        break;
+        return;
       case 'delta':
         store.applyDelta(message.upserts, message.removals, message.serverTime);
-        break;
+        return;
       case 'details':
         if (message.id === opened) {
           details = message.details;
@@ -85,7 +128,7 @@ const connection = new Connection(defaultSocketUrl(), {
         connection.send({ type: 'room-look', id: opened });
         break;
       case 'room-presence':
-        mainHere = message.screens.some((s) => s.name === 'MAIN');
+        screens = message.screens;
         break;
       case 'room-closed':
         leaveRoom(message.reason);
@@ -112,6 +155,9 @@ function leaveRoom(reason: RoomClosedReason): void {
   code = null; // so a reconnect doesn't retry it
   callsign = null;
   token = undefined;
+  screens = [];
+  target = 'MAIN';
+  tab = 'tracks';
   closeTrack();
   history.replaceState(null, '', location.pathname);
 }
@@ -142,14 +188,54 @@ el('back').addEventListener('click', () => {
 });
 
 el('send').addEventListener('click', () => {
-  if (!opened || !callsign) return;
-  connection.send({ type: 'room-control', to: 'MAIN', action: { do: 'show', id: opened } });
+  if (!opened) return;
+  control({ do: 'show', id: opened });
   sentAt = Date.now();
-  window.clearTimeout(sentTimer);
-  sentTimer = window.setTimeout(render, SENT_SHOWN_MS);
+  note(`Sent to ${target}.`);
   window.setTimeout(render, SEND_REST_MS);
   render();
 });
+
+const targetSelect = el<HTMLSelectElement>('target');
+targetSelect.addEventListener('change', () => {
+  if (isScreenName(targetSelect.value)) target = targetSelect.value;
+  render();
+});
+
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
+  button.addEventListener('click', () => {
+    tab = button.dataset.tab as Tab;
+    if (tab === 'places') void places.load();
+    render();
+  });
+}
+
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-act]')) {
+  button.addEventListener('click', () => {
+    const status = targetStatus();
+    switch (button.dataset.act) {
+      case 'zoom-in':
+        control({ do: 'zoom', by: 1 });
+        break;
+      case 'zoom-out':
+        control({ do: 'zoom', by: -1 });
+        break;
+      case 'home':
+        control({ do: 'home' });
+        note(`${target} is going back to the opening view.`);
+        break;
+      case 'follow':
+        control({ do: 'follow', on: !status?.follow });
+        break;
+      case 'clear':
+        control({ do: 'clear' });
+        break;
+      case 'tour':
+        control({ do: 'tour', on: !status?.tour });
+        break;
+    }
+  });
+}
 
 el<HTMLFormElement>('join-form').addEventListener('submit', (event) => {
   event.preventDefault();
@@ -202,7 +288,12 @@ function render(): void {
   const lamp = el('lamp');
   lamp.dataset.state = link.status;
   lamp.title = link.status === 'open' ? 'Connected' : 'Not connected';
-  el('main-away').hidden = !inRoom || mainHere;
+
+  el('steer').hidden = !inRoom;
+  renderTargets();
+  const away = el('main-away');
+  away.hidden = !inRoom || targetHere();
+  away.textContent = `${target} is away (hidden or reconnecting). It gets your controls when it's back.`;
 
   el('join').hidden = inRoom;
   el('join-lede').textContent =
@@ -210,10 +301,53 @@ function render(): void {
   const error = el('join-error');
   error.hidden = !refusal;
   error.textContent = refusal ?? '';
-  el('list').hidden = !inRoom || opened !== null;
-  el('details').hidden = !inRoom || opened === null;
+
+  el('tabs').hidden = !inRoom;
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
+    if (button.dataset.tab === tab) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  }
+  el('list').hidden = !inRoom || tab !== 'tracks' || opened !== null;
+  el('details').hidden = !inRoom || tab !== 'tracks' || opened === null;
+  el('remote').hidden = !inRoom || tab !== 'remote';
+  el('layers').hidden = !inRoom || tab !== 'layers';
+  el('places').hidden = !inRoom || tab !== 'places';
   if (inRoom) renderList();
   if (opened) renderDetails();
+  renderRemote();
+  el('layers-lede').textContent = `What ${target} shows. Each switch changes that screen only.`;
+  switches.render(targetStatus()?.layers, targetHere() && link.status === 'open');
+}
+
+/** The screens to steer: those in the room, plus the steered one while it's away. Rebuilt only on change. */
+let targetsShown = '';
+function renderTargets(): void {
+  const names: ScreenName[] = screens.map((s) => s.name);
+  const here = new Set(names);
+  if (!here.has(target)) names.push(target);
+  const key = `${names.join('|')}#${[...here].join('|')}#${target}`;
+  if (key === targetsShown) return;
+  targetsShown = key;
+  targetSelect.replaceChildren(
+    ...names.map((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = here.has(name) ? name : `${name} (away)`;
+      option.selected = name === target;
+      return option;
+    }),
+  );
+}
+
+function renderRemote(): void {
+  const usable = targetHere() && link.status === 'open';
+  const status = targetStatus();
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-act]')) {
+    button.disabled = !usable;
+    if (button.dataset.act === 'follow') button.setAttribute('aria-pressed', String(status?.follow === true));
+    if (button.dataset.act === 'tour') button.setAttribute('aria-pressed', String(status?.tour === true));
+  }
+  el('pad').classList.toggle('console-pad-off', !usable);
 }
 
 /** Says what's wrong with the connection, or nothing when it's fine. */
@@ -262,9 +396,8 @@ function renderDetails(): void {
   }
   const send = el<HTMLButtonElement>('send');
   const resting = Date.now() - sentAt < SEND_REST_MS;
-  send.disabled = !track || !mainHere || resting || link.status !== 'open';
-  send.textContent = mainHere ? 'Send to main screen' : 'Main screen is away';
-  el('sent').textContent = Date.now() - sentAt < SENT_SHOWN_MS ? 'Sent to the main screen.' : '';
+  send.disabled = !track || !targetHere() || resting || link.status !== 'open';
+  send.textContent = targetHere() ? `Send to ${target}` : `${target} is away`;
 }
 
 render();

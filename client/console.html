@@ -26,7 +26,11 @@
         </div>
         <h1 class="console-name" id="name">Console</h1>
         <p class="console-sub" id="sub">Connecting…</p>
-        <p class="console-main-away" id="main-away" hidden>The main screen is away (hidden or reconnecting). Tracks can be sent when it's back.</p>
+        <div class="console-steer" id="steer" hidden>
+          <label class="console-steer-label" for="target">Steering</label>
+          <select class="console-steer-select" id="target"></select>
+        </div>
+        <p class="console-main-away" id="main-away" hidden></p>
       </header>
 
       <section class="console-join" id="join" hidden aria-labelledby="join-title">
@@ -78,11 +82,42 @@
           <p class="console-gone" id="details-gone" hidden>This track has left the picture.</p>
           <dl class="console-facts" id="details-facts"></dl>
         </article>
-        <div class="console-send-bar">
-          <button class="console-send" id="send" type="button">Send to main screen</button>
-          <p class="console-sent" id="sent" role="status"></p>
+        <button class="console-send" id="send" type="button">Send to main screen</button>
+      </section>
+
+      <section class="console-remote" id="remote" hidden aria-label="Remote">
+        <div class="console-pad" id="pad" aria-label="Drag to move the map on the screen you are steering">
+          <span class="console-pad-hint">Drag to move the map</span>
+        </div>
+        <div class="console-remote-row">
+          <button class="console-key" type="button" data-act="zoom-out" aria-label="Zoom out">−</button>
+          <button class="console-key" type="button" data-act="home">Home</button>
+          <button class="console-key" type="button" data-act="zoom-in" aria-label="Zoom in">+</button>
+        </div>
+        <div class="console-remote-row">
+          <button class="console-key" type="button" data-act="follow" aria-pressed="false">Follow</button>
+          <button class="console-key" type="button" data-act="clear">Clear</button>
+          <button class="console-key" type="button" data-act="tour" aria-pressed="false">Tour</button>
         </div>
       </section>
+
+      <section class="console-layers" id="layers" hidden aria-label="Layers">
+        <p class="console-lede" id="layers-lede"></p>
+        <div class="console-switches" id="layer-switches"></div>
+      </section>
+
+      <section class="console-places" id="places" hidden aria-label="Places">
+        <input class="console-search" id="place-search" type="search" placeholder="Airport code or name, or a chokepoint" aria-label="Search places" />
+        <div class="console-place-list" id="place-list"></div>
+      </section>
+
+      <p class="console-note" id="note" role="status"></p>
+      <nav class="console-tabs" id="tabs" hidden aria-label="Console">
+        <button type="button" data-tab="tracks" aria-current="page">Tracks</button>
+        <button type="button" data-tab="remote">Remote</button>
+        <button type="button" data-tab="layers">Layers</button>
+        <button type="button" data-tab="places">Places</button>
+      </nav>
     </main>
     <script type="module" src="/src/console/main.ts"></script>
   </body>
