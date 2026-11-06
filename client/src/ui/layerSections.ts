@@ -38,6 +38,44 @@ export interface LayerDeps {
   timeline: () => void;
   phosphor: Toggle;
   exposure: Toggle;
+  /** The sky score (optional: the menu works without it). */
+  score?: {
+    on: Toggle;
+    volume: { readonly value: number; set(volume: number): void; subscribe(listener: () => void): unknown };
+    /** What it is hearing, in words, beside the switch while it's on. */
+    hearing: { describe(): string; subscribe(listener: () => void): unknown };
+  };
+}
+
+/** The sky score: on and off (Y), and how loud. */
+function scoreSection(score: NonNullable<LayerDeps['score']>): LayerSection {
+  return {
+    title: 'Sound of the sky',
+    rows: [
+      {
+        kind: 'switch',
+        label: 'Ambient score',
+        hint: 'Music played by the traffic on screen',
+        key: 'Y',
+        get: () => score.on.value,
+        set: (on) => score.on.set(on),
+        detail: () => score.hearing.describe() || 'starting',
+        watch: [score.on, score.hearing],
+      },
+      {
+        kind: 'range',
+        label: 'Score volume',
+        hint: 'How loud it plays',
+        min: 0,
+        max: 1,
+        step: 0.05,
+        get: () => score.volume.value,
+        set: (volume) => score.volume.set(volume),
+        format: (volume) => `${Math.round(volume * 100)}%`,
+        watch: [score.volume],
+      },
+    ],
+  };
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -157,6 +195,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       title: 'Alerts',
       rows: [toggle('Sound', 'A short ping for squawks and area alerts', undefined, d.sound)],
     },
+    ...(d.score ? [scoreSection(d.score)] : []),
     {
       title: 'Display',
       rows: [

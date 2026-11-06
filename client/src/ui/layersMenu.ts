@@ -34,7 +34,23 @@ export interface ActionRow {
   run(): void;
 }
 
-export type LayerRow = SwitchRow | ChoiceRow | ActionRow;
+/** A level on a slider (the score's volume), read out beside its hint. */
+export interface RangeRow {
+  kind: 'range';
+  label: string;
+  hint: string;
+  key?: string;
+  min: number;
+  max: number;
+  step: number;
+  get(): number;
+  set(value: number): void;
+  /** The value in words ("60%"). */
+  format(value: number): string;
+  watch: Watched[];
+}
+
+export type LayerRow = SwitchRow | ChoiceRow | ActionRow | RangeRow;
 export interface LayerSection {
   title: string;
   rows: LayerRow[];
@@ -169,6 +185,26 @@ export class LayersPanel {
       refresh();
       text.append(group);
       el.append(text, key);
+    } else if (row.kind === 'range') {
+      text.append(hint);
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'layers-range';
+      slider.min = String(row.min);
+      slider.max = String(row.max);
+      slider.step = String(row.step);
+      slider.setAttribute('aria-label', row.label);
+      slider.addEventListener('input', () => row.set(Number(slider.value)));
+      const refresh = () => {
+        const value = row.get();
+        slider.value = String(value);
+        slider.setAttribute('aria-valuetext', row.format(value));
+        hint.textContent = `${row.hint} · ${row.format(value)}`;
+      };
+      for (const w of row.watch) w.subscribe(refresh);
+      this.refreshers.push(refresh);
+      refresh();
+      el.append(text, key, slider);
     } else {
       const button = document.createElement('button');
       button.type = 'button';
