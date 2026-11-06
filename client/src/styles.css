@@ -1155,6 +1155,29 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   border: 1.5px solid #ffff80;
 }
 
+/* A satellite: the pale plus sign the satellite layer draws. */
+.key-satellite::before,
+.key-satellite::after {
+  content: '';
+  position: absolute;
+  background: #d9e8f7;
+  opacity: 0.85;
+}
+
+.key-satellite::before {
+  top: 2px;
+  left: 14px;
+  width: 1.5px;
+  height: 10px;
+}
+
+.key-satellite::after {
+  top: 6.25px;
+  left: 9.75px;
+  width: 10px;
+  height: 1.5px;
+}
+
 .key-leader::before,
 .key-trail::before {
   content: '';
@@ -2267,6 +2290,11 @@ button.handover-item:hover {
 /* Shares the briefing's frame and place; the briefing steps aside for it. */
 .app.airport-open #briefing,
 .app.country-open #briefing {
+  display: none;
+}
+
+/* The satellite card (space/satellitePanel.ts) takes the details panel's place, so the briefing steps aside as for a track. */
+.app.sat-open #briefing {
   display: none;
 }
 

@@ -37,6 +37,8 @@ export interface LayerDeps {
   timeline: () => void;
   phosphor: Toggle;
   exposure: Toggle;
+  satellites: Toggle;
+  satellitesDetail: () => string;
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -92,6 +94,10 @@ export function layerSections(d: LayerDeps): LayerSection[] {
           watch: [d.trails],
         },
       ],
+    },
+    {
+      title: 'Space',
+      rows: [toggle('Satellites', 'Space stations, weather, Starlink: predicted, not observed', 'O', d.satellites, d.satellitesDetail)],
     },
     {
       title: 'News',
