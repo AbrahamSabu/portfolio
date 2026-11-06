@@ -32,6 +32,7 @@ export class RideHud {
   private readonly speed: HTMLElement;
   private readonly course: HTMLElement;
   private readonly route: HTMLElement;
+  private readonly routeText: HTMLElement;
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
@@ -46,7 +47,7 @@ export class RideHud {
         <div><dt>Ground speed</dt><dd data-speed></dd></div>
         <div><dt>Course</dt><dd data-course></dd></div>
       </dl>
-      <div class="ride-hud-route" hidden></div>
+      <div class="ride-hud-route" hidden><span data-route></span><span class="ride-hud-source"> · listed for this callsign by hexdb.io</span></div>
       <div class="ride-hud-hint">Esc, J or drag the map to leave</div>`;
     const q = (selector: string) => this.root.querySelector<HTMLElement>(selector)!;
     this.callsign = q('.ride-hud-callsign');
@@ -55,6 +56,7 @@ export class RideHud {
     this.speed = q('[data-speed]');
     this.course = q('[data-course]');
     this.route = q('.ride-hud-route');
+    this.routeText = q('[data-route]');
     parent.append(this.root);
   }
 
@@ -77,7 +79,9 @@ export class RideHud {
     this.altitude.textContent = formatAltitude(track.altitudeM);
     this.speed.textContent = formatSpeed(track.speedMps);
     this.course.textContent = formatCourse(track.courseDeg);
+    // A callsign's listed route, not a claim about this flight: databases
+    // like hexdb.io can be stale or list the return leg, so the HUD says whose listing it is.
     this.route.hidden = route === undefined;
-    if (route !== undefined) this.route.textContent = route;
+    if (route !== undefined) this.routeText.textContent = route;
   }
 }

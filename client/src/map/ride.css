@@ -82,6 +82,11 @@
   letter-spacing: 0.04em;
 }
 
+.ride-hud-source {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+}
+
 .ride-hud-hint {
   margin-top: 4px;
   color: var(--ink-muted);

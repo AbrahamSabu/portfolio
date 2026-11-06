@@ -639,7 +639,10 @@ that could have been fetched before they arrived.
     moves (fly(), fitBounds) are caught by wrapping the map's
     flyTo/easeTo/fitBounds/panTo/zoomTo *for the ride only*: the ride ends
     first, then their move runs from the restored map. Routes via hexdb.io
-    only for live ADS-B callsigns, never sim or private.
+    only for live ADS-B callsigns, never sim or private, and labelled as
+    hexdb.io's listing for the callsign, not this flight's route: on the
+    live check BAW839 was listed LDDU → EGLL while flying south-east out of
+    London (stale or the return leg).
 - Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
   click a basemap country label (`place_country_1/2`, `name:en` else
   `name`; cursor turns to a pointer) -> the day's stories whose GDELT place
