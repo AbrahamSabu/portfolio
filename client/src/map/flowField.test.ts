@@ -1,11 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { buildFlowField, kernelPeak, nodeStrength, sampleFlow, SAMPLE_STRIDE, type FieldOptions, type FlowProbe } from './flowField';
+import {
+  buildFlowField,
+  clipToDisc,
+  directionBands,
+  kernelPeak,
+  nodeStrength,
+  sampleFlow,
+  SAMPLE_STRIDE,
+  type FieldOptions,
+  type FlowProbe,
+} from './flowField';
 
 const OPTIONS: FieldOptions = { width: 400, height: 300, cell: 10, radius: 2, fullTracks: 2 };
 
-function field(samples: Array<[x: number, y: number, vx: number, vy: number]>, options = OPTIONS) {
+/** Samples as [x, y, vx, vy] (a whole track) or [x, y, vx, vy, weight]. */
+function field(samples: Array<number[]>, options = OPTIONS) {
   const packed = new Float32Array(samples.length * SAMPLE_STRIDE);
-  samples.forEach((s, i) => packed.set(s, i * SAMPLE_STRIDE));
+  samples.forEach((s, i) => packed.set(s.length === 4 ? [...s, 1] : s, i * SAMPLE_STRIDE));
   return buildFlowField(packed, samples.length, options);
 }
 
@@ -93,11 +104,59 @@ describe('buildFlowField', () => {
     expect(f.weight.every((w) => w === 0)).toBe(true);
   });
 
+  it("counts a sample's share by its weight", () => {
+    const f = field([[200, 150, 12, -4, 0.5]]);
+    const p = probe(f, 200, 150);
+    expect(p.vx).toBeCloseTo(12, 4);
+    expect(p.strength).toBeCloseTo(0.5 / OPTIONS.fullTracks, 4);
+  });
+
   it('caps strength at a full current', () => {
-    const f = field(Array.from({ length: 10 }, () => [200, 150, 10, 0] as [number, number, number, number]));
+    const f = field(Array.from({ length: 10 }, () => [200, 150, 10, 0]));
     const node = 15 * f.cols + 20;
     expect(nodeStrength(f, node)).toBe(1);
     expect(probe(f, 200, 150).strength).toBe(1);
+  });
+});
+
+describe('directionBands', () => {
+  const share = (degrees: number) => directionBands((degrees * Math.PI) / 180, 4, { a: -1, wa: 0, b: -1, wb: 0 });
+
+  it('puts a heading on a band centre wholly in that band', () => {
+    expect(share(0)).toMatchObject({ a: 0, wa: 1 });
+    expect(share(90)).toMatchObject({ a: 1, wa: 1 });
+    expect(share(-90)).toMatchObject({ a: 3, wa: 1 });
+  });
+
+  it('shares a heading between the two bands either side, adding up to one', () => {
+    for (const degrees of [10, 45, 100, 199, 300, 359.9]) {
+      const s = share(degrees);
+      expect(s.b).toBe((s.a + 1) % 4);
+      expect(s.wa + s.wb).toBeCloseTo(1, 10);
+    }
+    expect(share(45).wa).toBeCloseTo(0.5, 10);
+  });
+
+  it('never puts opposite headings in the same band', () => {
+    for (let degrees = 0; degrees < 360; degrees += 7) {
+      const s = share(degrees);
+      const o = share(degrees + 180);
+      const bands = (x: typeof s) => [x.wa > 0 ? x.a : -1, x.wb > 0 ? x.b : -1].filter((b) => b >= 0);
+      expect(bands(s).filter((b) => bands(o).includes(b))).toEqual([]);
+    }
+  });
+});
+
+describe('clipToDisc', () => {
+  it('empties the field outside the globe, and only there', () => {
+    const f = field([
+      [200, 150, 12, 0],
+      [240, 150, 12, 0],
+    ]);
+    clipToDisc(f, 200, 150, 25);
+    expect(probe(f, 200, 150).strength).toBeGreaterThan(0);
+    expect(probe(f, 240, 150).strength).toBe(0);
+    expect(probe(f, 200, 150).vx).toBeCloseTo(12, 3);
   });
 });
 

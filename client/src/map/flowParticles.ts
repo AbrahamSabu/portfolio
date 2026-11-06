@@ -39,6 +39,9 @@ export class Particles {
   private nodes = new Int32Array(0);
   private cumulative = new Float64Array(0);
   private total = 0;
+  /** How far the camera has slid since the field was sampled (CSS px): the field is read that much back. */
+  private offsetX = 0;
+  private offsetY = 0;
   private readonly probe: FlowProbe = { vx: 0, vy: 0, strength: 0 };
 
   constructor(
@@ -63,11 +66,14 @@ export class Particles {
   }
 
   /**
-   * A new field. Particles keep their places, since the camera hasn't moved
-   * (call `scatter` if it has); births follow the new traffic.
+   * A new field. Particles keep their places (call `scatter` if the camera
+   * zoomed); births follow the new traffic. `offsetX/Y` is how far the camera
+   * has slid since the field was sampled.
    */
-  setField(field: FlowField | null): void {
+  setField(field: FlowField | null, offsetX = 0, offsetY = 0): void {
     this.field = field;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
     this.total = 0;
     if (!field) {
       this.nodes = new Int32Array(0);
@@ -97,9 +103,19 @@ export class Particles {
     this.n = n;
   }
 
-  /** The camera moved: every particle is reborn now, at a random age. */
+  /** The camera zoomed or jumped: every particle is reborn now, at a random age. */
   scatter(): void {
     for (let i = 0; i < this.n; i++) this.spawn(i, true);
+  }
+
+  /** The camera slid by (dx, dy) px: particles and field move with the map. */
+  shift(dx: number, dy: number): void {
+    for (let i = 0; i < this.n; i++) {
+      this.x[i] = this.x[i]! + dx;
+      this.y[i] = this.y[i]! + dy;
+    }
+    this.offsetX += dx;
+    this.offsetY += dy;
   }
 
   /** Moves every particle `dt` seconds through the field. Returns the number of segments written. */
@@ -113,7 +129,11 @@ export class Particles {
     for (let i = 0; i < this.n; i++) {
       const x0 = this.x[i]!;
       const y0 = this.y[i]!;
-      if (this.age[i]! >= this.life[i]! || !sampleFlow(f, x0, y0, p) || p.strength < minStrength) {
+      if (
+        this.age[i]! >= this.life[i]! ||
+        !sampleFlow(f, x0 - this.offsetX, y0 - this.offsetY, p) ||
+        p.strength < minStrength
+      ) {
         this.spawn(i, false);
         continue;
       }
@@ -125,8 +145,9 @@ export class Particles {
       seg[b + 1] = y0;
       seg[b + 2] = x1;
       seg[b + 3] = y1;
-      // Brighter where more traffic agrees and where it moves faster.
-      seg[b + 4] = p.strength * (0.3 + 0.7 * Math.min(1, speed / fullSpeed));
+      // Brighter where more traffic stands behind it and where it moves faster; the
+      // square root keeps a lone track's current faint but visible.
+      seg[b + 4] = Math.sqrt(p.strength) * (0.4 + 0.6 * Math.min(1, speed / fullSpeed));
       s++;
       this.x[i] = x1;
       this.y[i] = y1;
@@ -150,8 +171,8 @@ export class Particles {
     const col = node % f.cols;
     const row = (node - col) / f.cols;
     // Anywhere in the node's cell, not on a lattice.
-    this.x[i] = Math.max(0, (col + this.random() - 0.5) * f.cell);
-    this.y[i] = Math.max(0, (row + this.random() - 0.5) * f.cell);
+    this.x[i] = Math.max(0, (col + this.random() - 0.5) * f.cell) + this.offsetX;
+    this.y[i] = Math.max(0, (row + this.random() - 0.5) * f.cell) + this.offsetY;
   }
 
   /** Index of the first node whose running total exceeds `r` (binary search). */

@@ -19,7 +19,7 @@ function seeded(seed: number): () => number {
 /** Traffic filling a box, all moving the same way. */
 function stream(vx: number, vy: number, box = { x0: 100, x1: 300, y0: 100, y1: 200 }) {
   const samples: number[] = [];
-  for (let x = box.x0; x <= box.x1; x += 10) for (let y = box.y0; y <= box.y1; y += 10) samples.push(x, y, vx, vy);
+  for (let x = box.x0; x <= box.x1; x += 10) for (let y = box.y0; y <= box.y1; y += 10) samples.push(x, y, vx, vy, 1);
   return buildFlowField(Float32Array.from(samples), samples.length / SAMPLE_STRIDE, {
     width: 400,
     height: 300,
@@ -56,13 +56,16 @@ describe('Particles', () => {
     p.setField(field);
     p.setCount(300);
     const probe: FlowProbe = { vx: 0, vy: 0, strength: 0 };
+    let drawn = 0;
+    let outside = 0;
     for (let frame = 0; frame < 300; frame++) {
-      const n = p.step(1 / 30);
-      for (const [x0, y0] of segmentsOf(p, n)) {
-        expect(sampleFlow(field, x0, y0, probe)).toBe(true);
-        expect(probe.strength).toBeGreaterThanOrEqual(OPTIONS.minStrength);
+      for (const [x0, y0] of segmentsOf(p, p.step(1 / 30))) {
+        drawn++;
+        if (!sampleFlow(field, x0, y0, probe) || probe.strength < OPTIONS.minStrength) outside++;
       }
     }
+    expect(drawn).toBeGreaterThan(300 * 250);
+    expect(outside).toBe(0);
   });
 
   it('is reborn when its life is up, and draws nothing that frame', () => {
@@ -100,6 +103,32 @@ describe('Particles', () => {
     const scattered = segmentsOf(p, p.step(0.1));
     const lastEnds = new Set(after.map((s) => `${s[2].toFixed(3)},${s[3].toFixed(3)}`));
     expect(scattered.filter((s) => lastEnds.has(`${s[0].toFixed(3)},${s[1].toFixed(3)}`)).length).toBe(0);
+  });
+
+  it('slides with the camera: particles and field move together', () => {
+    const field = stream(0, 30, { x0: 150, x1: 160, y0: 50, y1: 250 });
+    const p = new Particles(100, OPTIONS, seeded(8));
+    p.setField(field);
+    p.setCount(100);
+    const before = segmentsOf(p, p.step(0.1));
+    p.shift(100, 0);
+    const after = segmentsOf(p, p.step(0.1));
+    const ends = new Set(before.map((s) => `${(s[2] + 100).toFixed(3)},${s[3].toFixed(3)}`));
+    expect(after.filter((s) => ends.has(`${s[0].toFixed(3)},${s[1].toFixed(3)}`)).length).toBeGreaterThan(after.length * 0.8);
+    // Still in the current, which now reaches x 190-320 (its 150-160 band, plus the
+    // blur's 60 px either side, slid 100 px right).
+    for (const [x0, y0, x1, y1] of after) {
+      expect(x0).toBeGreaterThan(185);
+      expect(x0).toBeLessThan(325);
+      expect(y1 - y0).toBeCloseTo(3, 3);
+      expect(x1 - x0).toBeCloseTo(0, 3);
+    }
+    // And births land in the moved current too.
+    p.scatter();
+    for (const [x0] of segmentsOf(p, p.step(0.1))) {
+      expect(x0).toBeGreaterThan(185);
+      expect(x0).toBeLessThan(325);
+    }
   });
 
   it('draws nothing without traffic', () => {

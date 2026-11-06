@@ -7,20 +7,23 @@
  * point a few seconds along its course) through the map, so the globe's
  * curvature is already in every sample. What is left here is plain 2D maths:
  *
- * 1. Splat: each sample's velocity, with a weight of 1, is shared between the
- *    four grid nodes around it (bilinear), so nothing snaps to a node.
+ * 1. Splat: each sample's velocity and weight (a whole track, or its share
+ *    of a direction band) are shared between the four grid nodes around it
+ *    (bilinear), so nothing snaps to a node.
  * 2. Smooth: three box blurs along each axis, which is very close to a
  *    Gaussian, at a cost that doesn't grow with the radius.
  * 3. Average: blurred velocity over blurred weight is a kernel-weighted mean
  *    (Nadaraya-Watson regression). The blurred weight says how much traffic
  *    stands behind that mean: none, no current; a busy corridor, a strong one.
  *
- * Opposite flows average out to a slow, weak current. That is the honest
- * reading: there is no agreed direction there.
+ * Within one field, opposite flows average out to a slow, weak current. So
+ * that a lane used both ways doesn't vanish, the layer keeps one field per
+ * direction band (see `directionBands`): each says what the traffic heading
+ * that way is doing.
  */
 
-/** Samples are packed four floats each: x, y (CSS px), vx, vy (display px per second). */
-export const SAMPLE_STRIDE = 4;
+/** Samples are packed five floats each: x, y (CSS px), vx, vy (display px per second), weight (0..1). */
+export const SAMPLE_STRIDE = 5;
 
 export interface FieldOptions {
   /** Screen size in CSS pixels. */
@@ -78,11 +81,12 @@ export function buildFlowField(samples: Float32Array, count: number, o: FieldOpt
     const fy = gy - j;
     const vx = samples[b + 2]!;
     const vy = samples[b + 3]!;
+    const w = samples[b + 4]!;
     const k = j * cols + i;
-    add(k, (1 - fx) * (1 - fy), vx, vy);
-    add(k + 1, fx * (1 - fy), vx, vy);
-    add(k + cols, (1 - fx) * fy, vx, vy);
-    add(k + cols + 1, fx * fy, vx, vy);
+    add(k, w * (1 - fx) * (1 - fy), vx, vy);
+    add(k + 1, w * fx * (1 - fy), vx, vy);
+    add(k + cols, w * (1 - fx) * fy, vx, vy);
+    add(k + cols + 1, w * fx * fy, vx, vy);
   }
   const scratch = new Float32Array(n);
   for (const channel of [sumX, sumY, weight]) blur(channel, scratch, cols, rows, o.radius);
@@ -122,6 +126,55 @@ export function sampleFlow(f: FlowField, x: number, y: number, out: FlowProbe): 
   out.vy = (f.sumY[k]! * w00 + f.sumY[k10]! * w10 + f.sumY[k01]! * w01 + f.sumY[k11]! * w11) / w;
   out.strength = Math.min(1, w * f.norm);
   return true;
+}
+
+/** Which two direction bands a heading falls between, and how it's shared: `directionBands` fills one in. */
+export interface BandShare {
+  a: number;
+  wa: number;
+  b: number;
+  wb: number;
+}
+
+/**
+ * Splits a heading between direction bands. Traffic using one lane both
+ * ways would average to nothing in a single field, so each medium keeps
+ * `bands` fields, one per direction (four: east, south, west and north on
+ * screen), and a sample is shared between the two bands either side of its
+ * heading, cos²-weighted so the shares always add up to one. Opposite
+ * headings never share a band, so each direction keeps its own current.
+ * `angle` is in radians, screen axes (x right, y down).
+ */
+export function directionBands(angle: number, bands: number, out: BandShare): BandShare {
+  const turn = 2 * Math.PI;
+  const t = ((((angle % turn) + turn) % turn) / turn) * bands; // in bands, 0 <= t < bands
+  const a = Math.floor(t) % bands;
+  const towardNext = t - Math.floor(t);
+  out.a = a;
+  out.wa = Math.cos((towardNext * Math.PI) / 2) ** 2;
+  out.b = (a + 1) % bands;
+  out.wb = 1 - out.wa;
+  return out;
+}
+
+/**
+ * Empties every node outside a disc: the globe's outline on screen when
+ * zoomed out. Without it the blur spreads tracks near the rim out into
+ * space, and particles drift there.
+ */
+export function clipToDisc(f: FlowField, cx: number, cy: number, r: number): void {
+  const r2 = r * r;
+  for (let j = 0; j < f.rows; j++) {
+    const dy = j * f.cell - cy;
+    for (let i = 0; i < f.cols; i++) {
+      const dx = i * f.cell - cx;
+      if (dx * dx + dy * dy <= r2) continue;
+      const k = j * f.cols + i;
+      f.sumX[k] = 0;
+      f.sumY[k] = 0;
+      f.weight[k] = 0;
+    }
+  }
 }
 
 /** A node's strength (0..1): how much traffic stands behind its mean. */
