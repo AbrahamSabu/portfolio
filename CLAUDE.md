@@ -597,6 +597,49 @@ that could have been fetched before they arrived.
   at its *drawn* position, never cleared while the camera holds still;
   movestart clears — the film moved; sleeps when hidden/off; globe far-side
   guarded by a bounds check before `project()`).
+- 3D modes (Nov 2026; keys E and J; one at a time: `beforeEnter`/`beforeStart`
+  hooks wired in main.ts). The map stays north-up and flat by default; each
+  mode unlocks only while on and restores exactly (`map/cameraLock.ts`
+  mirrors createMap's lock: keep the two in step).
+  - `map/layer3d.ts`: the one MapLibre custom WebGL layer (dots and lines at
+    a height; `LOOK` dot / selected ring / light). Uses `shaderData`'s
+    prelude + `projectTileFor3D`, so globe, Mercator and the blend all work.
+    **Height units differ by shader variant**: metres under `#define GLOBE`,
+    Mercator world units otherwise (`mercatorPerMetre(centre lat)`, as
+    MapLibre scales). Positions are offsets from a batch `ref`, folded into
+    the matrix in float64 (`translated`): absolute 0..1 floats jitter ~2 m.
+    The globe's 3D projection doesn't clip the far side, so the vertex shader
+    zeroes alpha behind the horizon plane (and `facesCamera` mirrors it for
+    hit-tests). MapLibre resets GL state after custom layers (`setDirty`).
+  - The Stack (`map/stackMode.ts`, pure parts in `stackBuffers.ts`): tilt 60°,
+    rotate/pitch unlocked, altitude ×`STACK_EXAGGERATION` (5, stated in the
+    key, the Layers row and an on-map tag). Flat aircraft layers are dimmed
+    to 30% by *paint* (`paintDim.ts`; scales a zoom curve's outputs, since
+    zoom must stay outermost), never by visibility, which the timeline owns.
+    Built from TrackLayer's positions on its `onFrame`; trails are rebuilt
+    only on store/selection/filter/trail-mode change or moveend, thinned to
+    48 points *before* lifting (207 ms → 6 ms at world view), and only the
+    selected one below zoom 5. Heights come from `AltitudeHistory` (recorded
+    from page load, one sample per ~10 s, level runs compressed): trail
+    points from before an altitude was known aren't drawn. TrackLayer gained
+    `setPicker` (hit-test 3D dots first) and `isHidden` (blank during replay).
+  - Ride Along (`map/rideAlong.ts`, `ridePose.ts`, `navLights.ts`,
+    `sunSky.ts`, `rideTerrain.ts`, `ui/rideHud.ts`, `ui/rideButton.ts`):
+    switches to Mercator (terrain/fog aren't fully supported on the globe),
+    adds AWS Terrain Tiles (terrarium, two sources: terrain + hillshade,
+    credited), sky/light/hillshade from `sunAt` (bearing to the subsolar
+    point), FOV 60°, pitch 82°, `calculateCameraOptionsFromCameraLngLatAltRotation`
+    every frame with `PoseSmoother` easing report corrections. The flat
+    aircraft *and trail* layers are dimmed to 0 (decals on the ground from
+    a cockpit). Lights are ≥ 14 px with a solid core: a 6 px glow read as
+    a 2 px speck in screenshots. Leaving:
+    Esc (window capture phase, before main's Escape chain), J, any user
+    camera input (`dragstart`/`wheel`/`touchstart`, or `movestart` with an
+    `originalEvent`), selection change, track gone. Other code's camera
+    moves (fly(), fitBounds) are caught by wrapping the map's
+    flyTo/easeTo/fitBounds/panTo/zoomTo *for the ride only*: the ride ends
+    first, then their move runs from the restored map. Routes via hexdb.io
+    only for live ADS-B callsigns, never sim or private.
 - Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
   click a basemap country label (`place_country_1/2`, `name:en` else
   `name`; cursor turns to a pointer) -> the day's stories whose GDELT place
