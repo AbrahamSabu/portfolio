@@ -166,6 +166,7 @@ export class Simulator implements Feed {
       observedAt: now,
     };
     if (e.callsign) track.callsign = e.callsign;
+    if (e.typeCode) track.typeCode = e.typeCode;
     if (e.altitudeM !== undefined) track.altitudeM = Math.round(e.altitudeM);
     return track;
   }

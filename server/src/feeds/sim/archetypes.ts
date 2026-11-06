@@ -10,6 +10,7 @@ import {
   type Platform,
 } from '@watchfloor/shared';
 import type { Airport, Scenario } from '../../scenarios';
+import type { Orbit } from '../../scenarios/types';
 import type { Behaviour, SimEntity } from './entity';
 import { randomPointIn } from './motion';
 import { names, uniqueName } from './names';
@@ -37,10 +38,15 @@ interface Profile {
   climbRateMps: number;
   reportIntervalMs: [number, number];
   callsign: (rng: Rng) => string | undefined;
+  /** ICAO type designator: only the rare types carry one, so the rare watcher can find them. */
+  typeCode?: string;
 }
+
 
 const AIR_REPORT: [number, number] = [2000, 5000];
 const SEA_REPORT: [number, number] = [6000, 15000];
+/** A large jet's handling: gentle turns, slow climbs. */
+const HEAVY = { maxTurnRateDps: 2, accelMps2: 1, climbRateMps: 6, reportIntervalMs: AIR_REPORT };
 
 const PROFILES = {
   airliner: {
@@ -78,6 +84,50 @@ const PROFILES = {
     speedRangeMps: [35, 45], altitudeRangeM: [3400, 3800],
     maxTurnRateDps: 5, accelMps2: 0.5, climbRateMps: 2,
     reportIntervalMs: [2000, 4000], callsign: () => undefined,
+  },
+  // The rare types: built in tiny numbers (rare.ts has the list), each flying
+  // where it really works. Callsign prefixes are the operators' real ICAO
+  // codes (BGA Airbus Transport International, GTI Atlas Air, ADB Antonov
+  // Airlines, RCH US Air Mobility Command); the numbers are made up.
+  'beluga-xl': {
+    domain: 'air', platform: 'airliner', affiliation: 'neutral',
+    speedRangeMps: [205, 220], altitudeRangeM: [8000, 10000], ...HEAVY,
+    callsign: (rng: Rng) => `BGA${rng.int(101, 199)}`, typeCode: 'A337',
+  },
+  beluga: {
+    domain: 'air', platform: 'airliner', affiliation: 'neutral',
+    speedRangeMps: [200, 215], altitudeRangeM: [8000, 10000], ...HEAVY,
+    callsign: (rng: Rng) => `BGA${rng.int(201, 299)}`, typeCode: 'A3ST',
+  },
+  dreamlifter: {
+    domain: 'air', platform: 'airliner', affiliation: 'neutral',
+    speedRangeMps: [235, 250], altitudeRangeM: [10500, 12000], ...HEAVY,
+    callsign: (rng: Rng) => `GTI${rng.int(4100, 4199)}`, typeCode: 'BLCF',
+  },
+  'an-124': {
+    domain: 'air', platform: 'airliner', affiliation: 'neutral',
+    speedRangeMps: [215, 230], altitudeRangeM: [9000, 10500], ...HEAVY,
+    callsign: (rng: Rng) => `ADB${rng.int(1001, 4999)}`, typeCode: 'A124',
+  },
+  'c-5': {
+    domain: 'air', platform: 'military-aircraft', affiliation: 'friend',
+    speedRangeMps: [220, 235], altitudeRangeM: [9000, 10500], ...HEAVY,
+    callsign: (rng: Rng) => `RCH${rng.int(100, 999)}`, typeCode: 'C5M',
+  },
+  'b-52': {
+    domain: 'air', platform: 'military-aircraft', affiliation: 'friend',
+    speedRangeMps: [225, 240], altitudeRangeM: [10000, 12000], ...HEAVY,
+    callsign: names.militaryAir, typeCode: 'B52',
+  },
+  awacs: {
+    domain: 'air', platform: 'military-aircraft', affiliation: 'friend',
+    speedRangeMps: [140, 160], altitudeRangeM: [8800, 9400], ...HEAVY,
+    callsign: (rng: Rng) => `NATO0${rng.int(1, 9)}`, typeCode: 'E3TF',
+  },
+  'global-hawk': {
+    domain: 'air', platform: 'uav', affiliation: 'friend',
+    speedRangeMps: [155, 170], altitudeRangeM: [15500, 17500], ...HEAVY,
+    callsign: (rng: Rng) => `FORTE${rng.int(10, 12)}`, typeCode: 'Q4',
   },
   cargo: {
     domain: 'sea', platform: 'cargo', affiliation: 'neutral',
@@ -243,6 +293,18 @@ function loiterPlacement(areas: BBox[], ctx: SpawnContext, dwellChance: number, 
   };
 }
 
+/** Somewhere on one of these circles, flying round it one way or the other. */
+function orbitPlacement(orbits: readonly Orbit[], rng: Rng): Placement {
+  const o = rng.pick(orbits);
+  const clockwise = rng.chance(0.5);
+  const angle = rng.range(0, 360);
+  return {
+    behaviour: { kind: 'orbit', center: o.center, radiusM: o.radiusM, clockwise },
+    pos: destination(o.center, angle, o.radiusM),
+    courseDeg: normalizeDeg(angle + (clockwise ? 90 : -90)),
+  };
+}
+
 function place(archetype: Archetype, ctx: SpawnContext): Placement | null {
   const { rng, scenario: s } = ctx;
   switch (archetype) {
@@ -259,16 +321,25 @@ function place(archetype: Archetype, ctx: SpawnContext): Placement | null {
       const r = rng.pick(s.patrolRacetracks);
       return routePlacement([r.a, r.b], 'loop', { ...ctx, initial: true });
     }
-    case 'uav': {
-      if (!s.uavOrbits.length) return null;
-      const o = rng.pick(s.uavOrbits);
-      const clockwise = rng.chance(0.5);
-      const angle = rng.range(0, 360);
-      return {
-        behaviour: { kind: 'orbit', center: o.center, radiusM: o.radiusM, clockwise },
-        pos: destination(o.center, angle, o.radiusM),
-        courseDeg: normalizeDeg(angle + (clockwise ? 90 : -90)),
-      };
+    case 'uav':
+      return s.uavOrbits.length ? orbitPlacement(s.uavOrbits, rng) : null;
+    case 'beluga-xl':
+    case 'beluga':
+    case 'dreamlifter':
+    case 'an-124':
+    case 'c-5':
+    case 'b-52': {
+      // From one of its sites to a different one.
+      const sites = s.missions?.[archetype]?.sites ?? [];
+      if (sites.length < 2) return null;
+      const from = rng.pick(sites);
+      const to = rng.pick(sites.filter((x) => x !== from));
+      return routePlacement([from, to], 'once', ctx);
+    }
+    case 'awacs':
+    case 'global-hawk': {
+      const orbits = s.missions?.[archetype]?.orbits ?? [];
+      return orbits.length ? orbitPlacement(orbits, rng) : null;
     }
     case 'cargo':
     case 'tanker': {
@@ -321,6 +392,7 @@ export function spawn(archetype: Archetype, ctx: SpawnContext): SimEntity | null
     done: false,
   };
 
+  if (profile.typeCode) entity.typeCode = profile.typeCode;
   const callsign = uniqueName(() => profile.callsign(rng), ctx.takenCallsigns);
   if (callsign) entity.callsign = callsign;
 

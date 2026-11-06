@@ -8,6 +8,15 @@ export interface Route {
   weight?: number;
 }
 
+/**
+ * Where one of the rare types flies: between two different sites of these
+ * each time (factories, bases), or round one of these orbits.
+ */
+export interface Mission {
+  sites?: LatLon[];
+  orbits?: Orbit[];
+}
+
 /** An airport airliners fly between, weighted by how busy it is. */
 export interface Airport {
   code: string;
@@ -53,6 +62,8 @@ export interface Scenario {
   lightAircraftAreas: BBox[];
   patrolRacetracks: Racetrack[];
   uavOrbits: Orbit[];
+  /** Rare types' routes and orbits, by archetype (beluga-xl, awacs...); a type with none isn't simulated. */
+  missions?: Partial<Record<string, Mission>>;
   /** How many of each archetype to keep alive. */
   population: Partial<Record<string, number>>;
 }

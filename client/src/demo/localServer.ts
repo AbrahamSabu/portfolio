@@ -99,7 +99,13 @@ export class LocalServer implements Link {
     this.brief = new BriefService({ tracks: () => this.store.snapshot() });
     this.findings = new FindingsService({
       world: { tracks: () => this.store.snapshot(), path: (id) => this.store.paths.flat(id) },
-      onChange: (items, recent) => this.emit({ type: 'findings', serverTime: Date.now(), items, recent }),
+      // While the past runs, the watchers keep the simulator's time, so a rare
+      // aircraft that landed twenty minutes ago is listed as seen then.
+      now: () => this.simNow ?? Date.now(),
+      // Nothing goes to the page before its hello: the past's findings go with the snapshot.
+      onChange: (items, recent) => {
+        if (this.simNow === null) this.emit({ type: 'findings', serverTime: Date.now(), items, recent });
+      },
       onEvent: (kind, finding, time, resolved) => this.brief.onFinding(kind, finding, time, resolved),
     });
   }
@@ -201,6 +207,7 @@ export class LocalServer implements Link {
         this.sim.step(t, HISTORY_STEP_MS, end - t > HISTORY_FULL_RATE_MS ? HISTORY_REPORT_GAP_MS : 0);
         if (t - lastPrune >= 60_000) {
           this.store.prune(t);
+          this.findings.sweep();
           lastPrune = t;
         }
       }

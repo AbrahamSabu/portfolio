@@ -20,4 +20,4 @@ export function getScenario(id: string): Scenario {
   return scenario;
 }
 
-export type { Airport, Scenario } from './types';
+export type { Airport, Mission, Scenario } from './types';

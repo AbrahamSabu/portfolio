@@ -30,7 +30,10 @@ that could have been fetched before they arrived.
   (`server/src/scenarios/world.ts`: ~4,100 tracks; airliners fly great
   circles between 190 hubs whose positions come from `airports.json`, ships
   follow hand-placed ocean lanes with a per-point `spreadDeg`, tight in
-  straits; the Channel keeps all its own detail). News is real: `npm run
+  straits; the Channel keeps all its own detail; a dozen rare types, from
+  `scenario.missions`, carry a `typeCode` so the real rare watcher finds them).
+  The watchers run on the simulator's clock (`now: () => simNow`) and sweep each
+  simulated minute of the fast-forward, emitting nothing before hello. News is real: `npm run
   demo-news` runs the server's NewsService once (seeded from `.cache/news.json`,
   so it only fetches missing batches; `news.stop()` after `check()` or it never
   exits) into `client/public-demo/news.json` (gitignored, the demo build's

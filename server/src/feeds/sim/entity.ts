@@ -29,6 +29,8 @@ export interface SimEntity {
   platform: Platform;
   affiliation: Affiliation;
   callsign?: string;
+  /** ICAO type designator, for the few simulated types that carry one (rare types). */
+  typeCode?: string;
 
   pos: LatLon;
   courseDeg: number;
