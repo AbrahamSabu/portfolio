@@ -35,7 +35,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: PICTURE_FILE
-        value: off
+        value: "off"
       - key: FEEDS
         value: opensky,adsblol,adsbfi,ais
       - key: OPENSKY_AREA
