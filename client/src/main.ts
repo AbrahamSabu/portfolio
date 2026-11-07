@@ -340,9 +340,10 @@ async function main(): Promise<void> {
   // stack overflows upward, which scrollHeight doesn't count, so the cards are measured.
   const alertCorner = document.querySelector<HTMLElement>('.alerts')!;
   const markOverflow = () => {
-    // Each kind of alert is a group; the stack's gap (8px) sits between the groups shown.
+    // Each kind of alert is a group; the stack's gap sits between the groups shown.
     const groups = [...alertCorner.children].filter((g): g is HTMLElement => g instanceof HTMLElement && g.offsetHeight > 0);
-    const content = groups.reduce((sum, g) => sum + g.offsetHeight, 0) + 8 * Math.max(0, groups.length - 1);
+    const gap = parseFloat(getComputedStyle(alertCorner).rowGap) || 0;
+    const content = groups.reduce((sum, g) => sum + g.offsetHeight, 0) + gap * Math.max(0, groups.length - 1);
     alertCorner.classList.toggle('alerts-overflow', content > alertCorner.clientHeight + 1);
   };
   new MutationObserver(markOverflow).observe(alertCorner, { childList: true, subtree: true });

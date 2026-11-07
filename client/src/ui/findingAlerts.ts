@@ -1,11 +1,11 @@
 import type { Finding } from '@watchfloor/shared';
+import { ALERT_LIFE_MS } from '../state/alertLife';
 import { FINDING_LABEL, interrupts, type FindingStore } from '../state/findings';
 import type { NewsSettings } from '../state/newsStore';
+import { AlertTimer } from './alertTimer';
 import { formatNewsTime } from './format';
 import { speak } from './voice';
 
-/** A finding alert goes away by itself after this long; the map marker stays. */
-const SHOW_MS = 5 * 60_000;
 /**
  * Findings that turn up in the page's first half minute were already out
  * there: the server's feeds wake when a page connects, so its first fresh
@@ -19,13 +19,16 @@ const MAX_CARDS = 3;
 
 /**
  * An alert card (the emergency squawks' style, in the same stack) when one of
- * the server's watchers notices something while the page is open: an aircraft
- * circling, military aircraft converging. Findings already on the map when
- * the page opened don't interrupt, and silent ships never do (they only mark
- * the map). Show hands the finding back to the page, which selects the track.
+ * the server's watchers notices something while the page is open: military
+ * aircraft converging, a rare type in the air. Findings already on the map
+ * when the page opened don't interrupt, and circling aircraft and silent
+ * ships never do (they only mark the map). Show hands the finding back to
+ * the page, which selects the track. Cards leave by themselves.
  */
 export class FindingAlerts {
-  private readonly timers = new Map<string, number>();
+  /** The cards up, oldest first. */
+  private readonly shown = new Set<string>();
+  private readonly timer: AlertTimer;
 
   constructor(
     private readonly root: HTMLElement,
@@ -34,13 +37,14 @@ export class FindingAlerts {
     show: (finding: Finding) => void,
     ping: () => void = () => {},
   ) {
+    this.timer = new AlertTimer(root, ALERT_LIFE_MS, (id) => this.remove(id));
     findings.subscribe((added) => {
       if (performance.now() - openedAt < CALM_OPEN_MS) return;
       const interrupting = added.filter(interrupts);
       for (const f of interrupting) {
         this.add(f);
         // One card in, oldest card out: the map keeps every finding regardless.
-        while (this.timers.size > MAX_CARDS) this.remove(this.timers.keys().next().value!);
+        while (this.shown.size > MAX_CARDS) this.remove(this.shown.values().next().value!);
       }
       if (interrupting.length === 0) return;
       ping();
@@ -59,10 +63,11 @@ export class FindingAlerts {
   }
 
   private add(f: Finding): void {
-    if (this.timers.has(f.id)) return;
+    if (this.shown.has(f.id)) return;
     const card = document.createElement('article');
     card.className = 'alert-card finding-alert';
     card.dataset.finding = f.id;
+    card.dataset.life = f.id;
     card.setAttribute('role', 'alert');
     const head = document.createElement('div');
     head.className = 'alert-head';
@@ -77,7 +82,7 @@ export class FindingAlerts {
     since.textContent = formatNewsTime(f.since);
     head.append(what, who, since);
     const detail = document.createElement('div');
-    detail.className = 'alert-kind';
+    detail.className = 'alert-line';
     detail.textContent = f.detail;
     const actions = document.createElement('div');
     actions.className = 'alert-actions';
@@ -93,15 +98,17 @@ export class FindingAlerts {
     dismiss.dataset.action = 'dismiss';
     dismiss.setAttribute('aria-label', 'Dismiss alert');
     dismiss.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>';
-    actions.append(show, dismiss);
-    card.append(head, detail, actions);
+    actions.append(show);
+    // On the card itself: the actions row is positioned, and would take the × with it.
+    card.append(head, detail, actions, dismiss);
     this.root.append(card);
-    this.timers.set(f.id, window.setTimeout(() => this.remove(f.id), SHOW_MS));
+    this.shown.add(f.id);
+    this.timer.start(f.id);
   }
 
   private remove(id: string): void {
-    window.clearTimeout(this.timers.get(id));
-    this.timers.delete(id);
+    this.timer.forget(id);
+    this.shown.delete(id);
     this.root.querySelector(`[data-finding="${CSS.escape(id)}"]`)?.remove();
   }
 }

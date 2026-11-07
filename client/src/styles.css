@@ -2114,30 +2114,41 @@ button.handover-item:hover {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 8px;
-  width: min(320px, calc(100vw - 24px));
+  gap: 6px;
+  width: min(300px, calc(100vw - 24px));
   /* 290px: the map buttons above (they end about 240px down) and the 72px below. */
   max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--ticker-h) - 290px);
   overflow: hidden;
   pointer-events: none;
 }
 
+/*
+ * Two lines each, whatever the kind: what and when, then who or where, with
+ * Show and × at the right. They leave by themselves (ui/alertTimer.ts),
+ * fading out with `.alert-leaving`.
+ */
 .alert-card {
   position: relative;
-  padding: 10px 12px 10px 14px;
+  padding: 6px 10px 7px 12px;
   border: 1px solid rgb(240 195 106 / 0.55);
   border-left: 3px solid var(--warn);
   border-radius: 4px;
-  box-shadow: 0 0 22px rgb(240 195 106 / 0.18);
+  box-shadow: 0 0 14px rgb(240 195 106 / 0.16);
   pointer-events: auto;
   animation: alert-in 220ms ease-out;
+  transition: opacity 300ms;
+}
+
+.alert-card.alert-leaving {
+  opacity: 0;
 }
 
 .alert-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding-right: 24px;
+  padding-right: 22px;
+  white-space: nowrap;
   font-family: var(--font-display);
   font-size: 0.75rem;
   font-weight: 700;
@@ -2147,19 +2158,36 @@ button.handover-item:hover {
 }
 
 .alert-code {
-  font-size: var(--text-md);
+  flex: none;
+  font-size: var(--text-sm);
   letter-spacing: 0.12em;
   text-shadow: 0 0 8px rgb(240 195 106 / 0.5);
 }
 
+.alert-meaning {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .alert-since {
+  flex: none;
   margin-left: auto;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
+/* The second line, cut short rather than wrapped; room at the right for Show. */
+.alert-line {
+  margin-top: 2px;
+  padding-right: 74px;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .alert-title {
-  margin-top: 4px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -2167,27 +2195,22 @@ button.handover-item:hover {
 
 .alert-kind,
 .alert-facts {
-  font-size: var(--text-sm);
+  color: var(--ink-muted);
 }
 
 .alert-facts {
-  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.alert-note {
-  margin: 6px 0 0;
-  font-size: 0.75rem;
-  color: var(--ink-muted);
-}
-
 .alert-actions {
-  margin-top: 8px;
+  position: absolute;
+  right: 30px;
+  bottom: 6px;
 }
 
 .alert-show {
-  height: 26px;
-  padding: 0 12px;
+  height: 22px;
+  padding: 0 9px;
   border: 1px solid var(--warn);
   border-radius: 3px;
   background: rgb(240 195 106 / 0.12);
@@ -2209,8 +2232,10 @@ button.handover-item:hover {
 
 .alert-dismiss {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 3px;
+  right: 3px;
+  width: 24px;
+  height: 24px;
 }
 
 /* An amber ring on the aircraft, with its code above, pulsing gently. */
@@ -2271,7 +2296,9 @@ button.handover-item:hover {
 
 .alerts > div {
   display: grid;
-  gap: 8px;
+  /* minmax(0, …): the cards' unwrapped lines would otherwise widen the column past the corner. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
 }
 
 .alerts > div:empty {
@@ -2765,34 +2792,6 @@ fieldset.region-field {
     width: calc(100% - 32px);
     text-align: center;
   }
-}
-
-/* Area alerts come often in a busy area: one compact line each, Show beside it. */
-.region-alert {
-  padding: 6px 10px 7px 12px;
-}
-
-.region-alert .alert-title {
-  margin-top: 2px;
-  padding-right: 64px;
-}
-
-.region-alert .alert-kind {
-  font-weight: 400;
-  text-transform: none;
-  color: var(--ink-muted);
-}
-
-.region-alert .alert-actions {
-  position: absolute;
-  right: 34px;
-  bottom: 6px;
-  margin: 0;
-}
-
-.region-alert .alert-show {
-  height: 22px;
-  padding: 0 9px;
 }
 
 /* A tag round the back of the globe is invisible (opacityWhenCovered 0); it mustn't take clicks either. */
