@@ -162,7 +162,7 @@ Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need 
 
 ### Running it in public
 
-It's live at **https://watchfloor-81sn.onrender.com**, from the one-click Render blueprint (`render.yaml`) in the portfolio repo: a free server, so it sleeps after 15 idle minutes and takes about a minute to wake. The ops room works there over the internet: a phone on mobile data can join a laptop anywhere. What changes when strangers use it:
+The portfolio repo carries a one-click Render blueprint (`render.yaml`) for a free public server, where the ops room works over the internet: a phone on mobile data can join a laptop anywhere. I ran it for a day (Nov 2026) and took it down: OpenSky, the only free worldwide aircraft source, refuses cloud servers, so a free cloud host can only show live aircraft a region at a time, and the whole live world is the point. The public face is the static demo; the full picture runs at home. An always-on machine on a home connection, behind a free Cloudflare Tunnel, would be the way to put the whole world up. What changes when strangers use it:
 
 - Visitors don't multiply what the data feeds see: only the server talks to them, and one poll serves every viewer. Every feed is free, so the worst case is a rate limit, never a bill.
 - OpenSky polls every 3 minutes (`OPENSKY_POLL_S=180`). A world poll costs 4 credits, so that's at most 1,920 a day even if someone watches around the clock, leaving the rest of the account's 4,000 for your home server.
