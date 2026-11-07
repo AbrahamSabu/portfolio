@@ -3,7 +3,7 @@ import { distanceM, sanitizeTrack, type Track } from '@watchfloor/shared';
 import { englishChannel } from '../../scenarios/englishChannel';
 import { world } from '../../scenarios/world';
 import { RARE_TYPES } from '../../findings/rare';
-import { Simulator } from './simulator';
+import { ownSquawk, Simulator } from './simulator';
 
 const START = 1_700_000_000_000;
 const STEP = 250;
@@ -135,5 +135,31 @@ describe('Simulator, the world', () => {
     expect(removals).toBeGreaterThan(20);
     expect(removals).toBeLessThan(world.population.airliner! / 2);
     expect(sim.entityCount).toBeGreaterThan(4000);
+  });
+});
+
+describe('simulated squawks', () => {
+  it('gives each aircraft its own code, never an emergency one', () => {
+    for (let i = 0; i < 2000; i++) {
+      const code = ownSquawk(`air-${i}`);
+      expect(code).toMatch(/^[0-7]{4}$/);
+      expect(['7500', '7600', '7700']).not.toContain(code);
+    }
+    expect(ownSquawk('air-0001')).toBe(ownSquawk('air-0001'));
+  });
+
+  it('now and then puts one airliner aloft into an emergency, from when it is asked to', () => {
+    const at = START + 60_000;
+    const sim = new Simulator({ scenario: englishChannel, seed: 3, dropouts: false, emergencyAt: at });
+    const reports: Track[] = [];
+    sim.attach({ upsert: (r) => reports.push(r as Track), remove: () => {} }, START);
+    for (let t = START; t <= START + 5 * 60_000; t += 1000) sim.step(t);
+    const air = reports.filter((r) => r.domain === 'air');
+    expect(air.length).toBeGreaterThan(0);
+    expect(air.every((r) => /^[0-7]{4}$/.test(r.squawk ?? ''))).toBe(true);
+    const emergency = air.filter((r) => r.squawk === '7700' || r.squawk === '7600');
+    expect(emergency.length).toBeGreaterThan(1);
+    expect(new Set(emergency.map((r) => r.id)).size).toBe(1);
+    expect(emergency.every((r) => r.observedAt >= at && (r.platform === 'airliner' || r.platform === 'business-jet'))).toBe(true);
   });
 });
