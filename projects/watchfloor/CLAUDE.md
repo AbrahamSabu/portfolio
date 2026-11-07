@@ -33,7 +33,21 @@ that could have been fetched before they arrived.
   straits; the Channel keeps all its own detail; a dozen rare types, from
   `scenario.missions`, carry a `typeCode` so the real rare watcher finds them).
   The watchers run on the simulator's clock (`now: () => simNow`) and sweep each
-  simulated minute of the fast-forward, emitting nothing before hello. News is real: `npm run
+  simulated minute of the fast-forward, emitting nothing before hello. Hazards are real too
+  (Nov 2026): the server's own HazardService runs in the page with `userAgent: null`
+  (browsers may not set one), and the visitor's browser fetches USGS and GDACS, both CORS `*`;
+  its changes go to the page as `hazards` messages and into the BriefService, as on the server.
+  HazardService was made browser-safe for this: its default fetch is wrapped, because a
+  browser's `fetch` called as another object's method throws "Illegal invocation" (Node
+  doesn't care), its timer type is `ReturnType<typeof setTimeout>`, and `start()` restarts its
+  clocks rather than doubling them (the demo restarts when its tab comes back). Squawks: the
+  Simulator gives every aircraft its own code (`ownSquawk`, from the id: four octal digits,
+  never an emergency code) and now and then (15-45 min apart, on a random stream of its own,
+  so the rest of the simulation is unchanged) an airliner or business jet above 3,000 m
+  squawks 7700, or 7600 one time in five, for 10-20 min; never 7500. `emergencyAt` sets the
+  first: the demo passes 90 s after opening. Airport weather can't work in the demo
+  (aviationweather.gov and NOAA send no CORS header), so the panel says so under `VITE_DEMO`
+  and asks nothing. News is real: `npm run
   demo-news` runs the server's NewsService once (seeded from `.cache/news.json`,
   so it only fetches missing batches; `news.stop()` after `check()` or it never
   exits) into `client/public-demo/news.json` (gitignored, the demo build's

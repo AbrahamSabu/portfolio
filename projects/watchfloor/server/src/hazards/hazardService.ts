@@ -18,6 +18,8 @@ export interface HazardServiceOptions {
   random?: () => number;
   /** The whole list, whenever it changes: the hub sends it to every browser. */
   onChange?: (items: Hazard[]) => void;
+  /** Sent with every request; null sends none (the static demo runs this in a browser, which may not set it). */
+  userAgent?: string | null;
 }
 
 interface Source {
@@ -47,9 +49,10 @@ export class HazardService {
   private stopped = false;
 
   constructor(private readonly opts: HazardServiceOptions = {}) {
-    this.fetchFn = opts.fetch ?? fetch;
+    // Wrapped: a browser's fetch called as another object's method throws "Illegal invocation".
+    this.fetchFn = opts.fetch ?? ((input, init) => fetch(input, init));
     this.setTimer = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
-    this.clearTimer = opts.clearTimer ?? ((t) => clearTimeout(t as NodeJS.Timeout));
+    this.clearTimer = opts.clearTimer ?? ((t) => clearTimeout(t as ReturnType<typeof setTimeout>));
     const backoff = () => new Backoff(30_000, 30 * 60_000, opts.random);
     this.sources = [
       { name: 'usgs', url: USGS_URL, everyMs: USGS_MS, parse: parseUsgs, items: [], backoff: backoff() },
@@ -57,9 +60,13 @@ export class HazardService {
     ];
   }
 
+  /** Polls each source now, then on its own clock. Starting again (the demo, when its tab comes back) restarts the clocks. */
   start(): void {
     this.stopped = false;
-    for (const source of this.sources) this.schedule(source, 0);
+    for (const source of this.sources) {
+      if (source.timer !== undefined) this.clearTimer(source.timer);
+      this.schedule(source, 0);
+    }
   }
 
   stop(): void {
@@ -86,7 +93,8 @@ export class HazardService {
   async poll(source: Source = this.sources[0]!): Promise<void> {
     let delay = source.everyMs;
     try {
-      const res = await this.fetchFn(source.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(60_000) });
+      const headers: Record<string, string> = this.opts.userAgent === null ? {} : { 'User-Agent': this.opts.userAgent ?? USER_AGENT };
+      const res = await this.fetchFn(source.url, { headers, signal: AbortSignal.timeout(60_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       // GDACS starts its JSON with a byte-order mark, which JSON.parse refuses.
       source.items = source.parse(JSON.parse((await res.text()).replace(/^﻿/, '')));
