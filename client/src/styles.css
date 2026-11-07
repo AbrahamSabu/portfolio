@@ -3390,3 +3390,41 @@ button.layers-switch .news-switch-track {
   pointer-events: none;
   /* Lifted off the line by the Marker's own offset: MapLibre owns this element's transform. */
 }
+
+/* The top bar's Tour button: a label on wide screens, an icon at middling widths, and on
+   phones it's in the Layers menu (the bar has no room there). */
+@media (max-width: 1180px) {
+  .tour-toggle span {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .tour-toggle {
+    display: none;
+  }
+}
+
+/* A first visit's one-time hint (ui/firstHint.ts), above the ticker. */
+.first-hint {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 16px);
+  max-width: min(560px, calc(100% - 32px));
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--hud);
+  border-radius: 4px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  text-align: center;
+  transform: translateX(-50%);
+  box-shadow: 0 0 18px rgb(63 182 255 / 0.25);
+  transition: opacity 400ms;
+}
+
+.first-hint-out {
+  opacity: 0;
+}

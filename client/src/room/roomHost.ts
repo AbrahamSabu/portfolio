@@ -384,8 +384,14 @@ export class RoomHost {
       const track = this.deps.store.get(id);
       return track ? trackName(track) : 'a track not on this screen';
     }, self, this.kind);
-    this.chip.hidden = !this.inRoom;
-    if (s.kind === 'open' || s.kind === 'screen') {
+    // Always there on a live server (the static demo has no rooms): the way in for anyone who doesn't know Q.
+    this.chip.hidden = !this.deps.live;
+    this.chip.classList.toggle('in-room', this.inRoom);
+    if (!this.inRoom) {
+      this.chip.querySelector('[data-code]')!.textContent = 'Ops room';
+      this.chip.querySelector<HTMLElement>('[data-count]')!.hidden = true;
+      this.chip.title = 'Ops room: phones and other screens (Q)';
+    } else if (s.kind === 'open' || s.kind === 'screen') {
       const label = s.kind === 'open' ? `Room ${s.code}` : `${screenLabels(this.screens).get(s.name) ?? SCREEN_KIND_LABEL[this.kind]} · ${s.code}`;
       this.chip.querySelector('[data-code]')!.textContent = label;
       const count = this.chip.querySelector<HTMLElement>('[data-count]')!;

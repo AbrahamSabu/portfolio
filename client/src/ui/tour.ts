@@ -45,8 +45,17 @@ export class Tour {
     this.title = root.querySelector('[data-title]')!;
     root.querySelector('[data-stop]')!.addEventListener('click', () => this.stop());
     // Any pointer or wheel anywhere is the operator taking over. Capture, so
-    // a click a panel swallows still counts.
-    document.addEventListener('pointerdown', () => this.stop(), { capture: true });
+    // a click a panel swallows still counts. Except the top bar's Tour
+    // button: it starts and stops the tour itself, and stopping here first
+    // would let its click start the tour again.
+    document.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (event.target instanceof Element && event.target.closest('[data-tour-toggle]')) return;
+        this.stop();
+      },
+      { capture: true },
+    );
     document.addEventListener('wheel', () => this.stop(), { capture: true, passive: true });
     // Our own flight settling is what starts the dwell at a stop.
     this.map.on('moveend', () => this.landed());
@@ -57,6 +66,9 @@ export class Tour {
       if (document.hidden) this.stop();
     });
   }
+
+  /** Called after every start and stop (the top bar's Tour button shows whether it's on). */
+  onChange: () => void = () => {};
 
   get active(): boolean {
     return this.on;
@@ -69,6 +81,7 @@ export class Tour {
     this.root.hidden = false;
     this.cursor = 0;
     this.step();
+    this.onChange();
   }
 
   stop(): void {
@@ -80,6 +93,7 @@ export class Tour {
     // Keep whatever was selected on screen: the operator may have stopped
     // exactly because they want a closer look at it.
     this.follow.release();
+    this.onChange();
   }
 
   private landed(): void {

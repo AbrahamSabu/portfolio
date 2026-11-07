@@ -41,6 +41,7 @@ import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl'
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
+import { showFirstHint } from './ui/firstHint';
 import { mapSource, SkyScore, type CueKind } from './sound/skyScore';
 import { RoomHost } from './room/roomHost';
 import { ServerClock } from './state/clock';
@@ -447,6 +448,12 @@ async function main(): Promise<void> {
       },
     },
   );
+  // The top bar's Tour button: a way in for anyone who doesn't know G, lit while the tour runs.
+  const tourButton = el('tour-toggle');
+  tourButton.addEventListener('click', () => (tour.active ? tour.stop() : tour.start()));
+  tour.onChange = () => tourButton.setAttribute('aria-pressed', String(tour.active));
+  // A first visit's one-time hint; not for a kiosk, or a screen joined to a room (nobody is at its mouse).
+  if (!screensaver && !new URLSearchParams(location.search).has('screen')) showFirstHint(map);
 
   // Screensaver mode (?screensaver, for a kiosk window or an idle trigger):
   // opening this URL is the consent the motion rule asks for, so the tour

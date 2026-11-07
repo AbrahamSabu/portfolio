@@ -384,3 +384,17 @@
   letter-spacing: 0.08em;
   white-space: nowrap;
 }
+
+/* Out of a room the chip is the ops room's way in: a label on wide screens, an icon at middling
+   widths (the top bar must still fit a 1024 px laptop), and on phones it's in the Layers menu. */
+@media (max-width: 1180px) {
+  .room-chip:not(.in-room) span {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-chip:not(.in-room) {
+    display: none;
+  }
+}
