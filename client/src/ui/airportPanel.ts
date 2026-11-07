@@ -81,6 +81,11 @@ export class AirportPanel {
   private async loadWeather(): Promise<void> {
     const airport = this.airport;
     if (!airport) return;
+    // The static demo has no server, and aviationweather.gov and NOAA both refuse browsers' requests: say so, rather than fail.
+    if (import.meta.env.VITE_DEMO) {
+      this.fields.weather.replaceChildren(text('p', 'airport-muted', "Live weather comes from the Watchfloor server, which this browser-only demo doesn't have."));
+      return;
+    }
     let weather: AirportWeather | null = null;
     let failed = false;
     // Weather stations are ICAO coded; airports without an ICAO code have none.

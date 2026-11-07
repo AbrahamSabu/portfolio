@@ -13,6 +13,7 @@ import {
 import { BriefService } from '../../../server/src/brief/briefService';
 import { Simulator } from '../../../server/src/feeds/sim/simulator';
 import { FindingsService } from '../../../server/src/findings/findingsService';
+import { HazardService } from '../../../server/src/hazards/hazardService';
 import { RecordsService } from '../../../server/src/records/records';
 import { replayFor } from '../../../server/src/replay/replay';
 import { getScenario } from '../../../server/src/scenarios';
@@ -53,6 +54,8 @@ const HISTORY_SLICE_BUDGET_MS = 50;
 /** Where a frame is slow (a weak GPU), slices grow to match it, up to this: at least half the time goes on the past. */
 const HISTORY_SLICE_MAX_MS = 400;
 const LIVE_STEP_MS = 250;
+/** A simulated emergency soon after the page opens, so a visitor sees the squawk alerts (more follow now and then). */
+const FIRST_EMERGENCY_MS = 90_000;
 /**
  * Real news, not simulated: GDELT's political stories, read by the server's
  * own news code when the demo is published (`npm run demo-news`) and served
@@ -78,6 +81,8 @@ export class LocalServer implements Link {
   private readonly findings: FindingsService;
   private readonly brief: BriefService;
   private readonly records: RecordsService;
+  private readonly hazards: HazardService;
+  private hazardsSent = false;
   /** Whether the page has had the leaderboard yet: changes go out only after it has. */
   private recordsSent = false;
   private readonly scenario: ScenarioInfo;
@@ -99,7 +104,7 @@ export class LocalServer implements Link {
   ) {
     const scenario = getScenario(opts.scenario ?? 'world');
     this.scenario = { id: scenario.id, name: scenario.name, center: scenario.center, zoom: scenario.zoom };
-    this.sim = new Simulator({ scenario, seed: SEED });
+    this.sim = new Simulator({ scenario, seed: SEED, emergencyAt: Date.now() + FIRST_EMERGENCY_MS });
     this.brief = new BriefService({ tracks: () => this.store.snapshot() });
     this.findings = new FindingsService({
       world: { tracks: () => this.store.snapshot(), path: (id) => this.store.paths.flat(id) },
@@ -111,6 +116,15 @@ export class LocalServer implements Link {
         if (this.simNow === null) this.emit({ type: 'findings', serverTime: Date.now(), items, recent });
       },
       onEvent: (kind, finding, time, resolved) => this.brief.onFinding(kind, finding, time, resolved),
+    });
+    // Earthquakes (USGS) and disasters (GDACS), real ones, fetched by this browser: both allow it. The
+    // server's own service, so the list, the merging and the handover's lines are exactly the server's.
+    this.hazards = new HazardService({
+      userAgent: null,
+      onChange: (items) => {
+        this.brief.onHazards(items);
+        if (this.hazardsSent) this.emit({ type: 'hazards', serverTime: Date.now(), items });
+      },
     });
     // The leaderboard, from the same picture; the demo has no registers, so airlines show as their codes.
     this.records = new RecordsService({
@@ -124,6 +138,7 @@ export class LocalServer implements Link {
   start(): void {
     if (this.running) return;
     this.running = true;
+    this.hazards.start();
     // "Connecting" while the past runs: the map and basemap are already up.
     this.handlers.onState({ status: 'connecting' });
     void (this.history ??= this.runHistory()).then(() => {
@@ -152,6 +167,8 @@ export class LocalServer implements Link {
       this.emit({ type: 'records', serverTime: now, boards: this.records.boards() });
       this.recordsSent = true;
       this.records.start();
+      this.emit({ type: 'hazards', serverTime: now, items: this.hazards.items() });
+      this.hazardsSent = true;
       this.tickTimer = window.setInterval(() => this.tick(), TICK_MS);
       this.newsSeen = null; // a fresh hello: send all of them again
       void this.readNews();
@@ -167,6 +184,8 @@ export class LocalServer implements Link {
     this.findings.stop();
     this.records.stop();
     this.recordsSent = false;
+    this.hazards.stop();
+    this.hazardsSent = false;
     this.brief.stop();
   }
 
