@@ -58,11 +58,11 @@ services:
       # actually watch...
       - key: AIS_AREA
         value: viewport
-      # ...and views wider than about 25 x 25 degrees aren't streamed, so the
-      # opening globe doesn't ask for every ship on earth: ships appear once a
-      # visitor zooms in to a region.
+      # ...and views wider than about Europe (3,000 square degrees) aren't
+      # streamed, so the whole globe doesn't ask for every ship on earth. The
+      # cost per message is tiny; the cap guards the free tier's memory.
       - key: AIS_MAX_AREA
-        value: "600"
+        value: "3000"
       # Render sits behind Cloudflare, which overwrites CF-Connecting-IP with
       # the visitor's address (Render's own proxy appends to X-Forwarded-For,
       # which a visitor can forge). Per-visitor limits are kept against it.
