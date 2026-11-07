@@ -516,6 +516,14 @@ that could have been fetched before they arrived.
   groups) exceed it, `.alerts-overflow` fades the oldest at the top; a
   bottom-anchored flex stack overflows *upward*, which scrollHeight
   doesn't count, so main.ts measures the groups.
+- Ways in for newcomers (Nov 2026 UI pass): the top bar has a Tour button
+  and the ops room's chip is always there on a live server ("Ops room" until
+  in a room; both icon-only below 1180 px so the bar fits 1024 px, hidden on
+  phones, where the Layers menu has them). The details panel's actions are
+  `position: sticky` at its foot (they sat below the fold). A first visit
+  gets one hint (`ui/firstHint.ts`, `watchfloor.firstHint`): click anything,
+  ? lists every key; once per browser, ~6 s in, until a click, key or drag
+  or 14 s; never in screensaver mode or on a screen joined to a room.
 - First impression (Nov 2026 visual pass): **calm open**: no news card for
   15 s (`newsCards.ts` CALM_OPEN_MS; the first used to land 1.5 s in,
   mid-globe) and no finding cards for 30 s (`findingAlerts.ts`: the
@@ -872,7 +880,9 @@ that could have been fetched before they arrived.
   `ui/layerSections.ts`; M key or the stacked-sheets button under zoom):
   every map toggle with a label, a one-line hint and its key (symbols,
   trails, news, briefing, read aloud, airports, hazards, chokepoints, radar,
-  watch-area visibility `watchfloor.regionsShown`, draw / manage areas).
+  watch-area visibility `watchfloor.regionsShown`, draw / manage areas;
+  the actions (search, tour, handover, timeline, rare, leaderboard, ops
+  room) are their own Tools section, not rows of World).
   Rows read and write the same settings objects as the keys and subscribe
   to them, so menu and keys never disagree; rows are built on first opening
   (the settings are created further down main.ts than the button must be
@@ -896,7 +906,10 @@ that could have been fetched before they arrived.
   briefing stories, busiest chokepoints — rebuilt each stop) + `ui/tour.ts`
   (dwell starts on `moveend`, safety timer in case a flight never lands;
   ANY key stops it — handled at the top of main.ts's keydown — and any
-  pointerdown/wheel on `document`, capture phase; it also stops on
+  pointerdown/wheel on `document`, capture phase, except on the top bar's
+  Tour button (`[data-tour-toggle]`), which starts and stops it itself and
+  is lit through `tour.onChange` (stopping on its pointerdown let its click
+  start the tour again); it also stops on
   `visibilitychange` to hidden and `start()` refuses while hidden —
   TrackLayer's rAF loop already pauses hidden, the tour's timers didn't —
   and screensaver mode restarts it when the page shows). A stop with `trackId`
