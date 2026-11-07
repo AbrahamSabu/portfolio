@@ -219,13 +219,15 @@ button {
   font: 16px var(--font);
 }
 
+/* All, Air and Sea on the first row; Military and Squawks share the second. */
 .console-domains {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .console-domains button {
-  flex: 1;
+  flex: 1 1 28%;
   height: 38px;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -236,10 +238,32 @@ button {
   text-transform: uppercase;
 }
 
+.console-domain-count {
+  margin-left: 4px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An aircraft is squawking an emergency code: the button says so in the squawks' amber. */
+.console-domains button.console-squawking {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.console-domains button.console-squawking .console-domain-count {
+  color: var(--warn);
+}
+
 .console-domains button[aria-pressed='true'] {
   border-color: var(--hud);
   background: rgb(63 182 255 / 0.14);
   color: var(--ink);
+}
+
+.console-domains button.console-squawking[aria-pressed='true'] {
+  border-color: var(--warn);
+  background: rgb(240 195 106 / 0.14);
+  color: var(--warn);
 }
 
 .console-count {

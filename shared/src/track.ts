@@ -113,3 +113,12 @@ export const EMERGENCY_SQUAWKS: Readonly<Record<string, string>> = {
 export function emergencyOf(track: Pick<Track, 'squawk'>): string | undefined {
   return track.squawk === undefined ? undefined : EMERGENCY_SQUAWKS[track.squawk];
 }
+
+/**
+ * The military platforms: what the aircraft database or the AIS ship type
+ * says is military (an airframe flagged military, a patrol type, a drone, a
+ * warship). The watchers' converging check uses the air ones; the phone's
+ * Military filter uses them all.
+ */
+export const MILITARY_AIR_PLATFORMS: readonly Platform[] = ['military-aircraft', 'military-helicopter', 'maritime-patrol', 'uav'];
+export const MILITARY_PLATFORMS: readonly Platform[] = [...MILITARY_AIR_PLATFORMS, 'warship'];

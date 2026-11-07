@@ -19,7 +19,7 @@ import { readRole, writeRole } from '../room/deviceRole';
 import { trackName } from '../room/roomView';
 import { ServerClock } from '../state/clock';
 import { TrackStore } from '../state/trackStore';
-import { DEFAULT_QUERY, queryTracks, type DomainFilter } from '../state/trackQuery';
+import { DEFAULT_QUERY, queryTracks, specialCounts, type DomainFilter } from '../state/trackQuery';
 import { trafficLabel } from '../ui/format';
 import { SHORTCUTS } from '../ui/shortcuts';
 import { ConsoleList } from './consoleList';
@@ -528,6 +528,13 @@ function renderList(): void {
   list.set(tracks, (t) => store.status(t, now) === 'stale');
   const total = store.size;
   el('count').textContent = tracks.length === total ? `${total} tracks` : `${tracks.length} of ${total} tracks`;
+  if (tracks.length === 0 && !search && domain === 'squawk') el('count').textContent = 'No aircraft squawking an emergency code right now';
+  if (tracks.length === 0 && !search && domain === 'military') el('count').textContent = 'No military aircraft or warships in the picture';
+  // The special filters say how many they'd show, and Squawks lights amber while any aircraft squawks.
+  const counts = specialCounts(store.all());
+  el('count-military').textContent = String(counts.military);
+  el('count-squawk').textContent = String(counts.squawk);
+  el('count-squawk').closest('button')!.classList.toggle('console-squawking', counts.squawk > 0);
 }
 
 function renderDetails(): void {
