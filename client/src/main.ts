@@ -203,8 +203,9 @@ async function main(): Promise<void> {
   // Weather radar, off until asked for: R or the Layers menu.
   const radarShown = new StoredToggle('watchfloor.radar', false);
   const radar = new RadarLayer(map, radarShown);
-  // Satellites, the third domain: CelesTrak's elements from our server, positions
-  // computed in a worker (space/). O or the Layers menu; their own group in the filter.
+  // Satellites, the third domain: CelesTrak's elements from our server (in the static
+  // demo, from CelesTrak in the visitor's browser), positions computed in a worker
+  // (space/). O or the Layers menu; their own group in the filter.
   const satellitesShown = new StoredToggle('watchfloor.satellites', true);
   const satellites = new Satellites(map, {
     shown: satellitesShown,
@@ -217,6 +218,7 @@ async function main(): Promise<void> {
       airportPanel.close();
       countryPanel.close();
     },
+    ...(demo ? { catalog: (onCatalog, onStatus) => new demo.DemoCatalog(onCatalog, onStatus) } : {}),
   });
   const reticle = new Reticle(map);
   // The selected track's ATC-style data block, riding the same dead-reckoned position.

@@ -270,3 +270,6 @@ export class LocalServer implements Link {
     if (parsed) this.handlers.onMessage(parsed, Date.now());
   }
 }
+
+// main.ts reaches the demo only through this module's dynamic import, so the normal build carries none of it.
+export { DemoCatalog } from './demoCatalog';

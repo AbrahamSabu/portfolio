@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (857 tests after the five design concepts were merged, Nov 2026).
+- `npm test`: Vitest from the root config (862 tests after the five design concepts were merged, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -980,8 +980,15 @@ that could have been fetched before they arrived.
     gzipped once per change (11,299 satellites: 1.52 MB, 495 KB on the wire),
     ETag with `no-cache` (re-checks are 304s), 503 before the first build,
     404 when off. `CatalogClient` re-checks every 30 min (20 s while a group
-    is pending); the static demo has no server, so the layer says
-    "not available".
+    is pending). The static demo has no server, so `demo/demoCatalog.ts`
+    (handed to Satellites as its `CatalogSource`, through the demo module so
+    the normal bundle carries none of it) has each visitor's browser fetch
+    the groups from CelesTrak itself (CORS `*`; nothing of CelesTrak's is
+    republished, and its usage policy says nothing on redistribution while
+    Space-Track's is stricter). Kept in the Cache API (`watchfloor-satellites`)
+    for 2 h so a visitor downloads each update once; no Cache API, no
+    download; anything but a 200 (redirects not followed) stops that group
+    for the visit and keeps the visitor's older copy.
   - SGP4 in a module worker (`satWorker.ts`, satellite.js 7.1.0, chosen over
     ootk (AGPL), ootk-core (stale), tle.js (TLE-only wrapper) and `sgp4`
     (no licence)). **Its index re-exports a WASM build with top-level
@@ -1256,6 +1263,10 @@ that could have been fetched before they arrived.
   or the observer never installs and reports zero.** Verify with a
   deliberate 120 ms busy loop. The status bar's counts refresh once a
   second, so time page opening from the User Timing entries, not them.
+- Headless Chrome checks: give Chrome a fixed `--user-data-dir` under the
+  gitignored `.cache/` on D:, or delete a temporary one when done. Throwaway
+  `mkdtemp` profiles in %TEMP% were never cleaned up and reached 136 folders
+  (3.5 GB) by Nov 2026, the day C: ran out of space mid-check.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.

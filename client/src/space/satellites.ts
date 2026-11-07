@@ -3,7 +3,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { paceScaleNow } from '../map/renderRate';
 import { LOWEST_TRACK_LAYER } from '../map/trackLayer';
 import type { HoverText } from '../ui/hoverCard';
-import { CatalogClient } from './catalogClient';
+import { CatalogClient, type CatalogSource } from './catalogClient';
 import { GroundTrackLayer, type TrackLine } from './groundTrackLayer';
 import { Keyframes, type KeyframePair } from './keyframes';
 import { dockedStacks, EARTH_RADIUS_KM, mercatorY, periodMinutes, semiMajorAxisKm, SHELL_MAX_ALTITUDE_KM } from './orbit';
@@ -44,6 +44,8 @@ export interface SatellitesDeps {
   selection: { select(id: string | null): void; subscribe(listener: (id: string | null) => void): unknown };
   /** A satellite was picked: close what else uses the right side (airport, country). */
   onOpen: () => void;
+  /** Where the catalogue comes from, when not our server (the static demo has none). */
+  catalog?: (onCatalog: (catalog: SatelliteCatalog) => void, onStatus: () => void) => CatalogSource;
 }
 
 /** What the timeline shows: a fixed moment in the past, or now plus an offset. */
@@ -78,7 +80,7 @@ export class Satellites {
   private readonly tracks: GroundTrackLayer;
   private readonly panel: SatellitePanel;
   private readonly section: SatelliteFilterSection;
-  private readonly catalog: CatalogClient;
+  private readonly catalog: CatalogSource;
   private readonly lines = new Map<number, TrackLine>();
   private readonly listeners = new Set<() => void>();
   private tracksAt = 0;
@@ -103,7 +105,7 @@ export class Satellites {
     this.section = new SatelliteFilterSection(deps.filterPanel, deps.filter);
     // The catalogue (half a megabyte) and the worker wait until the layer is first shown:
     // someone who has turned satellites off pays nothing for them.
-    this.catalog = new CatalogClient(
+    this.catalog = (deps.catalog ?? ((onCatalog, onStatus) => new CatalogClient(onCatalog, onStatus)))(
       (catalog) => this.load(catalog),
       () => this.notify(),
     );
@@ -134,7 +136,7 @@ export class Satellites {
 
   /** For the Layers menu: how many, or why none. */
   detail(): string {
-    if (this.catalog.status === 'unavailable') return 'not available from this server';
+    if (this.catalog.status === 'unavailable') return this.catalog.unavailableText;
     if (this.hidden && this.deps.shown.value) return 'hidden while you ride along';
     const total = this.sats.length - [...this.dockedTo.values()].reduce((n, m) => n + m.length, 0);
     if (total === 0) return 'loading';

@@ -9,11 +9,20 @@ const UNAVAILABLE_MS = 60 * 60_000;
 
 export type CatalogStatus = 'loading' | 'ready' | 'unavailable';
 
+/** Where the catalogue comes from: our server (CatalogClient), or CelesTrak itself in the static demo (demo/demoCatalog.ts). */
+export interface CatalogSource {
+  start(): void;
+  stop(): void;
+  readonly status: CatalogStatus;
+  /** Why there are no satellites, in words for the Layers menu. */
+  readonly unavailableText: string;
+}
+
 /**
  * Fetches `/api/satellites` from our own server (never CelesTrak: the server
  * downloads it once for everyone) and hands each new catalogue over.
  */
-export class CatalogClient {
+export class CatalogClient implements CatalogSource {
   private etag: string | null = null;
   /** Some group not downloaded yet by the server: look again soon. */
   private pending = false;
@@ -22,6 +31,7 @@ export class CatalogClient {
   /** Bumped by every start and stop, so an answer from an earlier run is dropped, not acted on. */
   private run = 0;
   status: CatalogStatus = 'loading';
+  readonly unavailableText = 'not available from this server';
 
   constructor(
     private readonly onCatalog: (catalog: SatelliteCatalog) => void,
