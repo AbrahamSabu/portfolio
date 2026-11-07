@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (862 tests after the five design concepts were merged, Nov 2026).
+- `npm test`: Vitest from the root config (884 tests after the phone filters, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -115,7 +115,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 18`, v18 the ops room (`room-*` both ways), v17 `records` (the leaderboard), v16 `findings`, `brief` and `replay`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 19`, v19 the ops room's devices (status `kind` and `selected`; actions point, click, press, key), v18 the ops room (`room-*` both ways), v17 `records` (the leaderboard), v16 `findings`, `brief` and `replay`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -454,7 +454,7 @@ that could have been fetched before they arrived.
   `map/hazardIcons.ts` (pale apricot #FFD2A8 outlines, `hz:<kind>`),
   `map/hazardLayer.ts` (above tracks, under news; card in a Popup; source
   attribution credits USGS and GDACS), `ui/hazardAlerts.ts` (significant new
-  ones only, 5 min, in `#alerts-hazard` beside the squawks' `#alerts-emergency`).
+  ones only, in `#alerts-hazard` beside the squawks' `#alerts-emergency`).
   H key / `watchfloor.hazards`. **Zoom must be the outermost expression**:
   `['*', scale, ['interpolate', ..., ['zoom'], ...]]` failed validation and
   took the whole basemap with it (no tiles, no error in the pane's console).
@@ -477,7 +477,8 @@ that could have been fetched before they arrived.
   stable by held maps with hysteresis (circling 4 min, converging 2 min).
   **The first sweep seeds silently**: it publishes but logs no events (what
   it finds predates the watch). Client: `state/findings.ts` (FindingStore,
-  `interrupts()` — dark never cards), `map/findingLayer.ts` (HUD-blue rings
+  `interrupts()` — only converging and rare card: circling cards were noise
+  to the user, so circles, like dark ships, only mark the map), `map/findingLayer.ts` (HUD-blue rings
   + dots, ghosts fade by age, click hands the finding to main which selects
   the first live involved track), `ui/findingAlerts.ts` (cards capped at 3,
   one ping per batch), tour rides along (`findingStops`, first pool).
@@ -515,7 +516,29 @@ that could have been fetched before they arrived.
   (they end ~240px down). When the groups (plus 8px gaps between shown
   groups) exceed it, `.alerts-overflow` fades the oldest at the top; a
   bottom-anchored flex stack overflows *upward*, which scrollHeight
-  doesn't count, so main.ts measures the groups.
+  doesn't count, so main.ts measures the groups (and reads the gap).
+  Alert pass (Nov 2026; the user found the corner cluttered and closing
+  cards a chore): every card is two lines (what and when; who or where,
+  cut with an ellipsis) with Show and × at the right, 300 px wide. The
+  groups are grids with `minmax(0, 1fr)` columns: an `auto` column grows to
+  the unwrapped line and pushed the time, Show and × off the card. Cards
+  leave by themselves: `state/alertLife.ts` (pure `AlertLives`, tested:
+  10 s, a card under the pointer or holding focus is held and gets 4 s once
+  let go, every clock stops while the page is hidden) and `ui/alertTimer.ts`
+  (finds cards by `data-life` each 250 ms rather than by listeners, since
+  the squawks rebuild theirs; `:hover` counts only where `(hover: hover)`,
+  as it sticks after a tap; fades with `.alert-leaving`). Squawks: 30 s,
+  then into the top bar's chip. Selecting a track closes the news card,
+  even an opened one, and the rotation waits until nothing is selected
+  (`NewsCards.makeWay`, from a selection subscription in main.ts).
+- Ways in for newcomers (Nov 2026 UI pass): the top bar has a Tour button
+  and the ops room's chip is always there on a live server ("Ops room" until
+  in a room; both icon-only below 1180 px so the bar fits 1024 px, hidden on
+  phones, where the Layers menu has them). The details panel's actions are
+  `position: sticky` at its foot (they sat below the fold). A first visit
+  gets one hint (`ui/firstHint.ts`, `watchfloor.firstHint`): click anything,
+  ? lists every key; once per browser, ~6 s in, until a click, key or drag
+  or 14 s; never in screensaver mode or on a screen joined to a room.
 - First impression (Nov 2026 visual pass): **calm open**: no news card for
   15 s (`newsCards.ts` CALM_OPEN_MS; the first used to land 1.5 s in,
   mid-globe) and no finding cards for 30 s (`findingAlerts.ts`: the
@@ -653,9 +676,14 @@ that could have been fetched before they arrived.
   versions 1-10), tested against the standard's tables and by un-masking and
   decoding every version. Presence tags are DOM Markers below-left of the
   track (data block is above-right), HUD lines only. The console page has no
-  MapLibre: a Steering picker (kept while its screen is away), tabs Tracks
+  MapLibre: Steering buttons (the steered one kept while away), tabs Tracks
+  (filters All, Air, Sea, Military, Squawks: `DomainFilter` in
+  trackQuery.ts; military is `MILITARY_PLATFORMS` in shared/track.ts, which
+  converging.ts also uses for its air half; the buttons count via
+  `specialCounts`, and Squawks turns `--warn` amber while any aircraft
+  squawks)
   (windowed list: `queryTracks`, `visibleRange`, `shapeSvg`), Remote (pad:
-  pointer moves as pad fractions, sent at most every 100 ms;
+  moves as pad fractions, gathered every 60 ms, then the Pacer;
   `touch-action: none`), Layers (a tap waits up to 3 s for the screen's
   status to agree) and Places (`searchPalette` over airports, fetched on
   first open, and chokepoints); Back closes details (pushState), socket
@@ -668,6 +696,39 @@ that could have been fetched before they arrived.
   gives the main page a non-loopback origin, so the dialog shows its QR
   without binding the LAN. Headless Chrome on Windows has no
   BarcodeDetector. The dialog stops key propagation; Escape closes it.
+  Devices (Nov 2026, v19), plus Keys and Room tabs: `room/deviceRole.ts`
+  remembers a device's role (`watchfloor.roomRole`: screen or control) and a
+  screen's kind (`watchfloor.screenKind`, `SCREEN_KINDS`, guessed from the
+  user agent: TV platforms; iPads say Macintosh but have touch; Android
+  without Mobile is a tablet). The QR's console link asks first
+  (console.html `#choose`): screen goes to `/?screen=CODE`, control joins.
+  A screen's kind rides in its *status*, never its address (MAIN, SCREEN 2
+  never change), so renaming doesn't break a phone's steering;
+  `screenLabels` numbers duplicates (Tablet 2). The dialog's This device
+  section renames, and (not on the host, whose leaving closes the room)
+  switches to a controller; the console's Room tab switches to a screen or
+  leaves. Pointer: `room/remotePointer.ts` keeps a HUD ring (a manual
+  popover, re-shown so it stays above dialogs opened since; `transform`, not
+  the `translate` property, for old TV browsers) and dispatches pointer and
+  mouse events on `elementFromPoint` (MapLibre's click and the timeline's
+  pointerdown both work), never inside `.room-dialog` or on off-site links;
+  press and release drag, moves going to the pressed element. The phone's
+  `RemotePad` (pan or pointer mode): a pointer's first pixels wait until
+  it's a slide (3% slop), a hold (450 ms, then drag) or too slow for a tap
+  (350 ms), so a tap clicks where the pointer was; two fingers pan, a 1.35x
+  pinch zooms a step. Everything goes through `console/pacer.ts` (60 ms
+  apart, merging waiting moves): **the server drops a console's controls
+  under 50 ms apart**, which lost taps. Keys: `REMOTE_KEYS` (shared) is the
+  map key's `SHORTCUTS` (now plain data in `ui/shortcuts.ts`, for the
+  console) less `/` and W (they need typing) and Q; a test fails when a new
+  shortcut is in neither list. `RoomHost.pressKey` dispatches a keydown on
+  body after ending the tour (typed, any key only ends it; G and Y excepted),
+  and Escape closes an open `<dialog>` itself (a synthetic Escape doesn't).
+  Two-way: status `selected`; when it changes on the steered screen the phone
+  opens its card, and other tabs show it in the orchid `#picked` bar.
+  Headless check: one Chrome, each device in its own
+  `Target.createBrowserContext` (separate storage for roles and kinds), with
+  a user agent per device; dispatch PointerEvents on `#pad` to drive it.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to
@@ -735,8 +796,16 @@ that could have been fetched before they arrived.
   weight (Nadaraya-Watson); strength = weight in "tracks' worth"
   (`kernelPeak`). `directionBands`: **one average per point cancels a lane
   used both ways** (the first build showed nothing over busy Europe or
-  two-way shipping lanes), so each medium keeps 4 band fields and a heading
-  is shared cos² between the two bands either side (opposites never meet).
+  two-way shipping lanes), so each medium keeps 8 band fields (45° apart)
+  and a heading is shared cos² between the two bands either side (opposites
+  never meet). **Not 4**: bands 90° apart averaged neighbouring flows and
+  pulled currents towards the screen axes (the user saw currents that
+  weren't where aircraft fly). Measured by laying the live snapshot's
+  aircraft over western Europe on a flat 1440x900 screen and building the
+  fields with the real code: the current nearest each aircraft's heading,
+  median 10° and 90th percentile 31° with 4 bands, 5° and 13° with 8. The
+  budget is per medium (`max` split by flowing area), so more bands add
+  field-building time (~20 ms → ~24 ms) but no particles.
   `clipToDisc`: the blur otherwise spreads currents off the globe into
   space. `map/flowParticles.ts` (pure, tested): particles in screen space,
   births weighted by node strength, reborn when life ends or strength <
@@ -839,7 +908,9 @@ that could have been fetched before they arrived.
   `ui/layerSections.ts`; M key or the stacked-sheets button under zoom):
   every map toggle with a label, a one-line hint and its key (symbols,
   trails, news, briefing, read aloud, airports, hazards, chokepoints, radar,
-  watch-area visibility `watchfloor.regionsShown`, draw / manage areas).
+  watch-area visibility `watchfloor.regionsShown`, draw / manage areas;
+  the actions (search, tour, handover, timeline, rare, leaderboard, ops
+  room) are their own Tools section, not rows of World).
   Rows read and write the same settings objects as the keys and subscribe
   to them, so menu and keys never disagree; rows are built on first opening
   (the settings are created further down main.ts than the button must be
@@ -863,7 +934,10 @@ that could have been fetched before they arrived.
   briefing stories, busiest chokepoints — rebuilt each stop) + `ui/tour.ts`
   (dwell starts on `moveend`, safety timer in case a flight never lands;
   ANY key stops it — handled at the top of main.ts's keydown — and any
-  pointerdown/wheel on `document`, capture phase; it also stops on
+  pointerdown/wheel on `document`, capture phase, except on the top bar's
+  Tour button (`[data-tour-toggle]`), which starts and stops it itself and
+  is lit through `tour.onChange` (stopping on its pointerdown let its click
+  start the tour again); it also stops on
   `visibilitychange` to hidden and `start()` refuses while hidden —
   TrackLayer's rAF loop already pauses hidden, the tour's timers didn't —
   and screensaver mode restarts it when the page shows). A stop with `trackId`
@@ -935,8 +1009,8 @@ that could have been fetched before they arrived.
   handlers stand down), `map/regionLayer.ts` (fill + dashed outline under
   the tracks, constructed before TrackLayer; tag above the northernmost
   corner), `ui/regionPanel.ts` (form, list, log of 50; shares the filter
-  panel's place, one at a time), `ui/regionAlerts.ts` (compact cards, two
-  at most, 90 s). Checked each second, skipped while the store is empty
+  panel's place, one at a time), `ui/regionAlerts.ts` (two cards at most).
+  Checked each second, skipped while the store is empty
   (reconnects). Rules: enter = live outside on the last look, live inside
   now; already inside at start or first heard inside = silent; exit = two
   live reports outside; lost = dropped from the picture inside, **counted
@@ -1077,7 +1151,8 @@ that could have been fetched before they arrived.
   a card must never lose the emergency** (the user hid one and couldn't
   find it again): `#alert-chip` in the top bar stays while any code is
   broadcast (click: hidden cards come back; with one squawk it shows the
-  aircraft), and the details panel has an amber banner and a Squawk row. To see it,
+  aircraft), and the details panel has an amber banner and a Squawk row.
+  The card hides itself into that chip after 30 s (`SQUAWK_LIFE_MS`). To see it,
   run a local readsb stub (one aircraft squawking 7700) with
   `FEEDS=adsblol ADSBLOL_API_URL=http://127.0.0.1:<port>` on a spare port.
 - Airports (`client/src/map/airports.ts`, `airportLayer.ts`): OurAirports
@@ -1303,6 +1378,37 @@ that could have been fetched before they arrived.
   centred on 0,0 use `transform-origin: 0 0`, not 50% 50% (that span the
   rings around the wrong point). Read-aloud prefers a British voice
   (`ui/voice.ts`, `pickBritishVoice`).
+- Skins (Nov 2026; Layers → Display swatches, or K; `watchfloor.skin`;
+  `?skin=` in the address dresses a TV or kiosk without being remembered):
+  Holo (the look above, unchanged), Phosphor (green tube: the map and stars
+  through a harder version of the phosphor filter, Share Tech Mono with
+  VT323 for the brand and clock, a bloom on all text, heavy scan lines, a
+  turning sweep that is a 160vmax `.app::before` rotated by transform so the
+  compositor does it, off under reduced motion; `.app` gets `overflow:
+  hidden` for it), Minimal (flat graphite, Inter, no brackets, glow or scan
+  lines), Bubbly (grape glass, Fredoka and Nunito, 22px corners, pill
+  buttons, periwinkle space and a mint atmosphere: pink space was too close
+  to Synthwave), Blueprint (drafting blue, B612, the brackets as corner
+  marks over a drafting grid) and Synthwave (neon pink and cyan, Orbitron
+  brand). `state/skins.ts` holds each skin's label, hint, swatch, basemap
+  palette (`BasemapPalette`: line colour and strengths, land, sea, labels,
+  sky, horizon), graticule colour and Google Fonts families; `skins.css`
+  overrides tokens and effects under `:root[data-skin='…']` (Holo has no
+  block); `ui/wearSkin.ts` sets the attribute, loads the skin's fonts the
+  first time it's worn, repaints the basemap (`applyHoloBasemap(map,
+  palette)`, which recolours its coast layers if they exist) and the
+  graticule (`setColour`); createMap's `style.load` paints with
+  `options.palette()`, so a style reload keeps the skin. index.html's inline
+  script sets `data-skin` before the first paint (no flash of Holo). **Never
+  write the HUD blue as a literal**: `var(--hud)` or `rgb(var(--hud-rgb) /
+  a)` (all 67 literals became tokens, so skins recolour them). Never
+  skinned: identity colours, `--warn` amber, hazard apricot. K is in
+  `REMOTE_KEYS` and, like G and Y, leaves the tour riding (main.ts handles
+  it before the tour's any-key stop; `RoomHost.pressKey` exempts it); the
+  server bundles shared, so it needs a rebuild and restart before phones'
+  K presses get through. Menu: a `ChoiceRow` whose options carry `swatch`
+  renders as a 3-column grid of chips (`.layers-swatches`). The phone
+  console (console.css) and sky page aren't skinned.
 - One accent, orchid #C9A0FF, used only for selection and focus. It is
   deliberately outside the symbology palette.
 - Plotting-surface furniture (Nov 2026): `map/graticule.ts` (10° grid,

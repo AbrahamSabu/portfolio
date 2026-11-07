@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Track } from '@watchfloor/shared';
-import { DEFAULT_QUERY, nextSort, queryTracks, type TrackQuery } from './trackQuery';
+import { DEFAULT_QUERY, nextSort, queryTracks, specialCounts, type TrackQuery } from './trackQuery';
 
 const NOW = 1_700_000_000_000;
 
@@ -72,5 +72,33 @@ describe('track list query', () => {
     expect(bySpeed).toMatchObject({ sort: 'speed', dir: 'desc' });
     expect(nextSort(bySpeed, 'speed')).toMatchObject({ sort: 'speed', dir: 'asc' });
     expect(nextSort(bySpeed, 'callsign')).toMatchObject({ sort: 'callsign', dir: 'asc' });
+  });
+});
+
+describe('the Military and Squawks filters', () => {
+  const tracks = [
+    track('ship', {}),
+    track('warship', { platform: 'warship' }),
+    track('jet', { domain: 'air', platform: 'military-aircraft', altitudeM: 9000 }),
+    track('drone', { domain: 'air', platform: 'uav', altitudeM: 6000 }),
+    track('airliner', { domain: 'air', platform: 'airliner', altitudeM: 11000, squawk: '7700' }),
+    track('quiet', { domain: 'air', platform: 'airliner', altitudeM: 11000, squawk: '1200' }),
+  ];
+  const ids = (q: Partial<TrackQuery>) => queryTracks(tracks, { ...DEFAULT_QUERY, ...q }, NOW).map((t) => t.id).sort();
+
+  it('shows military platforms of either domain', () => {
+    expect(ids({ domain: 'military' })).toEqual(['drone', 'jet', 'warship']);
+  });
+
+  it('shows only aircraft squawking an emergency code', () => {
+    expect(ids({ domain: 'squawk' })).toEqual(['airliner']);
+  });
+
+  it('still narrows by the search', () => {
+    expect(ids({ domain: 'military', search: 'war' })).toEqual(['warship']);
+  });
+
+  it('counts what each would show', () => {
+    expect(specialCounts(tracks)).toEqual({ military: 3, squawk: 1 });
   });
 });

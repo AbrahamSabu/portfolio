@@ -143,17 +143,17 @@
   padding: 0 20px;
   border: 1px solid var(--hud);
   border-radius: 3px;
-  background: rgb(63 182 255 / 0.16);
+  background: rgb(var(--hud-rgb) / 0.16);
   color: var(--ink);
   font: 600 var(--text-md) var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 0 14px rgb(63 182 255 / 0.2);
+  box-shadow: 0 0 14px rgb(var(--hud-rgb) / 0.2);
 }
 
 .room-primary:hover {
-  background: rgb(63 182 255 / 0.26);
+  background: rgb(var(--hud-rgb) / 0.26);
 }
 
 .room-join {
@@ -215,7 +215,7 @@
   min-width: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: rgb(63 182 255 / 0.22);
+  background: rgb(var(--hud-rgb) / 0.22);
   color: var(--ink);
   font-size: 0.7rem;
   text-align: center;
@@ -298,4 +298,103 @@
 
 .room-presence-stale {
   opacity: 0.5;
+}
+
+/* This device: what it is (phones see it by this name), and a way to be a controller instead. */
+.room-device {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.room-device-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-sm);
+}
+
+.room-kind {
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--hud-bright);
+  font: 600 1.05rem var(--font-display);
+  letter-spacing: 0.06em;
+}
+
+/* A console's pointer on this screen (remotePointer.ts): a HUD ring, its centre where a click lands. */
+.remote-pointer {
+  position: fixed;
+  inset: auto;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
+.remote-pointer[hidden] {
+  display: none;
+}
+
+.remote-pointer::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--hud);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgb(var(--hud-rgb) / 0.6), inset 0 0 6px rgb(var(--hud-rgb) / 0.4);
+}
+
+.remote-pointer::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d8f1ff;
+}
+
+.remote-pointer-tag {
+  position: absolute;
+  top: 12px;
+  left: 18px;
+  padding: 1px 6px;
+  border: 1px solid var(--hud);
+  border-radius: 3px;
+  background: rgb(4 15 28 / 0.85);
+  color: #d8f1ff;
+  font: 600 12px var(--font-display);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* Out of a room the chip is the ops room's way in: a label on wide screens, an icon at middling
+   widths (the top bar must still fit a 1024 px laptop), and on phones it's in the Layers menu. */
+@media (max-width: 1180px) {
+  .room-chip:not(.in-room) span {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-chip:not(.in-room) {
+    display: none;
+  }
 }

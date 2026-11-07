@@ -47,6 +47,7 @@ export class NewsCards {
   private pinnedUntil = 0;
   private hovering = false;
   private hoverSince = 0;
+  private selected = false;
   private timer: number | undefined;
 
   constructor(
@@ -110,6 +111,17 @@ export class NewsCards {
     this.schedule(PINNED_MS);
   }
 
+  /**
+   * A track was selected or let go. Selecting one closes the card, even one
+   * that was opened, and the rotation waits until nothing is selected: news
+   * piling onto an aircraft being checked was clutter. Stories still open
+   * when asked for.
+   */
+  makeWay(selected: boolean): void {
+    this.selected = selected;
+    if (selected) this.close();
+  }
+
   private pinned(): boolean {
     return this.shownId !== undefined && this.now() < this.pinnedUntil;
   }
@@ -127,8 +139,8 @@ export class NewsCards {
       this.schedule(speaking ? 1_000 : DWELL_MS);
       return;
     }
-    // A phone: the rotation steps aside (and a card it put up closes); tapped ones stay.
-    if (narrow()) {
+    // A phone, or a track being checked: the rotation steps aside (and a card it put up closes); opened ones stay.
+    if (narrow() || this.selected) {
       this.close();
       this.schedule(DWELL_MS);
       return;

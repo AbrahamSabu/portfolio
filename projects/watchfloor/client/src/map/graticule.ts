@@ -29,9 +29,17 @@ export function graticuleGeoJson(): FeatureCollection<LineString> {
  * it never changes.
  */
 export class Graticule {
+  /** The skin's grid colour (state/skins.ts); the display's blue until told otherwise. */
+  private colour = '#3FB6FF';
+
   constructor(private readonly map: MapLibreMap) {
     map.on('style.load', () => this.install());
     if (map.isStyleLoaded()) this.install();
+  }
+
+  setColour(colour: string): void {
+    this.colour = colour;
+    if (this.map.getLayer(LAYER)) this.map.setPaintProperty(LAYER, 'line-color', colour);
   }
 
   private install(): void {
@@ -45,7 +53,7 @@ export class Graticule {
         type: 'line',
         source: SOURCE,
         paint: {
-          'line-color': '#3FB6FF',
+          'line-color': this.colour,
           'line-width': 0.75,
           // Quieter as the streets take over from the globe.
           'line-opacity': [

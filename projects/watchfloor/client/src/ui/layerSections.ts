@@ -1,5 +1,6 @@
 import type { TrailMode, TrailStyle } from '../map/trailLayer';
 import { STACK_EXAGGERATION } from '../map/stackBuffers';
+import { SKIN_LOOKS, SKINS, type Skin, type SkinSetting } from '../state/skins';
 import type { SymbolStyle } from '../state/symbolStyle';
 import type { LayerSection } from './layersMenu';
 
@@ -40,6 +41,7 @@ export interface LayerDeps {
   room: () => void;
   timeline: () => void;
   phosphor: Toggle;
+  skin: SkinSetting;
   currents: Toggle;
   exposure: Toggle;
   satellites: Toggle;
@@ -183,6 +185,12 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         toggle('Findings', 'Rare aircraft, circling, converging military, ships gone silent', 'D', d.findings),
         toggle('Shipping chokepoints', 'Ships at eight narrows', 'C', d.chokepoints),
         toggle('Weather radar', 'RainViewer, in grey', 'R', d.radar, d.radarTime),
+      ],
+    },
+    {
+      // Things to do rather than layers to show (they sat under World, which they aren't).
+      title: 'Tools',
+      rows: [
         { kind: 'action', label: 'Search the map', key: '/', run: d.search },
         { kind: 'action', label: 'Cinematic tour', key: 'G', run: d.tour },
         { kind: 'action', label: 'Watch handover', key: 'V', run: d.handover },
@@ -211,6 +219,15 @@ export function layerSections(d: LayerDeps): LayerSection[] {
     {
       title: 'Display',
       rows: [
+        {
+          kind: 'choice',
+          label: 'Skin',
+          key: 'K',
+          options: SKINS.map((s) => ({ value: s, label: SKIN_LOOKS[s].label, hint: SKIN_LOOKS[s].hint, swatch: SKIN_LOOKS[s].swatch })),
+          get: () => d.skin.value,
+          set: (v) => d.skin.set(v as Skin),
+          watch: [d.skin],
+        },
         toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
         toggle('Traffic currents', 'Particles follow the average flow of the traffic, not wind', 'I', d.currents),
         toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),

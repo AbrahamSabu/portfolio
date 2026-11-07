@@ -1,4 +1,4 @@
-import { approach, type Approach, type Platform, type Track } from '@watchfloor/shared';
+import { approach, MILITARY_AIR_PLATFORMS, type Approach, type Platform, type Track } from '@watchfloor/shared';
 
 /** Two military aircraft whose present courses bring them close. */
 export interface Convergence {
@@ -7,7 +7,7 @@ export interface Convergence {
   approach: Approach;
 }
 
-const MILITARY_AIR: ReadonlySet<Platform> = new Set(['military-aircraft', 'military-helicopter', 'maritime-patrol', 'uav']);
+const MILITARY_AIR: ReadonlySet<Platform> = new Set(MILITARY_AIR_PLATFORMS);
 
 /** Reports older than this describe where the aircraft was, not where it is. */
 const MAX_AGE_MS = 90_000;

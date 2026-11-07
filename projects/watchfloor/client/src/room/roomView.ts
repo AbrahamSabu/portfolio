@@ -107,7 +107,7 @@ export function roomView(state: RoomState, page: { origin: string; hostname: str
         link: joinUrl(best, state.code),
         also: others,
         screenLink: screenUrl(best, state.code),
-        message: 'Scan with a phone camera to join as a console, or open the link and type the code.',
+        message: 'Scan with a phone or tablet camera. Each device chooses: show the map there, or control a screen.',
       };
     }
   }

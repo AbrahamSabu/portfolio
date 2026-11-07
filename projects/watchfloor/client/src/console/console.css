@@ -219,13 +219,15 @@ button {
   font: 16px var(--font);
 }
 
+/* All, Air and Sea on the first row; Military and Squawks share the second. */
 .console-domains {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .console-domains button {
-  flex: 1;
+  flex: 1 1 28%;
   height: 38px;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -236,10 +238,32 @@ button {
   text-transform: uppercase;
 }
 
+.console-domain-count {
+  margin-left: 4px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An aircraft is squawking an emergency code: the button says so in the squawks' amber. */
+.console-domains button.console-squawking {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.console-domains button.console-squawking .console-domain-count {
+  color: var(--warn);
+}
+
 .console-domains button[aria-pressed='true'] {
   border-color: var(--hud);
   background: rgb(63 182 255 / 0.14);
   color: var(--ink);
+}
+
+.console-domains button.console-squawking[aria-pressed='true'] {
+  border-color: var(--warn);
+  background: rgb(240 195 106 / 0.14);
+  color: var(--warn);
 }
 
 .console-count {
@@ -457,16 +481,35 @@ button {
   text-transform: uppercase;
 }
 
-.console-steer-select {
+.console-targets {
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.console-target {
   height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--hud);
+  padding: 0 14px;
+  border: 1px solid var(--rule);
   border-radius: 4px;
-  background: var(--surface-solid);
-  color: var(--hud-bright);
-  font: 600 18px var(--font-display);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 600 17px var(--font-display);
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-target[aria-pressed='true'] {
+  border-color: var(--hud);
+  background: rgb(63 182 255 / 0.18);
+  color: var(--hud-bright);
+  box-shadow: 0 0 14px rgb(63 182 255 / 0.2);
+}
+
+.console-target[data-away] {
+  border-style: dashed;
+  opacity: 0.6;
 }
 
 /* One line for "Sent to MAIN." and the like, above the tabs. */
@@ -482,18 +525,20 @@ button {
 .console-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 5px;
 }
 
 .console-tabs button {
   height: 48px;
+  padding: 0;
   border: 1px solid var(--rule);
   border-radius: 4px;
   background: transparent;
   color: var(--ink-muted);
-  font: 600 15px var(--font-display);
-  letter-spacing: 0.08em;
+  font: 600 14px var(--font-display);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -707,4 +752,182 @@ button {
 
 .console-send.console-ride[aria-pressed='true'] {
   background: rgb(63 182 255 / 0.18);
+}
+
+/* The first question, for a device opened from the room's link. */
+.console-choose {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.console-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--hud);
+  border-radius: 6px;
+  background: rgb(63 182 255 / 0.08);
+  color: var(--ink);
+  text-align: left;
+}
+
+.console-choice strong {
+  color: var(--hud-bright);
+  font: 700 20px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-choice span {
+  color: var(--ink-muted);
+  font-size: 15px;
+}
+
+/* The Room tab: who's here, and this device's role. */
+.console-room {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.console-subtitle {
+  margin: 6px 0 0;
+  color: var(--ink-muted);
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.console-room-screens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.console-room-screens li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font: 600 17px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.console-room-screens li[data-steering] {
+  border-color: var(--hud);
+  color: var(--hud-bright);
+}
+
+.console-room-screens li span {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+/* What the remote's pad does: move the map, or be the screen's pointer. */
+.console-pad-modes {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.console-mode {
+  height: 40px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-mode[aria-pressed='true'] {
+  border-color: var(--hud);
+  background: rgb(63 182 255 / 0.18);
+  color: var(--hud-bright);
+}
+
+/* Held still long enough to press: the pad says a drag has started. */
+.console-pad.console-pad-holding {
+  border-color: var(--hud-bright);
+  box-shadow: inset 0 0 28px rgb(63 182 255 / 0.35);
+}
+
+/* Keys: the map key's shortcuts, pressed on the steered screen. */
+.console-keys {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.console-key-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.console-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: rgb(63 182 255 / 0.06);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.console-shortcut:active:not(:disabled) {
+  background: rgb(63 182 255 / 0.22);
+}
+
+.console-shortcut:disabled {
+  opacity: 0.4;
+}
+
+.console-shortcut kbd {
+  flex: none;
+  min-width: 34px;
+  padding: 4px 6px;
+  border: 1px solid var(--hud);
+  border-radius: 3px;
+  color: var(--hud-bright);
+  font: 700 16px var(--font-display);
+  text-align: center;
+}
+
+/* What the steered screen has selected, on the tabs that don't show the card. */
+.console-picked {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--accent, #c9a0ff);
+  border-radius: 4px;
+  background: rgb(201 160 255 / 0.1);
+  color: var(--ink);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.04em;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

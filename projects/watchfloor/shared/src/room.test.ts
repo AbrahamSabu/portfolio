@@ -9,6 +9,7 @@ import {
   isRoomRequest,
   joinUrl,
   normalizeRoomCode,
+  screenLabels,
   screenUrl,
   type RoomServerMessage,
 } from './room';
@@ -74,6 +75,27 @@ describe('room requests from browsers', () => {
     });
   });
 
+  it('passes on what a screen is, and only a kind from the list', () => {
+    expect(send({ type: 'room-status', status: { ...STATUS, kind: 'tv' } })).toEqual({ type: 'room-status', status: { ...STATUS, kind: 'tv' } });
+    expect(send({ type: 'room-status', status: { ...STATUS, kind: 'toaster' } })).toBeNull();
+    expect(send({ type: 'room-status', status: { ...STATUS, selected: 'adsb:4ca7b3' } })).toEqual({
+      type: 'room-status',
+      status: { ...STATUS, selected: 'adsb:4ca7b3' },
+    });
+    expect(send({ type: 'room-status', status: { ...STATUS, kind: 'Laptop' } })).toBeNull();
+  });
+
+  it('names screens by what they are, numbering two of a kind', () => {
+    const labels = screenLabels([
+      { name: 'MAIN', status: { kind: 'laptop' } },
+      { name: 'SCREEN 2', status: { kind: 'tablet' } },
+      { name: 'SCREEN 3', status: { kind: 'tablet' } },
+      { name: 'SCREEN 4' },
+    ]);
+    expect([...labels.values()]).toEqual(['Laptop', 'Tablet', 'Tablet 2', 'Screen 4']);
+    expect(screenLabels([{ name: 'MAIN' }]).get('MAIN')).toBe('Main screen');
+  });
+
   it('reads every action a console can ask of a screen', () => {
     const actions = [
       { do: 'show', id: 'adsb:4ca7b3' },
@@ -90,6 +112,12 @@ describe('room requests from browsers', () => {
       { do: 'ride', id: 'sim:air-0013' },
       { do: 'ride', id: null },
       { do: 'fly', lon: -8.49, lat: 51.84, zoom: 9 },
+      { do: 'point', dx: 0.02, dy: -0.5 },
+      { do: 'click' },
+      { do: 'press', down: true },
+      { do: 'press', down: false },
+      { do: 'key', key: 'G' },
+      { do: 'key', key: 'Escape' },
     ];
     for (const action of actions) expect(control(action, 'SCREEN 2')).toEqual({ type: 'room-control', to: 'SCREEN 2', action });
   });
@@ -119,6 +147,14 @@ describe('room requests from browsers', () => {
     expect(control({ do: 'follow' })).toBeNull();
     expect(control({ do: 'layer', layer: 'phosphor', on: true })).toBeNull();
     expect(control({ do: 'ride' })).toBeNull();
+    expect(control({ do: 'point', dx: 1.5, dy: 0 })).toBeNull();
+    expect(control({ do: 'point', dx: 0 })).toBeNull();
+    expect(control({ do: 'press' })).toBeNull();
+    expect(control({ do: 'press', down: 'yes' })).toBeNull();
+    expect(control({ do: 'key', key: 'Q' })).toBeNull(); // the room's own dialog
+    expect(control({ do: 'key', key: '/' })).toBeNull(); // needs typing on the screen
+    expect(control({ do: 'key', key: 'g' })).toBeNull();
+    expect(send({ type: 'room-status', status: { ...STATUS, selected: 'not an id' } })).toBeNull();
     expect(control({ do: 'ride', id: 'has space' })).toBeNull();
     expect(send({ type: 'room-status', status: { layers: {}, tour: false, follow: false, riding: 42 } })).toBeNull();
     expect(control({ do: 'fly', lon: 200, lat: 0, zoom: 5 })).toBeNull();

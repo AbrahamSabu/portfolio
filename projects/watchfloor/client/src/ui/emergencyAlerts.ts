@@ -1,11 +1,13 @@
 import { deadReckon } from '@watchfloor/shared';
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import { fly } from '../map/camera';
+import { SQUAWK_LIFE_MS } from '../state/alertLife';
 import type { ServerClock } from '../state/clock';
 import { EmergencyWatch, type Emergency } from '../state/emergencies';
 import type { NewsSettings } from '../state/newsStore';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
+import { AlertTimer } from './alertTimer';
 import { formatAltitude, formatNewsTime, formatSpeed, PLATFORM_LABEL } from './format';
 import { speak } from './voice';
 
@@ -16,7 +18,8 @@ const CHECK_MS = 1_000;
  * Emergency squawks: an alert card under the top bar for each aircraft
  * squawking 7500, 7600 or 7700, and an amber ring round it on the map. The
  * card says the code is as broadcast (codes get set by mistake), offers to
- * show the aircraft, and can be hidden. Nothing is lost by hiding it: while
+ * show the aircraft, and can be hidden; after half a minute it hides itself.
+ * Nothing is lost by hiding it: while
  * any code is broadcast a chip in the top bar says so (click: the cards come
  * back, or with one squawk the aircraft is shown), the ring can be clicked,
  * and the aircraft's details say it too. Read aloud when read-aloud is on.
@@ -27,6 +30,7 @@ export class EmergencyAlerts {
   private readonly watch = new EmergencyWatch();
   private readonly dismissed = new Set<string>();
   private readonly rings = new Map<string, Marker>();
+  private readonly timer: AlertTimer;
   private signature = '';
 
   constructor(
@@ -39,9 +43,16 @@ export class EmergencyAlerts {
     private readonly chip: HTMLButtonElement,
     private readonly ping: () => void = () => {},
   ) {
+    // Its time up, a card folds into the chip, exactly as if hidden.
+    this.timer = new AlertTimer(root, SQUAWK_LIFE_MS, (id) => {
+      this.dismissed.add(id);
+      this.render();
+      this.updateChip();
+    });
     chip.addEventListener('click', () => {
       const active = this.watch.active.filter((e) => this.store.get(e.id));
       this.dismissed.clear();
+      for (const e of active) this.timer.start(e.id);
       this.render();
       if (active.length === 1) this.show(active[0]!.id);
     });
@@ -49,6 +60,7 @@ export class EmergencyAlerts {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-id]');
       if (!button?.dataset.id) return;
       if (button.dataset.action === 'dismiss') {
+        this.timer.forget(button.dataset.id);
         this.dismissed.add(button.dataset.id);
         this.render();
       } else this.show(button.dataset.id);
@@ -66,6 +78,7 @@ export class EmergencyAlerts {
     for (const emergency of this.watch.update(this.store.all(), now)) {
       this.ping();
       this.dismissed.delete(emergency.id);
+      this.timer.start(emergency.id);
       if (this.voice.voice) this.announce(emergency);
     }
     this.render();
@@ -108,7 +121,7 @@ export class EmergencyAlerts {
     for (const card of this.root.querySelectorAll<HTMLElement>('[data-track]')) {
       const track = this.store.get(card.dataset.track!);
       const facts = card.querySelector('[data-facts]');
-      if (track && facts) facts.textContent = [formatAltitude(track.altitudeM), formatSpeed(track.speedMps)].filter(Boolean).join(' · ');
+      if (track && facts) facts.textContent = [formatAltitude(track.altitudeM), formatSpeed(track.speedMps)].map((f) => (f ? ` · ${f}` : '')).join('');
     }
   }
 
@@ -118,6 +131,7 @@ export class EmergencyAlerts {
     const card = document.createElement('article');
     card.className = 'alert-card';
     card.dataset.track = e.id;
+    card.dataset.life = e.id;
     card.setAttribute('role', 'alert');
 
     const head = document.createElement('div');
@@ -125,26 +139,30 @@ export class EmergencyAlerts {
     const code = document.createElement('span');
     code.className = 'alert-code';
     code.textContent = `SQUAWK ${e.squawk}`;
+    // The card is two lines now; the caveat is a tooltip here and a line in the details panel.
+    code.title = 'As broadcast by its transponder: a code can be set by mistake.';
     const meaning = document.createElement('span');
     meaning.className = 'alert-meaning';
     meaning.textContent = e.meaning;
     const since = document.createElement('span');
     since.className = 'alert-since';
-    since.textContent = `since ${formatNewsTime(e.since)}`;
+    since.textContent = formatNewsTime(e.since);
+    since.title = `Squawking since ${formatNewsTime(e.since)}`;
     head.append(code, meaning, since);
 
-    const title = document.createElement('div');
+    // One line: callsign, then type and the facts (refreshed each check).
+    const line = document.createElement('div');
+    line.className = 'alert-line';
+    const title = document.createElement('span');
     title.className = 'alert-title';
     title.textContent = track.callsign ?? 'No callsign';
-    const kind = document.createElement('div');
+    const kind = document.createElement('span');
     kind.className = 'alert-kind';
-    kind.textContent = track.model ?? PLATFORM_LABEL[track.platform];
-    const facts = document.createElement('div');
+    kind.textContent = ` · ${track.model ?? PLATFORM_LABEL[track.platform]}`;
+    const facts = document.createElement('span');
     facts.className = 'alert-facts';
     facts.dataset.facts = '';
-    const note = document.createElement('p');
-    note.className = 'alert-note';
-    note.textContent = 'As broadcast by its transponder: a code can be set by mistake.';
+    line.append(title, kind, facts);
 
     const actions = document.createElement('div');
     actions.className = 'alert-actions';
@@ -161,9 +179,10 @@ export class EmergencyAlerts {
     dismiss.setAttribute('aria-label', 'Hide alert (it stays in the top bar while the code is broadcast)');
     dismiss.title = 'Hide (it stays in the top bar)';
     dismiss.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>';
-    actions.append(show, dismiss);
+    actions.append(show);
 
-    card.append(head, title, kind, facts, note, actions);
+    // On the card itself: the actions row is positioned, and would take the × with it.
+    card.append(head, line, actions, dismiss);
     return card;
   }
 

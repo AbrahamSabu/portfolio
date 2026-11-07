@@ -1,8 +1,11 @@
 import './console.css';
 import {
+  isRemoteKey,
   isRoomCode,
-  isScreenName,
   normalizeRoomCode,
+  REMOTE_KEYS,
+  screenLabels,
+  screenUrl,
   type ConsoleCallsign,
   type RoomAction,
   type RoomClosedReason,
@@ -12,20 +15,25 @@ import {
 } from '@watchfloor/shared';
 import { shapeFor, shapeSvg } from '../map/shapes';
 import { Connection, defaultSocketUrl, type ConnectionState } from '../net/connection';
+import { readRole, writeRole } from '../room/deviceRole';
 import { trackName } from '../room/roomView';
 import { ServerClock } from '../state/clock';
 import { TrackStore } from '../state/trackStore';
-import { DEFAULT_QUERY, queryTracks, type DomainFilter } from '../state/trackQuery';
+import { DEFAULT_QUERY, queryTracks, specialCounts, type DomainFilter } from '../state/trackQuery';
 import { trafficLabel } from '../ui/format';
+import { SHORTCUTS } from '../ui/shortcuts';
 import { ConsoleList } from './consoleList';
 import { REFUSAL, codeFromSearch, detailFacts, trackKind } from './consoleText';
 import { LayerSwitches } from './layerSwitches';
 import { PlacesPanel } from './places';
-import { RemotePad } from './remotePad';
+import { Pacer } from './pacer';
+import { RemotePad, type PadMode } from './remotePad';
 
 /**
- * The phone console of the ops room (console.html): join a room by code,
- * pick which screen to steer (the main one, or another such as a TV), then
+ * The phone console of the ops room (console.html): join a room by code
+ * (a device opened from the room's link is first asked whether it shows the
+ * map or controls a screen), pick which screen to steer by name (Laptop,
+ * TV...), then
  * send it a track from the list, move its map with the remote, switch its
  * layers, or fly it to a place. Every screen shows what this phone has
  * open. No map library: light enough for any phone.
@@ -44,7 +52,7 @@ const NOTE_MS = 2_500;
 /** Like the main page: a phone in a pocket closes its socket after a quiet minute hidden. */
 const HIDDEN_STOP_MS = 60_000;
 
-type Tab = 'tracks' | 'remote' | 'layers' | 'places';
+type Tab = 'tracks' | 'remote' | 'keys' | 'layers' | 'places' | 'room';
 
 const store = new TrackStore();
 const clock = new ServerClock();
@@ -52,6 +60,10 @@ const clock = new ServerClock();
 // The room, as the server last told it. In memory only: a reload joins afresh.
 let code = codeFromSearch(location.search);
 if (code) el<HTMLInputElement>('join-code').value = code;
+// A device that chose to show the map goes straight there; one that hasn't chosen yet is asked first.
+const remembered = readRole();
+if (code && remembered === 'screen') location.replace(screenUrl(location.origin, code));
+let choosing = code !== null && remembered !== 'control';
 let token: string | undefined;
 let callsign: ConsoleCallsign | null = null;
 let refusal: string | null = null;
@@ -61,6 +73,10 @@ let traffic = '';
 /** The connected screens, and the one this phone steers (kept while it's away, so it comes back to it). */
 let screens: ScreenPresence[] = [];
 let target: ScreenName = 'MAIN';
+/** The steered screen's selection as last seen: when it changes there, its card opens here. */
+let seenSelected: string | undefined;
+/** What people call each screen (Laptop, TV...); kept for the steered one while it's away. */
+let labels = new Map<ScreenName, string>();
 let tab: Tab = 'tracks';
 
 // What this phone has open.
@@ -74,10 +90,14 @@ let search = '';
 
 const targetHere = () => screens.some((s) => s.name === target);
 const targetStatus = () => screens.find((s) => s.name === target)?.status;
+const targetLabel = () => labels.get(target) ?? target;
+
+/** Controls go out paced, so a tap right after a slide isn't dropped by the server (pacer.ts). */
+const pacer = new Pacer((to, action) => connection.send({ type: 'room-control', to, action }));
 
 /** Ask the steered screen to do something; nothing goes out while it's away. */
 function control(action: RoomAction): void {
-  if (callsign && targetHere()) connection.send({ type: 'room-control', to: target, action });
+  if (callsign && targetHere()) pacer.push(target, action);
 }
 
 function note(text: string): void {
@@ -91,9 +111,21 @@ const list = new ConsoleList(el('rows'), el('rows-sizer'), (id) => openTrack(id)
 const switches = new LayerSwitches(el('layer-switches'), (layer, on) => control({ do: 'layer', layer, on }));
 const places = new PlacesPanel(el<HTMLInputElement>('place-search'), el('place-list'), (place) => {
   control({ do: 'fly', lon: place.lon, lat: place.lat, zoom: place.zoom });
-  note(`${target} is flying to ${place.label}.`);
+  note(`${targetLabel()} is flying to ${place.label}.`);
 });
-new RemotePad(el('pad'), (dx, dy) => control({ do: 'pan', dx, dy }));
+const pad = new RemotePad(el('pad'), (action) => control(action));
+const PAD_HINT: Record<PadMode, string> = {
+  pan: 'Drag to move the map · pinch to zoom',
+  pointer: 'Slide to move the pointer · tap to click · hold, then slide to drag · two fingers move the map',
+};
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-pad-mode]')) {
+  button.addEventListener('click', () => {
+    const mode = button.dataset.padMode as PadMode;
+    pad.setMode(mode);
+    for (const b of document.querySelectorAll<HTMLButtonElement>('[data-pad-mode]')) b.setAttribute('aria-pressed', String(b === button));
+    el('pad-hint').textContent = PAD_HINT[mode];
+  });
+}
 
 const connection = new Connection(defaultSocketUrl(), {
   onMessage(message, receivedAt) {
@@ -103,7 +135,7 @@ const connection = new Connection(defaultSocketUrl(), {
         store.setStaleness(message.staleness);
         traffic = trafficLabel(message.traffic, message.scenario?.name);
         // A new socket: rejoin (the token keeps our callsign) and ask again about the open track.
-        if (code) join();
+        if (code && !choosing) join();
         if (opened) connection.send({ type: 'track', id: opened });
         break;
       // The store's own subscription redraws the list for these.
@@ -127,11 +159,20 @@ const connection = new Connection(defaultSocketUrl(), {
         refusal = null;
         connection.send({ type: 'room-look', id: opened });
         break;
-      case 'room-presence':
+      case 'room-presence': {
         screens = message.screens;
+        labels = new Map([...labels, ...screenLabels(screens)]);
+        // Two-way: what's picked on the steered screen (by its pointer, or at the screen) opens here.
+        const selected = targetStatus()?.selected;
+        if (selected !== seenSelected) {
+          seenSelected = selected;
+          if (selected && selected !== opened && store.get(selected)) openTrack(selected);
+        }
         break;
+      }
       case 'room-closed':
-        leaveRoom(message.reason);
+        // After Leave the room the server may confirm; that's no news.
+        if (callsign !== null || code) leaveRoom(message.reason);
         break;
     }
     render();
@@ -148,14 +189,18 @@ function join(): void {
   if (code) connection.send({ type: 'room-join', code, ...(token ? { token } : {}) });
 }
 
-/** Turned away or the room ended: back to the join screen, the code left in the box to correct or retry. */
-function leaveRoom(reason: RoomClosedReason): void {
-  refusal = REFUSAL[reason];
-  if (code && reason !== 'closed') el<HTMLInputElement>('join-code').value = code;
+/**
+ * Turned away, the room ended, or (null) this phone left: back to the join
+ * screen, the code left in the box to correct or retry.
+ */
+function leaveRoom(reason: RoomClosedReason | null): void {
+  refusal = reason ? REFUSAL[reason] : null;
+  if (code && reason && reason !== 'closed') el<HTMLInputElement>('join-code').value = code;
   code = null; // so a reconnect doesn't retry it
   callsign = null;
   token = undefined;
   screens = [];
+  labels = new Map();
   target = 'MAIN';
   tab = 'tracks';
   closeTrack();
@@ -191,7 +236,7 @@ el('send').addEventListener('click', () => {
   if (!opened) return;
   control({ do: 'show', id: opened });
   sentAt = Date.now();
-  note(`Sent to ${target}.`);
+  note(`Sent to ${targetLabel()}.`);
   window.setTimeout(render, SEND_REST_MS);
   render();
 });
@@ -201,13 +246,71 @@ el('ride').addEventListener('click', () => {
   if (!opened) return;
   const riding = targetStatus()?.riding === opened;
   control({ do: 'ride', id: riding ? null : opened });
-  note(riding ? `Left the ride on ${target}.` : `Riding along on ${target}.`);
+  note(riding ? `Left the ride on ${targetLabel()}.` : `Riding along on ${targetLabel()}.`);
   render();
 });
 
-const targetSelect = el<HTMLSelectElement>('target');
-targetSelect.addEventListener('change', () => {
-  if (isScreenName(targetSelect.value)) target = targetSelect.value;
+// What the steered screen has selected, shown on the other tabs: a tap opens its card.
+el('picked').addEventListener('click', () => {
+  const selected = targetStatus()?.selected;
+  if (!selected) return;
+  tab = 'tracks';
+  if (opened !== selected) openTrack(selected);
+  render();
+});
+
+// Follow, from the card: the steered screen's camera stays on the track it has selected (this one).
+el('follow').addEventListener('click', () => {
+  const status = targetStatus();
+  if (!opened || status?.selected !== opened) return;
+  control({ do: 'follow', on: !status.follow });
+});
+
+// The Keys tab: the map key's shortcuts, pressed on the steered screen. Esc first: it closes what a key opened.
+const KEY_LABEL = new Map(SHORTCUTS.map(([k, label]) => [k === 'Esc' ? 'Escape' : k, label]));
+el('key-grid').replaceChildren(
+  ...['Escape' as const, ...REMOTE_KEYS.filter((k) => k !== 'Escape')].map((key) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'console-shortcut';
+    const kbd = document.createElement('kbd');
+    kbd.textContent = key === 'Escape' ? 'Esc' : key;
+    const label = document.createElement('span');
+    label.textContent = KEY_LABEL.get(key) ?? key;
+    button.append(kbd, label);
+    button.addEventListener('click', () => {
+      if (isRemoteKey(key)) control({ do: 'key', key });
+    });
+    return button;
+  }),
+);
+
+// The first question, for a device opened from the room's link: show the map here, or control a screen?
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-role]')) {
+  button.addEventListener('click', () => {
+    if (!code) return;
+    if (button.dataset.role === 'screen') {
+      writeRole('screen');
+      location.assign(screenUrl(location.origin, code));
+      return;
+    }
+    writeRole('control');
+    choosing = false;
+    join();
+    render();
+  });
+}
+
+// The Room tab: show the map on this device instead, or leave.
+el('become-screen').addEventListener('click', () => {
+  if (!code) return;
+  writeRole('screen');
+  connection.send({ type: 'room-leave' });
+  location.assign(screenUrl(location.origin, code));
+});
+el('leave-room').addEventListener('click', () => {
+  connection.send({ type: 'room-leave' });
+  leaveRoom(null);
   render();
 });
 
@@ -231,7 +334,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-act]'))
         break;
       case 'home':
         control({ do: 'home' });
-        note(`${target} is going back to the opening view.`);
+        note(`${targetLabel()} is going back to the opening view.`);
         break;
       case 'follow':
         control({ do: 'follow', on: !status?.follow });
@@ -256,6 +359,8 @@ el<HTMLFormElement>('join-form').addEventListener('submit', (event) => {
   }
   code = typed;
   refusal = null;
+  choosing = false;
+  writeRole('control'); // typed into the console: this device controls
   history.replaceState(null, '', `${location.pathname}?room=${code}`);
   join();
   render();
@@ -302,9 +407,19 @@ function render(): void {
   renderTargets();
   const away = el('main-away');
   away.hidden = !inRoom || targetHere();
-  away.textContent = `${target} is away (hidden or reconnecting). It gets your controls when it's back.`;
+  away.textContent = `${targetLabel()} is away (hidden or reconnecting). It gets your controls when it's back.`;
 
-  el('join').hidden = inRoom;
+  el('choose').hidden = inRoom || !choosing;
+  el('choose-code').textContent = code ?? '';
+  el('join').hidden = inRoom || choosing;
+
+  // On every tab but Tracks (where it opens as the card), what the steered screen has selected:
+  // click a plane with the pointer, and its name shows here without leaving the pad.
+  const picked = el<HTMLButtonElement>('picked');
+  const selected = targetStatus()?.selected;
+  const pickedTrack = selected ? store.get(selected) : undefined;
+  picked.hidden = !inRoom || tab === 'tracks' || !pickedTrack;
+  if (pickedTrack) picked.textContent = `On ${targetLabel()}: ${trackName(pickedTrack)} · ${trackKind(pickedTrack)} ›`;
   el('join-lede').textContent =
     code && !refusal ? `Joining room ${code}…` : 'Type the code shown on the main screen. Press Q there to show it.';
   const error = el('join-error');
@@ -320,30 +435,62 @@ function render(): void {
   el('details').hidden = !inRoom || tab !== 'tracks' || opened === null;
   el('remote').hidden = !inRoom || tab !== 'remote';
   el('layers').hidden = !inRoom || tab !== 'layers';
+  el('keys').hidden = !inRoom || tab !== 'keys';
+  el('keys-lede').textContent = `Pressed on ${targetLabel()}, as if typed there. Pointer mode on the Remote tab clicks what they open.`;
+  for (const b of el('key-grid').querySelectorAll('button')) b.disabled = !targetHere() || link.status !== 'open';
   el('places').hidden = !inRoom || tab !== 'places';
+  el('room').hidden = !inRoom || tab !== 'room';
+  if (inRoom && tab === 'room') renderRoom();
   if (inRoom) renderList();
   if (opened) renderDetails();
   renderRemote();
-  el('layers-lede').textContent = `What ${target} shows. Each switch changes that screen only.`;
+  el('layers-lede').textContent = `What ${targetLabel()} shows. Each switch changes that screen only.`;
   switches.render(targetStatus()?.layers, targetHere() && link.status === 'open');
 }
 
-/** The screens to steer: those in the room, plus the steered one while it's away. Rebuilt only on change. */
+/** One button per screen to steer, plus the steered one while it's away. Rebuilt only on change. */
 let targetsShown = '';
 function renderTargets(): void {
   const names: ScreenName[] = screens.map((s) => s.name);
   const here = new Set(names);
   if (!here.has(target)) names.push(target);
-  const key = `${names.join('|')}#${[...here].join('|')}#${target}`;
+  const key = `${names.map((n) => `${n}=${labels.get(n) ?? n}${here.has(n) ? '' : '~'}`).join('|')}#${target}`;
   if (key === targetsShown) return;
   targetsShown = key;
-  targetSelect.replaceChildren(
+  el('targets').replaceChildren(
     ...names.map((name) => {
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = here.has(name) ? name : `${name} (away)`;
-      option.selected = name === target;
-      return option;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'console-target';
+      const label = labels.get(name) ?? name;
+      button.textContent = here.has(name) ? label : `${label} (away)`;
+      button.setAttribute('aria-pressed', String(name === target));
+      if (!here.has(name)) button.dataset.away = '';
+      button.addEventListener('click', () => {
+        target = name;
+        seenSelected = targetStatus()?.selected; // only later picks there open here
+        render();
+      });
+      return button;
+    }),
+  );
+}
+
+/** The Room tab: the room's code, this phone's callsign, and the screens, with the one it steers. */
+function renderRoom(): void {
+  el('room-code').textContent = code ?? '';
+  el('room-callsign').textContent = `CONSOLE ${callsign}`;
+  el('room-screens').replaceChildren(
+    ...screens.map((s) => {
+      const li = document.createElement('li');
+      li.textContent = labels.get(s.name) ?? s.name;
+      if (s.name === target) {
+        li.dataset.steering = '';
+        const tag = document.createElement('span');
+        tag.textContent = 'Steering';
+        li.append(tag);
+      }
+      return li;
     }),
   );
 }
@@ -381,6 +528,13 @@ function renderList(): void {
   list.set(tracks, (t) => store.status(t, now) === 'stale');
   const total = store.size;
   el('count').textContent = tracks.length === total ? `${total} tracks` : `${tracks.length} of ${total} tracks`;
+  if (tracks.length === 0 && !search && domain === 'squawk') el('count').textContent = 'No aircraft squawking an emergency code right now';
+  if (tracks.length === 0 && !search && domain === 'military') el('count').textContent = 'No military aircraft or warships in the picture';
+  // The special filters say how many they'd show, and Squawks lights amber while any aircraft squawks.
+  const counts = specialCounts(store.all());
+  el('count-military').textContent = String(counts.military);
+  el('count-squawk').textContent = String(counts.squawk);
+  el('count-squawk').closest('button')!.classList.toggle('console-squawking', counts.squawk > 0);
 }
 
 function renderDetails(): void {
@@ -406,15 +560,23 @@ function renderDetails(): void {
   const send = el<HTMLButtonElement>('send');
   const resting = Date.now() - sentAt < SEND_REST_MS;
   send.disabled = !track || !targetHere() || resting || link.status !== 'open';
-  send.textContent = targetHere() ? `Send to ${target}` : `${target} is away`;
+  send.textContent = targetHere() ? `Send to ${targetLabel()}` : `${targetLabel()} is away`;
   // Only an aircraft reporting its altitude can be ridden (canRide in rideAlong.ts).
   const ride = el<HTMLButtonElement>('ride');
   const rideable = track !== undefined && track.domain === 'air' && track.altitudeM !== undefined;
   const riding = rideable && targetStatus()?.riding === track.id;
   ride.hidden = !rideable;
   ride.disabled = !targetHere() || link.status !== 'open';
-  ride.textContent = riding ? `Leave the ride on ${target}` : `Ride along on ${target}`;
+  ride.textContent = riding ? `Leave the ride on ${targetLabel()}` : `Ride along on ${targetLabel()}`;
   ride.setAttribute('aria-pressed', String(riding));
+  // Follow works on the screen's selection: offered once this track is the one selected there.
+  const follow = el<HTMLButtonElement>('follow');
+  const status = targetStatus();
+  const selectedThere = track !== undefined && status?.selected === track.id;
+  follow.hidden = !selectedThere;
+  follow.disabled = !targetHere() || link.status !== 'open';
+  follow.textContent = status?.follow ? `Stop following on ${targetLabel()}` : `Follow on ${targetLabel()}`;
+  follow.setAttribute('aria-pressed', String(status?.follow === true));
 }
 
 render();

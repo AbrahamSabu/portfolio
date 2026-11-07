@@ -2,6 +2,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import './hud.css';
+import './skins.css';
 import type { Finding } from '@watchfloor/shared';
 import { AirportLayer } from './map/airportLayer';
 import { describeAirport } from './map/airports';
@@ -41,6 +42,7 @@ import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl'
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
+import { showFirstHint } from './ui/firstHint';
 import { mapSource, SkyScore, type CueKind } from './sound/skyScore';
 import { RoomHost } from './room/roomHost';
 import { ServerClock } from './state/clock';
@@ -84,6 +86,8 @@ import { Tour } from './ui/tour';
 import { formatDtg, formatNewsTime, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
+import { loadSkin, saveSkin, SKIN_LOOKS, SkinSetting } from './state/skins';
+import { wearSkin } from './ui/wearSkin';
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
@@ -139,7 +143,13 @@ async function main(): Promise<void> {
   // redraw steps buy nothing there, so render at 1:1 and take whole-pixel
   // steps (the inline script in index.html also caps the page at 30 fps).
   const screensaver = new URLSearchParams(location.search).has('screensaver');
-  const { map, userHasMoved } = createMap(el('map'), screensaver ? { pixelRatio: 1 } : {});
+  // The skin (state/skins.ts): index.html's inline script already put it on <html> for the first
+  // paint; createMap paints the basemap in it, and wearSkin below does the rest.
+  const skin = new SkinSetting(loadSkin(location.search));
+  const { map, userHasMoved } = createMap(el('map'), {
+    ...(screensaver ? { pixelRatio: 1 } : {}),
+    palette: () => SKIN_LOOKS[skin.value].basemap,
+  });
   // Space around the globe, behind the map's transparent canvas: it drifts as the globe turns.
   new SpaceBackdrop(el('space'), map);
   if (screensaver) setPaceScale(2);
@@ -157,7 +167,12 @@ async function main(): Promise<void> {
   const newsSettings = new NewsSettings(loadNewsSettings());
 
   // The plotting surface: a faint graticule under everything, and hairlines under the pointer.
-  new Graticule(map);
+  const graticule = new Graticule(map);
+  skin.subscribe(() => {
+    saveSkin(skin.value);
+    wearSkin(skin.value, map, graticule);
+  });
+  wearSkin(skin.value, map, graticule);
   new Crosshair(map);
   // Night, under the basemap's labels and everything of ours, and city lights on it.
   new NightLayer(map, () => clock.now());
@@ -339,9 +354,10 @@ async function main(): Promise<void> {
   // stack overflows upward, which scrollHeight doesn't count, so the cards are measured.
   const alertCorner = document.querySelector<HTMLElement>('.alerts')!;
   const markOverflow = () => {
-    // Each kind of alert is a group; the stack's gap (8px) sits between the groups shown.
+    // Each kind of alert is a group; the stack's gap sits between the groups shown.
     const groups = [...alertCorner.children].filter((g): g is HTMLElement => g instanceof HTMLElement && g.offsetHeight > 0);
-    const content = groups.reduce((sum, g) => sum + g.offsetHeight, 0) + 8 * Math.max(0, groups.length - 1);
+    const gap = parseFloat(getComputedStyle(alertCorner).rowGap) || 0;
+    const content = groups.reduce((sum, g) => sum + g.offsetHeight, 0) + gap * Math.max(0, groups.length - 1);
     alertCorner.classList.toggle('alerts-overflow', content > alertCorner.clientHeight + 1);
   };
   new MutationObserver(markOverflow).observe(alertCorner, { childList: true, subtree: true });
@@ -447,6 +463,12 @@ async function main(): Promise<void> {
       },
     },
   );
+  // The top bar's Tour button: a way in for anyone who doesn't know G, lit while the tour runs.
+  const tourButton = el('tour-toggle');
+  tourButton.addEventListener('click', () => (tour.active ? tour.stop() : tour.start()));
+  tour.onChange = () => tourButton.setAttribute('aria-pressed', String(tour.active));
+  // A first visit's one-time hint; not for a kiosk, or a screen joined to a room (nobody is at its mouse).
+  if (!screensaver && !new URLSearchParams(location.search).has('screen')) showFirstHint(map);
 
   // Screensaver mode (?screensaver, for a kiosk window or an idle trigger):
   // opening this URL is the consent the motion rule asks for, so the tour
@@ -499,6 +521,11 @@ async function main(): Promise<void> {
     if (id) connection.send({ type: 'track', id });
   });
 
+  // Checking a track: the news card makes way, and the rotation waits until nothing is selected.
+  selection.subscribe((id, previous) => {
+    if (id !== previous) cards.makeWay(id !== null);
+  });
+
   // Reticle and follow mode track the dead-reckoned position, not the last report.
   selection.subscribe((id, previous) => {
     const pos = id ? layer.positionOf(id) : undefined;
@@ -548,6 +575,11 @@ async function main(): Promise<void> {
     // riding, so music can start under the screensaver.
     if ((event.key === 'y' || event.key === 'Y') && !isTyping(event) && !event.ctrlKey && !event.metaKey && !event.altKey) {
       score.toggle();
+      return;
+    }
+    // So is the skin: K dresses the display in the next one and leaves the tour riding.
+    if ((event.key === 'k' || event.key === 'K') && !isTyping(event) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      skin.cycle();
       return;
     }
     // Any key hands the camera back from the tour, and does nothing else.
@@ -639,6 +671,7 @@ async function main(): Promise<void> {
       room: () => room.toggle(),
       timeline: () => timeline.setOpen(true),
       phosphor,
+      skin,
       currents: currentsShown,
       exposure: exposureShown,
       satellites: satellitesShown,

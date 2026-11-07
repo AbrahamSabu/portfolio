@@ -1,7 +1,37 @@
-import type { Domain, Track } from '@watchfloor/shared';
+import { emergencyOf, MILITARY_PLATFORMS, type Domain, type Platform, type Track } from '@watchfloor/shared';
 import { PLATFORM_LABEL } from '../ui/format';
 
-export type DomainFilter = 'all' | Domain;
+/**
+ * Which tracks a list shows: everything, one domain, the military of either
+ * domain, or aircraft squawking an emergency code (the phone's filters).
+ */
+export type DomainFilter = 'all' | Domain | 'military' | 'squawk';
+
+const MILITARY: ReadonlySet<Platform> = new Set(MILITARY_PLATFORMS);
+
+function shows(track: Track, filter: DomainFilter): boolean {
+  switch (filter) {
+    case 'all':
+      return true;
+    case 'military':
+      return MILITARY.has(track.platform);
+    case 'squawk':
+      return emergencyOf(track) !== undefined;
+    default:
+      return track.domain === filter;
+  }
+}
+
+/** How many tracks the Military and Squawks filters would show, for their buttons. */
+export function specialCounts(tracks: Iterable<Track>): { military: number; squawk: number } {
+  let military = 0;
+  let squawk = 0;
+  for (const track of tracks) {
+    if (MILITARY.has(track.platform)) military++;
+    if (emergencyOf(track) !== undefined) squawk++;
+  }
+  return { military, squawk };
+}
 export type SortKey = 'callsign' | 'type' | 'speed' | 'altitude' | 'age';
 export type SortDir = 'asc' | 'desc';
 
@@ -38,9 +68,9 @@ function normalize(text: string): string {
   return text.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-/** Domain filter plus a case-insensitive substring search on callsign, track id, or aircraft type and model. */
+/** The filter plus a case-insensitive substring search on callsign, track id, or aircraft type and model. */
 export function matchesQuery(track: Track, query: TrackQuery): boolean {
-  if (query.domain !== 'all' && track.domain !== query.domain) return false;
+  if (!shows(track, query.domain)) return false;
   const needle = normalize(query.search);
   if (!needle) return true;
   return (

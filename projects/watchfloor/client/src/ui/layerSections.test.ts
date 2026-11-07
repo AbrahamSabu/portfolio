@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SkinSetting } from '../state/skins';
 import { SHORTCUTS } from './keyDialog';
 import { layerSections, type LayerDeps } from './layerSections';
 import { menuKeys, type SwitchRow } from './layersMenu';
@@ -40,6 +41,7 @@ function deps(): LayerDeps {
     room: () => {},
     timeline: () => {},
     phosphor: toggle(),
+    skin: new SkinSetting('holo'),
     currents: toggle(),
     exposure: toggle(),
     satellites: toggle(),
@@ -54,7 +56,7 @@ describe('the Layers menu', () => {
     expect(new Set(keys).size).toBe(keys.length);
     const listed = new Set(SHORTCUTS.map(([k]) => k));
     expect(keys.filter((k) => !listed.has(k))).toEqual([]);
-    expect(keys).toEqual(['S', 'T', 'O', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'V', 'Z', 'U', 'P', 'Q', 'W', 'I', 'E']);
+    expect(keys).toEqual(['S', 'T', 'O', 'N', 'B', 'A', 'H', 'D', 'C', 'R', '/', 'G', 'V', 'Z', 'U', 'P', 'Q', 'W', 'K', 'I', 'E']);
   });
 
   it('turns news on when the briefing is asked for with news off', () => {

@@ -1,0 +1,434 @@
+/*
+ * Skins (state/skins.ts): the same display in other clothes, keyed on
+ * html[data-skin], which index.html's inline script sets before the first
+ * paint. Holo is styles.css and hud.css as they stand, so it has no block
+ * here. Each skin overrides the tokens and the look of the panels, the bars
+ * and the overlay over the map; the basemap, sky and graticule are painted
+ * from the skin's palette in TypeScript.
+ *
+ * Never skinned: the identity colours of tracks, the squawks' amber
+ * (--warn) and the hazards' apricot. Colour means identity, whatever the
+ * clothes (Phosphor's green map is the one deliberate exception, as the
+ * Phosphor scope toggle always was).
+ */
+
+/* =============================================================== Phosphor */
+
+/*
+ * A green radar tube, harder than the Phosphor scope toggle: the whole
+ * display in one gun's green, monospace lettering, a bloom on everything
+ * lit, heavy scan lines, a dark tube edge and a sweep turning round the
+ * screen. Squawks stay amber: nothing on a scope should hide an emergency.
+ */
+:root[data-skin='phosphor'] {
+  --hud: #33ff66;
+  --hud-rgb: 51 255 102;
+  --hud-bright: #b8ffca;
+  --surface: rgb(0 14 5 / 0.84);
+  --surface-solid: #010b04;
+  --surface-raised: #04200d;
+  --ink: #c6ffd4;
+  --ink-muted: #5fcf7e;
+  --accent: #eaffef;
+  --ok: #7dff9e;
+  --map-bg: #000;
+  --font: 'Share Tech Mono', Consolas, ui-monospace, monospace;
+  --font-display: 'Share Tech Mono', Consolas, ui-monospace, monospace;
+}
+
+:root[data-skin='phosphor'] #map,
+:root[data-skin='phosphor'] .space {
+  filter: grayscale(1) sepia(1) hue-rotate(55deg) saturate(2.8) brightness(1.02) contrast(1.15);
+}
+
+:root[data-skin='phosphor'] .app {
+  /* The sweep is wider than the screen as it turns. */
+  overflow: hidden;
+  /* A tube's bloom: everything lit glows a little. */
+  text-shadow: 0 0 5px rgb(51 255 102 / 0.5);
+}
+
+:root[data-skin='phosphor'] .app::after {
+  background:
+    radial-gradient(ellipse at center, rgb(51 255 102 / 0.05) 0%, transparent 45%, rgb(0 0 0 / 0.72) 100%),
+    repeating-linear-gradient(180deg, rgb(0 0 0 / 0.3) 0 1px, transparent 1px 3px);
+}
+
+/* The sweep: a beam with a fading trail, once round every eight seconds. A transform, so the compositor turns it. */
+:root[data-skin='phosphor'] .app::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 160vmax;
+  height: 160vmax;
+  margin: -80vmax 0 0 -80vmax;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    transparent 0deg 290deg,
+    rgb(51 255 102 / 0.03) 320deg,
+    rgb(51 255 102 / 0.13) 359deg,
+    rgb(170 255 190 / 0.3) 359.6deg,
+    transparent 360deg
+  );
+  animation: phosphor-sweep 8s linear infinite;
+}
+
+@keyframes phosphor-sweep {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin='phosphor'] .app::before {
+    display: none;
+  }
+}
+
+:root[data-skin='phosphor']
+  :is(.track-list, .details, .briefing, .alert-card, .filter-panel, .hover-card, .key-dialog, .palette, .tour-banner, .timeline, .news-popup .maplibregl-popup-content) {
+  border-radius: 0;
+  box-shadow:
+    0 0 22px rgb(51 255 102 / 0.16),
+    inset 0 0 26px rgb(51 255 102 / 0.07);
+}
+
+:root[data-skin='phosphor'] .brand-name {
+  font-family: 'VT323', 'Share Tech Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+}
+
+:root[data-skin='phosphor'] .dtg {
+  font-family: 'VT323', 'Share Tech Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+/* ================================================================ Minimal */
+
+/* Flat graphite and one quiet grey line: no brackets, glow or scan lines, panels with soft corners and a shadow. */
+:root[data-skin='minimal'] {
+  --hud: #cdd3db;
+  --hud-rgb: 205 211 219;
+  --hud-bright: #ffffff;
+  --hud-glow: rgb(255 255 255 / 0.14);
+  --surface: rgb(20 22 26 / 0.94);
+  --surface-solid: #14161a;
+  --surface-raised: #1d2025;
+  --rule: rgb(255 255 255 / 0.1);
+  --ink: #eceff3;
+  --ink-muted: #8e959f;
+  --map-bg: #0c0d10;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+:root[data-skin='minimal'] .space {
+  filter: grayscale(1) brightness(0.65);
+}
+
+:root[data-skin='minimal'] .app::after {
+  display: none;
+}
+
+:root[data-skin='minimal'] .app * {
+  text-shadow: none;
+}
+
+:root[data-skin='minimal']
+  :is(.track-list, .details, .briefing, .alert-card, .filter-panel, .hover-card, .key-dialog, .palette, .tour-banner, .timeline, .news-popup .maplibregl-popup-content) {
+  border-radius: 10px;
+  background-image: none;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.38);
+  backdrop-filter: blur(14px);
+}
+
+:root[data-skin='minimal'] :is(.topbar, .statusbar, .ticker) {
+  background-image: none;
+  box-shadow: none;
+  border-color: var(--rule);
+}
+
+:root[data-skin='minimal'] :is(.icon-button, .topbar-button, .text-button, .alert-show, .maplibregl-ctrl-group button):hover {
+  box-shadow: none;
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+:root[data-skin='minimal'] .maplibregl-ctrl-group {
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
+}
+
+:root[data-skin='minimal'] .brand-name {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+:root[data-skin='minimal'] .dtg {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ================================================================= Bubbly */
+
+/*
+ * Candy glass: grape panels with a gloss, round corners, pill buttons, a
+ * rounded face, pink coastlines and mint for focus. Panels arrive with a
+ * small bounce.
+ */
+:root[data-skin='bubbly'] {
+  --hud: #ff7ac8;
+  --hud-rgb: 255 122 200;
+  --hud-bright: #ffd1ec;
+  --surface: rgb(38 20 76 / 0.86);
+  --surface-solid: #26144c;
+  --surface-raised: #36216f;
+  --rule: rgb(255 170 225 / 0.28);
+  --ink: #fff3fb;
+  --ink-muted: #c9b6ea;
+  --accent: #7cf5d4;
+  --ok: #7cf5d4;
+  --map-bg: #12062a;
+  --font: 'Nunito', 'Segoe UI', sans-serif;
+  --font-display: 'Fredoka', 'Nunito', 'Segoe UI', sans-serif;
+}
+
+/* Periwinkle space: softer than Synthwave's magenta. */
+:root[data-skin='bubbly'] .space {
+  filter: hue-rotate(40deg) saturate(1.25) brightness(1.15);
+}
+
+:root[data-skin='bubbly'] .app::after {
+  background: radial-gradient(ellipse at center, transparent 58%, rgb(40 6 60 / 0.5) 100%);
+}
+
+:root[data-skin='bubbly']
+  :is(.track-list, .details, .briefing, .filter-panel, .hover-card, .key-dialog, .palette, .tour-banner, .timeline, .news-popup .maplibregl-popup-content) {
+  border-radius: 22px;
+  background-image: radial-gradient(130% 70% at 15% -10%, rgb(255 255 255 / 0.16), transparent 55%);
+  box-shadow:
+    0 14px 34px rgb(255 122 200 / 0.2),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+:root[data-skin='bubbly'] .alert-card {
+  border-radius: 16px;
+  background-image: radial-gradient(120% 90% at 10% -20%, rgb(255 255 255 / 0.14), transparent 60%);
+}
+
+:root[data-skin='bubbly'] :is(.topbar, .statusbar, .ticker) {
+  background-image: linear-gradient(90deg, rgb(255 122 200 / 0.16), rgb(138 123 255 / 0.12), rgb(124 245 212 / 0.14));
+}
+
+:root[data-skin='bubbly'] .topbar {
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, #ff7ac8, #b18cff, #7cf5d4) 1;
+  box-shadow: 0 4px 18px rgb(255 122 200 / 0.22);
+}
+
+:root[data-skin='bubbly'] .app :is(button, input, select) {
+  border-radius: 999px;
+}
+
+:root[data-skin='bubbly'] :is(.layers-choice-group, .maplibregl-ctrl-group, .first-hint, .stack-chip, .room-toast, .data-block-card) {
+  border-radius: 999px;
+}
+
+:root[data-skin='bubbly'] .maplibregl-ctrl-group {
+  border-radius: 18px;
+}
+
+/* Buttons whose words can wrap to two lines: a pill would pinch them. */
+:root[data-skin='bubbly'] :is(.layers-swatches button, .details-actions button) {
+  border-radius: 14px;
+}
+
+:root[data-skin='bubbly'] .brand-name {
+  background: linear-gradient(90deg, #ff7ac8, #c69bff, #7cf5d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  letter-spacing: 0.12em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-skin='bubbly'] :is(.briefing, .filter-panel, .details, .alert-card) {
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+/* ============================================================== Blueprint */
+
+/*
+ * White ink on drafting blue: square corners, the brackets as a drafter's
+ * corner marks over a faint drafting grid, and B612, the face drawn for
+ * Airbus cockpit displays.
+ */
+:root[data-skin='blueprint'] {
+  --hud: #e8f2ff;
+  --hud-rgb: 232 242 255;
+  --hud-bright: #ffffff;
+  --hud-glow: rgb(232 242 255 / 0.28);
+  --surface: rgb(10 38 80 / 0.9);
+  --surface-solid: #0a2650;
+  --surface-raised: #113468;
+  --rule: rgb(232 242 255 / 0.28);
+  --ink: #f4f8ff;
+  --ink-muted: #a8c0e2;
+  --map-bg: #071d40;
+  --font: 'B612', 'Segoe UI', sans-serif;
+  --font-display: 'B612 Mono', Consolas, ui-monospace, monospace;
+}
+
+:root[data-skin='blueprint'] .space {
+  filter: saturate(0.55) brightness(0.9);
+}
+
+:root[data-skin='blueprint'] .app::after {
+  background: radial-gradient(ellipse at center, transparent 60%, rgb(2 12 30 / 0.55) 100%);
+}
+
+:root[data-skin='blueprint']
+  :is(.track-list, .details, .briefing, .alert-card, .filter-panel, .hover-card, .key-dialog, .palette, .tour-banner, .timeline, .news-popup .maplibregl-popup-content) {
+  border-radius: 0;
+  background-image:
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
+    linear-gradient(rgb(232 242 255 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(232 242 255 / 0.06) 1px, transparent 1px);
+  background-size:
+    var(--bracket) 1px, 1px var(--bracket), var(--bracket) 1px, 1px var(--bracket),
+    var(--bracket) 1px, 1px var(--bracket), var(--bracket) 1px, 1px var(--bracket),
+    16px 16px, 16px 16px;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom,
+    0 0, 0 0;
+  background-repeat:
+    no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat,
+    repeat, repeat;
+  box-shadow: 0 6px 18px rgb(2 12 30 / 0.4);
+}
+
+:root[data-skin='blueprint'] :is(.topbar, .statusbar, .ticker) {
+  background-image: none;
+  box-shadow: none;
+}
+
+:root[data-skin='blueprint'] .app * {
+  text-shadow: none;
+}
+
+:root[data-skin='blueprint'] .brand-name {
+  letter-spacing: 0.3em;
+}
+
+/* ============================================================== Synthwave */
+
+/*
+ * Neon on midnight: hot pink lines and brackets, cyan highlights, a sunset
+ * stripe under the top bar and a pink haze along the bottom of the screen,
+ * the brand in chrome-sunset Orbitron.
+ */
+:root[data-skin='synthwave'] {
+  --hud: #ff3db4;
+  --hud-rgb: 255 61 180;
+  --hud-bright: #7df9ff;
+  --surface: rgb(22 5 44 / 0.86);
+  --surface-solid: #16052c;
+  --surface-raised: #260a46;
+  --ink: #fdeeff;
+  --ink-muted: #b99ad8;
+  --accent: #7df9ff;
+  --map-bg: #07021a;
+}
+
+:root[data-skin='synthwave'] .space {
+  filter: hue-rotate(110deg) saturate(1.6) brightness(0.9);
+}
+
+:root[data-skin='synthwave'] .app::after {
+  background:
+    linear-gradient(0deg, rgb(255 61 180 / 0.14), transparent 24%),
+    radial-gradient(ellipse at center, transparent 55%, rgb(10 0 25 / 0.6) 100%),
+    repeating-linear-gradient(180deg, rgb(255 61 180 / 0.03) 0 1px, transparent 1px 3px);
+}
+
+:root[data-skin='synthwave']
+  :is(.track-list, .details, .briefing, .alert-card, .filter-panel, .hover-card, .key-dialog, .palette, .tour-banner, .timeline, .news-popup .maplibregl-popup-content) {
+  border-radius: 2px;
+  box-shadow:
+    0 0 0 1px rgb(255 61 180 / 0.3),
+    0 0 26px rgb(255 61 180 / 0.24),
+    inset 0 0 30px rgb(125 249 255 / 0.05);
+}
+
+:root[data-skin='synthwave'] .topbar {
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, #ff3db4, #ff9a3c, #ffd36b, #7df9ff) 1;
+  box-shadow: 0 2px 22px rgb(255 61 180 / 0.35);
+}
+
+:root[data-skin='synthwave'] .brand-name {
+  font-family: 'Orbitron', var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  background: linear-gradient(180deg, #ffe08a 10%, #ff3db4 60%, #8a5cff 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 6px rgb(255 61 180 / 0.55));
+}
+
+:root[data-skin='synthwave'] .dtg {
+  color: #7df9ff;
+  text-shadow: 0 0 10px rgb(125 249 255 / 0.6);
+}
+
+/* ============================================== the Layers menu's swatches */
+
+.layers-swatches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  border: 0;
+  overflow: visible;
+}
+
+.layers-swatches button {
+  display: grid;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  text-align: left;
+}
+
+.layers-swatches button + button {
+  border-left: 1px solid var(--rule);
+}
+
+.layers-swatches button[aria-checked='true'] {
+  border-color: var(--accent);
+}
+
+.layers-swatch {
+  display: block;
+  height: 22px;
+  border-radius: 3px;
+  background:
+    radial-gradient(circle at 80% 50%, var(--sw-accent) 0 3px, transparent 3.5px),
+    linear-gradient(var(--sw-line), var(--sw-line)) 0 62% / 100% 1.5px no-repeat,
+    var(--sw-bg);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}

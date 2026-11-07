@@ -13,6 +13,8 @@ import {
   isConsoleCallsign,
   isJoinOrigin,
   isLayerName,
+  isRemoteKey,
+  isScreenKind,
   isRoomCode,
   isRoomSecret,
   isScreenName,
@@ -70,8 +72,11 @@ import { decodeTrack, decodeTrail, encodeTrack, encodeTrail, type TrackTuple, ty
  *      findings, after the findings and every half minute
  *  18  the ops room (room.ts): other screens and phone consoles join a
  *      main screen's room, and consoles steer a screen; `room-*` both ways
+ *  19  the ops room's devices: a screen's `kind` and `selected` track in
+ *      its status, and a console's pointer (`point`, `click`, `press`)
+ *      and keys (`key`) on a screen
  */
-export const PROTOCOL_VERSION = 18;
+export const PROTOCOL_VERSION = 19;
 
 export interface HelloMessage {
   type: 'hello';
@@ -584,6 +589,14 @@ function parseRoomAction(value: unknown): RoomAction | null {
       return typeof a.on === 'boolean' ? { do: 'tour', on: a.on } : null;
     case 'layer':
       return isLayerName(a.layer) && typeof a.on === 'boolean' ? { do: 'layer', layer: a.layer, on: a.on } : null;
+    case 'point':
+      return inRange(a.dx, -1, 1) && inRange(a.dy, -1, 1) ? { do: 'point', dx: a.dx, dy: a.dy } : null;
+    case 'click':
+      return { do: 'click' };
+    case 'press':
+      return typeof a.down === 'boolean' ? { do: 'press', down: a.down } : null;
+    case 'key':
+      return isRemoteKey(a.key) ? { do: 'key', key: a.key } : null;
     case 'ride':
       if (a.id === null) return { do: 'ride', id: null };
       return isTrackId(a.id) ? { do: 'ride', id: a.id } : null;
@@ -608,10 +621,14 @@ function parseScreenStatus(value: unknown): ScreenStatus | null {
     const on = given[name];
     if (typeof on === 'boolean') layers[name] = on;
   }
-  const riding = s.riding;
+  const { riding, kind, selected } = s;
   if (riding !== undefined && !isTrackId(riding)) return null;
+  if (kind !== undefined && !isScreenKind(kind)) return null;
+  if (selected !== undefined && !isTrackId(selected)) return null;
   const status: ScreenStatus = { layers, tour: s.tour, follow: s.follow };
   if (typeof riding === 'string') status.riding = riding;
+  if (isScreenKind(kind)) status.kind = kind;
+  if (typeof selected === 'string') status.selected = selected;
   return status;
 }
 
