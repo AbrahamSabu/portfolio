@@ -45,9 +45,30 @@ export const CONSOLE_CALLSIGNS = [
 ] as const;
 export type ConsoleCallsign = (typeof CONSOLE_CALLSIGNS)[number];
 
-/** Screens by name: the one that opened the room, then the others in the order of the free names. */
+/**
+ * Screens by name: the one that opened the room, then the others in the
+ * order of the free names. These are addresses, and never change while a
+ * screen is in the room; people see each screen's kind instead (below).
+ */
 export const SCREEN_NAMES = ['MAIN', 'SCREEN 2', 'SCREEN 3', 'SCREEN 4', 'SCREEN 5'] as const;
 export type ScreenName = (typeof SCREEN_NAMES)[number];
+
+/**
+ * What a screen is, as people call it: the label on the phones' steering
+ * buttons and in every screen's room list. Chosen on the screen itself from
+ * this closed list (nothing typed reaches another device) and sent with its
+ * status, so changing it never changes the screen's address.
+ */
+export const SCREEN_KINDS = ['laptop', 'tablet', 'tv', 'phone', 'monitor', 'projector'] as const;
+export type ScreenKind = (typeof SCREEN_KINDS)[number];
+export const SCREEN_KIND_LABEL: Record<ScreenKind, string> = {
+  laptop: 'Laptop',
+  tablet: 'Tablet',
+  tv: 'TV',
+  phone: 'Phone',
+  monitor: 'Monitor',
+  projector: 'Projector',
+};
 
 /** The most consoles one room takes (fewer than there are callsigns). */
 export const MAX_CONSOLES = 12;
@@ -78,6 +99,8 @@ export interface ScreenStatus {
   follow: boolean;
   /** The aircraft this screen is riding along with (J), while it is. */
   riding?: string;
+  /** What the screen is (a laptop, a TV...), as its own Ops room dialog says. */
+  kind?: ScreenKind;
 }
 
 /**
@@ -105,6 +128,28 @@ export const isConsoleCallsign = (v: unknown): v is ConsoleCallsign =>
   typeof v === 'string' && (CONSOLE_CALLSIGNS as readonly string[]).includes(v);
 export const isScreenName = (v: unknown): v is ScreenName => typeof v === 'string' && (SCREEN_NAMES as readonly string[]).includes(v);
 export const isLayerName = (v: unknown): v is LayerName => typeof v === 'string' && (LAYER_NAMES as readonly string[]).includes(v);
+export const isScreenKind = (v: unknown): v is ScreenKind => typeof v === 'string' && (SCREEN_KINDS as readonly string[]).includes(v);
+
+/**
+ * What people call each screen: its kind, numbered when two share one
+ * ("Tablet", "Tablet 2"), or, before it has said, "Main screen" or
+ * "Screen 2" from its name.
+ */
+export function screenLabels(screens: readonly { name: ScreenName; status?: { kind?: ScreenKind } }[]): Map<ScreenName, string> {
+  const labels = new Map<ScreenName, string>();
+  const seen = new Map<ScreenKind, number>();
+  for (const { name, status } of screens) {
+    const kind = status?.kind;
+    if (!kind) {
+      labels.set(name, name === 'MAIN' ? 'Main screen' : `Screen ${name.slice('SCREEN '.length)}`);
+      continue;
+    }
+    const n = (seen.get(kind) ?? 0) + 1;
+    seen.set(kind, n);
+    labels.set(name, n === 1 ? SCREEN_KIND_LABEL[kind] : `${SCREEN_KIND_LABEL[kind]} ${n}`);
+  }
+  return labels;
+}
 
 /**
  * An address a phone can open, and nothing else: http or https, a host name,

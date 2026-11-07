@@ -299,3 +299,30 @@
 .room-presence-stale {
   opacity: 0.5;
 }
+
+/* This device: what it is (phones see it by this name), and a way to be a controller instead. */
+.room-device {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.room-device-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-sm);
+}
+
+.room-kind {
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  color: var(--hud-bright);
+  font: 600 1.05rem var(--font-display);
+  letter-spacing: 0.06em;
+}

@@ -1,13 +1,17 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import {
   isRoomCode,
+  joinUrl,
   normalizeRoomCode,
+  screenLabels,
+  SCREEN_KIND_LABEL,
   type ClientMessage,
   type ConsoleCallsign,
   type ConsolePresence,
   type RoomAction,
   type RoomServerMessage,
   type ScenarioInfo,
+  type ScreenKind,
   type ScreenName,
   type ScreenPresence,
   type ScreenStatus,
@@ -16,6 +20,7 @@ import { fly, type CameraTarget } from '../map/camera';
 import type { TrackLayer } from '../map/trackLayer';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
+import { readKind, writeKind, writeRole } from './deviceRole';
 import { PresenceMarkers } from './presenceMarkers';
 import { RoomDialog } from './roomDialog';
 import { roomView, trackName, type RoomState } from './roomView';
@@ -58,6 +63,8 @@ export class RoomHost {
   /** Where the picture opened: the Home action goes back there. */
   private home: CameraTarget = { center: [0, 20], zoom: 1.5 };
   private sentStatus = '';
+  /** What this screen is, as chosen in the dialog (or guessed): phones see it by this name. */
+  private kind: ScreenKind = readKind();
   private readonly dialog: RoomDialog;
   private readonly markers: PresenceMarkers;
   private readonly chip: HTMLButtonElement;
@@ -65,7 +72,13 @@ export class RoomHost {
   private toastTimer: number | undefined;
 
   constructor(private readonly deps: RoomHostDeps) {
-    this.dialog = new RoomDialog({ open: () => this.open(), join: (code) => this.join(code), leave: () => this.leave() });
+    this.dialog = new RoomDialog({
+      open: () => this.open(),
+      join: (code) => this.join(code),
+      leave: () => this.leave(),
+      kind: (kind) => this.setKind(kind),
+      controller: () => this.becomeController(),
+    });
     this.markers = new PresenceMarkers(deps.map, deps.layer);
     this.chip = makeChip();
     this.chip.addEventListener('click', () => this.toggle());
@@ -79,7 +92,10 @@ export class RoomHost {
 
     // A link with ?screen=K7QX (from the main screen's dialog) joins that room as a screen.
     const linked = normalizeRoomCode(new URLSearchParams(location.search).get('screen') ?? '');
-    if (deps.live && isRoomCode(linked)) this.state = { kind: 'joining', code: linked };
+    if (deps.live && isRoomCode(linked)) {
+      this.state = { kind: 'joining', code: linked };
+      writeRole('screen'); // the link asked for a screen, so that's what this device is now
+    }
 
     // Closing this page (not hiding it, not the back-forward cache) leaves at
     // once: a main screen ends its room instead of the phones waiting out the
@@ -127,7 +143,7 @@ export class RoomHost {
             : { kind: 'screen', code: message.code, name: message.name, token: message.token };
         if (joined && message.role === 'screen') {
           this.dialog.close();
-          this.say(`This screen joined room ${message.code} as ${message.name}`);
+          this.say(`This screen joined room ${message.code} as ${SCREEN_KIND_LABEL[this.kind]}`);
         }
         this.sentStatus = '';
         this.reportStatus();
@@ -173,6 +189,7 @@ export class RoomHost {
   }
 
   private join(code: string): void {
+    writeRole('screen');
     this.state = { kind: 'joining', code };
     this.deps.send({ type: 'room-join', code, as: 'screen' });
     this.render();
@@ -276,6 +293,21 @@ export class RoomHost {
     this.say(`${who} is riding along with ${trackName(track)}`);
   }
 
+  /** What this screen is, chosen in the dialog: remembered here, and the room hears it with the next status. */
+  private setKind(kind: ScreenKind): void {
+    this.kind = kind;
+    writeKind(kind);
+    this.reportStatus();
+    this.render();
+  }
+
+  /** This device becomes a controller: off to the console page (leaving the room on the way out, at pagehide). */
+  private becomeController(): void {
+    writeRole('control');
+    const s = this.state;
+    location.assign(s.kind === 'screen' ? joinUrl(location.origin, s.code) : `${location.origin}/console.html`);
+  }
+
   private takeCamera(): void {
     this.dialog.close();
     if (this.deps.tour.active) this.deps.tour.stop();
@@ -285,7 +317,12 @@ export class RoomHost {
   /** Tell the room what this screen shows, when that changed since it last heard. */
   private reportStatus(): void {
     if (!this.inRoom) return;
-    const status: ScreenStatus = { layers: layerState(this.deps.layers()), tour: this.deps.tour.active, follow: this.deps.selection.follow };
+    const status: ScreenStatus = {
+      layers: layerState(this.deps.layers()),
+      tour: this.deps.tour.active,
+      follow: this.deps.selection.follow,
+      kind: this.kind,
+    };
     const riding = this.deps.ride.riding;
     if (riding) status.riding = riding;
     const json = JSON.stringify(status);
@@ -307,10 +344,10 @@ export class RoomHost {
     this.dialog.render(roomView(s, location, this.deps.live), { screens: this.screens, consoles: this.consoles }, (id) => {
       const track = this.deps.store.get(id);
       return track ? trackName(track) : 'a track not on this screen';
-    }, self);
+    }, self, this.kind);
     this.chip.hidden = !this.inRoom;
     if (s.kind === 'open' || s.kind === 'screen') {
-      const label = s.kind === 'open' ? `Room ${s.code}` : `${s.name} · ${s.code}`;
+      const label = s.kind === 'open' ? `Room ${s.code}` : `${screenLabels(this.screens).get(s.name) ?? SCREEN_KIND_LABEL[this.kind]} · ${s.code}`;
       this.chip.querySelector('[data-code]')!.textContent = label;
       const count = this.chip.querySelector<HTMLElement>('[data-count]')!;
       count.textContent = String(this.consoles.length);

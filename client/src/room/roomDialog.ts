@@ -1,6 +1,20 @@
-import { isRoomCode, normalizeRoomCode, type ConsolePresence, type ScreenName, type ScreenPresence } from '@watchfloor/shared';
+import {
+  isRoomCode,
+  isScreenKind,
+  normalizeRoomCode,
+  screenLabels,
+  SCREEN_KIND_LABEL,
+  SCREEN_KINDS,
+  type ConsolePresence,
+  type ScreenKind,
+  type ScreenName,
+  type ScreenPresence,
+} from '@watchfloor/shared';
 import { encodeQr, qrSvg } from './qr';
 import type { RoomView } from './roomView';
+
+// From our own constants only: safe in the markup.
+const KIND_OPTIONS = SCREEN_KINDS.map((k) => `<option value="${k}">${SCREEN_KIND_LABEL[k]}</option>`).join('');
 
 const MARKUP = `
   <header class="key-head">
@@ -31,6 +45,15 @@ const MARKUP = `
           </div>
         </form>
       </div>
+      <div class="room-device" data-device>
+        <h3 class="room-label">This device</h3>
+        <label class="room-device-row">
+          <span>Shows the map as</span>
+          <select class="room-kind" data-kind>${KIND_OPTIONS}</select>
+        </label>
+        <p class="room-fine" data-device-note></p>
+        <button class="room-secondary" type="button" data-controller>Use as a controller instead</button>
+      </div>
       <div data-people>
         <h3 class="room-label">In the room</h3>
         <ul class="room-consoles" data-people-list></ul>
@@ -49,6 +72,10 @@ export interface RoomDialogHandlers {
   join(code: string): void;
   /** Close the room (main screen) or leave it (another screen). */
   leave(): void;
+  /** What this screen is (a laptop, a TV...): phones see it by that name. */
+  kind(kind: ScreenKind): void;
+  /** Make this device a controller instead: off to the console page. */
+  controller(): void;
 }
 
 /** Who is in the room, for the dialog's list. */
@@ -79,6 +106,11 @@ export class RoomDialog {
     this.part('close').addEventListener('click', () => this.close());
     this.part('leave').addEventListener('click', () => handlers.leave());
     this.part('open').addEventListener('click', () => handlers.open());
+    this.part<HTMLSelectElement>('kind').addEventListener('change', (event) => {
+      const kind = (event.target as HTMLSelectElement).value;
+      if (isScreenKind(kind)) handlers.kind(kind);
+    });
+    this.part('controller').addEventListener('click', () => handlers.controller());
     this.part<HTMLFormElement>('join-form').addEventListener('submit', (event) => {
       event.preventDefault();
       const code = normalizeRoomCode(this.part<HTMLInputElement>('join-code').value);
@@ -112,8 +144,9 @@ export class RoomDialog {
     if (this.dialog.open) this.dialog.close();
   }
 
-  /** `nameOf` names a track for the list; `self` is this screen's own name in the room. */
-  render(view: RoomView, people: RoomPeople, nameOf: (id: string) => string, self: ScreenName | null): void {
+  /** `nameOf` names a track for the list; `self` is this screen's own name in the room, `kind` what it is. */
+  render(view: RoomView, people: RoomPeople, nameOf: (id: string) => string, self: ScreenName | null, kind: ScreenKind): void {
+    const labels = screenLabels(people.screens);
     const qr = this.part('qr');
     qr.hidden = !view.qr;
     if (view.qr !== this.qrFor) {
@@ -123,7 +156,8 @@ export class RoomDialog {
     }
     const screen = view.mode === 'screen';
     this.part('code-block').hidden = !view.code || view.mode === 'wait';
-    this.part('code-label').textContent = screen ? `This screen is ${view.name} in room` : 'Room code';
+    const own = (view.name && labels.get(view.name)) || SCREEN_KIND_LABEL[kind];
+    this.part('code-label').textContent = screen ? `This screen is ${own} in room` : 'Room code';
     this.part('code').textContent = view.code ?? '';
     this.part('message').textContent = view.mode === 'choose' && this.typedError ? this.typedError : view.message;
     const link = this.part<HTMLAnchorElement>('link');
@@ -137,14 +171,25 @@ export class RoomDialog {
     const hint = this.part('screen-hint');
     hint.hidden = !view.screenLink;
     hint.textContent = view.screenLink
-      ? `Add a TV as another screen: on the TV, open Watchfloor, then Layers → Ops room → join as a screen with code ${view.code}, or open ${view.screenLink}`
+      ? `To add a tablet or TV as another screen, scan the code with it and choose Show the map here, or open ${view.screenLink} on it.`
       : '';
     this.part('choose').hidden = view.mode !== 'choose';
+
+    // This device: what it is, and (unless it hosts the room) a way to be a controller instead.
+    this.part('device').hidden = view.mode === 'demo';
+    this.part<HTMLSelectElement>('kind').value = kind;
+    this.part('device-note').textContent =
+      view.mode === 'host'
+        ? 'This screen hosts the room, so it stays a screen. Phones see it by this name.'
+        : screen
+          ? 'Phones see it by this name, and steer it from their Steering buttons.'
+          : 'Phones will see it by this name once it is in a room.';
+    this.part('controller').hidden = view.mode === 'host';
 
     const inRoom = view.mode === 'host' || screen;
     this.part('people').hidden = !inRoom;
     const rows = [
-      ...people.screens.map((s) => `${s.name}${s.name === self ? ' (this screen)' : ''}`),
+      ...people.screens.map((s) => `${labels.get(s.name) ?? s.name}${s.name === self ? ' (this screen)' : ''}`),
       ...people.consoles.map((c) => `CONSOLE ${c.callsign} · ${c.id ? nameOf(c.id) : 'browsing the list'}`),
     ];
     this.part('people-list').replaceChildren(...(rows.length > 0 ? rows : ['Nobody yet']).map((text) => item(text)));

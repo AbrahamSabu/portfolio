@@ -9,6 +9,7 @@ import {
   isRoomRequest,
   joinUrl,
   normalizeRoomCode,
+  screenLabels,
   screenUrl,
   type RoomServerMessage,
 } from './room';
@@ -72,6 +73,23 @@ describe('room requests from browsers', () => {
       type: 'room-status',
       status: STATUS,
     });
+  });
+
+  it('passes on what a screen is, and only a kind from the list', () => {
+    expect(send({ type: 'room-status', status: { ...STATUS, kind: 'tv' } })).toEqual({ type: 'room-status', status: { ...STATUS, kind: 'tv' } });
+    expect(send({ type: 'room-status', status: { ...STATUS, kind: 'toaster' } })).toBeNull();
+    expect(send({ type: 'room-status', status: { ...STATUS, kind: 'Laptop' } })).toBeNull();
+  });
+
+  it('names screens by what they are, numbering two of a kind', () => {
+    const labels = screenLabels([
+      { name: 'MAIN', status: { kind: 'laptop' } },
+      { name: 'SCREEN 2', status: { kind: 'tablet' } },
+      { name: 'SCREEN 3', status: { kind: 'tablet' } },
+      { name: 'SCREEN 4' },
+    ]);
+    expect([...labels.values()]).toEqual(['Laptop', 'Tablet', 'Tablet 2', 'Screen 4']);
+    expect(screenLabels([{ name: 'MAIN' }]).get('MAIN')).toBe('Main screen');
   });
 
   it('reads every action a console can ask of a screen', () => {

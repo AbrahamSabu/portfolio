@@ -13,6 +13,7 @@ import {
   isConsoleCallsign,
   isJoinOrigin,
   isLayerName,
+  isScreenKind,
   isRoomCode,
   isRoomSecret,
   isScreenName,
@@ -608,10 +609,12 @@ function parseScreenStatus(value: unknown): ScreenStatus | null {
     const on = given[name];
     if (typeof on === 'boolean') layers[name] = on;
   }
-  const riding = s.riding;
+  const { riding, kind } = s;
   if (riding !== undefined && !isTrackId(riding)) return null;
+  if (kind !== undefined && !isScreenKind(kind)) return null;
   const status: ScreenStatus = { layers, tour: s.tour, follow: s.follow };
   if (typeof riding === 'string') status.riding = riding;
+  if (isScreenKind(kind)) status.kind = kind;
   return status;
 }
 
