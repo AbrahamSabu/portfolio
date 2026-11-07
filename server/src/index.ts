@@ -111,6 +111,7 @@ async function main(): Promise<void> {
             // Viewport mode starts with nothing and follows the browsers' views.
             boxes: config.ais.area === 'viewport' ? [] : [config.ais.area === 'world' ? WORLD : scenario.bounds],
             viewport: config.ais.area === 'viewport',
+            maxArea: config.ais.maxArea,
             ...(config.ais.url ? { url: config.ais.url } : {}),
           })),
         );
@@ -254,7 +255,7 @@ async function main(): Promise<void> {
 
   // The ops room: phones join a main screen as consoles (rooms/). Memory only.
   const joinOrigins = () => lanOrigins(config.host, config.port, networkInterfaces());
-  const rooms = new Rooms({ origins: joinOrigins });
+  const rooms = new Rooms({ origins: joinOrigins, maxRooms: config.visitors.maxRooms });
 
   hub = new Hub({
     onTrackRequest: (id, send) => {
@@ -264,6 +265,8 @@ async function main(): Promise<void> {
     },
     server,
     path: '/ws',
+    addressHeaders: config.visitors.addressHeaders,
+    maxPerAddress: config.visitors.maxPerAddress,
     store,
     tickMs: config.tickMs,
     staleness,

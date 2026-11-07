@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseFeeds, trafficKind } from './config';
+import { parseAddressHeaders, parseFeeds, trafficKind } from './config';
 
 describe('parseFeeds', () => {
   it('defaults to live aircraft and ships', () => {
@@ -29,5 +29,17 @@ describe('trafficKind', () => {
     expect(trafficKind(['sim'])).toBe('simulated');
     expect(trafficKind(['opensky'])).toBe('live');
     expect(trafficKind(['sim', 'opensky'])).toBe('mixed');
+  });
+});
+
+describe('parseAddressHeaders (CLIENT_IP_HEADER)', () => {
+  it('reads header names in order, lower-cased', () => {
+    expect(parseAddressHeaders(' CF-Connecting-IP , true-client-ip ')).toEqual(['cf-connecting-ip', 'true-client-ip']);
+    expect(parseAddressHeaders(undefined)).toEqual([]);
+    expect(parseAddressHeaders('')).toEqual([]);
+  });
+
+  it('refuses anything that is not a header name', () => {
+    expect(() => parseAddressHeaders('cf-connecting-ip; drop')).toThrow(/CLIENT_IP_HEADER/);
   });
 });

@@ -15,6 +15,33 @@ describe('Hub', () => {
     await new Promise((r) => server?.close(r));
   });
 
+  it('limits connections per visitor, by the address header a proxy sets', async () => {
+    server = createServer();
+    hub = new Hub({
+      server, path: '/ws', store: new TrackStore(DEFAULT_STALENESS), tickMs: 1000, staleness: DEFAULT_STALENESS,
+      scenario: null, traffic: 'live', addressHeaders: ['cf-connecting-ip'], maxPerAddress: 2,
+    });
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+    const open = (ip: string) => new WebSocket(`ws://127.0.0.1:${port}/ws`, { headers: { 'cf-connecting-ip': ip } });
+    // 'hello' when the server greets it; the close code when it's turned away.
+    const outcome = (ws: WebSocket) =>
+      new Promise<string>((resolve) => {
+        ws.on('message', (data) => {
+          if ((JSON.parse(String(data)) as { type: string }).type === 'hello') resolve('hello');
+        });
+        ws.on('close', (code) => resolve(String(code)));
+      });
+    const a = open('203.0.113.9');
+    const b = open('203.0.113.9');
+    expect(await outcome(a)).toBe('hello');
+    expect(await outcome(b)).toBe('hello');
+    expect(await outcome(open('203.0.113.9'))).toBe('1013');
+    const d = open('198.51.100.4');
+    expect(await outcome(d)).toBe('hello');
+    for (const ws of [a, b, d]) ws.close();
+  });
+
   it("sends the day's news and the hazards after the snapshot, then changes as they come", async () => {
     const story = {
       id: '1', headline: 'Parliament passes the budget', url: 'https://example.org/a', outlet: 'example.org',

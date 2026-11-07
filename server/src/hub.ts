@@ -28,6 +28,7 @@ import {
   type TrafficKind,
 } from '@watchfloor/shared';
 import type { TrackStore } from './trackStore';
+import { clientAddress } from './clientAddress';
 import type { RoomPeer } from './rooms/rooms';
 import { createLogger } from './log';
 
@@ -107,6 +108,10 @@ export interface HubOptions {
     handle(peer: RoomPeer, message: RoomClientMessage): void;
     drop(peer: RoomPeer): void;
   };
+  /** Headers a trusted proxy sets to the visitor's address (CLIENT_IP_HEADER, clientAddress.ts); none: the socket's. */
+  addressHeaders?: readonly string[];
+  /** Connections one address may hold at once (MAX_CONNECTIONS_PER_ADDRESS); 0 or unset: no limit. */
+  maxPerAddress?: number;
   /** Answers a browser's question about one track (its path, its details); `send` may be called more than once. */
   onTrackRequest?: (id: string, send: (message: PathMessage | DetailsMessage) => void) => void;
   /** The day's news stories, sent to each browser after its snapshot. */
@@ -172,10 +177,20 @@ export class Hub {
   }
 
   private onConnection(ws: WebSocket, req: IncomingMessage): void {
-    const address = req.socket.remoteAddress ?? 'unknown';
+    const address = clientAddress(req.headers, req.socket.remoteAddress, this.opts.addressHeaders ?? []);
     if (this.clients.size >= MAX_CLIENTS) {
       ws.close(1013, 'Too many connections');
       return;
+    }
+    // One visitor can't take the server's share: every connection costs a whole snapshot.
+    const perAddress = this.opts.maxPerAddress ?? 0;
+    if (perAddress > 0) {
+      let mine = 0;
+      for (const c of this.clients) if (c.address === address) mine++;
+      if (mine >= perAddress) {
+        ws.close(1013, 'Too many connections from one address');
+        return;
+      }
     }
 
     const client: Client = {
@@ -187,6 +202,7 @@ export class Hub {
       view: null,
       address,
       peer: {
+        address,
         send: (message) => {
           if (ws.readyState === WebSocket.OPEN) ws.send(encodeServerMessage(message));
         },

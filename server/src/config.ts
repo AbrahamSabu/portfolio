@@ -61,9 +61,24 @@ export interface Config {
      * looking at.
      */
     area: 'scenario' | 'world' | 'viewport';
+    /**
+     * Viewport mode on a small public server: views wider than this many
+     * square degrees aren't streamed (AIS_MAX_AREA; 0, the default, streams
+     * any). The opening globe would otherwise ask for every ship in the world.
+     */
+    maxArea: number;
     /** Stream URL; set only to point at a local stub. */
     url?: string;
   };
+  /**
+   * Per-visitor limits, for a server open to the public. `addressHeaders`:
+   * the header a trusted proxy sets to the visitor's address
+   * (CLIENT_IP_HEADER, e.g. `cf-connecting-ip` behind Cloudflare, as on
+   * Render); none means the socket's own address. `maxPerAddress`: the
+   * connections one address may hold (MAX_CONNECTIONS_PER_ADDRESS, 0 = no
+   * limit). `maxRooms`: ops rooms open at once (ROOMS_MAX).
+   */
+  visitors: { addressHeaders: string[]; maxPerAddress: number; maxRooms: number };
 }
 
 export const FEED_NAMES = ['sim', 'opensky', 'adsblol', 'adsbfi', 'ais'] as const;
@@ -90,6 +105,14 @@ function int(name: string, fallback: number, min: number, max: number): number {
     throw new Error(`${name} must be an integer between ${min} and ${max} (got "${raw}")`);
   }
   return n;
+}
+
+/** CLIENT_IP_HEADER: header names, separated by commas, in the order to try them. */
+export function parseAddressHeaders(raw: string | undefined): string[] {
+  const names = (raw ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const bad = names.find((h) => !/^[a-z0-9-]+$/.test(h));
+  if (bad !== undefined) throw new Error(`CLIENT_IP_HEADER must be header names separated by commas (got "${bad}")`);
+  return names;
 }
 
 /** What the running feeds add up to, for the hello message. */
@@ -163,7 +186,7 @@ function aisConfig(): Config['ais'] {
     }
     if (protocol !== 'wss:' && protocol !== 'ws:') throw new Error(`AISSTREAM_URL must be a ws(s) URL (got "${url}")`);
   }
-  return { ...(apiKey ? { apiKey } : {}), area, ...(url ? { url } : {}) };
+  return { ...(apiKey ? { apiKey } : {}), area, maxArea: int('AIS_MAX_AREA', 0, 0, 64_800), ...(url ? { url } : {}) };
 }
 
 /**
@@ -281,5 +304,10 @@ export function loadConfig(): Config {
     adsblol: adsbLolConfig(),
     adsbfi: adsbFiConfig(),
     ais: aisConfig(),
+    visitors: {
+      addressHeaders: parseAddressHeaders(process.env.CLIENT_IP_HEADER),
+      maxPerAddress: int('MAX_CONNECTIONS_PER_ADDRESS', 0, 0, 1000),
+      maxRooms: int('ROOMS_MAX', 16, 1, 1000),
+    },
   };
 }
