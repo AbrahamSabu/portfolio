@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (875 tests after the alert pass, Nov 2026).
+- `npm test`: Vitest from the root config (880 tests after the skins, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -1365,6 +1365,37 @@ that could have been fetched before they arrived.
   centred on 0,0 use `transform-origin: 0 0`, not 50% 50% (that span the
   rings around the wrong point). Read-aloud prefers a British voice
   (`ui/voice.ts`, `pickBritishVoice`).
+- Skins (Nov 2026; Layers → Display swatches, or K; `watchfloor.skin`;
+  `?skin=` in the address dresses a TV or kiosk without being remembered):
+  Holo (the look above, unchanged), Phosphor (green tube: the map and stars
+  through a harder version of the phosphor filter, Share Tech Mono with
+  VT323 for the brand and clock, a bloom on all text, heavy scan lines, a
+  turning sweep that is a 160vmax `.app::before` rotated by transform so the
+  compositor does it, off under reduced motion; `.app` gets `overflow:
+  hidden` for it), Minimal (flat graphite, Inter, no brackets, glow or scan
+  lines), Bubbly (grape glass, Fredoka and Nunito, 22px corners, pill
+  buttons, periwinkle space and a mint atmosphere: pink space was too close
+  to Synthwave), Blueprint (drafting blue, B612, the brackets as corner
+  marks over a drafting grid) and Synthwave (neon pink and cyan, Orbitron
+  brand). `state/skins.ts` holds each skin's label, hint, swatch, basemap
+  palette (`BasemapPalette`: line colour and strengths, land, sea, labels,
+  sky, horizon), graticule colour and Google Fonts families; `skins.css`
+  overrides tokens and effects under `:root[data-skin='…']` (Holo has no
+  block); `ui/wearSkin.ts` sets the attribute, loads the skin's fonts the
+  first time it's worn, repaints the basemap (`applyHoloBasemap(map,
+  palette)`, which recolours its coast layers if they exist) and the
+  graticule (`setColour`); createMap's `style.load` paints with
+  `options.palette()`, so a style reload keeps the skin. index.html's inline
+  script sets `data-skin` before the first paint (no flash of Holo). **Never
+  write the HUD blue as a literal**: `var(--hud)` or `rgb(var(--hud-rgb) /
+  a)` (all 67 literals became tokens, so skins recolour them). Never
+  skinned: identity colours, `--warn` amber, hazard apricot. K is in
+  `REMOTE_KEYS` and, like G and Y, leaves the tour riding (main.ts handles
+  it before the tour's any-key stop; `RoomHost.pressKey` exempts it); the
+  server bundles shared, so it needs a rebuild and restart before phones'
+  K presses get through. Menu: a `ChoiceRow` whose options carry `swatch`
+  renders as a 3-column grid of chips (`.layers-swatches`). The phone
+  console (console.css) and sky page aren't skinned.
 - One accent, orchid #C9A0FF, used only for selection and focus. It is
   deliberately outside the symbology palette.
 - Plotting-surface furniture (Nov 2026): `map/graticule.ts` (10° grid,
