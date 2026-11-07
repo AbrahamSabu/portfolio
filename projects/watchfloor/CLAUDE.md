@@ -750,10 +750,19 @@ that could have been fetched before they arrived.
   and whole-world ones, are left out, so the opening globe streams nothing
   new (the last subscription stays) and a capped crowd keeps its first 16
   boxes rather than one box round them all. The blueprint sets
-  `OPENSKY_POLL_S=120` (2,880 credits a day watched nonstop), `AIS_MAX_AREA=600`,
-  `MAX_CONNECTIONS_PER_ADDRESS=8`, `ROOMS_MAX=200` and
-  `CLIENT_IP_HEADER=cf-connecting-ip,true-client-ip`, and its comments say to
-  give it its own OpenSky account and AISStream key. A demo built with
+  `OPENSKY_POLL_S=180` (1,920 credits a day watched nonstop), `AIS_MAX_AREA=600`,
+  `MAX_CONNECTIONS_PER_ADDRESS=8`, `ROOMS_MAX=200`, `SATELLITES=off` and
+  `CLIENT_IP_HEADER=cf-connecting-ip,true-client-ip`. **One OpenSky account
+  only**: OpenSky's API docs say registering several gets all of a person's
+  accounts banned for life, so the public site shares the home account's
+  4,000 a day (hence 180 s). They also say they may block AWS and other
+  hyperscalers' addresses; Render runs on such clouds, so the public site's
+  OpenSky polls may simply fail (it then has adsb.lol/adsb.fi zoomed in).
+  Its own AISStream key keeps its connections apart. Satellites are off
+  there: no disk survives a sleep, so every wake would refetch CelesTrak,
+  which refuses repeats and firewalls addresses that collect refusals. Web
+  pages using OpenSky data should cite Schäfer et al., "Bringing Up OpenSky",
+  IPSN 2014 (README credits do). A demo built with
   `VITE_LIVE_URL` gets a link to the live version in its Q dialog
   (`roomView`'s fourth argument). Home defaults are unchanged apart from
   the per-address room limits.

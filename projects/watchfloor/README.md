@@ -165,10 +165,11 @@ Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need 
 The portfolio repo carries a one-click Render blueprint (`render.yaml`) for a free live server, where the ops room works over the internet: a phone on mobile data can join a laptop anywhere. What changes when strangers use it:
 
 - Visitors don't multiply what the data feeds see: only the server talks to them, and one poll serves every viewer. Every feed is free, so the worst case is a rate limit, never a bill.
-- OpenSky polls every 2 minutes (`OPENSKY_POLL_S=120`). A world poll costs 4 credits, so that's 2,880 a day even if someone watches around the clock, inside an account's 4,000; every minute would run dry by the afternoon.
+- OpenSky polls every 3 minutes (`OPENSKY_POLL_S=180`). A world poll costs 4 credits, so that's at most 1,920 a day even if someone watches around the clock, leaving the rest of the account's 4,000 for your home server.
 - Ships stream only for regions someone zooms into (`AIS_AREA=viewport` with `AIS_MAX_AREA=600`): the opening globe would otherwise ask for every ship on earth, too much for the free tier's tenth of a CPU.
 - Limits are per visitor: connections (`MAX_CONNECTIONS_PER_ADDRESS`), rooms (three per address, `ROOMS_MAX` in all) and wrong room codes (twenty a minute per address, two hundred across everyone). They're kept against the address Cloudflare, in front of Render, puts in `CF-Connecting-IP` (`CLIENT_IP_HEADER`), not the forwarded-for header Render's proxy appends to, which a visitor can forge.
-- Give it its own OpenSky account and AISStream key: OpenSky credits are per account per day and AISStream allows three connections per key, so sharing your home server's would let the public site spend them.
+- It uses your one OpenSky account: OpenSky's API docs say registering several accounts gets all of them banned for life. Give it its own AISStream key if your account allows one (a key allows three connections at once). OpenSky also warns it may block cloud providers' addresses; if it blocks Render's, the status bar says so, and aircraft come only from adsb.lol and adsb.fi where visitors zoom in.
+- Satellites are off (`SATELLITES=off`): the free tier keeps no disk through a sleep, so every wake would download CelesTrak's catalogue again, and CelesTrak refuses repeat downloads and blocks addresses that collect refusals. The static demo still has them, fetched by each visitor's own browser.
 - Build the static demo with `VITE_LIVE_URL=https://...` and its ops room dialog sends visitors to the live version.
 
 ### Live aircraft
@@ -353,7 +354,7 @@ client/   MapLibre map, symbology, UI
 - Basemap: © OpenStreetMap contributors, © CARTO
 - Symbols: [milsymbol](https://github.com/spatialillusions/milsymbol)
 - Map rendering: [MapLibre GL JS](https://maplibre.org/)
-- Live aircraft: [The OpenSky Network](https://opensky-network.org), [adsb.lol](https://adsb.lol) (data under the [ODbL](https://opendatacommons.org/licenses/odbl/)) and [adsb.fi](https://adsb.fi) (personal, non-commercial use)
+- Live aircraft: [The OpenSky Network](https://opensky-network.org) (Schäfer, Strohmeier, Lenders, Martinovic and Wilhelm, "Bringing Up OpenSky: A Large-scale ADS-B Sensor Network for Research", IPSN 2014), [adsb.lol](https://adsb.lol) (data under the [ODbL](https://opendatacommons.org/licenses/odbl/)) and [adsb.fi](https://adsb.fi) (personal, non-commercial use)
 - Live ships: [AISStream](https://aisstream.io)
 - Aircraft types: [tar1090-db](https://github.com/wiedehopf/tar1090-db) (Mictronics, wiedehopf), downloaded for local use and never committed
 - Aircraft photos: [Planespotters.net](https://www.planespotters.net), each credited to its photographer and linked to its page
