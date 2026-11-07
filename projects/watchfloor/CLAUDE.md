@@ -762,8 +762,10 @@ that could have been fetched before they arrived.
   `CLIENT_IP_HEADER=cf-connecting-ip,true-client-ip`. **One OpenSky account
   only**: OpenSky's API docs say registering several gets all of a person's
   accounts banned for life. They also say they may block AWS and other
-  hyperscalers' addresses, and from Render (https://watchfloor-81sn.onrender.com,
-  Nov 2026) every OpenSky request failed ("fetch failed"), so the blueprint
+  hyperscalers' addresses, and from Render (a trial at
+  watchfloor-81sn.onrender.com, Nov 2026, taken down because a regional-only
+  live picture misses the point; links removed from the READMEs and the
+  demo) every OpenSky request failed ("fetch failed"), so the blueprint
   runs `FEEDS=adsblol,adsbfi,ais` with `SCENARIO=english-channel`: the page
   opens framed on the Channel, which the regional feeds keep warm, and the
   globe stays thin. Its own AISStream key keeps its connections apart. The
