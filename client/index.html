@@ -17,6 +17,17 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap"
     />
     <script>
+      // The skin (state/skins.ts) before the first paint, so a page in Phosphor
+      // never flashes blue: ?skin= in the address, else the remembered one.
+      // Unknown names match no rule in skins.css and look like Holo.
+      try {
+        const skin = new URLSearchParams(location.search).get('skin') || localStorage.getItem('watchfloor.skin');
+        if (skin) document.documentElement.dataset.skin = skin;
+      } catch {
+        // Storage blocked: the default skin.
+      }
+    </script>
+    <script>
       // Screensaver mode runs the whole page at 30 fps: half the frames,
       // half the GPU and main-thread animation work, and nobody watching a
       // wall display can tell. Inline and first, so MapLibre and every

@@ -20,6 +20,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
   ['I', 'Traffic currents: the average flow of air and sea traffic'],
+  ['K', 'Skin: Holo, Phosphor, Minimal, Bubbly, Blueprint, Synthwave'],
   ['S', 'Vehicle shapes or military symbols'],
   ['N', 'Show or hide the news'],
   ['B', 'Open or close the briefing'],

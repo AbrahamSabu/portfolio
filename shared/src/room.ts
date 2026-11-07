@@ -140,7 +140,7 @@ export type RoomAction =
  * is checked against this in a test, so a new shortcut can't be forgotten.
  */
 export const REMOTE_KEYS = [
-  'M', 'L', 'G', 'Y', 'V', 'Z', 'U', 'P', 'E', 'J', 'F', 'T', 'I', 'S', 'N', 'B', 'A', 'H', 'D', 'C', 'O', 'X', 'R', '?', 'Escape',
+  'M', 'L', 'G', 'Y', 'V', 'Z', 'U', 'P', 'E', 'J', 'F', 'T', 'I', 'K', 'S', 'N', 'B', 'A', 'H', 'D', 'C', 'O', 'X', 'R', '?', 'Escape',
 ] as const;
 export type RemoteKey = (typeof REMOTE_KEYS)[number];
 export const isRemoteKey = (v: unknown): v is RemoteKey => typeof v === 'string' && (REMOTE_KEYS as readonly string[]).includes(v);

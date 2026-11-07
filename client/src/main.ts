@@ -2,6 +2,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import './hud.css';
+import './skins.css';
 import type { Finding } from '@watchfloor/shared';
 import { AirportLayer } from './map/airportLayer';
 import { describeAirport } from './map/airports';
@@ -85,6 +86,8 @@ import { Tour } from './ui/tour';
 import { formatDtg, formatNewsTime, trafficLabel } from './ui/format';
 import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
+import { loadSkin, saveSkin, SKIN_LOOKS, SkinSetting } from './state/skins';
+import { wearSkin } from './ui/wearSkin';
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
@@ -140,7 +143,13 @@ async function main(): Promise<void> {
   // redraw steps buy nothing there, so render at 1:1 and take whole-pixel
   // steps (the inline script in index.html also caps the page at 30 fps).
   const screensaver = new URLSearchParams(location.search).has('screensaver');
-  const { map, userHasMoved } = createMap(el('map'), screensaver ? { pixelRatio: 1 } : {});
+  // The skin (state/skins.ts): index.html's inline script already put it on <html> for the first
+  // paint; createMap paints the basemap in it, and wearSkin below does the rest.
+  const skin = new SkinSetting(loadSkin(location.search));
+  const { map, userHasMoved } = createMap(el('map'), {
+    ...(screensaver ? { pixelRatio: 1 } : {}),
+    palette: () => SKIN_LOOKS[skin.value].basemap,
+  });
   // Space around the globe, behind the map's transparent canvas: it drifts as the globe turns.
   new SpaceBackdrop(el('space'), map);
   if (screensaver) setPaceScale(2);
@@ -158,7 +167,12 @@ async function main(): Promise<void> {
   const newsSettings = new NewsSettings(loadNewsSettings());
 
   // The plotting surface: a faint graticule under everything, and hairlines under the pointer.
-  new Graticule(map);
+  const graticule = new Graticule(map);
+  skin.subscribe(() => {
+    saveSkin(skin.value);
+    wearSkin(skin.value, map, graticule);
+  });
+  wearSkin(skin.value, map, graticule);
   new Crosshair(map);
   // Night, under the basemap's labels and everything of ours, and city lights on it.
   new NightLayer(map, () => clock.now());
@@ -563,6 +577,11 @@ async function main(): Promise<void> {
       score.toggle();
       return;
     }
+    // So is the skin: K dresses the display in the next one and leaves the tour riding.
+    if ((event.key === 'k' || event.key === 'K') && !isTyping(event) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      skin.cycle();
+      return;
+    }
     // Any key hands the camera back from the tour, and does nothing else.
     if (tour.active) {
       tour.stop();
@@ -652,6 +671,7 @@ async function main(): Promise<void> {
       room: () => room.toggle(),
       timeline: () => timeline.setOpen(true),
       phosphor,
+      skin,
       currents: currentsShown,
       exposure: exposureShown,
       satellites: satellitesShown,

@@ -313,13 +313,14 @@ export class RoomHost {
    * A console pressed one of the map's keys: the keydown a keyboard would
    * send, so every shortcut works as typed. Two differences, since the phone
    * can't see a keyboard's context: a key ends the tour and then does its job
-   * (typed, it would only end the tour), and Escape closes an open dialog
+   * (typed, it would only end the tour; G, Y and K, the tour, the score and
+   * the skin, leave it riding), and Escape closes an open dialog
    * itself (browsers ignore a synthetic Escape on their dialogs).
    */
   private pressKey(key: RemoteKey): void {
     this.dialog.close();
     const { tour } = this.deps;
-    if (tour.active && key !== 'G' && key !== 'Y') tour.stop();
+    if (tour.active && key !== 'G' && key !== 'Y' && key !== 'K') tour.stop();
     if (key === 'Escape') {
       const open = document.querySelector<HTMLDialogElement>('dialog[open]');
       if (open) {

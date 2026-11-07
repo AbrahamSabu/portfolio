@@ -1,5 +1,6 @@
 import type { TrailMode, TrailStyle } from '../map/trailLayer';
 import { STACK_EXAGGERATION } from '../map/stackBuffers';
+import { SKIN_LOOKS, SKINS, type Skin, type SkinSetting } from '../state/skins';
 import type { SymbolStyle } from '../state/symbolStyle';
 import type { LayerSection } from './layersMenu';
 
@@ -40,6 +41,7 @@ export interface LayerDeps {
   room: () => void;
   timeline: () => void;
   phosphor: Toggle;
+  skin: SkinSetting;
   currents: Toggle;
   exposure: Toggle;
   satellites: Toggle;
@@ -217,6 +219,15 @@ export function layerSections(d: LayerDeps): LayerSection[] {
     {
       title: 'Display',
       rows: [
+        {
+          kind: 'choice',
+          label: 'Skin',
+          key: 'K',
+          options: SKINS.map((s) => ({ value: s, label: SKIN_LOOKS[s].label, hint: SKIN_LOOKS[s].hint, swatch: SKIN_LOOKS[s].swatch })),
+          get: () => d.skin.value,
+          set: (v) => d.skin.set(v as Skin),
+          watch: [d.skin],
+        },
         toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
         toggle('Traffic currents', 'Particles follow the average flow of the traffic, not wind', 'I', d.currents),
         toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),

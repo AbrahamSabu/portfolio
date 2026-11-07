@@ -21,7 +21,8 @@ export interface ChoiceRow {
   kind: 'choice';
   label: string;
   key?: string;
-  options: { value: string; label: string }[];
+  /** With swatches (background, lines, accent) the options are drawn as a grid of colour chips (the skins). */
+  options: { value: string; label: string; hint?: string; swatch?: readonly [string, string, string] }[];
   get(): string;
   set(value: string): void;
   watch: Watched[];
@@ -164,14 +165,25 @@ export class LayersPanel {
       el.append(text, key, button);
     } else if (row.kind === 'choice') {
       const group = document.createElement('div');
-      group.className = 'layers-choice-group';
+      group.className = row.options.some((o) => o.swatch) ? 'layers-choice-group layers-swatches' : 'layers-choice-group';
       group.setAttribute('role', 'radiogroup');
       group.setAttribute('aria-label', row.label);
       const buttons = row.options.map((o) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.setAttribute('role', 'radio');
-        b.textContent = o.label;
+        if (o.hint) b.title = o.hint;
+        if (o.swatch) {
+          const chip = document.createElement('span');
+          chip.className = 'layers-swatch';
+          chip.setAttribute('aria-hidden', 'true');
+          chip.style.setProperty('--sw-bg', o.swatch[0]);
+          chip.style.setProperty('--sw-line', o.swatch[1]);
+          chip.style.setProperty('--sw-accent', o.swatch[2]);
+          const name = document.createElement('span');
+          name.textContent = o.label;
+          b.append(chip, name);
+        } else b.textContent = o.label;
         b.addEventListener('click', () => row.set(o.value));
         group.append(b);
         return { b, value: o.value };

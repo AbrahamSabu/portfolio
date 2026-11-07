@@ -3,6 +3,7 @@ import { Map as MapLibreMap, NavigationControl, ScaleControl, setWorkerUrl, type
 // bundler moves things around. Importing the worker as a URL makes Vite ship it
 // and tells us exactly where it ended up.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+import type { BasemapPalette } from '../state/skins';
 import { applyHoloBasemap } from './holoBasemap';
 
 setWorkerUrl(workerUrl);
@@ -26,7 +27,7 @@ export interface MapSetup {
  * A north-up tactical map, drawn as a globe when zoomed out. Rotation and pitch are disabled: operators
  * expect north at the top, and a tilted COP makes distances hard to judge.
  */
-export function createMap(container: HTMLElement, options: { pixelRatio?: number } = {}): MapSetup {
+export function createMap(container: HTMLElement, options: { pixelRatio?: number; palette?: () => BasemapPalette } = {}): MapSetup {
   const configured = import.meta.env.VITE_MAP_STYLE_URL;
   const style = configured === 'offline' ? OFFLINE_STYLE : configured || DEFAULT_STYLE;
 
@@ -65,7 +66,8 @@ export function createMap(container: HTMLElement, options: { pixelRatio?: number
     // usual map as you zoom in (fully flat by about zoom 12). Set on every
     // style load, since a style carries its own projection.
     map.setProjection({ type: 'globe' });
-    applyHoloBasemap(map);
+    // In the skin being worn when the style arrives (a skin change repaints it itself).
+    applyHoloBasemap(map, options.palette?.());
   });
   map.on('error', (event) => {
     if (styleLoaded || fellBack) return;
