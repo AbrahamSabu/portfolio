@@ -99,6 +99,26 @@ export const englishChannel: Scenario = {
     { a: { lat: 50.05, lon: -2.4 }, b: { lat: 50.3, lon: -0.2 }, altitudeM: 5500 },
   ],
   uavOrbits: [{ center: { lat: 50.15, lon: 0.6 }, radiusM: 9000, altitudeM: 3600 }],
+  // Heathrow's four holding stacks, at their real fixes (the Bovingdon,
+  // Lambourne, Ockham and Biggin Hill beacons), 7,000 to 13,000 ft. The
+  // racetracks are this simulation's own, inbound legs pointing at
+  // Heathrow, not the published patterns. Off the bottom, arrivals join a
+  // westerly approach from over central London.
+  holds: [
+    { name: 'BNN', fix: { lat: 51.726, lon: -0.55 }, inboundDeg: 165 },
+    { name: 'LAM', fix: { lat: 51.646, lon: 0.152 }, inboundDeg: 245 },
+    { name: 'OCK', fix: { lat: 51.305, lon: -0.447 }, inboundDeg: 0 },
+    { name: 'BIG', fix: { lat: 51.331, lon: 0.035 }, inboundDeg: 295 },
+  ].map((h) => ({
+    ...h,
+    rightHand: true,
+    floorM: 2133.6,
+    topM: 3962.4,
+    exit: [
+      { lat: 51.475, lon: -0.18 },
+      { lat: 51.47, lon: -0.454 },
+    ],
+  })),
 
   population: {
     airliner: 22,
@@ -107,6 +127,7 @@ export const englishChannel: Scenario = {
     'military-helicopter': 1,
     'maritime-patrol': 1,
     uav: 1,
+    holding: 12,
     cargo: 18,
     tanker: 8,
     ferry: 6,

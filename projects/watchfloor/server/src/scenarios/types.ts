@@ -38,6 +38,25 @@ export interface Orbit {
 }
 
 /**
+ * A holding stack: arrivals fly a racetrack over a fix, each a level
+ * (1,000 ft) apart, stepping down a level each lap until the lowest leaves
+ * for the runway. Seen in 3D, a stack is a pile of descending loops.
+ */
+export interface Hold {
+  name: string;
+  fix: LatLon;
+  /** The course flown towards the fix on the inbound leg (°). */
+  inboundDeg: number;
+  /** Turns at each end to the right (standard) or the left. */
+  rightHand: boolean;
+  /** Lowest and highest holding levels (m). */
+  floorM: number;
+  topM: number;
+  /** Off the bottom of the stack: these points, then landed. */
+  exit: LatLon[];
+}
+
+/**
  * Geography the simulator needs to produce believable traffic for one area.
  * Ships only ever move along lanes, routes and areas defined here, which is
  * how they stay off land without the simulator needing coastline data.
@@ -62,6 +81,8 @@ export interface Scenario {
   lightAircraftAreas: BBox[];
   patrolRacetracks: Racetrack[];
   uavOrbits: Orbit[];
+  /** Holding stacks the `holding` archetype flies. */
+  holds?: Hold[];
   /** Rare types' routes and orbits, by archetype (beluga-xl, awacs...); a type with none isn't simulated. */
   missions?: Partial<Record<string, Mission>>;
   /** How many of each archetype to keep alive. */

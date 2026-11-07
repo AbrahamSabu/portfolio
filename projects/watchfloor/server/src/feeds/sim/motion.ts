@@ -12,6 +12,11 @@ import type { Rng } from './rng';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** Holding levels are 1,000 ft apart. */
+export const HOLD_LEVEL_M = 304.8;
+/** Where an aircraft leaving a stack descends to for its approach: 3,000 ft. */
+const APPROACH_ALTITUDE_M = 914;
+
 /**
  * Distance at which a waypoint counts as reached: a bit more than the current
  * turn radius, or one step's travel if that's more (a long step through the
@@ -78,6 +83,26 @@ export function advance(e: SimEntity, dtMs: number, now: number, rng: Rng): void
         // Fly the tangent, bending inwards when outside the circle and outwards when inside.
         const correction = clamp(((d - b.radiusM) / b.radiusM) * 90, -60, 60);
         desiredCourse = b.clockwise ? radial + 90 + correction : radial - 90 - correction;
+        break;
+      }
+      case 'hold': {
+        let target = b.points[b.next]!;
+        if (distanceM(e.pos, target) < arrivalRadiusM(e, dt)) {
+          b.next = (b.next + 1) % b.points.length;
+          // Over the fix again: a lap done, so down a level, or off the bottom towards the runway.
+          if (b.next === 1) {
+            const level = (e.targetAltitudeM ?? e.altitudeM ?? b.floorM) - HOLD_LEVEL_M;
+            if (level < b.floorM - 1) {
+              e.behaviour = { kind: 'route', points: b.exit, next: 0, mode: 'once' };
+              e.targetAltitudeM = APPROACH_ALTITUDE_M;
+              desiredCourse = bearingDeg(e.pos, b.exit[0]!);
+              break;
+            }
+            e.targetAltitudeM = level;
+          }
+          target = b.points[b.next]!;
+        }
+        desiredCourse = bearingDeg(e.pos, target);
         break;
       }
       case 'loiter': {

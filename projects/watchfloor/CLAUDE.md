@@ -53,7 +53,9 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (490 tests after the Layers menu).
+- `npm test`: Vitest from the root config (862 tests after the five design concepts were merged, Nov 2026).
+- `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
+  sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
   resolving this workspace without it ("Cannot read properties of null
   (reading 'edgesOut')").
@@ -113,7 +115,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 15`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 18`, v18 the ops room (`room-*` both ways), v17 `records` (the leaderboard), v16 `findings`, `brief` and `replay`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -205,6 +207,18 @@ that could have been fetched before they arrived.
   - The `englishChannel` scenario follows the real Dover Strait traffic
     separation scheme and has three ferry routes plus fishing, leisure, naval,
     helicopter and light-aircraft areas.
+  - Holds (Nov 2026, so the Stack shows corkscrews on simulated traffic):
+    `Scenario.holds` and the `holding` archetype (an airliner at ~220 kt,
+    rate-one turns). Heathrow's four stacks at their real fixes (BNN, LAM,
+    OCK, BIG), 7,000-13,000 ft; racetracks are ours (inbound legs at
+    Heathrow), not the published ones. Behaviour `hold` loops the four
+    corners from `racetrack()` (1-min legs, ~4 min a lap), steps the target
+    down 1,000 ft each time it passes the fix, and off the floor switches to
+    a `route` once via a westerly approach gate to the runway (landed, then
+    replaced at the top of a stack). Startup spreads aircraft over levels.
+    The world scenario shares the Channel's holds (`holding: 12` in both).
+    The `Simulator` test group has a 20 s timeout: its hour-long runs sat
+    right at the 5 s default on a busy machine and the holds tipped them over.
   - Ships move only inside lanes, routes and areas, which is how they stay off
     land without coastline data.
   - About 85 contacts across 12 archetypes. All names and callsigns are invented.
@@ -600,6 +614,60 @@ that could have been fetched before they arrived.
   null angles in headless — dispatch `DeviceOrientationEvent`s instead.
   Write regexes with the Edit tool, not Python heredocs: `"\b"` became a
   backspace byte once.
+- Ops room (Nov 2026; `shared/src/room.ts`, `server/src/rooms/`,
+  `client/src/room/`, `client/console.html` + `src/console/`; protocol
+  v18 `room-*`): Q (or Layers → Ops room) opens a modal dialog (the map
+  key's frame): open a room here (MAIN: QR code, link and code for phones,
+  a `/?screen=CODE` link for screens) or join one as another screen by
+  typing its code (SCREEN 2-5: a TV with a remote). Rooms live in server
+  memory only. Phones join as consoles on the same `/ws` (they need the
+  tracks for their list). Codes: 4 chars from `BCDFGHJKMNPQRSTVWXZ23456789`; the main holds a
+  `key`, each console a `token` (16 random bytes, base64url, compared with
+  timingSafeEqual) to reclaim after a reconnect (main grace 5 min, since a
+  hidden tab closes its socket after 60 s; closing the page sends
+  `room-leave` on `pagehide`; console seat 2 min); callsigns are
+  server-picked NATO words, so no phone text
+  reaches the wall. Limits: 16 rooms, 12 consoles, open/join paced 500 ms
+  per socket, one send a second, and after 20 wrong codes a minute *every*
+  join gets `busy` (a refusal must not reveal which codes exist). Presence
+  (connected screens with their `status` + connected consoles with their
+  open track) goes to all members, coalesced 100 ms. A console's
+  `room-control { to, action }` reaches the named screen only (screens never
+  steer each other); actions are a closed list (show, pan in screen
+  fractions, zoom ±1, home = hello's scenario frame, follow, clear, tour,
+  layer, fly, ride), quick ones paced 50 ms, show 1 s. Screens run them in
+  `RoomHost.act` (camera moves stop the tour and close the timeline first;
+  layers go through `screenControl.ts` onto the Layers menu's own settings: the
+  twelve `LAYER_NAMES`, the score optional there and audible only once that
+  screen has had a gesture; `ride` (id or null) selects the aircraft, then
+  `RideAlong.start`, as J would)
+  and report `room-status` (layers, tour, follow, `riding` while riding) on change plus a 1 s check
+  (the tour has no event). **`layerDeps()` also holds plain functions**:
+  subscribing to `Object.values` of it crashed the page at startup;
+  `onLayerChange` names the eight settings. Network: HOST stays 127.0.0.1 by default; `HOST=0.0.0.0` is the
+  opt-in (startup warning). `lanOrigins` (pure) lists private IPv4s, Wi-Fi
+  192.168 first, virtual adapters (vEthernet/WSL/Docker...) last;
+  `joinOrigins` (shared) prefers the page's own origin unless it's loopback,
+  and with no reachable origin the dialog shows no QR and explains the
+  opt-in. `client/src/room/qr.ts`: our own QR encoder (byte mode, level M,
+  versions 1-10), tested against the standard's tables and by un-masking and
+  decoding every version. Presence tags are DOM Markers below-left of the
+  track (data block is above-right), HUD lines only. The console page has no
+  MapLibre: a Steering picker (kept while its screen is away), tabs Tracks
+  (windowed list: `queryTracks`, `visibleRange`, `shapeSvg`), Remote (pad:
+  pointer moves as pad fractions, sent at most every 100 ms;
+  `touch-action: none`), Layers (a tap waits up to 3 s for the screen's
+  status to agree) and Places (`searchPalette` over airports, fetched on
+  first open, and chokepoints); Back closes details (pushState), socket
+  closed after 60 s hidden. The demo
+  build leaves the page out and its Q dialog says rooms need the server.
+  Headless check: two CDP pages on one server (1600x900 main, 390x844
+  phone), **each in its own window** (`Target.createTarget` with
+  `newWindow`): a second tab hides the first, whose socket then closes
+  after 60 s. Chrome's `--host-resolver-rules="MAP wall.test 127.0.0.1"`
+  gives the main page a non-loopback origin, so the dialog shows its QR
+  without binding the LAN. Headless Chrome on Windows has no
+  BarcodeDetector. The dialog stops key propagation; Escape closes it.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to
@@ -609,6 +677,154 @@ that could have been fetched before they arrived.
   at its *drawn* position, never cleared while the camera holds still;
   movestart clears — the film moved; sleeps when hidden/off; globe far-side
   guarded by a bounds check before `project()`).
+- Sky score (`client/src/sound/`, Y / Layers → Sound of the sky,
+  `watchfloor.score` off by default, `watchfloor.scoreVolume` 0.6 via
+  `StoredLevel`): ambient music from the live, filter-shown tracks on
+  screen (`picture.ts` `summarise`: counts, a reservoir sample of 48
+  aircraft with pan = screen x; `facesViewer` drops the globe's far side).
+  `climb.ts` derives vertical rate in the browser (no protocol change):
+  reports < 8 s apart aren't compared (25 ft altitude steps look like
+  climbs), > 180 s restart, ±40 m/s clip, halved averaging; ±2.5 m/s =
+  climbing/descending. `conductor.ts` (pure, seeded random): A minor
+  pentatonic only (`scale.ts`, step 0 = A3; the ping's A5/E6 are in it);
+  log fullness (sky full at 2,000, sea at 300) glided with time constants
+  2.5–4 s; 60 bpm sixteenth grid — quarters always, eighths over 0.35,
+  sixteenths over 0.65 — busier = more, softer, shorter notes; note = 2 +
+  altitude band (1,600 m) + id hash % 3, climbing/descending add a note two
+  steps up/down (capped at D6: E6 and up belong to the calls); ≤ 6 bells;
+  pad voicing low/mid/high by climb lean with hysteresis and a 10 s dwell;
+  calls (emergency E6→A5 twice, finding A5 C6 E6, area E6) one at a time,
+  a third within 3 s dropped. `engine.ts` (Web Audio, `BaseAudioContext`
+  so offline works): drone/pad/bells → bed → duck, calls skip the duck,
+  → fader → volume (squared) → limiter (DynamicsCompressor −10 dB, knee 0,
+  20:1, 3 ms; **Web Audio adds its own make-up gain, ~+5.7 dB below
+  threshold**, so levels were set by measurement) → 0.9 → out; generated
+  convolver reverb; every change is `setTargetAtTime` or a ramp from 0.
+  `skyScore.ts`: lookahead scheduler (100 ms timer books 0.4 s ahead on the
+  audio clock, 1.6 s when hidden). **Creating a live AudioContext blocked
+  headless Chrome's main thread 2–5 s here, and starting oscillators on a
+  context the browser hasn't allowed logs a warning each**: so a
+  remembered-on score creates nothing until the first click/key
+  (`waitForGesture`; a Y press is left to `toggle()`, which treats "on but
+  held" as go-ahead), except `eager` screensaver mode, which tries at load
+  (a kiosk needs Edge's autoplay allowed for the site; flags on
+  `msedge --kiosk` are ignored when Edge is already running). Y is handled
+  before the tour's any-key stop (sound isn't camera). While playing,
+  alerts are calls in the score (`alertCue` in main.ts) instead of the
+  ping. The switch's hint says what it hears ("hearing 312 aircraft and
+  40 ships"). `RangeRow` in layersMenu.ts is the volume slider; the score
+  is an optional LayerDeps field so the menu test's deps stand unchanged.
+  Verify: `npm run sound-check -w @watchfloor/server [-- --wav f.wav]`
+  bundles `renderCheck.ts` with esbuild, renders a scripted 64 s in
+  headless Chrome's OfflineAudioContext (Node has no Web Audio) and checks
+  silence, loudness, scale share, flatness, climb centroid, ship low end,
+  call prominence, peak and `clickSize` (second difference; first
+  differences are dominated by legit high tones). To record the live app,
+  inject `AudioNode.prototype.connect` wrapping (tap anything connected to
+  the destination with a ScriptProcessor) via
+  `Page.addScriptToEvaluateOnNewDocument`, launch with `--mute-audio`, and
+  press Y with `Input.dispatchKeyEvent` (counts as a user gesture).
+- Traffic currents (Nov 2026; I key, Layers → Display beside phosphor,
+  `watchfloor.currents`, off by default): particles drift with the average
+  direction and speed of the traffic around them, earth.nullschool-style.
+  Continuous motion, so it's opt-in: turning it on is the consent the
+  reduced-motion rule asks for (as the screensaver's URL is).
+  `map/flowField.ts` (pure, tested): samples (x, y, vx, vy, weight) splatted
+  bilinearly into a screen grid (8 px cells), three box blurs per axis
+  (≈ Gaussian, cost independent of radius), mean = blurred sum / blurred
+  weight (Nadaraya-Watson); strength = weight in "tracks' worth"
+  (`kernelPeak`). `directionBands`: **one average per point cancels a lane
+  used both ways** (the first build showed nothing over busy Europe or
+  two-way shipping lanes), so each medium keeps 4 band fields and a heading
+  is shared cos² between the two bands either side (opposites never meet).
+  `clipToDisc`: the blur otherwise spreads currents off the globe into
+  space. `map/flowParticles.ts` (pure, tested): particles in screen space,
+  births weighted by node strength, reborn when life ends or strength <
+  0.04, `shift` for camera slides. `map/flowRenderer.ts`: **its own WebGL1
+  canvas** (a MapLibre custom layer would force a full map redraw every
+  frame; renderRate paces the map on purpose), inserted right after the
+  map canvas so markers stay above; two RGBA8 textures take turns: fade
+  pass (dithered floor: round-to-nearest leaves ghosts stuck at ~10/255,
+  plain floor cuts faint tails short), streaks as instanced quads
+  (`ANGLE_instanced_arrays`, 5 floats per segment straight from
+  `Particles.segments`), additive, then a copy to screen. `map/flowLayer.ts`:
+  every 3 s in `requestIdleCallback` slices (≤ 12 ms) a two-pass job: (1) a
+  dot product per live track that passes the PictureFilter against the
+  horizon (zoomed out; found by bisecting a project/unproject round trip
+  from the centre to the rim) or the farthest screen corner (zoomed in);
+  (2) `fairShare`: past 3,000 candidates per medium every k-th is
+  projected, weighted k; position + a point 4 px along its course through
+  `map.project` gives the screen velocity with the globe's foreshortening.
+  Air ≥ 40 m/s, 230 m/s → 55 px/s; sea ≥ 1 m/s, 7.7 m/s → 24 px/s (13×
+  more sped up; the map key says so). A pan slides particles and trails
+  (texture shifted by whole device pixels; follow mode's 1 px nudges
+  included); a zoom, or a pan > 12 px below zoom 4 (the globe turns rather
+  than slides), restarts once the camera stops. Hidden during timeline
+  replay (`setHidden` from onState). `map/frameGovernor.ts` (pure, tested):
+  each second's median frame against the best recent one; trims ×0.75
+  after 2 late seconds, gives ×1.25 after 2 calm ones, floor 0.3, holds
+  3 s after each restart (tiles loading); below 0.5 the canvas drops to
+  1x. The canvas carries `data-particles/samples/sampleMs/candidates/
+  scale/disc` for headless checks. Measured (headless Chrome on the real
+  GPU): world sim globe 21% of a core on vs 10% off, frames 16.7 ms; live
+  world 10.8k aircraft 28-31% vs 22%, sampling 23 ms a field (was 263 ms
+  before the corner test and fair share). Headless Chrome **can use the
+  GPU** here: `--headless=new --use-angle=d3d11 --ignore-gpu-blocklist`
+  gives ANGLE D3D11 and ~60 fps (SwiftShader gave ~2), so fps checks mean
+  something. `.key-list li` is flex: wrap text that contains `<kbd>` or
+  `<a>` in a `<span>`, or each piece becomes a column. When `npx` hangs
+  (npm's cache busy with other sessions), `node node_modules/vitest/vitest.mjs run`.
+- 3D modes (Nov 2026; keys E and J; one at a time: `beforeEnter`/`beforeStart`
+  hooks wired in main.ts). The map stays north-up and flat by default; each
+  mode unlocks only while on and restores exactly (`map/cameraLock.ts`
+  mirrors createMap's lock: keep the two in step).
+  - `map/layer3d.ts`: the one MapLibre custom WebGL layer (dots and lines at
+    a height; `LOOK` dot / selected ring / light). Uses `shaderData`'s
+    prelude + `projectTileFor3D`, so globe, Mercator and the blend all work.
+    **Height units differ by shader variant**: metres under `#define GLOBE`,
+    Mercator world units otherwise (`mercatorPerMetre(centre lat)`, as
+    MapLibre scales). Positions are offsets from a batch `ref`, folded into
+    the matrix in float64 (`translated`): absolute 0..1 floats jitter ~2 m.
+    The globe's 3D projection doesn't clip the far side, so the vertex shader
+    zeroes alpha behind the horizon plane (and `facesCamera` mirrors it for
+    hit-tests). MapLibre resets GL state after custom layers (`setDirty`).
+  - The Stack (`map/stackMode.ts`, pure parts in `stackBuffers.ts`): tilt 60°,
+    rotate/pitch unlocked, altitude ×`STACK_EXAGGERATION` (5, stated in the
+    key, the Layers row and an on-map tag). Flat aircraft layers are dimmed
+    to 30% by *paint* (`paintDim.ts`; scales a zoom curve's outputs, since
+    zoom must stay outermost), never by visibility, which the timeline owns.
+    Built from TrackLayer's positions on its `onFrame`; trails are rebuilt
+    only on store/selection/filter/trail-mode change or moveend, thinned to
+    48 points *before* lifting (207 ms → 6 ms at world view), and only the
+    selected one below zoom 5. Heights come from `AltitudeHistory` (recorded
+    from page load, one sample per ~10 s, level runs compressed): trail
+    points from before an altitude was known aren't drawn. TrackLayer gained
+    `setPicker` (hit-test 3D dots first) and `isHidden` (blank during replay).
+  - Ride Along (`map/rideAlong.ts`, `ridePose.ts`, `navLights.ts`,
+    `sunSky.ts`, `rideTerrain.ts`, `ui/rideHud.ts`, `ui/rideButton.ts`):
+    switches to Mercator (terrain/fog aren't fully supported on the globe),
+    adds AWS Terrain Tiles (terrarium, two sources: terrain + hillshade,
+    credited), sky/light/hillshade from `sunAt` (bearing to the subsolar
+    point), FOV 60°, pitch 82°, `calculateCameraOptionsFromCameraLngLatAltRotation`
+    every frame with `PoseSmoother` easing report corrections. The flat
+    aircraft *and trail* layers are dimmed to 0 (decals on the ground from
+    a cockpit). What dimming can't reach, main.ts's `hideOverlays` hides:
+    the currents and the long exposure (canvases of their own) and the
+    satellites (`Satellites.setHidden`: the flat map draws them on the
+    ground; their Layers row says why they've gone). The timeline's replay
+    hides the currents and exposure through the same function, so the two
+    never undo each other: add new overlays there. Lights are ≥ 14 px with a solid core: a 6 px glow read as
+    a 2 px speck in screenshots. Leaving:
+    Esc (window capture phase, before main's Escape chain), J, any user
+    camera input (`dragstart`/`wheel`/`touchstart`, or `movestart` with an
+    `originalEvent`), selection change, track gone. Other code's camera
+    moves (fly(), fitBounds) are caught by wrapping the map's
+    flyTo/easeTo/fitBounds/panTo/zoomTo *for the ride only*: the ride ends
+    first, then their move runs from the restored map. Routes via hexdb.io
+    only for live ADS-B callsigns, never sim or private, and labelled as
+    hexdb.io's listing for the callsign, not this flight's route: on the
+    live check BAW839 was listed LDDU → EGLL while flying south-east out of
+    London (stale or the return leg).
 - Country briefing (`state/countryBriefing.ts` pure, `ui/countryPanel.ts`):
   click a basemap country label (`place_country_1/2`, `name:en` else
   `name`; cursor turns to a pointer) -> the day's stories whose GDELT place
@@ -657,7 +873,7 @@ that could have been fetched before they arrived.
   follow but keeps the selection). EmergencyAlerts exposes `get active`
   for the tour. Alert ping: `ui/alertSound.ts`
   (WebAudio two-note, synthesised, try/catch), `watchfloor.sound` off by
-  default, Layers menu "Alerts" section; EmergencyAlerts/RegionAlerts take
+  default, Layers menu "Sound" section (beside the sky score, which sounds the alerts instead while it plays); EmergencyAlerts/RegionAlerts take
   an optional `ping` callback. Screensaver mode (`/?screensaver`, in
   main.ts): the tour starts itself once the store has tracks and restarts
   after 60 s without input (the URL is the consent the motion rule asks
@@ -740,6 +956,103 @@ that could have been fetched before they arrived.
   recolouring. Under basemap labels. Off by default; R / Layers menu /
   `watchfloor.radar`; the frame list is fetched only while shown, every 10
   min. Not animated (13x the tiles). Credit via source attribution.
+- Satellites, the third domain (Nov 2026; `server/src/space/`,
+  `shared/src/satellites.ts`, `client/src/space/`; O key, Layers → Space,
+  `watchfloor.satellites` on by default, filter group
+  `watchfloor.satelliteGroups`). No protocol change: plain HTTP.
+  - **CelesTrak's rules** (gp-data-formats page, Nov 2026): data changes
+    every 2 h; since 2026-03-26 one download per update per group (a repeat
+    gets 403 until it changes); 50 errors (301/403/404) in 2 h put the IP
+    on its firewall; use `celestrak.org` (`.com` answers 301); on a refusal
+    "stop and report to a human". Observed: 503s and a Starlink request
+    that ran past 90 s while busy.
+  - `SatelliteService`: groups `stations`, `weather`, `starlink`
+    (`SATELLITES`, `off`; never `active`, which contains Starlink) as OMM
+    JSON: TLEs can't carry six-digit catalogue numbers, which ran out on
+    2026-07-11 (the stations group already has Soyuz MS-29, 100057). Each
+    group at most every `SATELLITES_REFRESH_H` (6, min 2) plus up to 10%,
+    kept in `.cache/satellites/<group>.json` (`SATELLITES_CACHE`), so
+    restarts never download. Refusal (3xx/4xx, `redirect: 'manual'`): wait
+    the refresh interval, three in a row stop the group until restart (logged
+    as an error). 5xx: 30 min doubling, never stops. No answer: 15 min
+    doubling. Timeout 3 min. `CELESTRAK_URL` for a stub.
+  - `/api/satellites`: groups with status and `SatelliteTuple`s, built and
+    gzipped once per change (11,299 satellites: 1.52 MB, 495 KB on the wire),
+    ETag with `no-cache` (re-checks are 304s), 503 before the first build,
+    404 when off. `CatalogClient` re-checks every 30 min (20 s while a group
+    is pending). The static demo has no server, so `demo/demoCatalog.ts`
+    (handed to Satellites as its `CatalogSource`, through the demo module so
+    the normal bundle carries none of it) has each visitor's browser fetch
+    the groups from CelesTrak itself (CORS `*`; nothing of CelesTrak's is
+    republished, and its usage policy says nothing on redistribution while
+    Space-Track's is stricter). Kept in the Cache API (`watchfloor-satellites`)
+    for 2 h so a visitor downloads each update once; no Cache API, no
+    download; anything but a 200 (redirects not followed) stops that group
+    for the visit and keeps the visitor's older copy.
+  - SGP4 in a module worker (`satWorker.ts`, satellite.js 7.1.0, chosen over
+    ootk (AGPL), ootk-core (stale), tle.js (TLE-only wrapper) and `sgp4`
+    (no licence)). **Its index re-exports a WASM build with top-level
+    await**: vite.config makes the worker `format: 'es'` and marks
+    satellite.js free of side effects there (worker 25 KB, main bundle no
+    SGP4). Under load here, `json2satrec` cost 0.2-0.5 ms and a propagation
+    8-120 µs per satellite (expect ~5 µs idle), so the worker sets up 1,000
+    at a time (stations and weather first, `complete: false` frames are
+    redone on `loaded`) and `keyframes.ts` keeps frames 5 s apart (26 m from
+    the true arc), at most two requests in flight, and never drops a late
+    frame (the layer extrapolates one step). Satellite.js lives only in the
+    worker and tests; the page imports its types only. Nothing loads until
+    the layer is first shown (catalogue fetch and worker are lazy; turning it
+    off stops the re-checks), so satellites switched off cost nothing.
+    Screensaver (`setPaceScale(2)`, read via `paceScaleNow()`): keyframes
+    10 s apart and redraws half as often, like the tracks.
+  - `SatelliteLayer`: a MapLibre custom layer of WebGL points, one draw
+    call. The vertex shader blends two keyframes and projects with the
+    prelude MapLibre passes (`projectTileFor3D` takes Mercator 0..1 with
+    `defaultProjectionData`), raises low orbits (< 2,000 km) to their true
+    height × `shellScale(zoom)` (1 to zoom 3, 0 by zoom 5: zoomed in the
+    camera would be below them), hides what the planet is in front of with
+    a ray test (camera from the matrix, `projection.ts`) and, on the ground,
+    MapLibre's horizon plane. A plus sign per satellite (aircraft are dots,
+    ships rings), pale steel, fainter zoomed out; selected: orchid ring.
+    Redraws when one could move half a pixel (`satelliteIntervalMs`), and
+    rides the map's other frames. **Bind GL state only in render()**:
+    MapLibre calls `setDirty()` after a custom layer renders, not after
+    `onAdd`. **A uniform both stages declare needs one precision**
+    (`u_pixel_ratio` failed to link). `getStyle()` doesn't list custom
+    layers; `map.getLayer('satellites').implementation` reaches it.
+  - Picking mirrors the shader on the CPU (`projectSatellite` with the last
+    frame's matrices), Mercator box first when zoomed in; tracks win a
+    click, then satellites, then airports; hook armed: no satellite pick.
+    Craft docked to a station (within 25 km when a catalogue loads) draw as
+    it, under its oldest catalogue number (ISS = Zarya 25544, Tiangong =
+    Tianhe 48274), and its card lists them.
+  - Ground tracks (`groundTrackLayer.ts`, under the tracks): half an orbit
+    back dashed, one ahead, for the two crewed stations always and the
+    selected satellite in orchid; redone every 5 s. Cut at the antimeridian
+    (`splitAtAntimeridian`); an unwrapped track passes 540° and the tiler
+    keeps only one world copy either side.
+  - Card (`satellitePanel.ts`, `.details` classes in #details's place;
+    `.app.sat-open` hides the briefing): altitude, speed, orbit family and
+    sun-synchronous (from J2 precession), ground point and sunlight,
+    docked craft, next pass over the map centre (10°, `findNextPass`;
+    visible = sunlit at the peak and sun below -6° there), element age.
+    Selecting a satellite clears the track selection and closes the
+    airport/country panels; selecting a track closes the card; Escape too.
+  - Timeline: replay puts satellites at the replayed moment (exact frames,
+    newest wish wins), projection at now + offset; no recording needed.
+  - Phone spotter (`sky/iss.ts`): `/api/satellites?groups=stations` (a few
+    KB, built on demand per version) and the same worker in the page, asked
+    for a `look` four times a second (azimuth, elevation, range, sunlit, the
+    sun's elevation there). The ISS joins the sky list as `sat:25544` only
+    while `visibleToEye` (≥ 10°, sunlit, sun below -6°): a plus sign on the
+    scope, locks and taps like an aircraft, card in km and km/h, no hexdb
+    lookup. Headless test: work out where it's visible soon (propagate.ts
+    in a tsx script), CDP geolocation override, then dispatch
+    `deviceorientationabsolute` with alpha = 360 - azimuth, beta = 90 +
+    elevation, gamma = 0 (upright portrait, back camera at it).
+  - Headless under 100% CPU (other sessions, Nov 2026): GeoJSON lines took
+    ~20 s to appear and the first satellite frame ~6 s; wait before judging
+    something missing.
 - Chokepoints (`state/chokepoints.ts` pure counts, `map/chokepointLayer.ts`):
   eight hand-drawn boxes (Hormuz, Bab-el-Mandeb, Suez, Singapore Strait,
   Bosphorus, Gibraltar, Dover, Panama); live (not stale) ships in each and
@@ -950,6 +1263,10 @@ that could have been fetched before they arrived.
   or the observer never installs and reports zero.** Verify with a
   deliberate 120 ms busy loop. The status bar's counts refresh once a
   second, so time page opening from the User Timing entries, not them.
+- Headless Chrome checks: give Chrome a fixed `--user-data-dir` under the
+  gitignored `.cache/` on D:, or delete a temporary one when done. Throwaway
+  `mkdtemp` profiles in %TEMP% were never cleaned up and reached 136 folders
+  (3.5 GB) by Nov 2026, the day C: ran out of space mid-check.
 - To *see* the map in automation, use headless Chrome with
   `--use-angle=swiftshader --enable-unsafe-swiftshader` over CDP. The app's
   preview pane shows a black WebGL canvas even when everything works.

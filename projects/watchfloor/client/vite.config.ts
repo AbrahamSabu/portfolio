@@ -38,11 +38,22 @@ export default defineConfig(({ mode }) => {
         input: {
           main: fileURLToPath(new URL('./index.html', import.meta.url)),
           ...(demo ? {} : { sky: fileURLToPath(new URL('./sky.html', import.meta.url)) }),
+          // The ops room's phone console needs a live server too.
+          ...(demo ? {} : { console: fileURLToPath(new URL('./console.html', import.meta.url)) }),
         },
       },
       sourcemap: !demo,
       // MapLibre and milsymbol (all symbol standards) are large; they're cached after first load.
       chunkSizeWarningLimit: 2500,
+    },
+    worker: {
+      // The SGP4 worker (src/space) uses satellite.js's plain JavaScript. Its index also
+      // re-exports an optional WebAssembly build written with top-level await, which only a
+      // module worker can hold; declared free of side effects, those unused parts are left out.
+      format: 'es' as const,
+      rolldownOptions: {
+        treeshake: { moduleSideEffects: (id: string) => !/[\\/]satellite\.js[\\/]/.test(id) },
+      },
     },
   };
 });

@@ -16,8 +16,12 @@ import { ReplayLayer } from './map/replayLayer';
 import { DataCredits } from './map/dataCredits';
 import { HookTool } from './map/hook';
 import { ExposureLayer } from './map/exposureLayer';
+import { StackMode } from './map/stackMode';
+import { RideAlong } from './map/rideAlong';
+import { addRideButton } from './ui/rideButton';
 import { FilterControl } from './map/filterControl';
 import { FindingLayer } from './map/findingLayer';
+import { FlowLayer } from './map/flowLayer';
 import { HazardLayer } from './map/hazardLayer';
 import { NewsLayer } from './map/newsLayer';
 import { NewsHotspots } from './map/newsHotspots';
@@ -27,6 +31,8 @@ import { NightLayer } from './map/nightLayer';
 import { NightLights } from './map/nightLights';
 import { SpaceBackdrop } from './map/space';
 import { RadarLayer } from './map/radarLayer';
+import { SatelliteFilter } from './space/satelliteFilter';
+import { Satellites } from './space/satellites';
 import { Reticle } from './map/reticle';
 import { TrackLayer } from './map/trackLayer';
 import { PathLayer } from './map/pathLayer';
@@ -35,6 +41,8 @@ import { loadTrailMode, loadTrailStyle, TrailSetting } from './map/trailControl'
 import { TrailLayer } from './map/trailLayer';
 import { viewForServer } from './map/viewBox';
 import { Connection, defaultSocketUrl, type ConnectionHandlers, type Link } from './net/connection';
+import { mapSource, SkyScore, type CueKind } from './sound/skyScore';
+import { RoomHost } from './room/roomHost';
 import { ServerClock } from './state/clock';
 import { chokepointCounts } from './state/chokepoints';
 import { FindingStore } from './state/findings';
@@ -195,12 +203,31 @@ async function main(): Promise<void> {
   // Weather radar, off until asked for: R or the Layers menu.
   const radarShown = new StoredToggle('watchfloor.radar', false);
   const radar = new RadarLayer(map, radarShown);
+  // Satellites, the third domain: CelesTrak's elements from our server (in the static
+  // demo, from CelesTrak in the visitor's browser), positions computed in a worker
+  // (space/). O or the Layers menu; their own group in the filter.
+  const satellitesShown = new StoredToggle('watchfloor.satellites', true);
+  const satellites = new Satellites(map, {
+    shown: satellitesShown,
+    filter: new SatelliteFilter(),
+    now: () => clock.now(),
+    detailsPanel: el('details'),
+    filterPanel: el('filter-panel'),
+    selection,
+    onOpen: () => {
+      airportPanel.close();
+      countryPanel.close();
+    },
+    ...(demo ? { catalog: (onCatalog, onStatus) => new demo.DemoCatalog(onCatalog, onStatus) } : {}),
+  });
   const reticle = new Reticle(map);
   // The selected track's ATC-style data block, riding the same dead-reckoned position.
   new DataBlock(map, store, clock, layer, selection);
   // The hook (X): range, bearing and closest approach between the selection and a second track.
   const hook = new HookTool(map, store, clock, layer, selection);
   new HoverCard(map, store, clock, layer, (point) => {
+    const satellite = satellites.describeAt(point);
+    if (satellite) return satellite;
     const airport = airports.airportAt(point);
     return airport && describeAirport(airport, countryName);
   });
@@ -239,6 +266,7 @@ async function main(): Promise<void> {
   const countryPanel = new CountryPanel(el('country-panel'), map, store, news, hazards, clock, selection, (id) => cards.open(id), (id) => hazardLayer.open(id));
   map.on('click', (event) => {
     if (isDrawing() || layer.trackAt(event.point)) return;
+    if (!hook.armed && satellites.pick(event.point)) return;
     const airport = airports.airportAt(event.point);
     const country = airport ? undefined : countryPanel.countryAt(event.point);
     if (airport) {
@@ -256,9 +284,16 @@ async function main(): Promise<void> {
   // The alert ping is off by default; its switch is in the Layers menu.
   const soundOn = new StoredToggle('watchfloor.sound', false);
   const sound = new AlertSound(soundOn);
-  const emergencyAlerts = new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement, () => sound.ping());
+  // The sky score (Y, Layers menu): ambient music played by the traffic on
+  // screen. While it plays, alerts are calls within it instead of the ping:
+  // one sound per alert, in the same key.
+  const score = new SkyScore(mapSource(map, store, filter, clock), { eager: screensaver });
+  const alertCue = (kind: CueKind) => {
+    if (!score.cue(kind)) sound.ping();
+  };
+  const emergencyAlerts = new EmergencyAlerts(el('alerts-emergency'), map, store, clock, selection, newsSettings, el('alert-chip') as HTMLButtonElement, () => alertCue('emergency'));
   // Watch areas: who crossed in or out, checked each second.
-  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings, () => sound.ping());
+  const regionAlerts = new RegionAlerts(el('alerts-region'), regions, store, selection, newsSettings, () => alertCue('area'));
   window.setInterval(() => {
     // Mid-reconnect the store is empty: that's not every track leaving at once.
     // And with no areas drawn there's nothing to watch: don't copy 30k
@@ -283,7 +318,7 @@ async function main(): Promise<void> {
     fly(map, { center: [f.lon, f.lat], zoom: Math.max(map.getZoom(), 8) });
   };
   new FindingLayer(map, findings, findingsShown, layer, () => clock.now(), showFinding);
-  new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => sound.ping());
+  new FindingAlerts(el('alerts-finding'), findings, newsSettings, showFinding, () => alertCue('finding'));
   // The Rare aircraft tab: what's flying now and the last day's, whenever you want them.
   const rarePanel = new RarePanel(el('rare-panel'), el('rare-toggle') as HTMLButtonElement, findings, map, () => clock.now(), showFinding);
   // The Leaderboard tab: the server's boards of who's highest, fastest, biggest. It shares the Rare tab's place.
@@ -318,11 +353,34 @@ async function main(): Promise<void> {
   const applyPhosphor = () => el('map').classList.toggle('phosphor', phosphor.value);
   phosphor.subscribe(applyPhosphor);
   applyPhosphor();
+  // Traffic currents (I): particles drift with the average flow of the tracks on the map.
+  const currentsShown = new StoredToggle('watchfloor.currents', false);
+  const currents = new FlowLayer(map, layer, () => {
+    const now = clock.now();
+    return [...store.all()].filter((t) => store.status(t, now) === 'live' && filter.passes(t, false));
+  }, currentsShown);
   const exposureShown = new StoredToggle('watchfloor.exposure', false);
-  new ExposureLayer(map, layer, () => {
+  const exposure = new ExposureLayer(map, layer, () => {
     const now = clock.now();
     return [...store.all()].filter((t) => store.status(t, now) === 'live');
   }, exposureShown);
+  // The Stack (E): aircraft at their real altitude on a tilted map.
+  const stack = new StackMode(map, store, clock, layer, selection, filter, trails);
+  // Ride Along (J): the view from the selected aircraft. One camera mode at a time.
+  const ride = new RideAlong(map, store, clock, layer, selection, filter, details);
+  addRideButton(el('details'), store, selection, ride);
+  ride.beforeStart = () => stack.leaveNow();
+  stack.beforeEnter = () => ride.stop();
+  // What a ride and the timeline's replay hide that the flat layers' own hiding can't reach:
+  // canvases of their own (currents, long exposure), and the satellites' layer, which the
+  // ride's flat map would draw on the ground. Decided here, so the two never undo each other.
+  let timelineReplaying = false;
+  const hideOverlays = () => {
+    currents.setHidden(timelineReplaying || ride.value);
+    exposure.setHidden(timelineReplaying || ride.value);
+    satellites.setHidden(ride.value);
+  };
+  ride.subscribe(hideOverlays);
 
   // The search palette: everything with a place on the map, one box, camera there.
   const palette = new Palette(
@@ -486,6 +544,12 @@ async function main(): Promise<void> {
   document.addEventListener('keydown', (event) => {
     // The key is a modal dialog: it handles its own Escape, and nothing behind it should react.
     if (keyDialog.open) return;
+    // The score is sound, not camera: Y turns it on or off and leaves the tour
+    // riding, so music can start under the screensaver.
+    if ((event.key === 'y' || event.key === 'Y') && !isTyping(event) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      score.toggle();
+      return;
+    }
     // Any key hands the camera back from the tour, and does nothing else.
     if (tour.active) {
       tour.stop();
@@ -510,6 +574,7 @@ async function main(): Promise<void> {
       else if (recordsPanel.open) recordsPanel.setOpen(false);
       else if (timeline.open) timeline.setOpen(false);
       else if (hook.armed || hook.active) hook.clear();
+      else if (satellites.selected) satellites.selectIndex(null);
       else selection.select(null);
     }
     // Single-letter shortcuts must not fire while the operator is typing.
@@ -525,8 +590,10 @@ async function main(): Promise<void> {
     if (event.key === 'h' || event.key === 'H') hazardsShown.toggle();
     if (event.key === 'd' || event.key === 'D') findingsShown.toggle();
     if (event.key === 'c' || event.key === 'C') chokepointsShown.toggle();
+    if (event.key === 'o' || event.key === 'O') satellitesShown.toggle();
     if ((event.key === 'w' || event.key === 'W') && !regionDraw.active) regionPanel.startDrawing();
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
+    if (event.key === 'i' || event.key === 'I') currentsShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
     if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
     if (event.key === 'u' || event.key === 'U') {
@@ -534,8 +601,11 @@ async function main(): Promise<void> {
       rarePanel.setOpen(!rarePanel.open);
     }
     if (event.key === 'p' || event.key === 'P') recordsPanel.setOpen(!recordsPanel.open);
+    if (event.key === 'q' || event.key === 'Q') room.toggle();
     if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
     if (event.key === 'x' || event.key === 'X') hook.toggle();
+    if (event.key === 'e' || event.key === 'E') stack.toggle();
+    if (event.key === 'j' || event.key === 'J') ride.toggle();
     if (event.key === '?') keyDialog.toggle();
     if (event.key === '/') {
       event.preventDefault(); // otherwise the slash lands in the search box
@@ -560,14 +630,20 @@ async function main(): Promise<void> {
       drawArea: () => regionPanel.startDrawing(),
       manageAreas: () => regionPanel.setOpen(true),
       sound: soundOn,
+      score,
       search: () => palette.setOpen(true),
       tour: () => tour.start(),
       handover: () => handover.setOpen(true),
       rare: () => rarePanel.setOpen(true),
       records: () => recordsPanel.setOpen(true),
+      room: () => room.toggle(),
       timeline: () => timeline.setOpen(true),
       phosphor,
+      currents: currentsShown,
       exposure: exposureShown,
+      satellites: satellitesShown,
+      satellitesDetail: () => satellites.detail(),
+      stack,
     };
   }
 
@@ -619,12 +695,15 @@ async function main(): Promise<void> {
       const replaying = s.mode === 'replay';
       layer.setHidden(replaying);
       trailLayer.setHidden(replaying);
+      timelineReplaying = replaying;
+      hideOverlays();
       if (replaying) {
         selection.select(null);
         hook.clear();
       }
       ghosts.setOffset(s.mode === 'project' ? s.offsetMs : null);
       replayLayer.setTime(replaying ? s.t : null);
+      satellites.setTimeline(replaying ? { at: s.t } : s.mode === 'project' ? { offsetMs: s.offsetMs } : null);
     },
     requestReplay: () => {
       const b = map.getBounds();
@@ -633,6 +712,19 @@ async function main(): Promise<void> {
         bbox: viewForServer({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }),
       });
     },
+  });
+  // The ops room (Q): host a room for phones and other screens, or join one as a screen.
+  const room = new RoomHost({
+    map,
+    store,
+    layer,
+    selection,
+    tour,
+    timeline,
+    ride,
+    layers: layerDeps,
+    live: !demo,
+    send: (message) => connection.send(message),
   });
   const handlers: ConnectionHandlers = {
     onMessage(message, receivedAt) {
@@ -651,6 +743,13 @@ async function main(): Promise<void> {
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
+          room.reconnected(message.scenario);
+          break;
+        case 'room':
+        case 'room-presence':
+        case 'room-control':
+        case 'room-closed':
+          room.handle(message);
           break;
         case 'snapshot': {
           const applyStart = performance.now();

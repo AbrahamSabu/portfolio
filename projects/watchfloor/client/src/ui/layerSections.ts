@@ -1,4 +1,5 @@
 import type { TrailMode, TrailStyle } from '../map/trailLayer';
+import { STACK_EXAGGERATION } from '../map/stackBuffers';
 import type { SymbolStyle } from '../state/symbolStyle';
 import type { LayerSection } from './layersMenu';
 
@@ -35,9 +36,50 @@ export interface LayerDeps {
   handover: () => void;
   rare: () => void;
   records: () => void;
+  /** The ops room's join dialog (Q). */
+  room: () => void;
   timeline: () => void;
   phosphor: Toggle;
+  currents: Toggle;
   exposure: Toggle;
+  satellites: Toggle;
+  satellitesDetail: () => string;
+  stack: Toggle;
+  /** The sky score (optional: the menu works without it). */
+  score?: {
+    on: Toggle;
+    volume: { readonly value: number; set(volume: number): void; subscribe(listener: () => void): unknown };
+    /** What it is hearing, in words, beside the switch while it's on. */
+    hearing: { describe(): string; subscribe(listener: () => void): unknown };
+  };
+}
+
+/** The sky score's rows in the Sound section: on and off (Y), and how loud. */
+function scoreRows(score: NonNullable<LayerDeps['score']>): LayerSection['rows'] {
+  return [
+    {
+      kind: 'switch',
+      label: 'Ambient score',
+      hint: 'Music played by the traffic on screen',
+      key: 'Y',
+      get: () => score.on.value,
+      set: (on) => score.on.set(on),
+      detail: () => score.hearing.describe() || 'starting',
+      watch: [score.on, score.hearing],
+    },
+    {
+      kind: 'range',
+      label: 'Score volume',
+      hint: 'How loud it plays',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      get: () => score.volume.value,
+      set: (volume) => score.volume.set(volume),
+      format: (volume) => `${Math.round(volume * 100)}%`,
+      watch: [score.volume],
+    },
+  ];
 }
 
 /** The Layers menu's rows, wired to the same settings as the keys. */
@@ -95,6 +137,10 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       ],
     },
     {
+      title: 'Space',
+      rows: [toggle('Satellites', 'Space stations, weather, Starlink: predicted, not observed', 'O', d.satellites, d.satellitesDetail)],
+    },
+    {
       title: 'News',
       rows: [
         {
@@ -143,6 +189,7 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         { kind: 'action', label: 'Timeline', key: 'Z', run: d.timeline },
         { kind: 'action', label: 'Rare aircraft', key: 'U', run: d.rare },
         { kind: 'action', label: 'Leaderboard', key: 'P', run: d.records },
+        { kind: 'action', label: 'Ops room: phones and screens', key: 'Q', run: d.room },
       ],
     },
     {
@@ -154,14 +201,20 @@ export function layerSections(d: LayerDeps): LayerSection[] {
       ],
     },
     {
-      title: 'Alerts',
-      rows: [toggle('Sound', 'A short ping for squawks and area alerts', undefined, d.sound)],
+      // One section, since the two meet: while the score plays, it sounds the alerts instead of the ping.
+      title: 'Sound',
+      rows: [
+        toggle('Alert ping', 'Squawks, findings and area alerts; the score sounds them while it plays', undefined, d.sound),
+        ...(d.score ? scoreRows(d.score) : []),
+      ],
     },
     {
       title: 'Display',
       rows: [
         toggle('Phosphor scope', 'Everything in single-gun green; identity colours rest', undefined, d.phosphor),
+        toggle('Traffic currents', 'Particles follow the average flow of the traffic, not wind', 'I', d.currents),
         toggle('Long exposure', 'Movement burns in while the camera holds still', undefined, d.exposure),
+        toggle('The Stack', `Tilts the map; aircraft at their real altitude, drawn ×${STACK_EXAGGERATION} taller`, 'E', d.stack),
       ],
     },
   ];

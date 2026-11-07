@@ -2,7 +2,7 @@
 
 A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn as vehicle shapes or as NATO-standard MIL-STD-2525 symbols.
 
-**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, a dozen rare aircraft among them for the rare-sightings watcher to find (BelugaXLs between Airbus factories, Dreamlifters, An-124s, C-5s, a B-52, a NATO AWACS, a Global Hawk), with the day's real political news from [GDELT](https://www.gdeltproject.org/) on top: nothing to install, no account. The traffic is simulated and labelled so; the headlines are real and verbatim.
+**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, a dozen rare aircraft among them for the rare-sightings watcher to find (BelugaXLs between Airbus factories, Dreamlifters, An-124s, C-5s, a B-52, a NATO AWACS, a Global Hawk), with the day's real political news from [GDELT](https://www.gdeltproject.org/) on top and the real satellites overhead, computed from [CelesTrak](https://celestrak.org/)'s latest elements, which your browser fetches itself. Try the Stack (E), Ride Along (J, with an aircraft selected), the traffic currents (I) and the sound of the sky (Y): nothing to install, no account. The traffic is simulated and labelled so; the headlines are real and verbatim. The ops room needs the server, so it isn't in the demo.
 
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
@@ -27,6 +27,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Shows political news from around the world on the map, live from the GDELT Project: a marker where each story happened (conflict, protest, elections, diplomacy, politics), cards that pop up one at a time as new stories arrive, a scrolling ticker in the style of an intelligence feed, a soft glow where the day's stories gather, a closable briefing of the last six hours' top stories (B), and optional read-aloud (N to show or hide)
 - Raises an alert when an aircraft squawks an emergency code (7500 unlawful interference, 7600 radio failure, 7700 emergency): a card naming the aircraft and an amber ring on the map, once a second report confirms the code
 - Shows earthquakes (USGS, magnitude 2.5 and up, the past day) and current disasters from GDACS (cyclones, floods, volcanoes, droughts, wildfires), sized by strength or alert level, with a card per event and an alert when a strong one appears (H to show or hide)
+- Adds space as a third domain (O to show or hide): the space stations, weather satellites and Starlink, about 11,300 satellites moving round the globe, each a small pale cross. Zoomed out, the low ones are drawn at their true height, a thin shell round the planet; zoomed in, where they're overhead. Click one for its card (name, NORAD number, altitude, speed, orbit type, what's docked to a station, and its next pass over the map centre, visible to the eye or not) and its ground track. Positions are predicted from CelesTrak's orbital elements with SGP4, computed in the browser, and the card says so; the timeline (Z) moves them to the moment it shows
 - Gives a briefing on any country when you click its name: the day's news placed there, how many of its aircraft and ships are on the map (by registration and flag), and earthquakes or disasters that name it
 - Gathers every map toggle in one Layers menu (M), each with a line saying what it shows and its key
 - Finds anything with a place in one search (`/` or Ctrl K): tracks by callsign, squawk, type or model, airports by code or name, chokepoints and your watch areas — and flies the camera there in one cinematic arc, the same move every alert and briefing pick uses
@@ -35,16 +36,22 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 - Keeps a leaderboard (P): the highest, fastest (over the ground) and biggest aircraft in the picture right now, the most common types, the busiest airlines, the farthest north and south, and the fastest and longest ships, three places each, worked out by the server every half minute; pick one to fly to it. "Biggest" ranks by maximum take-off weight (an A380, about 575 t, beats a 747-8). Aircraft whose owners asked not to be tracked are left off, as they are off the rare tab.
 - Reads back a watch handover (V): the server keeps a rolling 24-hour log — emergency squawks starting and ending, findings beginning and resolving, significant hazards appearing — each line worded when it happened from the facts at hand; newest first, a click flies to where it happened, and Read aloud speaks the latest
 - Scrubs through time on one bar (Z): drag left of NOW to replay the last six hours from the paths the server already keeps (play at 60×, 300× or 900×), drag right to project up to thirty minutes ahead by dead reckoning, ghosts threaded back to the present — and the tag always says which moment is on screen, LIVE, REPLAY or PROJECTED
+- Lifts the picture into 3D (E, the Stack): the map tilts and every aircraft floats at its reported altitude, drawn five times taller than life (the key and an on-screen tag say so), with a thin line down to its spot on the ground, where its flat symbol stays as a faint shadow; trails climb and descend with the heights flown, so holding stacks read as corkscrews and ocean crossings as a layer at cruise height, while ships stay on the sea
+- Rides along with an aircraft (J, or the button in its details): the camera drops into its position, altitude and course and follows it by dead reckoning, over real terrain under a sky lit from the sun's true position, with every other aircraft shown as its navigation lights where it really is (red on the left wingtip, green on the right, white on the tail, each seen only from its own side, and flashing strobes) and a small HUD, with the route hexdb.io lists for its callsign when it lists one (labelled as that listing, since such lists can be stale); the satellites, the currents and the long exposure step aside while you ride, and Esc or any pan hands the map back exactly as it was
 - Tells you what that plane is (`/sky.html`, on a phone): point the phone at an aircraft in the sky and it locks on and names it: callsign, airline, type, route ("Manchester → Zürich"), altitude, speed and distance, with a disc of the sky that turns as you do and tells you which way to move to find one. Needs the live server over https (phones only share location and compass with secure pages)
+- Points out the International Space Station on the plane spotter too: when it's overhead and can be seen with the eye (high enough, lit by the sun, in a dark sky), it joins the aircraft on the scope as a plus sign and locks on the same way, with its height, speed and distance
+- Makes every screen in the room one ops room (Q): the main screen (a laptop or TV) opens a room and shows a QR code and a room code; other screens (a TV) join with the code and show their own view, and phones that scan the code join as consoles under a callsign such as CONSOLE ALFA. A phone picks which screen it steers and can send it a track, ride along with an aircraft on it, move and zoom its map with a touch pad, switch its layers (the satellites, the currents, the Stack and the sound of the sky among them), start its tour, or fly it to an airport or chokepoint; screens never steer each other. Each console's open track is tagged on every screen's map, so the room sees who is looking at what. Rooms live in the server's memory only, and devices can join over your network only once you opt in (see Ops room)
 - Turns into a phosphor scope (Layers → Display): the whole plotting surface through one green gun, and a long-exposure film that lets every route burn in as a glowing thread while the camera holds still
+- Draws traffic as currents (I, Layers → Display), like a wind map whose wind is the traffic: particles drift with the average direction and speed of the aircraft and ships around them, air and sea as separate fields, split by heading so a lane used both ways keeps both currents. The North Atlantic tracks read as a river (east at night, west by day) and shipping lanes as slower currents. The map key says it plainly: traffic, not wind, sped up to be seen
 - Works as a screensaver: open `/?screensaver` and the tour starts itself and resumes after a quiet minute; `scripts/watchfloor-screensaver.cmd` opens it as a full-screen kiosk
-- Can ping on an alert: a short synthesised two-note sound for squawks and watch-area crossings, off by default (the Layers menu's Alerts section)
+- Can ping on an alert: a short synthesised two-note sound for squawks, findings and watch-area crossings, off by default (the Layers menu's Sound section; while the sky score plays, it sounds the alerts instead)
+- Plays the picture as ambient music (Y, off by default, volume in the Layers menu): ships hum a low drone, the air traffic swells a soft chord, and each aircraft on screen rings its own note, higher the higher it flies, rising when it climbs and falling when it descends, heard from its side of the screen; a busy sky patters softly, an empty one goes quiet, and alerts become clear calls the music dips under. All synthesised with Web Audio, in one scale, through a limiter, and checked by rendering it offline in headless Chrome
 - Shows weather radar (R): the latest rain and snow picture from RainViewer, in grey so it never reads as an identity colour
 - Watches areas you draw (W): an alert when an aircraft or ship crosses in or out (aircraft, ships or both, military only if you like), a live count inside, and an activity log; kept in your browser, alerting while the page is open
 - Counts the ships in eight shipping chokepoints (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) and how many are under way, as tags on the map (C to show or hide); free AIS coverage is mostly European, so some counts are thin, and the key says so
 - Marks about 6,000 airports: the largest from the globe, more as you zoom in, with codes and then names, and the name, city and codes on hover (A to show or hide); click one for its latest weather report (decoded, with the raw METAR) and the aircraft arriving and leaving right now
 - Survives network trouble: automatic reconnect with backoff, a heartbeat watchdog, and resync for slow clients
-- Simulates about 85 contacts: airliners on airways, a maritime patrol racetrack, an unidentified drone, merchant ships in the real Dover Strait shipping lanes, cross-channel ferries, fishing and leisure boats
+- Simulates about 100 contacts: airliners on airways, arrivals stepping down Heathrow's four holding stacks, a maritime patrol racetrack, an unidentified drone, merchant ships in the real Dover Strait shipping lanes, cross-channel ferries, fishing and leisure boats
 
 ## Quick start
 
@@ -82,6 +89,44 @@ stops, and logs to `.cache\server.log`. To stop it, run
 `scripts\watchfloor-server.cmd` again (each AISStream instance also holds
 one of the key's three connections).
 
+### Ops room: phones and other screens
+
+Press `Q` (or Layers → Ops room) on the screen everyone can see and choose
+**Open a room here**. It shows a QR code, the join link and a four-character
+room code. Then:
+
+- **Another screen**, such as a TV with its own browser: open Watchfloor on
+  it, press `Q` or use Layers → Ops room, and join as a screen with the code
+  (or open the `/?screen=CODE` link the dialog shows). It becomes SCREEN 2,
+  keeps its own view, and is never steered by the main screen, nor steers it.
+- **Phones**: scan the QR code (or open `/console.html` and type the code).
+  A phone picks which screen it steers at the top, then has four tabs:
+  Tracks (list, search, details, **Send to** that screen), Remote (drag a
+  pad to move the map, zoom, home, follow, clear, tour), Layers (the
+  screen's own switches) and Places (airports and chokepoints to fly to).
+
+Every screen tags the tracks phones have open with their callsign. Close the
+room from the dialog, or just close the main screen; nothing about a room is
+saved.
+
+By default the server listens on `127.0.0.1`, so only this computer can reach
+it and the dialog says so instead of showing a QR code. To let phones on your
+home network join, opt in by listening on every interface: set
+`HOST=0.0.0.0` in `.env` and restart the server.
+
+> **Warning:** with `HOST=0.0.0.0`, anyone on the same Wi-Fi can open
+> Watchfloor, not just people in the room, and anyone who sees a room code can
+> steer the main screen while the room is open. Only do this on a network you
+> trust, and go back to `127.0.0.1` afterwards. Windows asks once whether Node
+> may accept connections: allow it on private networks only.
+
+The server then prints a warning with the addresses phones can use, and the
+QR code carries the best one (Wi-Fi before virtual adapters). Use the
+production build for this (`npm run build`, then `npm start`): in
+`npm run dev` the page comes from Vite on port 5173, which phones can't reach
+unless Vite is started with `--host`. Phones need no https here, since the
+console uses no sensors.
+
 For production, as a single process on one port:
 
 ```bash
@@ -108,6 +153,7 @@ Keyboard shortcuts:
 | `F` | Open or close the filter |
 | `S` | Switch between vehicle shapes and MIL-STD-2525C symbols |
 | `?` | Open the map key: what colours, symbols, dots, rings and lines mean |
+| `Q` | Ops room: open a room for phones and other screens, or join one as a screen |
 | `Esc` | Close the filter, or clear the selection |
 
 Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator (`SCENARIO=world` simulates the whole globe, as the demo does), `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
@@ -180,6 +226,8 @@ client/   MapLibre map, symbology, UI
 
 ### Design decisions
 
+**3D in one small custom layer.** The Stack and Ride Along draw aircraft at altitude with a MapLibre custom WebGL layer (`client/src/map/layer3d.ts`), not with deck.gl or three.js. MapLibre's own layers are flat, and its only 3D shape (fill-extrusion) stands prisms on the ground and copies every update through its worker. The custom layer borrows MapLibre's projection code, so the same GPU buffer draws on the globe, the flat map and the blend between them; positions go straight into one buffer per batch, stored relative to a nearby point so 32-bit floats stay precise to millimetres. The map stays north-up and flat by default: each mode unlocks the camera only while it's on, and puts back exactly what it changed.
+
 **One track shape everywhere.** Every feed translates its data into the `Track` type in `shared/src/track.ts`. The server, protocol and UI never know where a track came from, which is what makes adding a new feed a contained change.
 
 **Validate at the edge.** All reports pass through `sanitizeTrack` before entering the store. It rejects data that can't be trusted (NaN positions, out-of-range coordinates, timestamps from the future) and repairs what it can, such as headings of 365°.
@@ -191,6 +239,8 @@ client/   MapLibre map, symbology, UI
 **Trail history lives on the server too.** Deltas carry only each track's latest state, and a browser that has just connected has seen nothing yet. So the server records every accepted report into a short per-track history (5 minutes for aircraft, 30 for ships) and includes it in the snapshot. A reloaded page shows full trails straight away. After that, the browser extends trails from each delta. Both sides use the same `TrailHistory` class from `shared/`, so they skip near-duplicate points and expire old ones identically. Trails show only *reported* positions, never estimated ones, so they never claim the track was somewhere it wasn't seen.
 
 **Redraw only what changes.** Trails change only when a report arrives, so they're rebuilt about once a second. The short segment joining the last report to the moving symbol changes every frame, so it lives in its own small source. The 10 Hz work stays at one segment per track however long the trails get.
+
+**Currents from traffic, built the way a wind map is.** The traffic-currents mode (I) needs thousands of particles moving every frame, which as a map layer would make the whole map redraw sixty times a second. So it has its own WebGL canvas over the map, and the map's projection is used once per field rather than once per particle per frame. Every three seconds, in the browser's idle time, each moving track that can be on screen is projected along with a point a few pixels along its course: the difference is its velocity on screen, with the globe's curvature already in it. Those velocities are spread over a coarse screen grid and blurred, and blurred velocity over blurred weight is a kernel-weighted average, while the weight says how much traffic stands behind it. One average per point would cancel a lane used both ways, so each medium keeps four fields, one per direction band (a heading is shared between the two bands either side of it), and air and sea are separate, being thirty times apart in speed. Particles then drift in plain screen space, each frame's step added as light to a texture that keeps fading. The fade is dithered: rounding to nearest leaves faint ghosts stuck in eight bits, and rounding down cuts faint tails short. Measured on the simulated world: 21% of a core with currents on, 10% off, frames steady at 60 fps. A frame governor trims the particles on machines that can't keep up.
 
 **Scale to the whole world by not doing work nobody can see.** Worldwide there are 7,000+ aircraft, against the simulator's 85. Four measures keep the browser smooth, each tested and measured in headless Chrome:
 
@@ -233,6 +283,8 @@ client/   MapLibre map, symbology, UI
 
 **Ships report at their own pace.** A ship's AIS rate follows what it's doing: every 2 to 10 seconds underway, every 3 minutes at anchor. The sea default of fading after 90 seconds would fade every moored ship between reports, so live AIS gets its own rule through the per-source staleness overrides: fade after two missed 3-minute reports plus a margin, drop after about six. Moving ships report so often that they rarely get near either.
 
+**Space as arithmetic, not a stream.** Satellites aren't reported like aircraft; they're predicted. CelesTrak publishes each one's mean orbit, about a hundred bytes that stay good for days, and SGP4, the model those elements are made for, gives the position at any moment. So the server only relays: it downloads the space stations, weather satellites and Starlink a few times a day, keeps each group on disk, and serves them gzipped (11,300 satellites, 495 KB). CelesTrak asks for exactly that: its data changes every two hours, a second download of the same update is refused, and repeated errors get an address blocked, so refusals wait hours and three in a row stop that group until a person looks. Elements come as OMM rather than the classic two-line format, because the catalogue ran out of five-digit numbers in July 2026 and the space station group already holds six-digit ones. The browser does the arithmetic, in a Web Worker so the map's own thread stays free: positions for two moments five seconds apart, which the graphics card blends between on every frame (over five seconds a low orbit's straight-line shortcut strays 26 m from the true arc), so satellites glide while the CPU does nothing per frame. Streaming positions instead would have cost every viewer over 100 KB a second and still stuttered between messages. They're drawn by a custom WebGL layer through MapLibre's own projection code, so the low orbits can sit at their true height when zoomed out, a thin shell round the globe, and settle onto the ground as you zoom in, where the camera would otherwise be below them. The library is satellite.js (MIT, no dependencies), a port of the reference SGP4; the alternatives were AGPL-licensed, unmaintained, TLE-only, or a few thousand lines of orbital mechanics to write and trust ourselves. It was slower than hoped: setting up 11,300 satellites took several seconds on a busy machine, so the worker sets them up in batches, space stations first, and the satellites fill in rather than arriving all at once.
+
 **Half a timestamp.** An AIS position report carries only the UTC *second* of its fix, not the date or minute. The feed rebuilds the full time from AISStream's receive time: the latest moment at or before receipt that falls on that second. A fix a few seconds "after" receipt is treated as the ship's clock running ahead, not as nearly a minute of latency. That isn't hypothetical: in a recorded two minutes of Channel traffic, 8% of fixes were stamped 1 or 2 seconds ahead of AISStream's receive time, and without the allowance they'd have been dated almost a minute too early. Codes 60 to 63 mean "no time stamp" and fall back to the receive time. The other "not available" codes (latitude 91, speed 102.3 knots, course 360, heading 511) are skipped rather than drawn, and a moving ship with no course is skipped instead of being dead-reckoned due north.
 
 **Paths on request, not in the snapshot.** The five-minute trails go to every browser, so they stay short. A whole flight is wanted for one track at a time, so the server keeps hours of history for every track and sends one track's path only when a browser selects it. It thins as it records: each new report decides whether the previous one adds anything the straight line doesn't, so a cruising jet costs a point every few minutes while a holding pattern keeps its turns (about 77,000 points for 38,000 tracks after 7 minutes). The server only knows what it has seen since it started watching, so for an aircraft first seen at cruise it asks OpenSky's experimental tracks endpoint for the flight since takeoff, once per aircraft, capped at 60 lookups an hour, from a credit bucket separate from the map's polls. The browser gets an answer at once, then a second with the earlier part (an Emirates 777 from Gatwick, a 9-hour BA flight from Los Angeles), and extends it live. Opening the page is unchanged: tracks drawn at about 2 s, snapshot about 5.3 MB. The path is drawn in the selection colour, dashed across stretches with no reports (an ocean crossing), with a ring where it starts.
@@ -263,6 +315,10 @@ client/   MapLibre map, symbology, UI
 
 **Server time, not browser time.** Track ages and dead reckoning compare server timestamps with "now". The client estimates its clock offset from every message, so a browser clock that's a few seconds off doesn't make tracks look stale.
 
+**Music that can't play a wrong note.** The sky score (`client/src/sound/`) maps the picture on screen to sound with rules a listener can learn: ships to a low drone, how busy the sky is to how many notes play and how soft they are, altitude to pitch, climbing and descending to rising and falling pairs. To keep that musical rather than noisy, every note comes from one scale (A minor pentatonic, which has no semitone steps, so no combination clashes, and the alert ping's notes are in it), notes land on a slow beat, at most six ring at once, every change glides over seconds, and a limiter sits on the output. The decisions (the conductor) are pure functions tested in Vitest; the instruments (the engine) are tested against a recording fake of Web Audio; and since Node has no Web Audio, `npm run sound-check -w @watchfloor/server` renders a scripted minute with an `OfflineAudioContext` in headless Chrome and measures it: silent when empty, 99% of its tonal power on the scale, tonal rather than noise, climbers higher than descenders, alert calls well above the music, never clipping, no clicks.
+
+**The ops room is a few messages on the same socket.** A phone console needs the picture for its list anyway, so it uses the same WebSocket as the main screen, and the room is a handful of `room-*` messages on top (protocol v18), parsed as strictly as everything else a browser sends. Everything a phone can ask of a screen is one `room-control` message naming the screen and an action from a closed list (show, pan, zoom, home, follow, clear, tour, layer, fly), each number range-checked; the server delivers it to that screen only, so screens can't steer each other. Screens report what they show (layers, tour, follow), so a phone's switches show the screen's real state. Rooms live in the server's memory only. A room code is four characters with no vowels and no look-alikes (it never spells a word or gets misread), which makes it short enough to type and also short enough to guess. So joining is paced per browser, and after 20 wrong codes in a minute every join waits out the minute, so a refusal says nothing about which codes exist. The main screen holds a secret key and each console a token, compared in constant time, so after a dropped connection the screen reclaims its room and a phone keeps its callsign. The server picks the callsigns (CONSOLE ALFA, BRAVO...) from a fixed list: nothing a phone types ever reaches the wall. The QR code comes from a small encoder of our own (Reed–Solomon error correction, the zigzag layout, the eight masks) rather than a dependency, and the server listens beyond this computer only when told to (`HOST=0.0.0.0`).
+
 **Deterministic simulation.** The simulator uses a seeded random number generator and an injectable clock, so tests can run an hour of traffic in milliseconds and get the same result every time. Ships only move along defined lanes, routes and areas, which keeps them at sea without coastline data. Aircraft and ships have realistic turn rates, acceleration and report intervals, and transponders occasionally go quiet.
 
 ## Roadmap
@@ -292,6 +348,9 @@ client/   MapLibre map, symbology, UI
 - Airport weather: [aviationweather.gov](https://aviationweather.gov/) (NOAA Aviation Weather Center)
 - Earthquakes: [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/) (public domain)
 - Disasters: Global Disaster Alert and Coordination System, [GDACS](https://www.gdacs.org/) (automatic estimates; local authorities' warnings come first)
+- Satellite orbits: [CelesTrak](https://celestrak.org/) GP element sets (OMM), downloaded by the server a few times a day under CelesTrak's usage rules; positions computed with [satellite.js](https://github.com/shashwatak/satellite-js) (MIT)
 - Countries: ICAO Annex 10 Vol. III (aircraft address blocks) and the ITU's maritime identification digits (ship flags)
+- Terrain (Ride Along): [Mapzen terrain tiles on AWS](https://registry.opendata.aws/terrain-tiles/), built from SRTM, GMTED2010, ETOPO1, USGS 3DEP, Copernicus EU-DEM and [other open elevation data](https://github.com/tilezen/joerd/blob/master/docs/attribution.md); EU-DEM produced using Copernicus data and information funded by the European Union
+- Route lookups (Ride Along, live aircraft only): [hexdb.io](https://hexdb.io)
 
 All simulated traffic is invented, including callsigns and vessel names. Live aircraft and ships come from crowd-sourced receivers (OpenSky, adsb.lol, adsb.fi, AISStream) and can be delayed, incomplete or missing; empty areas often mean no receivers, not no traffic. AIS is self-reported: a ship's name, type and position are what it broadcasts, not an identification. This is a portfolio project and must not be used for navigation.

@@ -3,6 +3,7 @@ import { airportIconSvg } from '../map/airports';
 import { HAZARD_KIND_LABEL, hazardIconSvg } from '../map/hazardIcons';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { trackIconSvg } from '../map/trackIcon';
+import { STACK_EXAGGERATION } from '../map/stackBuffers';
 import type { SymbolStyle, SymbolStyleSetting } from '../state/symbolStyle';
 import { AFFILIATION_LABEL, PLATFORM_LABEL } from './format';
 
@@ -16,12 +17,17 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['L', 'Open or close the track list'],
   ['/', 'Search tracks, airports, chokepoints and areas'],
   ['G', 'Cinematic tour of what is happening'],
+  ['Y', 'Sound of the sky: ambient music played by the traffic on screen'],
   ['V', 'Watch handover: the last 24 hours, read back'],
   ['Z', 'Timeline: replay six hours back, project thirty minutes ahead'],
   ['U', 'Rare aircraft: in the air now, and the last 24 hours'],
   ['P', 'Leaderboard: highest, fastest, biggest, busiest airlines, fastest ships'],
+  ['E', 'The Stack: aircraft at their real altitude on a tilted map'],
+  ['J', 'Ride along: the view from the selected aircraft'],
+  ['Q', 'Ops room: host a room for phones and other screens, or join one'],
   ['F', 'Open or close the filter'],
   ['T', 'Trails: all tracks, selected only, off'],
+  ['I', 'Traffic currents: the average flow of air and sea traffic'],
   ['S', 'Vehicle shapes or military symbols'],
   ['N', 'Show or hide the news'],
   ['B', 'Open or close the briefing'],
@@ -29,6 +35,7 @@ export const SHORTCUTS: Array<[keys: string, action: string]> = [
   ['H', 'Show or hide earthquakes and disasters'],
   ['D', 'Show or hide findings (rare aircraft, circling, converging, gone silent)'],
   ['C', 'Show or hide shipping chokepoints'],
+  ['O', 'Show or hide satellites (space stations, weather, Starlink)'],
   ['W', 'Draw a watch area'],
   ['X', 'Hook a second track: range, bearing, closest approach'],
   ['R', 'Show or hide weather radar'],
@@ -103,11 +110,13 @@ function content(style: SymbolStyle): string {
       <ul class="key-list">
         <li><span class="key-glyph key-dot" aria-hidden="true"></span>Aircraft, zoomed out</li>
         <li><span class="key-glyph key-ring" aria-hidden="true"></span>Ship, zoomed out</li>
+        <li><span class="key-glyph key-satellite" aria-hidden="true"></span><span>Satellite. Zoomed out, the low ones sit at their true height, a thin shell round the globe. Positions are predicted from <a href="https://celestrak.org/" target="_blank" rel="noopener">CelesTrak</a>'s orbital elements, not observed</span></li>
         <li><span class="key-glyph key-leader" aria-hidden="true"></span>Speed leader: where it will be in 1 minute (aircraft) or 10 (ships)</li>
         <li><span class="key-glyph key-trail" aria-hidden="true"></span>Trail: where it was reported in the last 5 minutes (aircraft) or 30 (ships)</li>
+        <li><span class="key-glyph key-flow" aria-hidden="true"></span><span>Currents (<kbd>I</kbd>): particles drift with the average direction and speed of the moving traffic around them, split by heading so a lane used both ways shows both currents, aircraft and ships as separate fields. It is the traffic on the map, not wind, sped up to be seen (ships about 13 times more than aircraft)</span></li>
         <li><span class="key-glyph key-stale" aria-hidden="true"></span>Faded: no recent report, so its position is an estimate</li>
         <li><span class="key-glyph key-emergency" aria-hidden="true"></span>Amber ring: the aircraft is squawking an emergency code (7500, 7600 or 7700), as its transponder broadcasts it. Click the ring, or the amber chip in the top bar, to find it again after hiding its alert</li>
-        <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain). Click one for its weather and the aircraft arriving and leaving</li>
+        <li><span class="key-glyph key-news" aria-hidden="true">${airportIconSvg(16)}</span><span>Airport: the largest from the globe, more as you zoom in (<a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a>, public domain). Click one for its weather and the aircraft arriving and leaving</span></li>
       </ul>
     </section>
     <section>
@@ -120,6 +129,14 @@ function content(style: SymbolStyle): string {
       <p>Rain and snow from <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> (free for personal use), the latest 10-minute picture, in grey so it never reads as an identity colour: the brighter, the heavier. Its detail stops at zoom 7, so closer in it is stretched. Coverage is where weather radars are: mostly North America, Europe, East Asia and Australia. Press <kbd>R</kbd> or use the Layers menu (<kbd>M</kbd>).</p>
     </section>
     <section>
+      <h3>The Stack</h3>
+      <p>Press <kbd>E</kbd> (or Layers › Display) to tilt the map and lift each aircraft to its reported altitude, drawn <strong>×${STACK_EXAGGERATION} taller than life</strong> so a few hundred metres show. A thin line drops to the point below it, where its flat symbol stays as a faint shadow; ships stay on the sea, and an aircraft that reports no altitude stays on the ground. Trails climb and descend with the heights flown since this page opened. Holding stacks read as corkscrews, ocean crossings as a layer at cruise height. Turn the map with a right-drag; tilt it with Shift and the up and down arrows.</p>
+    </section>
+    <section>
+      <h3>Ride along</h3>
+      <p>Select an aircraft and press <kbd>J</kbd> (or Ride along in its details) to see from where it is: its position, altitude and course, by dead reckoning between reports. The ground is real terrain (<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Mapzen terrain tiles</a>, from SRTM and other open elevation data), and the sky and shading follow the sun's true position. Other aircraft show as their navigation lights, where they really are: red on the left wingtip, green on the right, white on the tail, each seen only from the side it faces, with flashing strobes. Red and green together means it's coming towards you. Esc, <kbd>J</kbd>, or any pan or zoom brings the map back as it was. The satellites, the currents and the long exposure step aside during a ride: they are drawn for the map, not for a cockpit.</p>
+    </section>
+    <section>
       <h3>Watch areas</h3>
       <p>Press <kbd>W</kbd> (or the Layers menu, or the dashed-shape button on the left) and click out an area; name it and choose aircraft, ships or both, military only if you like. An alert says when one crosses in or out (two reports outside count as leaving, so one jumpy position doesn't), and each area counts the tracks that leave the picture inside it (landed, out of receiver range or switched off). Anything already inside when you open the page is counted, not alerted. Areas are kept in this browser, and alerts happen only while the page is open.</p>
     </section>
@@ -130,6 +147,22 @@ function content(style: SymbolStyle): string {
     <section>
       <h3>Shipping chokepoints</h3>
       <p>Tags at eight narrows (Hormuz, Bab-el-Mandeb, Suez, Singapore, the Bosphorus, Gibraltar, Dover, Panama) count the ships in each now and how many are under way; closer in, a dashed box shows the area counted. Ship positions come from AIS receivers, which are mostly in Europe: a low count far away can mean few receivers rather than few ships.</p>
+    </section>
+    <section>
+      <h3>Sound of the sky</h3>
+      <p>Press <kbd>Y</kbd> (or use the Layers menu) for ambient music played by the traffic on screen. It is off until you start it and keeps playing through the tour. Only live tracks the filter shows count, and everything is in one scale (A minor pentatonic), so no two notes clash.</p>
+      <ul class="key-list key-sound">
+        <li>Ships hum a low drone: louder the more there are in view, brighter the more are under way.</li>
+        <li>Aircraft swell a soft chord, and each rings its own note: the higher it flies, the higher the note, heard from its side of the screen.</li>
+        <li>A climbing aircraft plays a rising pair of notes and a descending one a falling pair. When most are climbing the chord lifts; when most descend, it sinks.</li>
+        <li>A few aircraft ring slowly and clearly; hundreds patter softly on a quicker beat.</li>
+        <li>An emergency squawk sounds a clear falling call, a new finding a rising chime, a watch-area crossing one high note, and the music dips beneath them. While the score plays, these replace the alert ping.</li>
+        <li>An empty sea or sky is silent.</li>
+      </ul>
+    </section>
+    <section>
+      <h3>Ops room</h3>
+      <p>Press <kbd>Q</kbd> to open a room on this screen. Phones that scan its code become consoles, and other screens can join with the code. A console can show a track here, move the map, start the tour, switch layers (the satellites, the currents, the Stack and the sound of the sky among them) and ride along with an aircraft on this screen. A browser plays sound only once someone has touched that screen, so the score may wait for a tap here. The room lasts while this page is open.</p>
     </section>
     <section>
       <h3>Earthquakes and disasters</h3>

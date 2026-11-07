@@ -10,6 +10,7 @@ import {
   type TrackSource,
 } from '@watchfloor/shared';
 import { appendFileSync, mkdirSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
 import { loadConfig, trafficKind } from './config';
 import { readAircraftDb } from './feeds/adsb/aircraftDb';
 import type { Feed } from './feeds/feed';
@@ -23,6 +24,8 @@ import { Simulator } from './feeds/sim/simulator';
 import { Hub } from './hub';
 import { PathService } from './paths/pathService';
 import { replayFor } from './replay/replay';
+import { isLoopbackHost, lanOrigins } from './rooms/lanOrigins';
+import { Rooms } from './rooms/rooms';
 import { nearbyAircraft, SkyWatchers } from './sky/nearby';
 import { trackDetails } from './details/trackDetails';
 import { airlineFor, readAirlines } from './feeds/adsb/airlines';
@@ -33,6 +36,7 @@ import { BriefService } from './brief/briefService';
 import { FindingsService } from './findings/findingsService';
 import { RecordsService } from './records/records';
 import { HazardService } from './hazards/hazardService';
+import { SatelliteService } from './space/satelliteService';
 import { WeatherService } from './weather/weatherService';
 import { loadNews, NewsService, saveNews } from './news/newsService';
 import { getScenario } from './scenarios';
@@ -199,6 +203,8 @@ async function main(): Promise<void> {
     },
   });
   const weather = new WeatherService();
+  // Satellites' orbital elements from CelesTrak, a few downloads a day, served to browsers.
+  const satellites = config.satellites.groups.length > 0 ? new SatelliteService(config.satellites) : null;
 
   // Who is watching: browsers over the socket, plus plane-spotter phones,
   // which only make HTTP requests (sky/nearby.ts). Demand and areas are set
@@ -223,6 +229,7 @@ async function main(): Promise<void> {
   const server = createHttpServer({
     staticDir: config.staticDir,
     weather: (station) => weather.get(station),
+    ...(satellites ? { satellites: (groups) => (groups ? satellites.responseFor(groups) : satellites.response()) } : {}),
     sky: (lat, lon) => {
       const now = Date.now();
       const wasActive = skyWatchers.active;
@@ -239,10 +246,15 @@ async function main(): Promise<void> {
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
       news: news?.health() ?? null,
       hazards: hazards?.health() ?? null,
+      satellites: satellites?.health() ?? null,
       findings: findings.health(),
       brief: brief.health(),
     }),
   });
+
+  // The ops room: phones join a main screen as consoles (rooms/). Memory only.
+  const joinOrigins = () => lanOrigins(config.host, config.port, networkInterfaces());
+  const rooms = new Rooms({ origins: joinOrigins });
 
   hub = new Hub({
     onTrackRequest: (id, send) => {
@@ -267,6 +279,7 @@ async function main(): Promise<void> {
       applyAreas();
     },
     feedStatus: () => feeds.flatMap((feed) => (feed.status ? [feed.status()] : [])),
+    rooms,
     ...(news ? { news: () => news.items() } : {}),
     ...(hazards ? { hazards: () => hazards.items() } : {}),
     findings: () => ({ items: findings.items(), recent: findings.recent() }),
@@ -310,8 +323,10 @@ async function main(): Promise<void> {
     feed.start(sink);
   }
   hub.start();
+  rooms.start();
   news?.start();
   hazards?.start();
+  satellites?.start().catch((err: unknown) => log.warn('satellites did not start', { error: String(err) }));
   findings.start();
   records.start();
   brief.start();
@@ -325,6 +340,10 @@ async function main(): Promise<void> {
     health: '/healthz',
     feeds: feeds.map((f) => f.name),
   });
+  // Listening beyond this computer is the opt-in for phones on the network (README, "Ops room").
+  if (!isLoopbackHost(config.host)) {
+    log.warn(`HOST=${config.host}: anyone on this network can open Watchfloor`, { phonesJoinAt: joinOrigins() });
+  }
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
@@ -332,8 +351,10 @@ async function main(): Promise<void> {
     shuttingDown = true;
     log.info('shutting down', { signal });
     for (const feed of feeds) feed.stop();
+    rooms.stop();
     news?.stop();
     hazards?.stop();
+    satellites?.stop();
     findings.stop();
     records.stop();
     brief.stop();

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { TrafficKind } from '@watchfloor/shared';
+import { isSatelliteGroup, SATELLITE_GROUPS, type SatelliteGroup, type TrafficKind } from '@watchfloor/shared';
 
 /** Every setting in one place, read once at startup. See .env.example. */
 export interface Config {
@@ -16,6 +16,8 @@ export interface Config {
   news: { enabled: boolean; file: string | null };
   /** Earthquakes (USGS) and disasters (GDACS) on the map; `HAZARDS=off` to stop them. */
   hazards: boolean;
+  /** Orbital elements from CelesTrak for the satellite layer; `SATELLITES=off` to stop them. */
+  satellites: { groups: SatelliteGroup[]; refreshMs: number; cacheDir: string | null; baseUrl?: string };
   /**
    * Which feeds run. Defaults to the live world: aircraft from OpenSky
    * everywhere, filled in from adsb.lol and adsb.fi (free, no key) where
@@ -196,6 +198,39 @@ function openSkyConfig(): Config['opensky'] {
 }
 
 /**
+ * CelesTrak groups for the satellite layer, such as "stations,weather". Not
+ * `active` (every satellite, ~13,000): Starlink is part of it, and CelesTrak
+ * asks for one or the other, never both.
+ */
+export function parseSatelliteGroups(raw: string | undefined): SatelliteGroup[] {
+  if (raw === undefined || raw.trim() === '') return [...SATELLITE_GROUPS];
+  if (raw.trim().toLowerCase() === 'off') return [];
+  const names = raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  for (const name of names) {
+    if (!isSatelliteGroup(name)) throw new Error(`SATELLITES: unknown group "${name}". Available: ${SATELLITE_GROUPS.join(', ')}, or off`);
+  }
+  return SATELLITE_GROUPS.filter((g) => names.includes(g));
+}
+
+/**
+ * Satellites: each group is downloaded at most once per refresh interval
+ * (6 h by default; CelesTrak updates every 2 h and refuses repeats sooner)
+ * and kept on disk, so restarts don't download again.
+ */
+function satellitesConfig(): Config['satellites'] {
+  const baseUrl = httpUrl('CELESTRAK_URL');
+  return {
+    groups: parseSatelliteGroups(process.env.SATELLITES),
+    refreshMs: int('SATELLITES_REFRESH_H', 6, 2, 72) * 3_600_000,
+    cacheDir:
+      process.env.SATELLITES_CACHE?.trim().toLowerCase() === 'off'
+        ? null
+        : path.resolve(process.cwd(), process.env.SATELLITES_CACHE || '../.cache/satellites'),
+    ...(baseUrl ? { baseUrl } : {}),
+  };
+}
+
+/**
  * Load a .env file if there is one (repo root or current directory).
  * Real environment variables always win over the file.
  */
@@ -235,6 +270,7 @@ export function loadConfig(): Config {
           : path.resolve(process.cwd(), process.env.NEWS_FILE || '../.cache/news.json'),
     },
     hazards: process.env.HAZARDS?.trim().toLowerCase() !== 'off',
+    satellites: satellitesConfig(),
     feeds: parseFeeds(process.env.FEEDS),
     // SIM_SCENARIO is the old name, kept so existing .env files still work.
     scenario: process.env.SCENARIO || process.env.SIM_SCENARIO || 'cork',
