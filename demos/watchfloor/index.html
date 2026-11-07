@@ -17,6 +17,17 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap"
     />
     <script>
+      // The skin (state/skins.ts) before the first paint, so a page in Phosphor
+      // never flashes blue: ?skin= in the address, else the remembered one.
+      // Unknown names match no rule in skins.css and look like Holo.
+      try {
+        const skin = new URLSearchParams(location.search).get('skin') || localStorage.getItem('watchfloor.skin');
+        if (skin) document.documentElement.dataset.skin = skin;
+      } catch {
+        // Storage blocked: the default skin.
+      }
+    </script>
+    <script>
       // Screensaver mode runs the whole page at 30 fps: half the frames,
       // half the GPU and main-thread animation work, and nobody watching a
       // wall display can tell. Inline and first, so MapLibre and every
@@ -52,8 +63,8 @@
         })();
       }
     </script>
-    <script type="module" crossorigin src="./assets/main-DX5Ym1Uf.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/main-BYq3iGBH.css">
+    <script type="module" crossorigin src="./assets/main-Gyou-4bn.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/main-lO2njyDQ.css">
   </head>
   <body>
     <div class="boot" id="boot" aria-hidden="true">
@@ -92,6 +103,10 @@
           </div>
         </div>
         <div class="topbar-end">
+          <button class="topbar-button tour-toggle" id="tour-toggle" type="button" data-tour-toggle aria-pressed="false" title="Cinematic tour (G)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5v9l7-4.5z" /></svg>
+            <span>Tour</span>
+          </button>
           <button class="topbar-button alert-chip" id="alert-chip" type="button" hidden></button>
           <button class="topbar-button rare-chip" id="rare-toggle" type="button" aria-expanded="false" aria-controls="rare-panel" title="Rare aircraft (U)">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.6 4.2 4.4.3-3.4 2.8 1.1 4.3L8 10.7l-3.7 2.4 1.1-4.3L2 6l4.4-.3z" /></svg>
@@ -525,6 +540,6 @@
         </div>
         <div class="cursor" data-cursor aria-hidden="true"></div>
       </footer>
-    </div>
+    </div>
   </body>
 </html>
