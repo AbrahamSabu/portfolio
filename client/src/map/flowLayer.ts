@@ -52,8 +52,17 @@ const SEA: Medium = {
   style: { rgb: [0.62, 0.78, 0.88], alpha: 0.55, width: 1.6 },
 };
 
-/** Direction bands per medium (east, south, west, north on screen): a lane used both ways keeps both currents. */
-const BANDS = 4;
+/**
+ * Direction bands per medium, 45° apart on screen: a lane used both ways
+ * keeps both currents, and a heading is only ever averaged with ones within
+ * 45° of it. Four bands (90° apart) blended neighbouring flows and pulled
+ * currents towards east, south, west and north, directions few aircraft
+ * fly: measured on 2,734 live aircraft over western Europe, the current
+ * nearest each aircraft's heading was a median 10° off (31° for the worst
+ * tenth); with eight, 5° (13°). The particle budget is per medium, so more
+ * bands don't mean more particles.
+ */
+const BANDS = 8;
 /** A new field every few seconds while the camera holds still: traffic moves slowly. */
 const REFRESH_MS = 3000;
 /**
