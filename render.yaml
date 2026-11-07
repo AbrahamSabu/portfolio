@@ -14,10 +14,14 @@
 #
 # The three secrets are set in the Render dashboard when the blueprint is
 # first applied (sync: false below): OPENSKY_CLIENT_ID, OPENSKY_CLIENT_SECRET,
-# AISSTREAM_API_KEY. They never live in this repository. Use an OpenSky
-# account and an AISStream key of their own, not your home server's: OpenSky
-# credits are per account per day, and AISStream allows three connections
-# per key, so a shared key lets the public site spend your own.
+# AISSTREAM_API_KEY. They never live in this repository. Use your one
+# OpenSky account: OpenSky's API docs say registering several accounts gets
+# all of them banned for life. The 3-minute polls below leave most of its
+# daily credits for your home server. Give this site its own AISStream key
+# if your account allows one: a key allows three connections at once.
+# OpenSky also says it may block cloud providers' addresses; if it blocks
+# Render's, the status bar says so and aircraft come from adsb.lol and
+# adsb.fi where visitors zoom in.
 services:
   - type: web
     name: watchfloor
@@ -36,11 +40,11 @@ services:
         value: opensky,adsblol,adsbfi,ais
       - key: OPENSKY_AREA
         value: world
-      # A world poll costs 4 credits. Every 2 minutes is 2,880 a day even if
-      # someone watches around the clock, inside an account's 4,000 (every
-      # minute would run dry by late afternoon).
+      # A world poll costs 4 credits. Every 3 minutes is at most 1,920 a day
+      # even if someone watches around the clock, leaving 2,080 of the
+      # account's 4,000 for your home server, which shares it.
       - key: OPENSKY_POLL_S
-        value: "120"
+        value: "180"
       # Viewport, not world: a worldwide AIS stream is hundreds of messages a
       # second, which a 0.1-vCPU instance should not chew through for ships
       # nobody is looking at. Viewport mode subscribes only to what viewers
@@ -64,6 +68,13 @@ services:
       # address, and wrong codes counted per address.
       - key: ROOMS_MAX
         value: "200"
+      # No satellites on the free tier: no disk survives a sleep, so every
+      # wake would download CelesTrak's catalogue again, and CelesTrak refuses
+      # repeat downloads within its 2-hour update and firewalls addresses that
+      # collect refusals (Render's are shared). The static demo still has
+      # them, fetched by each visitor's own browser.
+      - key: SATELLITES
+        value: "off"
       - key: OPENSKY_CLIENT_ID
         sync: false
       - key: OPENSKY_CLIENT_SECRET
