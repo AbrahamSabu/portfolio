@@ -9,12 +9,14 @@ export const FINDING_LABEL: Record<FindingKind, string> = {
 };
 
 /**
- * Whether a new finding earns a card in the alert stack. Circling and
- * converging are rare and worth a glance; a ship falling out of terrestrial
- * AIS coverage is routine, so those only mark the map.
+ * Whether a new finding earns a card in the alert stack. Converging military
+ * aircraft and rare types are worth a glance. A ship falling out of
+ * terrestrial AIS coverage is routine, and so, it turned out, is circling
+ * (holds, training, survey and police work; the user found the cards noise),
+ * so those only mark the map, the tour and the handover log.
  */
 export function interrupts(f: Finding): boolean {
-  return f.kind !== 'dark';
+  return f.kind === 'converging' || f.kind === 'rare';
 }
 
 /**
