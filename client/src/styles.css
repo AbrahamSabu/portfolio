@@ -16,14 +16,15 @@
   --surface: rgb(4 15 28 / 0.8);
   --surface-solid: #06121f;
   --surface-raised: #0c2236;
-  --rule: rgb(63 182 255 / 0.32);
+  --rule: rgb(var(--hud-rgb) / 0.32);
   --ink: #d8f1ff;
   --ink-muted: #82a9c2;
   --accent: #c9a0ff;
   /* The display's own light: lines, brackets, glow. Never fills a track. */
   --hud: #3fb6ff;
+  --hud-rgb: 63 182 255;
   --hud-bright: #a8e6ff;
-  --hud-glow: rgb(63 182 255 / 0.45);
+  --hud-glow: rgb(var(--hud-rgb) / 0.45);
   --ok: #7fd9b0;
   --warn: #f0c36a;
   --bad: #ff8f87;
@@ -945,7 +946,7 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   height: 14px;
   border: 1px solid var(--rule);
   border-radius: 7px;
-  background: rgb(63 182 255 / 0.06);
+  background: rgb(var(--hud-rgb) / 0.06);
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
@@ -962,7 +963,7 @@ body[data-list-open] .maplibregl-ctrl-top-left {
 
 .news-switch[aria-checked='true'] .news-switch-track {
   border-color: var(--hud-glow);
-  background: rgb(63 182 255 / 0.22);
+  background: rgb(var(--hud-rgb) / 0.22);
 }
 
 .news-switch[aria-checked='true'] .news-switch-thumb {
@@ -1851,7 +1852,7 @@ body[data-list-open] .filter-panel {
   width: 100%;
   padding: 9px 14px 9px 10px;
   border: 0;
-  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  border-bottom: 1px solid rgb(var(--hud-rgb) / 0.12);
   background: transparent;
   color: var(--ink);
   font: inherit;
@@ -1860,7 +1861,7 @@ body[data-list-open] .filter-panel {
 }
 
 .briefing-item:hover {
-  background: rgb(63 182 255 / 0.08);
+  background: rgb(var(--hud-rgb) / 0.08);
 }
 
 .briefing-item:focus-visible {
@@ -1963,7 +1964,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
   width: 100%;
   padding: 8px 14px;
   border: 0;
-  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  border-bottom: 1px solid rgb(var(--hud-rgb) / 0.12);
   background: transparent;
   color: var(--ink);
   font: inherit;
@@ -1972,7 +1973,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
 }
 
 .rare-item:hover {
-  background: rgb(63 182 255 / 0.08);
+  background: rgb(var(--hud-rgb) / 0.08);
 }
 
 .rare-item-type {
@@ -1980,7 +1981,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
 }
 
 .rare-item-name {
-  color: #3fb6ff;
+  color: var(--hud);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2020,7 +2021,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
   min-width: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: rgb(63 182 255 / 0.22);
+  background: rgb(var(--hud-rgb) / 0.22);
   color: var(--ink);
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
@@ -2028,7 +2029,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
 }
 
 .rare-chip-live {
-  border-color: rgb(63 182 255 / 0.6);
+  border-color: rgb(var(--hud-rgb) / 0.6);
   color: var(--ink);
 }
 
@@ -2037,7 +2038,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
   display: flex;
   justify-content: flex-end;
   padding: 0 14px 6px;
-  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  border-bottom: 1px solid rgb(var(--hud-rgb) / 0.12);
 }
 
 .handover-list {
@@ -2053,7 +2054,7 @@ body:has(#rare-panel:not([hidden]), #records-panel:not([hidden]), #handover:not(
   width: 100%;
   padding: 8px 14px 8px 10px;
   border: 0;
-  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  border-bottom: 1px solid rgb(var(--hud-rgb) / 0.12);
   background: transparent;
   color: var(--ink);
   font: inherit;
@@ -2065,12 +2066,12 @@ button.handover-item {
 }
 
 button.handover-item:hover {
-  background: rgb(63 182 255 / 0.08);
+  background: rgb(var(--hud-rgb) / 0.08);
 }
 
 .handover-time {
   flex: none;
-  color: #3fb6ff;
+  color: var(--hud);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   padding-top: 1px;
@@ -2324,23 +2325,23 @@ button.handover-item:hover {
 
 /* Findings in the HUD's own blue: the floor's observations, not emergencies. */
 .finding-alert {
-  border-color: rgb(63 182 255 / 0.45);
-  border-left-color: #3fb6ff;
-  box-shadow: 0 0 22px rgb(63 182 255 / 0.12);
+  border-color: rgb(var(--hud-rgb) / 0.45);
+  border-left-color: var(--hud);
+  box-shadow: 0 0 22px rgb(var(--hud-rgb) / 0.12);
 }
 
 .finding-alert .alert-head,
 .finding-alert .alert-show {
-  color: #3fb6ff;
+  color: var(--hud);
 }
 
 .finding-alert .alert-code {
-  text-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+  text-shadow: 0 0 8px rgb(var(--hud-rgb) / 0.5);
 }
 
 .finding-alert .alert-show {
-  border-color: #3fb6ff;
-  background: rgb(63 182 255 / 0.1);
+  border-color: var(--hud);
+  background: rgb(var(--hud-rgb) / 0.1);
 }
 
 .hazard-card-icon,
@@ -2398,7 +2399,7 @@ button.handover-item:hover {
 
 .airport-section + .airport-section {
   margin-top: 6px;
-  border-top: 1px solid rgb(63 182 255 / 0.12);
+  border-top: 1px solid rgb(var(--hud-rgb) / 0.12);
 }
 
 .airport-heading {
@@ -2457,7 +2458,7 @@ button.handover-item:hover {
   margin-top: 8px;
   padding: 6px 8px;
   border-radius: 3px;
-  background: rgb(63 182 255 / 0.06);
+  background: rgb(var(--hud-rgb) / 0.06);
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 0.75rem;
   line-height: 1.4;
@@ -2511,7 +2512,7 @@ button.handover-item:hover {
 }
 
 .airport-traffic button:hover {
-  background: rgb(63 182 255 / 0.08);
+  background: rgb(var(--hud-rgb) / 0.08);
 }
 
 .airport-traffic button:focus-visible {
@@ -2541,12 +2542,12 @@ button.handover-item:hover {
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 0 10px rgb(63 182 255 / 0.15);
+  box-shadow: 0 0 10px rgb(var(--hud-rgb) / 0.15);
 }
 
 .choke-tag:hover {
   border-color: var(--hud-glow);
-  box-shadow: 0 0 14px rgb(63 182 255 / 0.35);
+  box-shadow: 0 0 14px rgb(var(--hud-rgb) / 0.35);
 }
 
 .choke-tag:focus-visible {
@@ -2622,7 +2623,7 @@ button.handover-item:hover {
   padding: 10px;
   border: 1px solid var(--hud-glow);
   border-radius: 3px;
-  background: rgb(63 182 255 / 0.06);
+  background: rgb(var(--hud-rgb) / 0.06);
   font-size: var(--text-sm);
 }
 
@@ -2680,7 +2681,7 @@ fieldset.region-field {
   display: flex;
   align-items: flex-start;
   gap: 4px;
-  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  border-bottom: 1px solid rgb(var(--hud-rgb) / 0.12);
 }
 
 .region-show {
@@ -2732,7 +2733,7 @@ fieldset.region-field {
 
 .region-log button:hover,
 .region-show:hover {
-  background: rgb(63 182 255 / 0.08);
+  background: rgb(var(--hud-rgb) / 0.08);
 }
 
 .region-log time {
@@ -2752,7 +2753,7 @@ fieldset.region-field {
 .region-alert {
   border-color: var(--hud-glow);
   border-left-color: var(--hud-bright);
-  box-shadow: 0 0 22px rgb(63 182 255 / 0.18);
+  box-shadow: 0 0 22px rgb(var(--hud-rgb) / 0.18);
 }
 
 .region-alert .alert-head,
@@ -2762,7 +2763,7 @@ fieldset.region-field {
 
 .region-alert .alert-show {
   border-color: var(--hud-bright);
-  background: rgb(63 182 255 / 0.12);
+  background: rgb(var(--hud-rgb) / 0.12);
 }
 
 /* While drawing: what to do, along the bottom of the map. */
@@ -2779,7 +2780,7 @@ fieldset.region-field {
   font-size: var(--text-sm);
   white-space: nowrap;
   transform: translateX(-50%);
-  box-shadow: 0 0 14px rgb(63 182 255 / 0.25);
+  box-shadow: 0 0 14px rgb(var(--hud-rgb) / 0.25);
 }
 
 .draw-hint[hidden] {
@@ -2882,7 +2883,7 @@ fieldset.region-field {
 }
 
 .layers-row-switch:hover {
-  background: rgb(63 182 255 / 0.07);
+  background: rgb(var(--hud-rgb) / 0.07);
 }
 
 .layers-text {
@@ -2930,14 +2931,14 @@ fieldset.region-field {
   height: 4px;
   border: 1px solid var(--rule);
   border-radius: 2px;
-  background: rgb(63 182 255 / 0.18);
+  background: rgb(var(--hud-rgb) / 0.18);
 }
 
 .layers-range::-moz-range-track {
   height: 4px;
   border: 1px solid var(--rule);
   border-radius: 2px;
-  background: rgb(63 182 255 / 0.18);
+  background: rgb(var(--hud-rgb) / 0.18);
 }
 
 .layers-range::-webkit-slider-thumb {
@@ -2974,7 +2975,7 @@ button.layers-switch {
 
 button.layers-switch[aria-checked='true'] .news-switch-track {
   border-color: var(--hud-glow);
-  background: rgb(63 182 255 / 0.22);
+  background: rgb(var(--hud-rgb) / 0.22);
 }
 
 button.layers-switch[aria-checked='true'] .news-switch-thumb {
@@ -3014,7 +3015,7 @@ button.layers-switch:focus-visible,
 }
 
 .layers-choice-group button[aria-checked='true'] {
-  background: rgb(63 182 255 / 0.18);
+  background: rgb(var(--hud-rgb) / 0.18);
   color: var(--hud-bright);
 }
 
@@ -3034,7 +3035,7 @@ button.layers-switch:focus-visible,
 .layers-foot {
   margin: 0;
   padding: 8px 12px 10px;
-  border-top: 1px solid rgb(63 182 255 / 0.12);
+  border-top: 1px solid rgb(var(--hud-rgb) / 0.12);
   font-size: 0.75rem;
   color: var(--ink-muted);
 }
@@ -3105,7 +3106,7 @@ button.layers-switch .news-switch-track {
   align-items: center;
   column-gap: 10px;
   padding: 7px 10px;
-  border-bottom: 1px solid rgb(63 182 255 / 0.12);
+  border-bottom: 1px solid rgb(var(--hud-rgb) / 0.12);
   cursor: pointer;
 }
 
@@ -3114,7 +3115,7 @@ button.layers-switch .news-switch-track {
 }
 
 .palette-row:hover {
-  background: rgb(63 182 255 / 0.1);
+  background: rgb(var(--hud-rgb) / 0.1);
 }
 
 /* The chosen row carries the accent, like any selection. */
@@ -3218,14 +3219,14 @@ button.layers-switch .news-switch-track {
   gap: 10px;
   width: min(720px, calc(100vw - 24px));
   padding: 8px 14px;
-  border: 1px solid rgb(63 182 255 / 0.4);
+  border: 1px solid rgb(var(--hud-rgb) / 0.4);
   background: var(--surface);
 }
 
 .timeline-tag {
   flex: none;
   min-width: 108px;
-  color: #3fb6ff;
+  color: var(--hud);
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   font-variant-numeric: tabular-nums;
@@ -3233,7 +3234,7 @@ button.layers-switch .news-switch-track {
 
 .timeline[data-mode='replay'] .timeline-tag,
 .timeline[data-mode='project'] .timeline-tag {
-  text-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+  text-shadow: 0 0 8px rgb(var(--hud-rgb) / 0.5);
 }
 
 .timeline-bar {
@@ -3251,7 +3252,7 @@ button.layers-switch .news-switch-track {
   right: 0;
   top: 9px;
   height: 2px;
-  background: rgb(63 182 255 / 0.25);
+  background: rgb(var(--hud-rgb) / 0.25);
 }
 
 .timeline-fill {
@@ -3259,7 +3260,7 @@ button.layers-switch .news-switch-track {
   left: 0;
   top: 9px;
   height: 2px;
-  background: rgb(63 182 255 / 0.6);
+  background: rgb(var(--hud-rgb) / 0.6);
   pointer-events: none;
 }
 
@@ -3270,7 +3271,7 @@ button.layers-switch .news-switch-track {
   top: 3px;
   bottom: 3px;
   width: 2px;
-  background: #3fb6ff;
+  background: var(--hud);
   opacity: 0.9;
   pointer-events: none;
 }
@@ -3281,10 +3282,10 @@ button.layers-switch .news-switch-track {
   width: 12px;
   height: 12px;
   margin: -6px 0 0 -6px;
-  border: 1.5px solid #3fb6ff;
+  border: 1.5px solid var(--hud);
   border-radius: 50%;
   background: var(--surface);
-  box-shadow: 0 0 8px rgb(63 182 255 / 0.5);
+  box-shadow: 0 0 8px rgb(var(--hud-rgb) / 0.5);
   pointer-events: none;
 }
 
@@ -3420,7 +3421,7 @@ button.layers-switch .news-switch-track {
   color: var(--ink);
   text-align: center;
   transform: translateX(-50%);
-  box-shadow: 0 0 18px rgb(63 182 255 / 0.25);
+  box-shadow: 0 0 18px rgb(var(--hud-rgb) / 0.25);
   transition: opacity 400ms;
 }
 

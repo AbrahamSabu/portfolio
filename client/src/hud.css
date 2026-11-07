@@ -33,7 +33,7 @@
     linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
     linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
     linear-gradient(var(--hud), var(--hud)), linear-gradient(var(--hud), var(--hud)),
-    linear-gradient(180deg, rgb(63 182 255 / 0.07), transparent 40%);
+    linear-gradient(180deg, rgb(var(--hud-rgb) / 0.07), transparent 40%);
   background-size:
     var(--bracket) 2px, 2px var(--bracket), var(--bracket) 2px, 2px var(--bracket),
     var(--bracket) 2px, 2px var(--bracket), var(--bracket) 2px, 2px var(--bracket),
@@ -44,8 +44,8 @@
     0 0;
   background-repeat: no-repeat;
   box-shadow:
-    0 0 18px rgb(63 182 255 / 0.12),
-    inset 0 0 24px rgb(63 182 255 / 0.05);
+    0 0 18px rgb(var(--hud-rgb) / 0.12),
+    inset 0 0 24px rgb(var(--hud-rgb) / 0.05);
   backdrop-filter: blur(10px) saturate(1.2);
 }
 
@@ -53,13 +53,13 @@
 .topbar,
 .statusbar,
 .ticker {
-  background-image: linear-gradient(180deg, rgb(63 182 255 / 0.06), transparent);
+  background-image: linear-gradient(180deg, rgb(var(--hud-rgb) / 0.06), transparent);
   background-size: 100% 100%;
 }
 
 .topbar {
   border-bottom-color: var(--hud-glow);
-  box-shadow: 0 1px 14px rgb(63 182 255 / 0.18);
+  box-shadow: 0 1px 14px rgb(var(--hud-rgb) / 0.18);
 }
 
 .statusbar,
@@ -120,7 +120,7 @@
 .filter-title {
   font-weight: 700;
   letter-spacing: 0.06em;
-  text-shadow: 0 0 8px rgb(63 182 255 / 0.35);
+  text-shadow: 0 0 8px rgb(var(--hud-rgb) / 0.35);
 }
 
 .key-dialog h3,
@@ -160,7 +160,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: conic-gradient(var(--hud) calc(var(--sec) * 6deg), rgb(63 182 255 / 0.15) 0);
+  background: conic-gradient(var(--hud) calc(var(--sec) * 6deg), rgb(var(--hud-rgb) / 0.15) 0);
   -webkit-mask: radial-gradient(circle, transparent 7px, #000 7.5px, #000 9px, transparent 9.5px, transparent 10px, #000 10.5px);
   mask: radial-gradient(circle, transparent 7px, #000 7.5px, #000 9px, transparent 9.5px, transparent 10px, #000 10.5px);
   filter: drop-shadow(0 0 4px var(--hud-glow));
@@ -180,16 +180,16 @@
 .topbar-button[aria-checked='true'] {
   color: var(--hud-bright);
   border-color: var(--hud-glow);
-  box-shadow: 0 0 10px rgb(63 182 255 / 0.25), inset 0 0 8px rgb(63 182 255 / 0.12);
+  box-shadow: 0 0 10px rgb(var(--hud-rgb) / 0.25), inset 0 0 8px rgb(var(--hud-rgb) / 0.12);
 }
 
 .maplibregl-ctrl-group {
   background: var(--surface-solid);
-  box-shadow: 0 0 12px rgb(63 182 255 / 0.15);
+  box-shadow: 0 0 12px rgb(var(--hud-rgb) / 0.15);
 }
 
 .maplibregl-ctrl-group button:hover {
-  box-shadow: inset 0 0 10px rgb(63 182 255 / 0.25);
+  box-shadow: inset 0 0 10px rgb(var(--hud-rgb) / 0.25);
 }
 
 /* ------------------------------------------------------- over the whole map */
@@ -206,7 +206,7 @@
   pointer-events: none;
   background:
     radial-gradient(ellipse at center, transparent 55%, rgb(0 6 14 / 0.55) 100%),
-    repeating-linear-gradient(180deg, rgb(63 182 255 / 0.035) 0 1px, transparent 1px 3px);
+    repeating-linear-gradient(180deg, rgb(var(--hud-rgb) / 0.035) 0 1px, transparent 1px 3px);
 }
 
 /* ------------------------------------------------------ opening sequence */
@@ -489,7 +489,7 @@
 .text-button:hover,
 .alert-show:hover,
 .maplibregl-ctrl-group button:hover {
-  box-shadow: 0 0 10px var(--hud-glow), inset 0 0 6px rgb(63 182 255 / 0.12);
+  box-shadow: 0 0 10px var(--hud-glow), inset 0 0 6px rgb(var(--hud-rgb) / 0.12);
 }
 
 /* ------------------------------------------------------------------ phones */
