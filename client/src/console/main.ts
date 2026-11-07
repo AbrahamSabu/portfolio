@@ -23,7 +23,8 @@ import { ConsoleList } from './consoleList';
 import { REFUSAL, codeFromSearch, detailFacts, trackKind } from './consoleText';
 import { LayerSwitches } from './layerSwitches';
 import { PlacesPanel } from './places';
-import { RemotePad } from './remotePad';
+import { Pacer } from './pacer';
+import { RemotePad, type PadMode } from './remotePad';
 
 /**
  * The phone console of the ops room (console.html): join a room by code
@@ -86,9 +87,12 @@ const targetHere = () => screens.some((s) => s.name === target);
 const targetStatus = () => screens.find((s) => s.name === target)?.status;
 const targetLabel = () => labels.get(target) ?? target;
 
+/** Controls go out paced, so a tap right after a slide isn't dropped by the server (pacer.ts). */
+const pacer = new Pacer((to, action) => connection.send({ type: 'room-control', to, action }));
+
 /** Ask the steered screen to do something; nothing goes out while it's away. */
 function control(action: RoomAction): void {
-  if (callsign && targetHere()) connection.send({ type: 'room-control', to: target, action });
+  if (callsign && targetHere()) pacer.push(target, action);
 }
 
 function note(text: string): void {
@@ -104,7 +108,19 @@ const places = new PlacesPanel(el<HTMLInputElement>('place-search'), el('place-l
   control({ do: 'fly', lon: place.lon, lat: place.lat, zoom: place.zoom });
   note(`${targetLabel()} is flying to ${place.label}.`);
 });
-new RemotePad(el('pad'), (dx, dy) => control({ do: 'pan', dx, dy }));
+const pad = new RemotePad(el('pad'), (action) => control(action));
+const PAD_HINT: Record<PadMode, string> = {
+  pan: 'Drag to move the map · pinch to zoom',
+  pointer: 'Slide to move the pointer · tap to click · hold, then slide to drag · two fingers move the map',
+};
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-pad-mode]')) {
+  button.addEventListener('click', () => {
+    const mode = button.dataset.padMode as PadMode;
+    pad.setMode(mode);
+    for (const b of document.querySelectorAll<HTMLButtonElement>('[data-pad-mode]')) b.setAttribute('aria-pressed', String(b === button));
+    el('pad-hint').textContent = PAD_HINT[mode];
+  });
+}
 
 const connection = new Connection(defaultSocketUrl(), {
   onMessage(message, receivedAt) {

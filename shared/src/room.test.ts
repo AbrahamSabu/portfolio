@@ -108,6 +108,10 @@ describe('room requests from browsers', () => {
       { do: 'ride', id: 'sim:air-0013' },
       { do: 'ride', id: null },
       { do: 'fly', lon: -8.49, lat: 51.84, zoom: 9 },
+      { do: 'point', dx: 0.02, dy: -0.5 },
+      { do: 'click' },
+      { do: 'press', down: true },
+      { do: 'press', down: false },
     ];
     for (const action of actions) expect(control(action, 'SCREEN 2')).toEqual({ type: 'room-control', to: 'SCREEN 2', action });
   });
@@ -137,6 +141,10 @@ describe('room requests from browsers', () => {
     expect(control({ do: 'follow' })).toBeNull();
     expect(control({ do: 'layer', layer: 'phosphor', on: true })).toBeNull();
     expect(control({ do: 'ride' })).toBeNull();
+    expect(control({ do: 'point', dx: 1.5, dy: 0 })).toBeNull();
+    expect(control({ do: 'point', dx: 0 })).toBeNull();
+    expect(control({ do: 'press' })).toBeNull();
+    expect(control({ do: 'press', down: 'yes' })).toBeNull();
     expect(control({ do: 'ride', id: 'has space' })).toBeNull();
     expect(send({ type: 'room-status', status: { layers: {}, tour: false, follow: false, riding: 42 } })).toBeNull();
     expect(control({ do: 'fly', lon: 200, lat: 0, zoom: 5 })).toBeNull();

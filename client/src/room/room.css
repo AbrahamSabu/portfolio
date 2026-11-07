@@ -326,3 +326,61 @@
   font: 600 1.05rem var(--font-display);
   letter-spacing: 0.06em;
 }
+
+/* A console's pointer on this screen (remotePointer.ts): a HUD ring, its centre where a click lands. */
+.remote-pointer {
+  position: fixed;
+  inset: auto;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
+.remote-pointer[hidden] {
+  display: none;
+}
+
+.remote-pointer::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--hud);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgb(63 182 255 / 0.6), inset 0 0 6px rgb(63 182 255 / 0.4);
+}
+
+.remote-pointer::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d8f1ff;
+}
+
+.remote-pointer-tag {
+  position: absolute;
+  top: 12px;
+  left: 18px;
+  padding: 1px 6px;
+  border: 1px solid var(--hud);
+  border-radius: 3px;
+  background: rgb(4 15 28 / 0.85);
+  color: #d8f1ff;
+  font: 600 12px var(--font-display);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}

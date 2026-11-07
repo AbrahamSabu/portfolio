@@ -4,7 +4,8 @@
  * as consoles. A console browses the picture, says which track it has open
  * (presence, tagged on every screen's map), and steers one screen of its
  * choosing: show a track, pan and zoom, switch layers, start the tour, ride
- * along with an aircraft, fly to a place. Screens never steer each other. Rooms live in the server's
+ * along with an aircraft, fly to a place, or point and click on it as a
+ * mouse would. Screens never steer each other. Rooms live in the server's
  * memory only, and end when the main screen leaves.
  *
  * Flow (protocol v18):
@@ -120,7 +121,13 @@ export type RoomAction =
   | { do: 'layer'; layer: LayerName; on: boolean }
   /** Ride along with an aircraft, as J would; null leaves the ride. */
   | { do: 'ride'; id: string | null }
-  | { do: 'fly'; lon: number; lat: number; zoom: number };
+  | { do: 'fly'; lon: number; lat: number; zoom: number }
+  /** Move the screen's pointer by a fraction of the screen: a finger on the phone's pad. */
+  | { do: 'point'; dx: number; dy: number }
+  /** Click whatever is under the pointer, as a mouse would. */
+  | { do: 'click' }
+  /** Press (true) or release (false) at the pointer; moves in between drag. */
+  | { do: 'press'; down: boolean };
 
 export const isRoomCode = (v: unknown): v is string => typeof v === 'string' && ROOM_CODE.test(v);
 export const isRoomSecret = (v: unknown): v is string => typeof v === 'string' && ROOM_SECRET.test(v);

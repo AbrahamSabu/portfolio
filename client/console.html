@@ -100,8 +100,12 @@
       </section>
 
       <section class="console-remote" id="remote" hidden aria-label="Remote">
-        <div class="console-pad" id="pad" aria-label="Drag to move the map on the screen you are steering">
-          <span class="console-pad-hint">Drag to move the map</span>
+        <div class="console-pad-modes" role="group" aria-label="What the pad does">
+          <button class="console-mode" type="button" data-pad-mode="pan" aria-pressed="true">Move the map</button>
+          <button class="console-mode" type="button" data-pad-mode="pointer" aria-pressed="false">Pointer</button>
+        </div>
+        <div class="console-pad" id="pad" aria-label="Touch pad for the screen you are steering">
+          <span class="console-pad-hint" id="pad-hint">Drag to move the map · pinch to zoom</span>
         </div>
         <div class="console-remote-row">
           <button class="console-key" type="button" data-act="zoom-out" aria-label="Zoom out">−</button>

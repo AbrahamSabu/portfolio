@@ -22,6 +22,7 @@ import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
 import { readKind, writeKind, writeRole } from './deviceRole';
 import { PresenceMarkers } from './presenceMarkers';
+import { RemotePointer } from './remotePointer';
 import { RoomDialog } from './roomDialog';
 import { roomView, trackName, type RoomState } from './roomView';
 import { canRide } from '../map/rideAlong';
@@ -67,6 +68,8 @@ export class RoomHost {
   private kind: ScreenKind = readKind();
   private readonly dialog: RoomDialog;
   private readonly markers: PresenceMarkers;
+  /** Consoles' pointer mode: a mouse on this screen, driven from a phone. */
+  private readonly pointer = new RemotePointer();
   private readonly chip: HTMLButtonElement;
   private readonly toast: HTMLElement;
   private toastTimer: number | undefined;
@@ -252,6 +255,15 @@ export class RoomHost {
       case 'layer':
         setLayer(this.deps.layers(), action.layer, action.on);
         this.say(`${who} turned ${LAYER_LABEL[action.layer]} ${action.on ? 'on' : 'off'}`);
+        return;
+      case 'point':
+        this.pointer.move(from, action.dx, action.dy);
+        return;
+      case 'click':
+        this.pointer.click(from);
+        return;
+      case 'press':
+        this.pointer.press(from, action.down);
         return;
       case 'ride':
         if (action.id === null) {

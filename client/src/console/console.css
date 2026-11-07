@@ -808,3 +808,34 @@ button {
   color: var(--ink-muted);
   font-size: 13px;
 }
+
+/* What the remote's pad does: move the map, or be the screen's pointer. */
+.console-pad-modes {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.console-mode {
+  height: 40px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-mode[aria-pressed='true'] {
+  border-color: var(--hud);
+  background: rgb(63 182 255 / 0.18);
+  color: var(--hud-bright);
+}
+
+/* Held still long enough to press: the pad says a drag has started. */
+.console-pad.console-pad-holding {
+  border-color: var(--hud-bright);
+  box-shadow: inset 0 0 28px rgb(63 182 255 / 0.35);
+}
