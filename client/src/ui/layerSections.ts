@@ -183,6 +183,12 @@ export function layerSections(d: LayerDeps): LayerSection[] {
         toggle('Findings', 'Rare aircraft, circling, converging military, ships gone silent', 'D', d.findings),
         toggle('Shipping chokepoints', 'Ships at eight narrows', 'C', d.chokepoints),
         toggle('Weather radar', 'RainViewer, in grey', 'R', d.radar, d.radarTime),
+      ],
+    },
+    {
+      // Things to do rather than layers to show (they sat under World, which they aren't).
+      title: 'Tools',
+      rows: [
         { kind: 'action', label: 'Search the map', key: '/', run: d.search },
         { kind: 'action', label: 'Cinematic tour', key: 'G', run: d.tour },
         { kind: 'action', label: 'Watch handover', key: 'V', run: d.handover },
