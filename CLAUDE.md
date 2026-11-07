@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (880 tests after the skins, Nov 2026).
+- `npm test`: Vitest from the root config (884 tests after the phone filters, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -677,6 +677,11 @@ that could have been fetched before they arrived.
   decoding every version. Presence tags are DOM Markers below-left of the
   track (data block is above-right), HUD lines only. The console page has no
   MapLibre: Steering buttons (the steered one kept while away), tabs Tracks
+  (filters All, Air, Sea, Military, Squawks: `DomainFilter` in
+  trackQuery.ts; military is `MILITARY_PLATFORMS` in shared/track.ts, which
+  converging.ts also uses for its air half; the buttons count via
+  `specialCounts`, and Squawks turns `--warn` amber while any aircraft
+  squawks)
   (windowed list: `queryTracks`, `visibleRange`, `shapeSvg`), Remote (pad:
   moves as pad fractions, gathered every 60 ms, then the Pacer;
   `touch-action: none`), Layers (a tap waits up to 3 s for the screen's
@@ -791,8 +796,16 @@ that could have been fetched before they arrived.
   weight (Nadaraya-Watson); strength = weight in "tracks' worth"
   (`kernelPeak`). `directionBands`: **one average per point cancels a lane
   used both ways** (the first build showed nothing over busy Europe or
-  two-way shipping lanes), so each medium keeps 4 band fields and a heading
-  is shared cos² between the two bands either side (opposites never meet).
+  two-way shipping lanes), so each medium keeps 8 band fields (45° apart)
+  and a heading is shared cos² between the two bands either side (opposites
+  never meet). **Not 4**: bands 90° apart averaged neighbouring flows and
+  pulled currents towards the screen axes (the user saw currents that
+  weren't where aircraft fly). Measured by laying the live snapshot's
+  aircraft over western Europe on a flat 1440x900 screen and building the
+  fields with the real code: the current nearest each aircraft's heading,
+  median 10° and 90th percentile 31° with 4 bands, 5° and 13° with 8. The
+  budget is per medium (`max` split by flowing area), so more bands add
+  field-building time (~20 ms → ~24 ms) but no particles.
   `clipToDisc`: the blur otherwise spreads currents off the globe into
   space. `map/flowParticles.ts` (pure, tested): particles in screen space,
   births weighted by node strength, reborn when life ends or strength <
