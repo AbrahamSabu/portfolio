@@ -45,3 +45,24 @@ describe('planAisBoxes', () => {
     expect(describeBoxes([])).toBe('none');
   });
 });
+
+describe('planAisBoxes on a capped server (AIS_MAX_AREA)', () => {
+  const globe = { south: -85, west: -180, north: 85, east: 180 };
+  const europe = { south: 35, west: -10, north: 60, east: 30 };
+  const channel = { south: 49.2, west: -5.5, north: 51.8, east: 2.5 };
+
+  it('leaves out views wider than the cap and keeps the closer ones', () => {
+    expect(planAisBoxes([globe, europe, channel], 600)).toEqual([{ south: 49, west: -6, north: 52, east: 3 }]);
+  });
+
+  it('streams nothing new while every view is too wide (the last subscription stays)', () => {
+    expect(planAisBoxes([globe, europe], 600)).toEqual([]);
+    expect(planAisBoxes([globe])).toEqual([WORLD]);
+  });
+
+  it("keeps a crowd's first boxes instead of one box round them all", () => {
+    const crowd = Array.from({ length: 20 }, (_, i) => ({ south: 0, west: i * 5, north: 1, east: i * 5 + 1 }));
+    expect(planAisBoxes(crowd, 600)).toHaveLength(16);
+    expect(planAisBoxes(crowd)).toEqual([{ south: 0, west: 0, north: 1, east: 96 }]);
+  });
+});

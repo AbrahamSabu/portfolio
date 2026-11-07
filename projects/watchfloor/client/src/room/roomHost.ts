@@ -381,7 +381,7 @@ export class RoomHost {
   private render(): void {
     const s = this.state;
     const self: ScreenName | null = s.kind === 'open' ? 'MAIN' : s.kind === 'screen' ? s.name : null;
-    this.dialog.render(roomView(s, location, this.deps.live), { screens: this.screens, consoles: this.consoles }, (id) => {
+    this.dialog.render(roomView(s, location, this.deps.live, import.meta.env.VITE_LIVE_URL), { screens: this.screens, consoles: this.consoles }, (id) => {
       const track = this.deps.store.get(id);
       return track ? trackName(track) : 'a track not on this screen';
     }, self, this.kind);

@@ -19,16 +19,25 @@ const MAX_BOXES = 16;
  * antimeridian and snapped outward to whole degrees, so small pans give the
  * same subscription and don't resend it. Sorted, so equal plans compare equal.
  */
-export function planAisBoxes(views: BBox[]): BBox[] {
+export function planAisBoxes(views: BBox[], maxAreaDeg2 = 0): BBox[] {
   const pieces: BBox[] = [];
   for (const view of views) {
     const normalized = normalizeView(view);
-    if (normalized === null) return [WORLD];
-    pieces.push(...normalized.map(snap));
+    if (normalized === null) {
+      // A whole-world view: everything, unless the server is too small for it.
+      if (maxAreaDeg2 > 0) continue;
+      return [WORLD];
+    }
+    const snapped = normalized.map(snap);
+    // Too wide for a capped server (the opening globe, a continent): its ships wait for a closer look.
+    if (maxAreaDeg2 > 0 && snapped.reduce((sum, b) => sum + area(b), 0) > maxAreaDeg2) continue;
+    pieces.push(...snapped);
   }
   // Drop boxes another already covers (two viewers on the same area).
   const boxes = pieces.filter((b, i) => !pieces.some((o, j) => j !== i && contains(o, b) && (!contains(b, o) || j < i)));
   if (boxes.length > MAX_BOXES) {
+    // A capped server keeps a crowd's first boxes rather than one box round them all, which could be the world.
+    if (maxAreaDeg2 > 0) return sorted(boxes).slice(0, MAX_BOXES);
     return [
       {
         south: Math.min(...boxes.map((b) => b.south)),
@@ -38,7 +47,16 @@ export function planAisBoxes(views: BBox[]): BBox[] {
       },
     ];
   }
+  return sorted(boxes);
+}
+
+function sorted(boxes: BBox[]): BBox[] {
   return boxes.sort((a, b) => a.south - b.south || a.west - b.west || a.north - b.north || a.east - b.east);
+}
+
+/** In square degrees of latitude and longitude: what AIS_MAX_AREA measures. */
+function area(b: BBox): number {
+  return (b.north - b.south) * (b.east - b.west);
 }
 
 /** Compact text for logs, /healthz and comparing plans, e.g. "49,-5,52,3" or "none". */

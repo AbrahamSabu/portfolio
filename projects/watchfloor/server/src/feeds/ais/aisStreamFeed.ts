@@ -59,6 +59,8 @@ export interface AisStreamOptions {
   boxes: BBox[];
   /** Follow what browsers are looking at (setAreas) instead of fixed boxes. */
   viewport?: boolean;
+  /** With viewport: views wider than this many square degrees aren't streamed (0 or unset: any). */
+  maxArea?: number;
   /** Stream URL, e.g. a local stub for rehearsing failures. Defaults to AISStream's. */
   url?: string;
   // Injectable for tests, so nothing touches the network or real time.
@@ -169,7 +171,7 @@ export class AisStreamFeed implements Feed {
 
   setAreas(views: BBox[]): void {
     if (!this.opts.viewport) return;
-    const boxes = planAisBoxes(views);
+    const boxes = planAisBoxes(views, this.opts.maxArea);
     if (boxes.length === 0 || describeBoxes(boxes) === describeBoxes(this.boxes)) return;
     this.boxes = boxes;
     this.log.info('area changed', { boxes: describeBoxes(boxes) });

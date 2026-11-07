@@ -160,6 +160,17 @@ Keyboard shortcuts:
 
 Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator (`SCENARIO=world` simulates the whole globe, as the demo does), `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
 
+### Running it in public
+
+The portfolio repo carries a one-click Render blueprint (`render.yaml`) for a free live server, where the ops room works over the internet: a phone on mobile data can join a laptop anywhere. What changes when strangers use it:
+
+- Visitors don't multiply what the data feeds see: only the server talks to them, and one poll serves every viewer. Every feed is free, so the worst case is a rate limit, never a bill.
+- OpenSky polls every 2 minutes (`OPENSKY_POLL_S=120`). A world poll costs 4 credits, so that's 2,880 a day even if someone watches around the clock, inside an account's 4,000; every minute would run dry by the afternoon.
+- Ships stream only for regions someone zooms into (`AIS_AREA=viewport` with `AIS_MAX_AREA=600`): the opening globe would otherwise ask for every ship on earth, too much for the free tier's tenth of a CPU.
+- Limits are per visitor: connections (`MAX_CONNECTIONS_PER_ADDRESS`), rooms (three per address, `ROOMS_MAX` in all) and wrong room codes (twenty a minute per address, two hundred across everyone). They're kept against the address Cloudflare, in front of Render, puts in `CF-Connecting-IP` (`CLIENT_IP_HEADER`), not the forwarded-for header Render's proxy appends to, which a visitor can forge.
+- Give it its own OpenSky account and AISStream key: OpenSky credits are per account per day and AISStream allows three connections per key, so sharing your home server's would let the public site spend them.
+- Build the static demo with `VITE_LIVE_URL=https://...` and its ops room dialog sends visitors to the live version.
+
 ### Live aircraft
 
 Add `adsblol` to `FEEDS` (for example `FEEDS=opensky,adsblol`) to fill in aircraft OpenSky's receivers miss from a second volunteer network, adsb.lol. It's free and needs no key, but it only answers "aircraft within 250 nm of a point", so it covers views up to about a region (roughly zoom 6 and closer) and stands aside when you zoom out further. In a side-by-side test over five African areas it added only a handful of aircraft: both networks rely on ground receivers, and both saw nothing around Lagos or Addis Ababa. Only satellite ADS-B fills those gaps, and that's enterprise-priced.

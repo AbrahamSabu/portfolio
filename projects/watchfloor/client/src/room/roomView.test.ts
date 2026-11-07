@@ -80,3 +80,17 @@ describe('presence tags', () => {
     expect(presenceLabel(['ALFA', 'CHARLIE'])).toBe('CONSOLES ALFA · CHARLIE');
   });
 });
+
+describe('roomView in the static demo', () => {
+  const page = { origin: 'https://example.github.io', hostname: 'example.github.io' };
+
+  it('says rooms need the server', () => {
+    expect(roomView({ kind: 'none' }, page, false)).toMatchObject({ mode: 'demo', link: null, qr: null });
+  });
+
+  it('points to the live version when the build knows its address', () => {
+    const view = roomView({ kind: 'none' }, page, false, 'https://watchfloor.example.com');
+    expect(view).toMatchObject({ mode: 'demo', link: 'https://watchfloor.example.com', qr: null });
+    expect(view.message).toMatch(/live version/);
+  });
+});

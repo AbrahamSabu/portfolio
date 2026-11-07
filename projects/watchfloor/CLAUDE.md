@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (884 tests after the phone filters, Nov 2026).
+- `npm test`: Vitest from the root config (900 tests after the public-server pass, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -650,9 +650,13 @@ that could have been fetched before they arrived.
   hidden tab closes its socket after 60 s; closing the page sends
   `room-leave` on `pagehide`; console seat 2 min); callsigns are
   server-picked NATO words, so no phone text
-  reaches the wall. Limits: 16 rooms, 12 consoles, open/join paced 500 ms
-  per socket, one send a second, and after 20 wrong codes a minute *every*
-  join gets `busy` (a refusal must not reveal which codes exist). Presence
+  reaches the wall. Limits: 16 rooms by default (`ROOMS_MAX`) and 3 per
+  address, 12 consoles, open/join paced 500 ms per socket, one send a
+  second, and after 20 wrong codes a minute from one address that
+  address's joins get `busy`, after 200 across all addresses everyone's do
+  (a refusal must not reveal which codes exist; per address since the
+  public-server pass, as one visitor mashing codes could lock everyone
+  out). Peers without an address (tests) share one allowance. Presence
   (connected screens with their `status` + connected consoles with their
   open track) goes to all members, coalesced 100 ms. A console's
   `room-control { to, action }` reaches the named screen only (screens never
@@ -729,6 +733,30 @@ that could have been fetched before they arrived.
   Headless check: one Chrome, each device in its own
   `Target.createBrowserContext` (separate storage for roles and kinds), with
   a user agent per device; dispatch PointerEvents on `#pad` to drive it.
+- Public server (Nov 2026; the portfolio repo's root `render.yaml`, not
+  this repo, is the Render blueprint, `rootDir: projects/watchfloor`).
+  Visitors don't multiply upstream use (the server alone polls); what needed
+  changing was budgets and per-visitor limits. `clientAddress.ts` (pure):
+  the address limits are kept against is the first header named in
+  `CLIENT_IP_HEADER` (`parseAddressHeaders`, header names only) or the
+  socket's address. **Never name X-Forwarded-For on Render**: its proxy
+  appends, so the first entry is the visitor's to forge; Cloudflare in front
+  of Render overwrites `cf-connecting-ip` (community-reported, not in
+  Render's docs; if neither header arrives every visitor shares the proxy's
+  address and the limits become server-wide, which is still safe). The Hub
+  closes a connection past `MAX_CONNECTIONS_PER_ADDRESS` with 1013 (0 = no
+  limit) and gives each RoomPeer its `address`. `planAisBoxes(views,
+  maxAreaDeg2)` (`AIS_MAX_AREA`, viewport mode): views wider than the cap,
+  and whole-world ones, are left out, so the opening globe streams nothing
+  new (the last subscription stays) and a capped crowd keeps its first 16
+  boxes rather than one box round them all. The blueprint sets
+  `OPENSKY_POLL_S=120` (2,880 credits a day watched nonstop), `AIS_MAX_AREA=600`,
+  `MAX_CONNECTIONS_PER_ADDRESS=8`, `ROOMS_MAX=200` and
+  `CLIENT_IP_HEADER=cf-connecting-ip,true-client-ip`, and its comments say to
+  give it its own OpenSky account and AISStream key. A demo built with
+  `VITE_LIVE_URL` gets a link to the live version in its Q dialog
+  (`roomView`'s fourth argument). Home defaults are unchanged apart from
+  the per-address room limits.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to

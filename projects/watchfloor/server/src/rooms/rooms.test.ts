@@ -9,11 +9,23 @@ import {
   type RoomServerMessage,
   type ScreenName,
 } from '@watchfloor/shared';
-import { CONSOLE_GRACE_MS, CONTROL_GAP_MS, MAIN_GRACE_MS, MAX_ROOMS, Rooms, SEND_GAP_MS, WRONG_CODES_PER_MINUTE, type RoomPeer } from './rooms';
+import {
+  CONSOLE_GRACE_MS,
+  CONTROL_GAP_MS,
+  MAIN_GRACE_MS,
+  MAX_ROOMS,
+  MAX_ROOMS_PER_ADDRESS,
+  Rooms,
+  SEND_GAP_MS,
+  WRONG_CODES_PER_MINUTE,
+  WRONG_CODES_PER_MINUTE_TOTAL,
+  type RoomPeer,
+} from './rooms';
 
 /** A browser as the rooms service sees it: it records what it's sent. */
 class Peer implements RoomPeer {
   readonly got: RoomServerMessage[] = [];
+  constructor(readonly address?: string) {}
   send(message: RoomServerMessage): void {
     this.got.push(message);
   }
@@ -212,6 +224,55 @@ describe('Rooms', () => {
     expect(joinRoom(code).last('room-closed')?.reason).toBe('busy');
     later(60_000);
     expect(joinRoom(code).last('room')?.role).toBe('console');
+  });
+
+  it('counts wrong codes per address, so a guesser locks out only itself', () => {
+    const { code } = openRoom();
+    for (let i = 0; i < WRONG_CODES_PER_MINUTE; i++) rooms.handle(new Peer('203.0.113.9'), { type: 'room-join', code: otherCode(code) });
+    const guesser = new Peer('203.0.113.9');
+    rooms.handle(guesser, { type: 'room-join', code });
+    expect(guesser.last('room-closed')?.reason).toBe('busy');
+    const neighbour = new Peer('198.51.100.4');
+    rooms.handle(neighbour, { type: 'room-join', code });
+    expect(neighbour.last('room')?.role).toBe('console');
+  });
+
+  it('still pauses everyone when the guessing comes from many addresses', () => {
+    const { code } = openRoom();
+    for (let i = 0; i < WRONG_CODES_PER_MINUTE_TOTAL; i++) {
+      rooms.handle(new Peer(`10.0.${Math.floor(i / 250)}.${i % 250}`), { type: 'room-join', code: otherCode(code) });
+    }
+    const late = new Peer('198.51.100.4');
+    rooms.handle(late, { type: 'room-join', code });
+    expect(late.last('room-closed')?.reason).toBe('busy');
+    later(60_000);
+    const again = new Peer('198.51.100.4');
+    rooms.handle(again, { type: 'room-join', code });
+    expect(again.last('room')?.role).toBe('console');
+  });
+
+  it('lets one address hold a few rooms, not all of them', () => {
+    const open = (address: string) => {
+      const peer = new Peer(address);
+      rooms.handle(peer, { type: 'room-open' });
+      return peer;
+    };
+    for (let i = 0; i < MAX_ROOMS_PER_ADDRESS; i++) expect(open('203.0.113.9').last('room')).toBeDefined();
+    expect(open('203.0.113.9').last('room-closed')?.reason).toBe('full');
+    expect(open('198.51.100.4').last('room')).toBeDefined();
+  });
+
+  it('takes the number of rooms from its options (ROOMS_MAX)', () => {
+    const small = new Rooms({ origins: () => [], now: () => t, maxRooms: 2 });
+    const open = () => {
+      const peer = new Peer();
+      small.handle(peer, { type: 'room-open' });
+      return peer;
+    };
+    expect(open().last('room')).toBeDefined();
+    expect(open().last('room')).toBeDefined();
+    expect(open().last('room-closed')?.reason).toBe('full');
+    small.stop();
   });
 
   it('turns away a console when the room is full, and a room when the server is', () => {

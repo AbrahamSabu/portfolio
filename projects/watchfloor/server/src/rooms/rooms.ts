@@ -22,11 +22,18 @@ const log = createLogger('rooms');
 
 /** How a room member is reached. The hub gives each browser one. */
 export interface RoomPeer {
+  /**
+   * Who is asking, for per-person limits: the hub gives the visitor's
+   * address (clientAddress.ts). Peers without one share one allowance.
+   */
+  readonly address?: string;
   send(message: RoomServerMessage): void;
 }
 
-/** The most rooms open at once: a household has a TV or two, not dozens. */
+/** The most rooms open at once, unless ROOMS_MAX says otherwise: a household has a TV or two, not dozens. */
 export const MAX_ROOMS = 16;
+/** Rooms one address may hold open at once: on a public server, one visitor mustn't take them all. */
+export const MAX_ROOMS_PER_ADDRESS = 3;
 /**
  * A main screen that drops off has this long to come back before its room
  * closes. Generous, because a hidden tab closes its socket after a quiet
@@ -44,11 +51,15 @@ export const SEND_GAP_MS = 1_000;
 /** ...and send it other actions this often: a dragged pad sends ten a second. */
 export const CONTROL_GAP_MS = 50;
 /**
- * Wrong codes allowed across the whole server per minute. Past that, every
- * join waits out the minute, right code or not, so trying all ~530,000 codes
- * would take months, and a refusal says nothing about which codes exist.
+ * Wrong codes one address may try per minute. Past that, its joins wait out
+ * the minute, right code or not, so a refusal says nothing about which codes
+ * exist and trying all ~530,000 codes would take months. Per address (it was
+ * per server): on a public server one visitor mashing codes could otherwise
+ * lock everyone out.
  */
 export const WRONG_CODES_PER_MINUTE = 20;
+/** ...and across all addresses: guessing spread over many addresses still has to wait. */
+export const WRONG_CODES_PER_MINUTE_TOTAL = 200;
 const WRONG_CODE_WINDOW_MS = 60_000;
 /** Presence changes this close together go out as one message. */
 const PRESENCE_COALESCE_MS = 100;
@@ -89,6 +100,8 @@ interface Room {
   screens: Map<string, ScreenSeat>;
   seats: Map<string, Seat>;
   presenceTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The address that opened it, for MAX_ROOMS_PER_ADDRESS. */
+  owner: string | undefined;
 }
 
 /** A browser's place: a room's main screen, one of its other screens, or one of its consoles. */
@@ -105,6 +118,8 @@ export interface RoomsOptions {
   randomInt?: (max: number) => number;
   /** A fresh 16-byte secret in base64url: keys and tokens. */
   randomSecret?: () => string;
+  /** Rooms open at once (ROOMS_MAX); MAX_ROOMS by default. */
+  maxRooms?: number;
 }
 
 /**
@@ -119,8 +134,10 @@ export class Rooms {
   private readonly rooms = new Map<string, Room>();
   private readonly members = new Map<RoomPeer, Membership>();
   private readonly lastAttemptAt = new WeakMap<RoomPeer, number>();
-  /** When recent wrong codes were tried, oldest first. */
-  private wrongCodes: number[] = [];
+  /** When recent wrong codes were tried, oldest first: per address, and all together. */
+  private readonly wrongCodes = new Map<string, number[]>();
+  private allWrongCodes: number[] = [];
+  private readonly maxRooms: number;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   private readonly now: () => number;
   private readonly randomInt: (max: number) => number;
@@ -130,6 +147,7 @@ export class Rooms {
     this.now = opts.now ?? Date.now;
     this.randomInt = opts.randomInt ?? ((max) => randomInt(max));
     this.randomSecret = opts.randomSecret ?? (() => randomBytes(16).toString('base64url'));
+    this.maxRooms = opts.maxRooms ?? MAX_ROOMS;
   }
 
   get size(): number {
@@ -210,9 +228,17 @@ export class Rooms {
       return;
     }
     if (current) this.leave(peer);
-    if (this.rooms.size >= MAX_ROOMS) {
+    if (this.rooms.size >= this.maxRooms) {
       this.refuse(peer, 'full');
       return;
+    }
+    if (peer.address !== undefined) {
+      let held = 0;
+      for (const r of this.rooms.values()) if (r.owner === peer.address) held++;
+      if (held >= MAX_ROOMS_PER_ADDRESS) {
+        this.refuse(peer, 'full');
+        return;
+      }
     }
     const room: Room = {
       code: this.newCode(),
@@ -223,6 +249,7 @@ export class Rooms {
       screens: new Map(),
       seats: new Map(),
       presenceTimer: undefined,
+      owner: peer.address,
     };
     this.rooms.set(room.code, room);
     this.members.set(peer, { room, kind: 'main' });
@@ -259,13 +286,17 @@ export class Rooms {
     if (!this.paced(peer)) return;
     const now = this.now();
     this.forgetOldWrongCodes(now);
-    if (this.wrongCodes.length >= WRONG_CODES_PER_MINUTE) {
+    const address = peer.address ?? '';
+    const tried = this.wrongCodes.get(address) ?? [];
+    if (tried.length >= WRONG_CODES_PER_MINUTE || this.allWrongCodes.length >= WRONG_CODES_PER_MINUTE_TOTAL) {
       this.refuse(peer, 'busy');
       return;
     }
     const room = this.rooms.get(code);
     if (!room) {
-      this.wrongCodes.push(now);
+      tried.push(now);
+      this.wrongCodes.set(address, tried);
+      this.allWrongCodes.push(now);
       this.refuse(peer, 'not-found');
       return;
     }
@@ -454,7 +485,14 @@ export class Rooms {
   }
 
   private forgetOldWrongCodes(now: number): void {
-    while (this.wrongCodes.length > 0 && now - this.wrongCodes[0]! >= WRONG_CODE_WINDOW_MS) this.wrongCodes.shift();
+    const forget = (times: number[]) => {
+      while (times.length > 0 && now - times[0]! >= WRONG_CODE_WINDOW_MS) times.shift();
+    };
+    forget(this.allWrongCodes);
+    for (const [address, times] of this.wrongCodes) {
+      forget(times);
+      if (times.length === 0) this.wrongCodes.delete(address);
+    }
   }
 
   private newCode(): string {
