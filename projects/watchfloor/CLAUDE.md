@@ -273,8 +273,13 @@ that could have been fetched before they arrived.
   The rest of this section was written for adsb.lol and applies to both. `mapAircraft`
   times reports from the response's `now` minus `seen_pos`, feet to metres,
   knots to m/s, skips '~' non-ICAO hexes. `circlesFor` tiles views with
-  snapped circles of up to 250 nm; more than 6 (about a region, roughly
-  zoom 6+) and it stands aside (status `standing-aside`). Fetches circles two
+  snapped circles of up to 250 nm, 6 at most in all, view by view: a view
+  needing more than 6 on its own (wider than a region, roughly below zoom
+  6) is skipped, and so is one past the shared budget, while the others are
+  served; it stands aside (status `standing-aside`) only when no view can be
+  served. **It used to stand aside if the views added up to more than 6**,
+  so on the public server one visitor zoomed out emptied the map of everyone
+  zoomed in (Nov 2026). Fetches circles two
   at a time (adsb.lol takes 1-3.5 s per circle) and pushes each as it
   answers, with a project User-Agent; 429 waits for Retry-After. Being free,
   its scheduler settles 1 s and may poll 3 s after the last attempt (OpenSky
@@ -750,7 +755,9 @@ that could have been fetched before they arrived.
   and whole-world ones, are left out, so the opening globe streams nothing
   new (the last subscription stays) and a capped crowd keeps its first 16
   boxes rather than one box round them all. The blueprint sets
-  `OPENSKY_POLL_S=180` (1,920 credits a day watched nonstop), `AIS_MAX_AREA=600`,
+  `OPENSKY_POLL_S=180` (1,920 credits a day watched nonstop), `AIS_MAX_AREA=3000`
+  (was 600, which left a Europe-wide view without ships; the server's cost
+  per AIS message is tens of microseconds, so the cap guards memory, not CPU),
   `MAX_CONNECTIONS_PER_ADDRESS=8`, `ROOMS_MAX=200`, `SATELLITES=off` and
   `CLIENT_IP_HEADER=cf-connecting-ip,true-client-ip`. **One OpenSky account
   only**: OpenSky's API docs say registering several gets all of a person's

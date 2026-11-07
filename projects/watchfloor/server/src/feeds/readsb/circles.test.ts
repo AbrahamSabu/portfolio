@@ -55,3 +55,24 @@ describe('circle containment', () => {
     expect(circlesCover([], [big])).toBe(false);
   });
 });
+
+describe('circlesFor with a crowd of views (a public server)', () => {
+  const wide = { south: -35, west: -20, north: 37, east: 52 };
+  const joburg = { south: -26.6, west: 27.6, north: -25.8, east: 28.6 };
+
+  it('serves a regional view even when someone else is zoomed out', () => {
+    expect(circlesFor([wide, joburg])).toEqual(circlesFor([joburg]));
+    expect(circlesFor([{ south: -85, west: -300, north: 85, east: 300 }, joburg])).toEqual(circlesFor([joburg]));
+  });
+
+  it('keeps within the budget, serving views in turn', () => {
+    const spots = Array.from({ length: 12 }, (_, i) => ({ south: 40, west: -100 + i * 15, north: 41, east: -99 + i * 15 }));
+    const circles = circlesFor(spots)!;
+    expect(circles.length).toBeGreaterThan(0);
+    expect(circles.length).toBeLessThanOrEqual(6);
+  });
+
+  it('stands aside only when no view can be served', () => {
+    expect(circlesFor([wide])).toBeNull();
+  });
+});
