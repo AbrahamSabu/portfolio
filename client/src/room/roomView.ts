@@ -63,9 +63,18 @@ const CHOOSE = 'Open a room here for phones and other screens to join, or join a
  * addresses, and when there are none (the server listens on this computer
  * only) the dialog says how to opt in rather than show a code that can't work.
  */
-export function roomView(state: RoomState, page: { origin: string; hostname: string }, live: boolean): RoomView {
+export function roomView(state: RoomState, page: { origin: string; hostname: string }, live: boolean, liveUrl?: string): RoomView {
   const blank = { code: null, qr: null, link: null, also: [], screenLink: null, name: null };
   if (!live) {
+    // The static demo has no server. A demo built knowing the live version's address (VITE_LIVE_URL) points there.
+    if (liveUrl) {
+      return {
+        ...blank,
+        mode: 'demo',
+        link: liveUrl,
+        message: 'Rooms need the Watchfloor server, and this demo runs entirely in your browser. The live version has one: open it and press Q there (it can take a minute to wake up).',
+      };
+    }
     return { ...blank, mode: 'demo', message: "Rooms need the Watchfloor server. This demo runs entirely in your browser, so there's nothing for a phone to join." };
   }
   switch (state.kind) {
