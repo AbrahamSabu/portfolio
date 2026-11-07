@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (870 tests after the ops room's devices, Nov 2026).
+- `npm test`: Vitest from the root config (875 tests after the alert pass, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -454,7 +454,7 @@ that could have been fetched before they arrived.
   `map/hazardIcons.ts` (pale apricot #FFD2A8 outlines, `hz:<kind>`),
   `map/hazardLayer.ts` (above tracks, under news; card in a Popup; source
   attribution credits USGS and GDACS), `ui/hazardAlerts.ts` (significant new
-  ones only, 5 min, in `#alerts-hazard` beside the squawks' `#alerts-emergency`).
+  ones only, in `#alerts-hazard` beside the squawks' `#alerts-emergency`).
   H key / `watchfloor.hazards`. **Zoom must be the outermost expression**:
   `['*', scale, ['interpolate', ..., ['zoom'], ...]]` failed validation and
   took the whole basemap with it (no tiles, no error in the pane's console).
@@ -477,7 +477,8 @@ that could have been fetched before they arrived.
   stable by held maps with hysteresis (circling 4 min, converging 2 min).
   **The first sweep seeds silently**: it publishes but logs no events (what
   it finds predates the watch). Client: `state/findings.ts` (FindingStore,
-  `interrupts()` — dark never cards), `map/findingLayer.ts` (HUD-blue rings
+  `interrupts()` — only converging and rare card: circling cards were noise
+  to the user, so circles, like dark ships, only mark the map), `map/findingLayer.ts` (HUD-blue rings
   + dots, ghosts fade by age, click hands the finding to main which selects
   the first live involved track), `ui/findingAlerts.ts` (cards capped at 3,
   one ping per batch), tour rides along (`findingStops`, first pool).
@@ -515,7 +516,21 @@ that could have been fetched before they arrived.
   (they end ~240px down). When the groups (plus 8px gaps between shown
   groups) exceed it, `.alerts-overflow` fades the oldest at the top; a
   bottom-anchored flex stack overflows *upward*, which scrollHeight
-  doesn't count, so main.ts measures the groups.
+  doesn't count, so main.ts measures the groups (and reads the gap).
+  Alert pass (Nov 2026; the user found the corner cluttered and closing
+  cards a chore): every card is two lines (what and when; who or where,
+  cut with an ellipsis) with Show and × at the right, 300 px wide. The
+  groups are grids with `minmax(0, 1fr)` columns: an `auto` column grows to
+  the unwrapped line and pushed the time, Show and × off the card. Cards
+  leave by themselves: `state/alertLife.ts` (pure `AlertLives`, tested:
+  10 s, a card under the pointer or holding focus is held and gets 4 s once
+  let go, every clock stops while the page is hidden) and `ui/alertTimer.ts`
+  (finds cards by `data-life` each 250 ms rather than by listeners, since
+  the squawks rebuild theirs; `:hover` counts only where `(hover: hover)`,
+  as it sticks after a tap; fades with `.alert-leaving`). Squawks: 30 s,
+  then into the top bar's chip. Selecting a track closes the news card,
+  even an opened one, and the rotation waits until nothing is selected
+  (`NewsCards.makeWay`, from a selection subscription in main.ts).
 - Ways in for newcomers (Nov 2026 UI pass): the top bar has a Tour button
   and the ops room's chip is always there on a live server ("Ops room" until
   in a room; both icon-only below 1180 px so the bar fits 1024 px, hidden on
@@ -981,8 +996,8 @@ that could have been fetched before they arrived.
   handlers stand down), `map/regionLayer.ts` (fill + dashed outline under
   the tracks, constructed before TrackLayer; tag above the northernmost
   corner), `ui/regionPanel.ts` (form, list, log of 50; shares the filter
-  panel's place, one at a time), `ui/regionAlerts.ts` (compact cards, two
-  at most, 90 s). Checked each second, skipped while the store is empty
+  panel's place, one at a time), `ui/regionAlerts.ts` (two cards at most).
+  Checked each second, skipped while the store is empty
   (reconnects). Rules: enter = live outside on the last look, live inside
   now; already inside at start or first heard inside = silent; exit = two
   live reports outside; lost = dropped from the picture inside, **counted
@@ -1123,7 +1138,8 @@ that could have been fetched before they arrived.
   a card must never lose the emergency** (the user hid one and couldn't
   find it again): `#alert-chip` in the top bar stays while any code is
   broadcast (click: hidden cards come back; with one squawk it shows the
-  aircraft), and the details panel has an amber banner and a Squawk row. To see it,
+  aircraft), and the details panel has an amber banner and a Squawk row.
+  The card hides itself into that chip after 30 s (`SQUAWK_LIFE_MS`). To see it,
   run a local readsb stub (one aircraft squawking 7700) with
   `FEEDS=adsblol ADSBLOL_API_URL=http://127.0.0.1:<port>` on a spare port.
 - Airports (`client/src/map/airports.ts`, `airportLayer.ts`): OurAirports
