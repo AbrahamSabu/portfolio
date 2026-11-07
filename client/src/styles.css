@@ -768,6 +768,14 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  /* Stuck to the panel's foot while the facts scroll: they used to sit below the fold. */
+  position: sticky;
+  bottom: -18px;
+  z-index: 1;
+  margin: 0 -16px;
+  padding: 10px 16px 18px;
+  background: var(--surface-solid);
+  box-shadow: 0 -14px 14px -12px var(--surface-solid);
 }
 
 .button:disabled {
