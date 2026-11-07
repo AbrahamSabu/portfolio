@@ -1,4 +1,4 @@
-# One-click Render Blueprint: a free live demo of Watchfloor.
+# One-click Render Blueprint: a free live demo of Watchfloor, open to the public.
 #
 # Free-tier behaviour is exactly right for a demo with metered upstream APIs:
 # the service spins down after 15 idle minutes (so it spends no OpenSky
@@ -7,9 +7,17 @@
 # the free filesystem is ephemeral anyway — so each wake starts clean and
 # the feeds fill the world back in within a minute or two.
 #
+# Visitors don't multiply upstream use: only the server talks to the feeds,
+# and one poll serves every viewer. The settings below keep it inside the
+# free budgets even if someone is watching all day, and keep one visitor from
+# taking the whole (tiny) server.
+#
 # The three secrets are set in the Render dashboard when the blueprint is
 # first applied (sync: false below): OPENSKY_CLIENT_ID, OPENSKY_CLIENT_SECRET,
-# AISSTREAM_API_KEY. They never live in this repository.
+# AISSTREAM_API_KEY. They never live in this repository. Use an OpenSky
+# account and an AISStream key of their own, not your home server's: OpenSky
+# credits are per account per day, and AISStream allows three connections
+# per key, so a shared key lets the public site spend your own.
 services:
   - type: web
     name: watchfloor
@@ -28,12 +36,34 @@ services:
         value: opensky,adsblol,adsbfi,ais
       - key: OPENSKY_AREA
         value: world
+      # A world poll costs 4 credits. Every 2 minutes is 2,880 a day even if
+      # someone watches around the clock, inside an account's 4,000 (every
+      # minute would run dry by late afternoon).
+      - key: OPENSKY_POLL_S
+        value: "120"
       # Viewport, not world: a worldwide AIS stream is hundreds of messages a
       # second, which a 0.1-vCPU instance should not chew through for ships
       # nobody is looking at. Viewport mode subscribes only to what viewers
-      # actually watch.
+      # actually watch...
       - key: AIS_AREA
         value: viewport
+      # ...and views wider than about 25 x 25 degrees aren't streamed, so the
+      # opening globe doesn't ask for every ship on earth: ships appear once a
+      # visitor zooms in to a region.
+      - key: AIS_MAX_AREA
+        value: "600"
+      # Render sits behind Cloudflare, which overwrites CF-Connecting-IP with
+      # the visitor's address (Render's own proxy appends to X-Forwarded-For,
+      # which a visitor can forge). Per-visitor limits are kept against it.
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip,true-client-ip
+      # Each connection costs a whole snapshot; a household needs a few.
+      - key: MAX_CONNECTIONS_PER_ADDRESS
+        value: "8"
+      # Rooms for strangers: any number up to this, at most three per
+      # address, and wrong codes counted per address.
+      - key: ROOMS_MAX
+        value: "200"
       - key: OPENSKY_CLIENT_ID
         sync: false
       - key: OPENSKY_CLIENT_SECRET
