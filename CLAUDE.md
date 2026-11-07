@@ -53,7 +53,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (862 tests after the five design concepts were merged, Nov 2026).
+- `npm test`: Vitest from the root config (870 tests after the ops room's devices, Nov 2026).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -115,7 +115,7 @@ that could have been fetched before they arrived.
   `parseClientMessage`; each client keeps its latest view, and changes are
   reported via `onViewsChanged` within 100 ms of a change (coalescing
   bursts), not on the tick, which was pure added latency. maxPayload is 4 KB.
-- Protocol (`PROTOCOL_VERSION = 18`, v18 the ops room (`room-*` both ways), v17 `records` (the leaderboard), v16 `findings`, `brief` and `replay`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
+- Protocol (`PROTOCOL_VERSION = 19`, v19 the ops room's devices (status `kind` and `selected`; actions point, click, press, key), v18 the ops room (`room-*` both ways), v17 `records` (the leaderboard), v16 `findings`, `brief` and `replay`, v15 `hazards` (the whole list after the news and on every change), v14 `news` (stories after the snapshot with `replace: true`, then each batch's), v8 feed state `unconfigured`, v9 provider `adsb.fi`, v10 compact wire format, v11 business-jet/military-aircraft and typeCode/model, v12 `path` request/reply, v13 the request is `track` and is answered with `path` and `details`): hello (protocol, serverTime, tickMs,
   staleness, scenario, traffic, feeds), then snapshot (tracks plus `trails`), then a delta per tick.
   A delta carries `feeds` only in the tick where a status changed (the Hub
   compares serialised statuses each tick). The status bar shows a `--warn`
@@ -653,9 +653,9 @@ that could have been fetched before they arrived.
   versions 1-10), tested against the standard's tables and by un-masking and
   decoding every version. Presence tags are DOM Markers below-left of the
   track (data block is above-right), HUD lines only. The console page has no
-  MapLibre: a Steering picker (kept while its screen is away), tabs Tracks
+  MapLibre: Steering buttons (the steered one kept while away), tabs Tracks
   (windowed list: `queryTracks`, `visibleRange`, `shapeSvg`), Remote (pad:
-  pointer moves as pad fractions, sent at most every 100 ms;
+  moves as pad fractions, gathered every 60 ms, then the Pacer;
   `touch-action: none`), Layers (a tap waits up to 3 s for the screen's
   status to agree) and Places (`searchPalette` over airports, fetched on
   first open, and chokepoints); Back closes details (pushState), socket
@@ -668,6 +668,39 @@ that could have been fetched before they arrived.
   gives the main page a non-loopback origin, so the dialog shows its QR
   without binding the LAN. Headless Chrome on Windows has no
   BarcodeDetector. The dialog stops key propagation; Escape closes it.
+  Devices (Nov 2026, v19), plus Keys and Room tabs: `room/deviceRole.ts`
+  remembers a device's role (`watchfloor.roomRole`: screen or control) and a
+  screen's kind (`watchfloor.screenKind`, `SCREEN_KINDS`, guessed from the
+  user agent: TV platforms; iPads say Macintosh but have touch; Android
+  without Mobile is a tablet). The QR's console link asks first
+  (console.html `#choose`): screen goes to `/?screen=CODE`, control joins.
+  A screen's kind rides in its *status*, never its address (MAIN, SCREEN 2
+  never change), so renaming doesn't break a phone's steering;
+  `screenLabels` numbers duplicates (Tablet 2). The dialog's This device
+  section renames, and (not on the host, whose leaving closes the room)
+  switches to a controller; the console's Room tab switches to a screen or
+  leaves. Pointer: `room/remotePointer.ts` keeps a HUD ring (a manual
+  popover, re-shown so it stays above dialogs opened since; `transform`, not
+  the `translate` property, for old TV browsers) and dispatches pointer and
+  mouse events on `elementFromPoint` (MapLibre's click and the timeline's
+  pointerdown both work), never inside `.room-dialog` or on off-site links;
+  press and release drag, moves going to the pressed element. The phone's
+  `RemotePad` (pan or pointer mode): a pointer's first pixels wait until
+  it's a slide (3% slop), a hold (450 ms, then drag) or too slow for a tap
+  (350 ms), so a tap clicks where the pointer was; two fingers pan, a 1.35x
+  pinch zooms a step. Everything goes through `console/pacer.ts` (60 ms
+  apart, merging waiting moves): **the server drops a console's controls
+  under 50 ms apart**, which lost taps. Keys: `REMOTE_KEYS` (shared) is the
+  map key's `SHORTCUTS` (now plain data in `ui/shortcuts.ts`, for the
+  console) less `/` and W (they need typing) and Q; a test fails when a new
+  shortcut is in neither list. `RoomHost.pressKey` dispatches a keydown on
+  body after ending the tour (typed, any key only ends it; G and Y excepted),
+  and Escape closes an open `<dialog>` itself (a synthetic Escape doesn't).
+  Two-way: status `selected`; when it changes on the steered screen the phone
+  opens its card, and other tabs show it in the orchid `#picked` bar.
+  Headless check: one Chrome, each device in its own
+  `Target.createBrowserContext` (separate storage for roles and kinds), with
+  a user agent per device; dispatch PointerEvents on `#pad` to drive it.
 - Display theatre (Layers → Display, both off by default): phosphor scope
   (`watchfloor.phosphor`, a CSS filter on `#map` — grayscale→sepia→
   hue-rotate to scope green; a deliberate operator-chosen exception to

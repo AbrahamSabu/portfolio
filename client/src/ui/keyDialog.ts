@@ -134,7 +134,7 @@ function content(style: SymbolStyle): string {
     </section>
     <section>
       <h3>Ops room</h3>
-      <p>Press <kbd>Q</kbd> to open a room on this screen. Phones that scan its code become consoles, and other screens can join with the code. A console can show a track here, move the map, start the tour, switch layers (the satellites, the currents, the Stack and the sound of the sky among them) and ride along with an aircraft on this screen. A browser plays sound only once someone has touched that screen, so the score may wait for a tap here. The room lasts while this page is open.</p>
+      <p>Press <kbd>Q</kbd> to open a room on this screen. A device that scans its code is asked what it's for: show the map there (a tablet, a TV) or control a screen (a phone). A phone steers any screen in the room by name: it can show a track there, move the map, start the tour, switch layers, ride along with an aircraft, press the map's keys, and point and click on that screen with its pad, aircraft and buttons alike. What the screen selects shows on the phone. The Ops room dialog's This device section names this screen (Laptop, TV...) and can make this device a controller instead. A browser plays sound only once someone has touched that screen, so the score may wait for a tap here. The room lasts while this page is open.</p>
     </section>
     <section>
       <h3>Earthquakes and disasters</h3>
