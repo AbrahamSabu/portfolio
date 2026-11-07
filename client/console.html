@@ -27,11 +27,24 @@
         <h1 class="console-name" id="name">Console</h1>
         <p class="console-sub" id="sub">Connecting…</p>
         <div class="console-steer" id="steer" hidden>
-          <label class="console-steer-label" for="target">Steering</label>
-          <select class="console-steer-select" id="target"></select>
+          <span class="console-steer-label" id="steer-label">Steering</span>
+          <div class="console-targets" id="targets" role="group" aria-labelledby="steer-label"></div>
         </div>
         <p class="console-main-away" id="main-away" hidden></p>
       </header>
+
+      <section class="console-choose" id="choose" hidden aria-labelledby="choose-title">
+        <h2 class="console-title" id="choose-title">What's this device for?</h2>
+        <p class="console-lede">Room <span id="choose-code"></span>. This device remembers your answer; you can switch later.</p>
+        <button class="console-choice" type="button" data-role="screen">
+          <strong>Show the map here</strong>
+          <span>A screen, like a TV or a tablet on a stand. Phones steer it.</span>
+        </button>
+        <button class="console-choice" type="button" data-role="control">
+          <strong>Control a screen</strong>
+          <span>Pick aircraft and ships, move the map, start the tour, on any screen in the room.</span>
+        </button>
+      </section>
 
       <section class="console-join" id="join" hidden aria-labelledby="join-title">
         <h2 class="console-title" id="join-title">Join the ops room</h2>
@@ -112,12 +125,22 @@
         <div class="console-place-list" id="place-list"></div>
       </section>
 
+      <section class="console-room" id="room" hidden aria-label="Room">
+        <p class="console-lede">Room <strong id="room-code"></strong>. This phone is <strong id="room-callsign"></strong>, a controller.</p>
+        <h2 class="console-subtitle">Screens</h2>
+        <ul class="console-room-screens" id="room-screens"></ul>
+        <h2 class="console-subtitle">This device</h2>
+        <button class="console-send console-ride" id="become-screen" type="button">Show the map here instead</button>
+        <button class="console-key" id="leave-room" type="button">Leave the room</button>
+      </section>
+
       <p class="console-note" id="note" role="status"></p>
       <nav class="console-tabs" id="tabs" hidden aria-label="Console">
         <button type="button" data-tab="tracks" aria-current="page">Tracks</button>
         <button type="button" data-tab="remote">Remote</button>
         <button type="button" data-tab="layers">Layers</button>
         <button type="button" data-tab="places">Places</button>
+        <button type="button" data-tab="room">Room</button>
       </nav>
     </main>
     <script type="module" src="/src/console/main.ts"></script>

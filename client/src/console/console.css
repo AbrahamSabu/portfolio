@@ -457,16 +457,35 @@ button {
   text-transform: uppercase;
 }
 
-.console-steer-select {
+.console-targets {
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.console-target {
   height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--hud);
+  padding: 0 14px;
+  border: 1px solid var(--rule);
   border-radius: 4px;
-  background: var(--surface-solid);
-  color: var(--hud-bright);
-  font: 600 18px var(--font-display);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 600 17px var(--font-display);
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-target[aria-pressed='true'] {
+  border-color: var(--hud);
+  background: rgb(63 182 255 / 0.18);
+  color: var(--hud-bright);
+  box-shadow: 0 0 14px rgb(63 182 255 / 0.2);
+}
+
+.console-target[data-away] {
+  border-style: dashed;
+  opacity: 0.6;
 }
 
 /* One line for "Sent to MAIN." and the like, above the tabs. */
@@ -482,18 +501,20 @@ button {
 .console-tabs {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 5px;
 }
 
 .console-tabs button {
   height: 48px;
+  padding: 0;
   border: 1px solid var(--rule);
   border-radius: 4px;
   background: transparent;
   color: var(--ink-muted);
-  font: 600 15px var(--font-display);
-  letter-spacing: 0.08em;
+  font: 600 14px var(--font-display);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -707,4 +728,83 @@ button {
 
 .console-send.console-ride[aria-pressed='true'] {
   background: rgb(63 182 255 / 0.18);
+}
+
+/* The first question, for a device opened from the room's link. */
+.console-choose {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.console-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--hud);
+  border-radius: 6px;
+  background: rgb(63 182 255 / 0.08);
+  color: var(--ink);
+  text-align: left;
+}
+
+.console-choice strong {
+  color: var(--hud-bright);
+  font: 700 20px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.console-choice span {
+  color: var(--ink-muted);
+  font-size: 15px;
+}
+
+/* The Room tab: who's here, and this device's role. */
+.console-room {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.console-subtitle {
+  margin: 6px 0 0;
+  color: var(--ink-muted);
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.console-room-screens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.console-room-screens li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font: 600 17px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.console-room-screens li[data-steering] {
+  border-color: var(--hud);
+  color: var(--hud-bright);
+}
+
+.console-room-screens li span {
+  color: var(--ink-muted);
+  font-size: 13px;
 }
