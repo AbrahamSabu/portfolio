@@ -36,8 +36,15 @@ services:
         value: 0.0.0.0
       - key: PICTURE_FILE
         value: "off"
+      # No OpenSky: its API docs warn it may block cloud providers' addresses,
+      # and from Render every request failed ("fetch failed", Nov 2026).
+      # Aircraft come from adsb.lol and adsb.fi, which cover a region at a
+      # time, so the site opens on one of the busiest stretches of sky and sea
+      # anywhere, kept warm, and they follow wherever a visitor zooms in.
       - key: FEEDS
-        value: opensky,adsblol,adsbfi,ais
+        value: adsblol,adsbfi,ais
+      - key: SCENARIO
+        value: english-channel
       - key: OPENSKY_AREA
         value: world
       # A world poll costs 4 credits. Every 3 minutes is at most 1,920 a day
@@ -68,11 +75,12 @@ services:
       # address, and wrong codes counted per address.
       - key: ROOMS_MAX
         value: "200"
-      # No satellites on the free tier: no disk survives a sleep, so every
-      # wake would download CelesTrak's catalogue again, and CelesTrak refuses
-      # repeat downloads within its 2-hour update and firewalls addresses that
-      # collect refusals (Render's are shared). The static demo still has
-      # them, fetched by each visitor's own browser.
+      # The server fetches no satellites on the free tier: no disk survives a
+      # sleep, so every wake would download CelesTrak's catalogue again, and
+      # CelesTrak refuses repeat downloads within its 2-hour update and
+      # firewalls addresses that collect refusals (Render's are shared).
+      # Visitors still see them: told the server has none, each browser
+      # fetches them from CelesTrak itself, as the static demo does.
       - key: SATELLITES
         value: "off"
       - key: OPENSKY_CLIENT_ID
