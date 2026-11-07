@@ -113,7 +113,7 @@ describe('ReadsbFeed', () => {
     feed.setAreas([SOUTH_AFRICA]);
     expect(timers).toEqual([]);
     expect(feed.status().state).toBe('standing-aside');
-    expect(feed.health().standingAside).toBe('view wider than a region');
+    expect(feed.health().standingAside).toBe('every view wider than a region');
   });
 
   it('waits as long as Retry-After says on 429', async () => {

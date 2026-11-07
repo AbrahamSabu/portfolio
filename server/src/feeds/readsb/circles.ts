@@ -62,20 +62,31 @@ export function circleContains(outer: Circle, inner: Circle): boolean {
 }
 
 /**
- * Circles covering every view, or null when that would take more than
- * MAX_CIRCLES (too wide for this provider). An empty list means no views.
+ * Circles covering the views this provider can serve: each view that fits
+ * in MAX_CIRCLES on its own, taken in turn while the total stays within
+ * MAX_CIRCLES (circles already covered cost nothing). A view too wide on
+ * its own (a continent, the globe), or one past the budget, is left out:
+ * it used to make the provider stand aside for everyone, so on a public
+ * server one visitor zoomed out emptied the map of every visitor zoomed
+ * in. Null when there were views and none could be served (the feed stands
+ * aside). An empty list means no views.
  */
 export function circlesFor(views: BBox[], max = MAX_CIRCLES): Circle[] | null {
-  const all: Circle[] = [];
+  let kept: Circle[] = [];
+  let served = 0;
   for (const view of views) {
     const boxes = normalizeView(view);
-    if (boxes === null) return null;
-    for (const box of boxes) all.push(...circlesForBox(box));
-    if (all.length > max * 4) return null; // clearly too wide; stop early
+    if (boxes === null) continue;
+    const mine: Circle[] = [];
+    for (const box of boxes) mine.push(...circlesForBox(box));
+    if (mine.length > max) continue;
+    const fresh = mine.filter((c) => !kept.some((k) => circleContains(k, c)));
+    if (kept.length + fresh.length > max) continue;
+    // A new circle may cover earlier ones (a wider view of the same place).
+    kept = [...kept.filter((k) => !fresh.some((c) => circleContains(c, k))), ...fresh];
+    served++;
   }
-  // Drop circles another circle already covers (viewers looking at the same area).
-  const kept = all.filter((c, i) => !all.some((o, j) => j !== i && circleContains(o, c) && (!circleContains(c, o) || j < i)));
-  return kept.length > max ? null : kept;
+  return views.length > 0 && served === 0 ? null : kept;
 }
 
 /** Whether the last poll's circles already cover what's wanted now. */

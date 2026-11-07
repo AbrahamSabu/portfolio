@@ -175,7 +175,7 @@ export class ReadsbFeed implements Feed {
       paused: this.scheduler.paused,
       home: describeCircles(this.home),
       warm: !this.watched && this.home.length > 0,
-      standingAside: this.tooWide ? 'view wider than a region' : false,
+      standingAside: this.tooWide ? 'every view wider than a region' : false,
       polled: describeCircles(this.lastPolled),
       aircraft: this.aircraft,
       lastSuccessAt: this.lastSuccessAt && new Date(this.lastSuccessAt).toISOString(),
