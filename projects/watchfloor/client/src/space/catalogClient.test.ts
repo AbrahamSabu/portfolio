@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CatalogClient } from './catalogClient';
+import { ServerOrBrowserCatalog } from './serverOrBrowser';
 
 const EMPTY = { v: 1, groups: [{ group: 'stations', status: 'ok', fetchedAt: 1, sats: [] }] };
 
@@ -51,5 +52,33 @@ describe('CatalogClient', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(loaded).toHaveBeenCalledTimes(1);
     client.stop();
+  });
+});
+
+describe('ServerOrBrowserCatalog', () => {
+  it('fetches satellites itself when the server has them switched off (404)', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('not found', { status: 404 })));
+    const browser = { start: vi.fn(), stop: vi.fn(), status: 'ready' as const, unavailableText: 'not available' };
+    const factory = vi.fn(async () => browser);
+    const catalog = new ServerOrBrowserCatalog(() => {}, () => {}, factory);
+    catalog.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(browser.start).toHaveBeenCalledTimes(1);
+    expect(catalog.status).toBe('ready');
+  });
+
+  it('stays with the server through any other failure', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('busy', { status: 502 })));
+    const factory = vi.fn();
+    const catalog = new ServerOrBrowserCatalog(() => {}, () => {}, factory);
+    catalog.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(factory).not.toHaveBeenCalled();
+    expect(catalog.status).toBe('unavailable');
+    catalog.stop();
   });
 });

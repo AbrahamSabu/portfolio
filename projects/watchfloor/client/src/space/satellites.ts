@@ -3,7 +3,8 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { paceScaleNow } from '../map/renderRate';
 import { LOWEST_TRACK_LAYER } from '../map/trackLayer';
 import type { HoverText } from '../ui/hoverCard';
-import { CatalogClient, type CatalogSource } from './catalogClient';
+import type { CatalogSource } from './catalogClient';
+import { ServerOrBrowserCatalog } from './serverOrBrowser';
 import { GroundTrackLayer, type TrackLine } from './groundTrackLayer';
 import { Keyframes, type KeyframePair } from './keyframes';
 import { dockedStacks, EARTH_RADIUS_KM, mercatorY, periodMinutes, semiMajorAxisKm, SHELL_MAX_ALTITUDE_KM } from './orbit';
@@ -105,7 +106,7 @@ export class Satellites {
     this.section = new SatelliteFilterSection(deps.filterPanel, deps.filter);
     // The catalogue (half a megabyte) and the worker wait until the layer is first shown:
     // someone who has turned satellites off pays nothing for them.
-    this.catalog = (deps.catalog ?? ((onCatalog, onStatus) => new CatalogClient(onCatalog, onStatus)))(
+    this.catalog = (deps.catalog ?? ((onCatalog, onStatus) => new ServerOrBrowserCatalog(onCatalog, onStatus)))(
       (catalog) => this.load(catalog),
       () => this.notify(),
     );

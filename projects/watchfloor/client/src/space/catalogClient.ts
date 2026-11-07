@@ -36,6 +36,8 @@ export class CatalogClient implements CatalogSource {
   constructor(
     private readonly onCatalog: (catalog: SatelliteCatalog) => void,
     private readonly onStatus: () => void,
+    /** The server answered 404: satellites are switched off there (ServerOrBrowserCatalog then fetches them itself). */
+    private readonly onOff?: () => void,
   ) {}
 
   /** Checks now, then every so often until stopped. Starting twice is harmless. */
@@ -59,6 +61,10 @@ export class CatalogClient implements CatalogSource {
       if (run !== this.run) return;
       if (res.status === 503) {
         wait = 5_000;
+      } else if (res.status === 404 && this.onOff) {
+        // Switched off on this server: someone else fetches them now, and this client is done.
+        this.onOff();
+        return;
       } else if (!res.ok || !res.headers.get('content-type')?.includes('json')) {
         this.setStatus('unavailable');
         wait = UNAVAILABLE_MS;
