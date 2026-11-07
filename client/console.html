@@ -31,6 +31,7 @@
           <div class="console-targets" id="targets" role="group" aria-labelledby="steer-label"></div>
         </div>
         <p class="console-main-away" id="main-away" hidden></p>
+        <button class="console-picked" id="picked" type="button" hidden></button>
       </header>
 
       <section class="console-choose" id="choose" hidden aria-labelledby="choose-title">
@@ -97,6 +98,7 @@
         </article>
         <button class="console-send" id="send" type="button">Send to main screen</button>
         <button class="console-send console-ride" id="ride" type="button" aria-pressed="false" hidden>Ride along on main screen</button>
+        <button class="console-send console-ride" id="follow" type="button" aria-pressed="false" hidden>Follow on main screen</button>
       </section>
 
       <section class="console-remote" id="remote" hidden aria-label="Remote">
@@ -117,6 +119,11 @@
           <button class="console-key" type="button" data-act="clear">Clear</button>
           <button class="console-key" type="button" data-act="tour" aria-pressed="false">Tour</button>
         </div>
+      </section>
+
+      <section class="console-keys" id="keys" hidden aria-label="Keys">
+        <p class="console-lede" id="keys-lede"></p>
+        <div class="console-key-grid" id="key-grid"></div>
       </section>
 
       <section class="console-layers" id="layers" hidden aria-label="Layers">
@@ -142,6 +149,7 @@
       <nav class="console-tabs" id="tabs" hidden aria-label="Console">
         <button type="button" data-tab="tracks" aria-current="page">Tracks</button>
         <button type="button" data-tab="remote">Remote</button>
+        <button type="button" data-tab="keys">Keys</button>
         <button type="button" data-tab="layers">Layers</button>
         <button type="button" data-tab="places">Places</button>
         <button type="button" data-tab="room">Room</button>

@@ -8,6 +8,7 @@ import {
   type ClientMessage,
   type ConsoleCallsign,
   type ConsolePresence,
+  type RemoteKey,
   type RoomAction,
   type RoomServerMessage,
   type ScenarioInfo,
@@ -265,6 +266,9 @@ export class RoomHost {
       case 'press':
         this.pointer.press(from, action.down);
         return;
+      case 'key':
+        this.pressKey(action.key);
+        return;
       case 'ride':
         if (action.id === null) {
           this.deps.ride.stop();
@@ -305,6 +309,27 @@ export class RoomHost {
     this.say(`${who} is riding along with ${trackName(track)}`);
   }
 
+  /**
+   * A console pressed one of the map's keys: the keydown a keyboard would
+   * send, so every shortcut works as typed. Two differences, since the phone
+   * can't see a keyboard's context: a key ends the tour and then does its job
+   * (typed, it would only end the tour), and Escape closes an open dialog
+   * itself (browsers ignore a synthetic Escape on their dialogs).
+   */
+  private pressKey(key: RemoteKey): void {
+    this.dialog.close();
+    const { tour } = this.deps;
+    if (tour.active && key !== 'G' && key !== 'Y') tour.stop();
+    if (key === 'Escape') {
+      const open = document.querySelector<HTMLDialogElement>('dialog[open]');
+      if (open) {
+        open.close();
+        return;
+      }
+    }
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: key.length === 1 ? key.toLowerCase() : key, bubbles: true, cancelable: true }));
+  }
+
   /** What this screen is, chosen in the dialog: remembered here, and the room hears it with the next status. */
   private setKind(kind: ScreenKind): void {
     this.kind = kind;
@@ -337,6 +362,8 @@ export class RoomHost {
     };
     const riding = this.deps.ride.riding;
     if (riding) status.riding = riding;
+    const selected = this.deps.selection.id;
+    if (selected) status.selected = selected;
     const json = JSON.stringify(status);
     if (json === this.sentStatus) return;
     this.sentStatus = json;

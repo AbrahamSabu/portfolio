@@ -78,6 +78,10 @@ describe('room requests from browsers', () => {
   it('passes on what a screen is, and only a kind from the list', () => {
     expect(send({ type: 'room-status', status: { ...STATUS, kind: 'tv' } })).toEqual({ type: 'room-status', status: { ...STATUS, kind: 'tv' } });
     expect(send({ type: 'room-status', status: { ...STATUS, kind: 'toaster' } })).toBeNull();
+    expect(send({ type: 'room-status', status: { ...STATUS, selected: 'adsb:4ca7b3' } })).toEqual({
+      type: 'room-status',
+      status: { ...STATUS, selected: 'adsb:4ca7b3' },
+    });
     expect(send({ type: 'room-status', status: { ...STATUS, kind: 'Laptop' } })).toBeNull();
   });
 
@@ -112,6 +116,8 @@ describe('room requests from browsers', () => {
       { do: 'click' },
       { do: 'press', down: true },
       { do: 'press', down: false },
+      { do: 'key', key: 'G' },
+      { do: 'key', key: 'Escape' },
     ];
     for (const action of actions) expect(control(action, 'SCREEN 2')).toEqual({ type: 'room-control', to: 'SCREEN 2', action });
   });
@@ -145,6 +151,10 @@ describe('room requests from browsers', () => {
     expect(control({ do: 'point', dx: 0 })).toBeNull();
     expect(control({ do: 'press' })).toBeNull();
     expect(control({ do: 'press', down: 'yes' })).toBeNull();
+    expect(control({ do: 'key', key: 'Q' })).toBeNull(); // the room's own dialog
+    expect(control({ do: 'key', key: '/' })).toBeNull(); // needs typing on the screen
+    expect(control({ do: 'key', key: 'g' })).toBeNull();
+    expect(send({ type: 'room-status', status: { ...STATUS, selected: 'not an id' } })).toBeNull();
     expect(control({ do: 'ride', id: 'has space' })).toBeNull();
     expect(send({ type: 'room-status', status: { layers: {}, tour: false, follow: false, riding: 42 } })).toBeNull();
     expect(control({ do: 'fly', lon: 200, lat: 0, zoom: 5 })).toBeNull();

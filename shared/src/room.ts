@@ -4,8 +4,8 @@
  * as consoles. A console browses the picture, says which track it has open
  * (presence, tagged on every screen's map), and steers one screen of its
  * choosing: show a track, pan and zoom, switch layers, start the tour, ride
- * along with an aircraft, fly to a place, or point and click on it as a
- * mouse would. Screens never steer each other. Rooms live in the server's
+ * along with an aircraft, fly to a place, point and click on it as a mouse
+ * would, or press its keys. Screens never steer each other. Rooms live in the server's
  * memory only, and end when the main screen leaves.
  *
  * Flow (protocol v18):
@@ -102,6 +102,8 @@ export interface ScreenStatus {
   riding?: string;
   /** What the screen is (a laptop, a TV...), as its own Ops room dialog says. */
   kind?: ScreenKind;
+  /** The track selected on the screen, if any: a console opens its card. */
+  selected?: string;
 }
 
 /**
@@ -127,7 +129,21 @@ export type RoomAction =
   /** Click whatever is under the pointer, as a mouse would. */
   | { do: 'click' }
   /** Press (true) or release (false) at the pointer; moves in between drag. */
-  | { do: 'press'; down: boolean };
+  | { do: 'press'; down: boolean }
+  /** Press one of the map's keys on the screen, as if typed there. */
+  | { do: 'key'; key: RemoteKey };
+
+/**
+ * The keys a console can press on a screen: the map key's shortcuts, less
+ * those that need typing there (/ search, W drawing an area) and Q (a
+ * console mustn't open the room's own dialog). The client's shortcut list
+ * is checked against this in a test, so a new shortcut can't be forgotten.
+ */
+export const REMOTE_KEYS = [
+  'M', 'L', 'G', 'Y', 'V', 'Z', 'U', 'P', 'E', 'J', 'F', 'T', 'I', 'S', 'N', 'B', 'A', 'H', 'D', 'C', 'O', 'X', 'R', '?', 'Escape',
+] as const;
+export type RemoteKey = (typeof REMOTE_KEYS)[number];
+export const isRemoteKey = (v: unknown): v is RemoteKey => typeof v === 'string' && (REMOTE_KEYS as readonly string[]).includes(v);
 
 export const isRoomCode = (v: unknown): v is string => typeof v === 'string' && ROOM_CODE.test(v);
 export const isRoomSecret = (v: unknown): v is string => typeof v === 'string' && ROOM_SECRET.test(v);
