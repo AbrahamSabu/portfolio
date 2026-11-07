@@ -754,13 +754,20 @@ that could have been fetched before they arrived.
   `MAX_CONNECTIONS_PER_ADDRESS=8`, `ROOMS_MAX=200`, `SATELLITES=off` and
   `CLIENT_IP_HEADER=cf-connecting-ip,true-client-ip`. **One OpenSky account
   only**: OpenSky's API docs say registering several gets all of a person's
-  accounts banned for life, so the public site shares the home account's
-  4,000 a day (hence 180 s). They also say they may block AWS and other
-  hyperscalers' addresses; Render runs on such clouds, so the public site's
-  OpenSky polls may simply fail (it then has adsb.lol/adsb.fi zoomed in).
-  Its own AISStream key keeps its connections apart. Satellites are off
-  there: no disk survives a sleep, so every wake would refetch CelesTrak,
-  which refuses repeats and firewalls addresses that collect refusals. Web
+  accounts banned for life. They also say they may block AWS and other
+  hyperscalers' addresses, and from Render (https://watchfloor-81sn.onrender.com,
+  Nov 2026) every OpenSky request failed ("fetch failed"), so the blueprint
+  runs `FEEDS=adsblol,adsbfi,ais` with `SCENARIO=english-channel`: the page
+  opens framed on the Channel, which the regional feeds keep warm, and the
+  globe stays thin. Its own AISStream key keeps its connections apart. The
+  server fetches no satellites there (no disk survives a sleep, so every
+  wake would refetch CelesTrak, which refuses repeats and firewalls
+  addresses that collect refusals); `space/serverOrBrowser.ts`
+  (ServerOrBrowserCatalog, the default CatalogSource) hears the 404 from
+  `/api/satellites` and switches to `demo/demoCatalog.ts`, loaded by a
+  dynamic import (its own chunk), so each browser fetches CelesTrak itself
+  as the static demo does. So `SATELLITES=off` now means "the server
+  doesn't fetch", not "no satellites". Web
   pages using OpenSky data should cite Schäfer et al., "Bringing Up OpenSky",
   IPSN 2014 (README credits do). A demo built with
   `VITE_LIVE_URL` gets a link to the live version in its Q dialog
