@@ -507,6 +507,11 @@ async function main(): Promise<void> {
     if (id) connection.send({ type: 'track', id });
   });
 
+  // Checking a track: the news card makes way, and the rotation waits until nothing is selected.
+  selection.subscribe((id, previous) => {
+    if (id !== previous) cards.makeWay(id !== null);
+  });
+
   // Reticle and follow mode track the dead-reckoned position, not the last report.
   selection.subscribe((id, previous) => {
     const pos = id ? layer.positionOf(id) : undefined;
