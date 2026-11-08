@@ -275,6 +275,52 @@ describe('Rooms', () => {
     small.stop();
   });
 
+  it('ignores the main screen trying to join its own room (it used to close the room on the way)', () => {
+    const { main, code } = openRoom();
+    const phone = joinRoom(code);
+    later();
+    rooms.handle(main, { type: 'room-join', code, as: 'screen' });
+    later();
+    expect(rooms.size).toBe(1);
+    expect(main.last('room')?.role).toBe('main');
+    expect(phone.last('room-closed')).toBeUndefined();
+  });
+
+  it('frees a console seat whose socket reclaims the room as main, so no zombie seat outlives the grace', () => {
+    const { main, code, key } = openRoom();
+    const phone = joinRoom(code);
+    later();
+    const callsign = (phone.last('room') as RoomConsoleMessage).callsign;
+    rooms.handle(phone, { type: 'room-open', code, key });
+    later();
+    expect(main.last('room-closed')?.reason).toBe('closed'); // the old main was replaced, as designed
+    rooms.drop(phone);
+    later(CONSOLE_GRACE_MS + 10_000);
+    const main2 = new Peer();
+    rooms.handle(main2, { type: 'room-open', code, key });
+    later();
+    expect(main2.last('room-presence')?.consoles.map((c) => c.callsign)).not.toContain(callsign);
+  });
+
+  it('seats a member back with its token even while its address is paused for wrong codes', () => {
+    const { code } = openRoom();
+    const phone = new Peer('203.0.113.5');
+    rooms.handle(phone, { type: 'room-join', code });
+    later();
+    const { token, callsign } = phone.last('room') as RoomConsoleMessage;
+    // Someone else behind that address (an office NAT, a proxy) mashes wrong codes.
+    for (let i = 0; i < WRONG_CODES_PER_MINUTE; i++) rooms.handle(new Peer('203.0.113.5'), { type: 'room-join', code: otherCode(code) });
+    rooms.drop(phone);
+    later();
+    const back = new Peer('203.0.113.5');
+    rooms.handle(back, { type: 'room-join', code, token });
+    expect((back.last('room') as RoomConsoleMessage | undefined)?.callsign).toBe(callsign);
+    // A stranger on that address still waits, right code or not.
+    const stranger = new Peer('203.0.113.5');
+    rooms.handle(stranger, { type: 'room-join', code });
+    expect(stranger.last('room-closed')?.reason).toBe('busy');
+  });
+
   it('turns away a console when the room is full, and a room when the server is', () => {
     const { code } = openRoom();
     for (let i = 0; i < MAX_CONSOLES; i++) expect(joinRoom(code).last('room')).toBeDefined();
