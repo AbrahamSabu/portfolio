@@ -81,6 +81,12 @@
   overflow-wrap: anywhere;
 }
 
+/* A link in the running text breaks before itself, never inside. */
+.room-also code,
+.room-also a {
+  white-space: nowrap;
+}
+
 .room-consoles {
   display: flex;
   flex-direction: column;
