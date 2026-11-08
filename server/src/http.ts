@@ -41,6 +41,13 @@ export function createHttpServer(opts: HttpOptions): http.Server {
   return http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
 
+    // Before every route: nothing here takes a body, and a POST to the weather
+    // route used to reach the upstream like a GET.
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.writeHead(405, { allow: 'GET, HEAD' }).end();
+      return;
+    }
+
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, ...opts.health() }));
@@ -77,13 +84,12 @@ export function createHttpServer(opts: HttpOptions): http.Server {
           res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=300' });
           res.end(JSON.stringify({ weather: body }));
         },
-        () => res.writeHead(502).end(),
+        (err: unknown) => {
+          // The queue to the weather service is full: come back in a moment, rather than wait minutes.
+          if (err instanceof Error && err.message === 'busy') res.writeHead(503, { 'retry-after': '5', 'cache-control': 'no-store' }).end();
+          else res.writeHead(502).end();
+        },
       );
-      return;
-    }
-
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.writeHead(405, { allow: 'GET, HEAD' }).end();
       return;
     }
 

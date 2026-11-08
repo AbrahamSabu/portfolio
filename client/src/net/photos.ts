@@ -30,7 +30,7 @@ export function parsePhotoResponse(data: unknown): Photo | null {
   // The larger thumbnail (420 × 280) suits the panel; the small one is 200 wide.
   const thumb = (photo.thumbnail_large ?? photo.thumbnail) as { src?: unknown; size?: { width?: unknown; height?: unknown } } | undefined;
   const { link, photographer } = photo;
-  if (typeof thumb?.src !== 'string' || !thumb.src.startsWith('https://')) return null;
+  if (typeof thumb?.src !== 'string' || !isPlanespottersImage(thumb.src)) return null;
   if (typeof link !== 'string' || !link.startsWith('https://www.planespotters.net/')) return null;
   if (typeof photographer !== 'string' || photographer.trim() === '') return null;
   const width = typeof thumb.size?.width === 'number' ? thumb.size.width : 420;
@@ -53,4 +53,14 @@ export function aircraftPhoto(icao24: string): Promise<Photo | null> {
     cache.set(hex, pending);
   }
   return pending;
+}
+
+/** Only Planespotters' own image hosts: a changed API answer must not make every viewer load from elsewhere. */
+function isPlanespottersImage(src: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(src);
+    return protocol === 'https:' && (hostname.endsWith('.plnspttrs.net') || hostname.endsWith('.planespotters.net'));
+  } catch {
+    return false;
+  }
 }

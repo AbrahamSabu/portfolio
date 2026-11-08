@@ -170,9 +170,11 @@ export class SatelliteService {
         .filter((s) => groups.includes(s.group))
         .map((s) => ({ group: s.group, status: this.statusOf(s), fetchedAt: s.fetchedAt, satellites: s.satellites })),
     };
+    const json = Buffer.from(JSON.stringify(encodeSatelliteCatalog(catalog)));
     const response = {
-      json: Buffer.from(JSON.stringify(encodeSatelliteCatalog(catalog))),
-      gzip: null,
+      json,
+      // Starlink alone is 1.4 MB raw: built once per version per group set, so the cost is paid once.
+      gzip: zlib.gzipSync(json),
       etag: `W/"sat-${this.startedAt.toString(36)}-${this.version}-${key}"`,
     };
     this.subsets.set(key, { version: this.version, response });

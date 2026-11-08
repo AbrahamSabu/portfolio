@@ -52,6 +52,13 @@ const HEARTBEAT_MS = 15_000;
 /** Views arriving within this window are reported together. */
 const VIEWS_COALESCE_MS = 100;
 const MAX_CLIENTS = 200;
+/** New connections one address may open in CONNECT_WINDOW_MS: each costs a whole snapshot to encode. */
+const CONNECT_BURST = 6;
+const CONNECT_WINDOW_MS = 10_000;
+/** Messages a browser may send a second (it sends one view per pan; a console a few controls a second). */
+const MESSAGES_PER_SECOND = 40;
+/** Resyncs (a fresh snapshot after lagging) one client may need in a minute before it's let go. */
+const RESYNCS_PER_MINUTE = 3;
 
 interface Client {
   ws: WebSocket;
@@ -67,6 +74,11 @@ interface Client {
   address: string;
   /** How the ops room reaches this browser. */
   peer: RoomPeer;
+  /** Message budget: refilled MESSAGES_PER_SECOND a second, one spent per message; empty closes the socket. */
+  messageCredits: number;
+  lastMessageAt: number;
+  /** When each resync was sent, for RESYNCS_PER_MINUTE. */
+  resyncsAt: number[];
   /** When this browser last asked about a track; a request closer than the gap waits for it (the latest one wins). */
   lastTrackRequestAt: number;
   pendingTrackId: string | null;
@@ -114,6 +126,13 @@ export interface HubOptions {
   addressHeaders?: readonly string[];
   /** Connections one address may hold at once (MAX_CONNECTIONS_PER_ADDRESS); 0 or unset: no limit. */
   maxPerAddress?: number;
+  /**
+   * Origins allowed besides the page's own host (ALLOWED_ORIGINS). A browser
+   * sends the page's origin with the upgrade; one that doesn't match the Host
+   * is another site's page using a visitor's position on this network to
+   * read the picture, steer the feeds and spend the room allowances.
+   */
+  allowedOrigins?: readonly string[];
   /** Answers a browser's question about one track (its path, its details); `send` may be called more than once. */
   onTrackRequest?: (id: string, send: (message: PathMessage | DetailsMessage) => void) => void;
   /** The day's news stories, sent to each browser after its snapshot. */
@@ -145,6 +164,17 @@ export class Hub {
   private viewsTimer: NodeJS.Timeout | undefined;
   /** The feed statuses every connected browser already has, serialised. */
   private sentFeeds = '[]';
+  /** Recent connections per address, for the connection-rate limit. */
+  private readonly connectsAt = new Map<string, number[]>();
+  /**
+   * The snapshot encoded this tick, reused by every browser that connects or
+   * resyncs within it. Encoding the world picture takes a few hundred ms and
+   * deflating it more, so a burst of connections (a reload storm, a churning
+   * client) used to pin the event loop. Reusing a snapshot up to a tick old is
+   * safe: the next delta carries everything since the previous flush, and
+   * applying messages is idempotent.
+   */
+  private snapshotCache: { at: number; payload: string } | null = null;
   private tickTimer: NodeJS.Timeout | undefined;
   private heartbeatTimer: NodeJS.Timeout | undefined;
 
@@ -180,8 +210,17 @@ export class Hub {
 
   private onConnection(ws: WebSocket, req: IncomingMessage): void {
     const address = clientAddress(req.headers, req.socket.remoteAddress, this.opts.addressHeaders ?? []);
+    if (!this.originAllowed(req.headers.origin, req.headers.host)) {
+      log.warn('refused a cross-site connection', { address, origin: req.headers.origin });
+      ws.close(1008, 'Origin not allowed');
+      return;
+    }
     if (this.clients.size >= MAX_CLIENTS) {
       ws.close(1013, 'Too many connections');
+      return;
+    }
+    if (!this.connectAllowed(address)) {
+      ws.close(1013, 'Too many connections from one address');
       return;
     }
     // One visitor can't take the server's share: every connection costs a whole snapshot.
@@ -209,6 +248,9 @@ export class Hub {
           if (ws.readyState === WebSocket.OPEN) ws.send(encodeServerMessage(message));
         },
       },
+      messageCredits: MESSAGES_PER_SECOND,
+      lastMessageAt: Date.now(),
+      resyncsAt: [],
       lastTrackRequestAt: 0,
       pendingTrackId: null,
       trackTimer: null,
@@ -282,23 +324,63 @@ export class Hub {
 
   private sendSnapshot(client: Client): void {
     const resync = client.needsResync;
-    const snapshot: SnapshotMessage = {
-      type: 'snapshot',
-      serverTime: Date.now(),
-      tracks: this.opts.store.snapshot(),
-      trails: this.opts.store.trailSnapshot(),
-    };
+    const now = Date.now();
+    if (resync) {
+      // A client that keeps falling behind costs a whole snapshot each time: let it go after a few.
+      client.resyncsAt = client.resyncsAt.filter((t) => now - t < 60_000);
+      client.resyncsAt.push(now);
+      if (client.resyncsAt.length > RESYNCS_PER_MINUTE) {
+        client.ws.close(1013, 'Too slow to keep up');
+        return;
+      }
+    }
+    if (!this.snapshotCache || now - this.snapshotCache.at >= this.opts.tickMs) {
+      const snapshot: SnapshotMessage = {
+        type: 'snapshot',
+        serverTime: now,
+        tracks: this.opts.store.snapshot(),
+        trails: this.opts.store.trailSnapshot(),
+      };
+      this.snapshotCache = { at: now, payload: encodeServerMessage(snapshot) };
+    }
     client.snapshotInFlight = true;
     client.needsResync = false;
     // The callback fires once ws has written the message, or on error.
-    client.ws.send(encodeServerMessage(snapshot), () => (client.snapshotInFlight = false));
+    client.ws.send(this.snapshotCache.payload, () => (client.snapshotInFlight = false));
     // Feed statuses ride only on the tick where they change, which a lagging
     // client was skipped for: after a resync it gets the current ones, or its
     // status bar could show a feed as failing hours after it recovered.
     if (resync) {
       const feeds = this.opts.feedStatus?.() ?? [];
-      client.ws.send(encodeServerMessage({ type: 'delta', serverTime: snapshot.serverTime, upserts: [], removals: [], feeds }));
+      client.ws.send(encodeServerMessage({ type: 'delta', serverTime: now, upserts: [], removals: [], feeds }));
     }
+  }
+
+  /** The page's own origin, no origin at all (curl, probes), or one from the allow list. */
+  private originAllowed(origin: string | undefined, host: string | undefined): boolean {
+    if (!origin) return true;
+    let originHost: string;
+    try {
+      originHost = new URL(origin).host.toLowerCase();
+    } catch {
+      return false;
+    }
+    if (host !== undefined && originHost === host.toLowerCase()) return true;
+    return (this.opts.allowedOrigins ?? []).some((o) => o.toLowerCase() === origin.toLowerCase());
+  }
+
+  /** At most CONNECT_BURST new connections per address in CONNECT_WINDOW_MS. */
+  private connectAllowed(address: string): boolean {
+    const now = Date.now();
+    const recent = (this.connectsAt.get(address) ?? []).filter((t) => now - t < CONNECT_WINDOW_MS);
+    if (recent.length >= CONNECT_BURST) return false;
+    recent.push(now);
+    this.connectsAt.set(address, recent);
+    // The map is pruned here rather than on a timer: a quiet address drops out on anyone's next connection.
+    for (const [a, times] of this.connectsAt) {
+      if (a !== address && times.every((t) => now - t >= CONNECT_WINDOW_MS)) this.connectsAt.delete(a);
+    }
+    return true;
   }
 
   private sendDelta(client: Client, payload: string): void {
@@ -364,8 +446,17 @@ export class Hub {
     this.opts.onClientsChanged?.(this.clients.size);
   }
 
-  /** Browser messages are untrusted: anything that doesn't parse is ignored. */
+  /** Browser messages are untrusted: anything that doesn't parse is ignored, and a flood closes the socket. */
   private onClientMessage(client: Client, raw: string): void {
+    const now = Date.now();
+    client.messageCredits = Math.min(MESSAGES_PER_SECOND, client.messageCredits + ((now - client.lastMessageAt) / 1000) * MESSAGES_PER_SECOND);
+    client.lastMessageAt = now;
+    if (client.messageCredits < 1) {
+      log.warn('client flooding, closing', { address: client.address });
+      client.ws.close(1008, 'Too many messages');
+      return;
+    }
+    client.messageCredits -= 1;
     const message = parseClientMessage(raw);
     if (!message) {
       log.debug('ignored client message', { address: client.address });

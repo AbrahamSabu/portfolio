@@ -10,6 +10,8 @@ const API = 'https://aviationweather.gov/api/data/metar';
 const CACHE_MS = 10 * 60_000;
 /** aviationweather.gov allows 100 requests a minute and asks for gaps between them; we keep to one a second. */
 const REQUEST_GAP_MS = 1_000;
+/** Stations waiting for the upstream at once; past this, asks are refused rather than queued for minutes. */
+const MAX_PENDING = 10;
 const FAILURE_WAIT_MS = 60_000;
 
 /**
@@ -30,13 +32,16 @@ export class WeatherService {
     private readonly wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
   ) {}
 
-  /** The station's latest report; null when it has none or the service is down. */
+  /** The station's latest report; null when it has none or the service is down; rejects 'busy' when the queue is full. */
   async get(station: string): Promise<AirportWeather | null> {
     if (!/^[A-Z0-9]{4}$/.test(station)) return null;
     const cached = this.cache.get(station);
     if (cached && this.now() - cached.at < CACHE_MS) return cached.weather;
     const pending = this.inFlight.get(station);
     if (pending) return pending;
+    // Requests go to the upstream a second apart, so a burst of unknown stations
+    // (a script trying codes) would queue for minutes ahead of every real click.
+    if (this.inFlight.size >= MAX_PENDING) throw new Error('busy');
     const request = this.fetchStation(station).finally(() => this.inFlight.delete(station));
     this.inFlight.set(station, request);
     return request;

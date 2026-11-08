@@ -55,6 +55,59 @@ describe('Hub', () => {
     for (const ws of [a, b, d]) ws.close();
   });
 
+  it("refuses a socket from another site's page, and takes the page's own or an allowed origin", async () => {
+    server = createServer();
+    hub = new Hub({
+      server, path: '/ws', store: new TrackStore(DEFAULT_STALENESS), tickMs: 1000, staleness: DEFAULT_STALENESS,
+      scenario: null, traffic: 'live', allowedOrigins: ['https://wall.example'],
+    });
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+    const outcome = (headers: Record<string, string>) =>
+      new Promise<string>((resolve) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`, { headers });
+        ws.on('message', (data) => {
+          if ((JSON.parse(String(data)) as { type: string }).type === 'hello') {
+            resolve('hello');
+            ws.close();
+          }
+        });
+        ws.on('close', (code) => resolve(String(code)));
+      });
+    expect(await outcome({ origin: 'https://evil.example' })).toBe('1008');
+    expect(await outcome({ origin: `http://127.0.0.1:${port}` })).toBe('hello');
+    expect(await outcome({ origin: 'https://wall.example' })).toBe('hello');
+    expect(await outcome({})).toBe('hello'); // no Origin at all: curl, probes
+  });
+
+  it('limits how fast one address may open connections', async () => {
+    server = createServer();
+    hub = new Hub({
+      server, path: '/ws', store: new TrackStore(DEFAULT_STALENESS), tickMs: 1000, staleness: DEFAULT_STALENESS,
+      scenario: null, traffic: 'live',
+    });
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+    const { port } = server.address() as AddressInfo;
+    const sockets: WebSocket[] = [];
+    const outcomes: Promise<string>[] = [];
+    for (let i = 0; i < 7; i++) {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      sockets.push(ws);
+      outcomes.push(
+        new Promise<string>((resolve) => {
+          ws.on('message', (data) => {
+            if ((JSON.parse(String(data)) as { type: string }).type === 'hello') resolve('hello');
+          });
+          ws.on('close', (code) => resolve(String(code)));
+        }),
+      );
+    }
+    const results = await Promise.all(outcomes);
+    expect(results.filter((r) => r === 'hello')).toHaveLength(6);
+    expect(results.filter((r) => r === '1013')).toHaveLength(1);
+    for (const ws of sockets) ws.close();
+  });
+
   it("sends the day's news and the hazards after the snapshot, then changes as they come", async () => {
     const story = {
       id: '1', headline: 'Parliament passes the budget', url: 'https://example.org/a', outlet: 'example.org',

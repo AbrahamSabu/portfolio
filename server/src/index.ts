@@ -268,6 +268,7 @@ async function main(): Promise<void> {
     path: '/ws',
     addressHeaders: config.visitors.addressHeaders,
     maxPerAddress: config.visitors.maxPerAddress,
+    allowedOrigins: config.visitors.allowedOrigins,
     store,
     tickMs: config.tickMs,
     staleness,

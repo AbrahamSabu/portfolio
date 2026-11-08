@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
           ...(demo ? {} : { console: fileURLToPath(new URL('./console.html', import.meta.url)) }),
         },
       },
-      sourcemap: !demo,
+      sourcemap: demo ? false : 'hidden', // written for local debugging, not referenced by the bundle
       // MapLibre and milsymbol (all symbol standards) are large; they're cached after first load.
       chunkSizeWarningLimit: 2500,
     },

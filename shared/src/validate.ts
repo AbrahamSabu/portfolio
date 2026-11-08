@@ -12,13 +12,26 @@ const MAX_SPEED_MPS = 2_000;
 const MAX_ALTITUDE_M = 100_000;
 
 /**
+ * Text from a feed, fit to show: control characters, format characters (bidi
+ * overrides, zero-width joiners: the makings of a spoofed callsign) and line
+ * separators out, and no more than two combining marks on a letter (a dozen
+ * draw as a smear taller than the label). Every sink is textContent, so this
+ * is about what the text looks like, not what it can do.
+ */
+export function cleanText(raw: string): string {
+  return raw
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, '')
+    .replace(/(\p{M}{2})\p{M}+/gu, '$1');
+}
+
+/**
  * Callsigns and ship names as transmitted carry filler: padding punctuation
  * ("-NANUUK-", "...VEGA", ":GMS ANTARO"), or placeholders with no name in them ("00000000",
  * ",", "-"). Left in, they sort to the top of the list and label the map
  * with noise. Apostrophes and quotes stay: they're part of real names ('T SMIDTJE).
  */
 export function cleanCallsign(raw: string): string | undefined {
-  const s = raw
+  const s = cleanText(raw)
     .replace(/\s+/g, ' ')
     .replace(/^[\s\-.,:;_*~]+|[\s\-.,:;_*~]+$/g, '')
     .slice(0, 32);
