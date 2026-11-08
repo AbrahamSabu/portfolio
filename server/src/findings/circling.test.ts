@@ -72,3 +72,26 @@ describe('circling', () => {
     expect(circling([...first, ...second], NOW)).toBeNull();
   });
 });
+
+describe('circling: reversals', () => {
+  it('does not count a line flown back and forth, sampled only at the turns', () => {
+    // One point at each end and one midpoint per leg (every ~33 s, like a 30 s poll): no turn
+    // geometry survives, and headingDelta gives +180 for a reversal either way, which summed as laps.
+    const data: number[] = [];
+    const lat = 51.5;
+    const legM = 4_000;
+    const speed = 60;
+    const legMs = (legM / speed) * 1000;
+    const dLon = legM / (111_320 * Math.cos((lat * Math.PI) / 180));
+    let t = NOW - 15 * 60_000;
+    for (let leg = 0; leg < 13; leg++) {
+      const east = leg % 2 === 0;
+      const x0 = east ? 0 : dLon;
+      const x1 = east ? dLon : 0;
+      data.push(x0, lat, t, (x0 + x1) / 2, lat, t + legMs / 2);
+      t += legMs;
+    }
+    data.push(13 % 2 === 0 ? 0 : dLon, lat, t);
+    expect(circling(data, NOW)).toBeNull();
+  });
+});

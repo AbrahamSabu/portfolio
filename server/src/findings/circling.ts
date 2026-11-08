@@ -34,6 +34,9 @@ const MIN_SPAN_MS = 3 * 60_000;
  * Works on PathHistory's raw [lon, lat, t, ...] array so a pass over every
  * aircraft in the world allocates nothing for the straight-liners.
  */
+/** Legs that turn back within this of 180° don't count: their direction can't be known from two points. */
+const REVERSAL_DEG = 165;
+
 export function circling(data: readonly number[], now: number): Circling | null {
   if (data.length < MIN_POINTS * 3) return null;
   // Points inside the window, newest known to be last.
@@ -70,7 +73,13 @@ export function circling(data: readonly number[], now: number): Circling | null 
     sumY += (data[i + 1]! - lat0) * ky;
     if (dx === 0 && dy === 0) continue;
     const bearing = (Math.atan2(dx, dy) * 180) / Math.PI;
-    if (lastBearing !== undefined) total += headingDelta(lastBearing, bearing);
+    if (lastBearing !== undefined) {
+      const delta = headingDelta(lastBearing, bearing);
+      // A reversal (within 15° of 180) says nothing about which way the
+      // aircraft turned: headingDelta gives +180 for both, and a path thinned
+      // to the ends of a back-and-forth line summed those into "circling".
+      if (Math.abs(delta) < REVERSAL_DEG) total += delta;
+    }
     lastBearing = bearing;
   }
   if (Math.abs(total) < MIN_TURNS_DEG) return null;
