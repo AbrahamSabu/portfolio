@@ -106,6 +106,17 @@ function el(id: string): HTMLElement {
   return node;
 }
 
+/**
+ * A panel opened from the keyboard gets the keyboard: its first control (the
+ * list's search box, a menu's first row, the timeline's handle). Opened by
+ * key, every panel used to leave focus on the body, twenty to thirty Tabs
+ * from its controls.
+ */
+function focusInto(panel: HTMLElement): void {
+  const first = panel.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], [role="radio"][tabindex="0"], button:not([hidden]), [tabindex="0"]');
+  first?.focus({ preventScroll: true });
+}
+
 function isTyping(event: KeyboardEvent): boolean {
   const target = event.target;
   return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
@@ -599,6 +610,7 @@ async function main(): Promise<void> {
     if (event.key === 'Escape') {
       // Close the filter first if it's open, then an airport or country; a further Escape clears the selection.
       if (palette.open) palette.setOpen(false);
+      else if (list.open) list.setOpen(false);
       else if (filterPanel.open) filterPanel.setOpen(false);
       else if (airportPanel.isOpen) airportPanel.close();
       else if (countryPanel.isOpen) countryPanel.close();
@@ -615,9 +627,18 @@ async function main(): Promise<void> {
     // Single-letter shortcuts must not fire while the operator is typing.
     if (isTyping(event) || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 't' || event.key === 'T') trails.cycle();
-    if (event.key === 'm' || event.key === 'M') layersPanel.setOpen(!layersPanel.open);
-    if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
-    if (event.key === 'f' || event.key === 'F') filterControl.toggle();
+    if (event.key === 'm' || event.key === 'M') {
+      layersPanel.setOpen(!layersPanel.open);
+      if (layersPanel.open) focusInto(el('layers-panel'));
+    }
+    if (event.key === 'l' || event.key === 'L') {
+      list.setOpen(!list.open);
+      if (list.open) focusInto(el('track-list'));
+    }
+    if (event.key === 'f' || event.key === 'F') {
+      filterControl.toggle();
+      if (filterPanel.open) focusInto(el('filter-panel'));
+    }
     if (event.key === 's' || event.key === 'S') style.toggle();
     if (event.key === 'n' || event.key === 'N') newsSettings.set({ shown: !newsSettings.shown });
     if (event.key === 'a' || event.key === 'A') airportsShown.toggle();
@@ -630,14 +651,24 @@ async function main(): Promise<void> {
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'i' || event.key === 'I') currentsShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
-    if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
+    if (event.key === 'v' || event.key === 'V') {
+      handover.setOpen(!handover.open);
+      if (handover.open) focusInto(el('handover'));
+    }
     if (event.key === 'u' || event.key === 'U') {
       recordsPanel.setOpen(false);
       rarePanel.setOpen(!rarePanel.open);
+      if (rarePanel.open) focusInto(el('rare-panel'));
     }
-    if (event.key === 'p' || event.key === 'P') recordsPanel.setOpen(!recordsPanel.open);
+    if (event.key === 'p' || event.key === 'P') {
+      recordsPanel.setOpen(!recordsPanel.open);
+      if (recordsPanel.open) focusInto(el('records-panel'));
+    }
     if (event.key === 'q' || event.key === 'Q') room.toggle();
-    if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
+    if (event.key === 'z' || event.key === 'Z') {
+      timeline.setOpen(!timeline.open);
+      if (timeline.open) focusInto(el('timeline'));
+    }
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === 'e' || event.key === 'E') stack.toggle();
     if (event.key === 'j' || event.key === 'J') ride.toggle();

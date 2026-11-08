@@ -260,6 +260,7 @@ export class FlowLayer {
   ) {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'flow';
+    this.canvas.setAttribute('aria-hidden', 'true');
     // Right over the map's own canvas, under its markers (tags, reticle, rings): the HUD stays on top.
     map.getCanvasContainer().insertBefore(this.canvas, map.getCanvas().nextSibling);
     this.renderer = new FlowRenderer(this.canvas);

@@ -1,5 +1,5 @@
 import type { ReplayMessage } from '@watchfloor/shared';
-import { formatBehind, fractionOf, stateAt, type TimelineState } from '../state/timeline';
+import { formatBehind, fractionOf, stateAt, type TimelineState, NOW_F, PROJECT_SPAN_MS, REPLAY_SPAN_MS } from '../state/timeline';
 
 export interface TimelineDeps {
   now: () => number;
@@ -71,11 +71,36 @@ export class Timeline {
       if (this.bar.hasPointerCapture(event.pointerId)) scrubTo(event.clientX);
     });
     this.handle.addEventListener('keydown', (event) => {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const now = this.deps.now();
+      const f = fractionOf(this.state, now);
+      // Minutes to bar fractions: the past has six hours left of NOW, the future thirty minutes right of it.
+      const minutes = (m: number) => (f < NOW_F ? (m * 60_000) / REPLAY_SPAN_MS * NOW_F : (m * 60_000) / PROJECT_SPAN_MS * (1 - NOW_F));
+      let next: number;
+      switch (event.key) {
+        case 'ArrowLeft':
+          next = f - (event.shiftKey ? minutes(10) : 0.01);
+          break;
+        case 'ArrowRight':
+          next = f + (event.shiftKey ? minutes(10) : 0.01);
+          break;
+        case 'PageDown':
+          next = f - minutes(30);
+          break;
+        case 'PageUp':
+          next = f + minutes(30);
+          break;
+        case 'Home':
+          next = 0;
+          break;
+        case 'End':
+          next = 1;
+          break;
+        default:
+          return;
+      }
       event.preventDefault();
       event.stopPropagation();
-      const f = fractionOf(this.state, this.deps.now()) + (event.key === 'ArrowLeft' ? -0.01 : 0.01);
-      this.setState(stateAt(f, this.deps.now()));
+      this.setState(stateAt(next, now));
     });
   }
 
@@ -138,6 +163,11 @@ export class Timeline {
     this.liveButton.hidden = this.state.mode === 'live';
     this.tag.textContent = this.tagText(now);
     this.handle.setAttribute('aria-valuetext', this.tag.textContent);
+    // Minutes from now, so a screen reader can say where on the bar the handle is.
+    const minutes = this.state.mode === 'replay' ? (this.state.t - now) / 60_000 : this.state.mode === 'project' ? this.state.offsetMs / 60_000 : 0;
+    this.handle.setAttribute('aria-valuemin', String(-REPLAY_SPAN_MS / 60_000));
+    this.handle.setAttribute('aria-valuemax', String(PROJECT_SPAN_MS / 60_000));
+    this.handle.setAttribute('aria-valuenow', String(Math.round(minutes)));
   }
 
   private tagText(now: number): string {
