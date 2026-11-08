@@ -67,7 +67,7 @@ that could have been fetched before they arrived.
   demo imports must stay browser-safe: no `node:` imports, and timers typed
   `ReturnType<typeof setInterval>`, not `NodeJS.Timeout`.
 - `npm run typecheck`: all workspaces (strict mode plus `noUncheckedIndexedAccess`).
-- `npm test`: Vitest from the root config (900 tests after the public-server pass, Nov 2026).
+- `npm test`: Vitest from the root config (931 tests after the Nov 2026 review).
 - `npm run sound-check -w @watchfloor/server [-- --wav out.wav]`: renders the
   sky score in headless Chrome and measures it (see Sky score below).
 - Install with `npm ci` and never delete package-lock.json: npm 10 crashes
@@ -210,7 +210,13 @@ that could have been fetched before they arrived.
     sorted list (arrows, Page Up/Down, Home, End); aria-rowcount/rowindex.
   - Selection is a DOM Marker reticle with a lock-on animation, plus a details
     panel and follow mode. Dragging the map cancels follow.
-  - Reconnect uses exponential backoff with jitter and a watchdog of
+  - Reconnect uses exponential backoff with jitter (reset on the *hello*,
+    not on the socket opening: a server that turns a client away does so
+    after the upgrade, and resetting on open made a refused tab reconnect
+    2-4 times a second for ever; a 1013 close waits 30 s and the status bar
+    says "Turned away: too many connections"; a close event from a socket
+    that isn't the current one is ignored, or a stop/start mid-handshake
+    kept two sockets alive) and a watchdog of
     max(5 s, 5 × tickMs).
 - Simulator (`server/src/feeds/sim/`):
   - Uses a seeded mulberry32 RNG (`SIM_SEED`, default 42) and an injectable
@@ -235,7 +241,7 @@ that could have been fetched before they arrived.
     right at the 5 s default on a busy machine and the holds tipped them over.
   - Ships move only inside lanes, routes and areas, which is how they stay off
     land without coastline data.
-  - About 85 contacts across 12 archetypes. All names and callsigns are invented.
+  - About a hundred contacts across 12 archetypes (97 with the holds). All names and callsigns are invented.
 - OpenSky (`server/src/feeds/opensky/`):
   - `mapState.ts` is pure: a state vector becomes an airborne report, an
     on-ground id (the feed calls `sink.remove`) or a skip reason. observedAt
@@ -340,7 +346,7 @@ that could have been fetched before they arrived.
 - Settings: a root `.env` (see `.env.example`) is read by the server via
   `process.loadEnvFile` and by Vite via `envDir: '..'`. `VITE_MAP_STYLE_URL=offline`
   runs without a basemap. `FEEDS` (any of `sim`, `opensky`, `adsblol`, `adsbfi`,
-  `ais`; default `adsblol,adsbfi,ais`) picks the feeds; `SCENARIO` (old name
+  `ais`; default `opensky,adsblol,adsbfi,ais`) picks the feeds; `SCENARIO` (old name
   `SIM_SCENARIO`; default `cork`) picks the area for all of them. `cork` is
   live-only (empty simulator geography): `FEEDS=sim` with it fails at
   startup and says to use `english-channel`. `PICTURE_FILE` (default
@@ -530,7 +536,10 @@ that could have been fetched before they arrived.
   and the Rare tab close each other. Simulated airliners carry types by
   route length with per-class speed, whole flight levels and a wind, so the
   boards aren't ties.
-- Alert corner: `.alerts` is bottom-left, growing upward (72px clears the
+- Alert corner: while a left panel is open the corner steps right of it
+  (`.app:has(.track-list:not([hidden])) .alerts` and the layers/filter/
+  region panels' rule): cards used to cover the panels' lowest rows.
+  `.alerts` is bottom-left, growing upward (72px clears the
   scale tape and the timeline's band), max-height leaves the map buttons
   (they end ~240px down). When the groups (plus 8px gaps between shown
   groups) exceed it, `.alerts-overflow` fades the oldest at the top; a
@@ -556,7 +565,7 @@ that could have been fetched before they arrived.
   phones, where the Layers menu has them). The details panel's actions are
   `position: sticky` at its foot (they sat below the fold). A first visit
   gets one hint (`ui/firstHint.ts`, `watchfloor.firstHint`): click anything,
-  ? lists every key; once per browser, ~6 s in, until a click, key or drag
+  ? lists every key; once per browser, a few seconds in, until a click, key or drag
   or 14 s; never in screensaver mode or on a screen joined to a room.
 - First impression (Nov 2026 visual pass): **calm open**: no news card for
   15 s (`newsCards.ts` CALM_OPEN_MS; the first used to land 1.5 s in,
@@ -752,6 +761,72 @@ that could have been fetched before they arrived.
   Headless check: one Chrome, each device in its own
   `Target.createBrowserContext` (separate storage for roles and kinds), with
   a user agent per device; dispatch PointerEvents on `#pad` to drive it.
+- Review pass (Nov 2026; eight audits in parallel subagents plus a
+  measured performance pass; findings in `.cache/checks/audit-merged/`):
+  - Hub: the encoded snapshot is reused within a tick (`snapshotCache`;
+    encoding a world picture takes hundreds of ms, and a reload storm pinned
+    the loop); one address may open `CONNECT_BURST` (6) connections per
+    10 s; a client sending over `MESSAGES_PER_SECOND` (40) is closed 1008; a
+    client needing a 4th resync in a minute is closed 1013; a `track` request
+    inside the 200 ms gap is answered when the gap ends (the browser never
+    retries); a resynced client gets the current feed statuses. Upgrades
+    whose Origin host isn't the Host, or in `ALLOWED_ORIGINS`, are closed
+    1008 (cross-site WebSocket hijacking on a LAN); no Origin (curl) passes.
+    `clientAddress` believes `CLIENT_IP_HEADER` only from a private/loopback
+    socket and only when the value is an IP.
+  - Feeds: readsb's "warm data is old" early poll judges against
+    `intervalFor(plan)` (the bare `pollMs` let a six-circle plan be polled
+    every ~12 s instead of 48 s on every view refresh), and a 429 stops the
+    remaining circles; AISStream's resubscribe timer is cleared on close
+    (it fired on the next socket, a second subscription inside a second);
+    `PollScheduler` has a generation counter (stop/start mid-poll ran two
+    chains); saved paths keep `firstAltitudeM` (restarts spent OpenSky
+    lookups on takeoffs the server had watched); one picture save at a time.
+  - Shared: `cleanText` strips control/format/bidi characters and piles of
+    combining marks from feed text (callsigns, news, hazards); `unwrapLine`
+    makes a line's longitudes continuous (trails, heads, ghosts and the hook
+    line crossed the world at the antimeridian); a course never rounds to
+    360; speed ≤ 2,000 m/s and |altitude| ≤ 100 km at validation.
+  - Watchers: converging tests a box before `approach()` (1.2 s a sweep at
+    1,500 military aircraft, measured); circling ignores legs within 15° of
+    a reversal (`REVERSAL_DEG`; a thinned back-and-forth line summed as laps);
+    a re-sighted rare aircraft leaves `rareRecent`; the brief forgets hazard
+    ids 48 h after they leave the list.
+  - Rooms: a token rejoin is seated before the wrong-code gate (a code-masher
+    on the same address bounced reconnecting phones out of their rooms); a
+    main joining its own room is re-sent its room; reclaiming from a seat of
+    the same room frees the seat. Client: one history entry per open card,
+    `RemotePointer.reset()` on room end or when the pressing console leaves,
+    the `ended` state keeps its code.
+  - Client: the tour's follow stops now fly in (the follow ease waits for
+    `!map.isMoving()`; it cancelled the flight); the ride's per-frame jumpTo
+    carries `RIDE_MOVE` and the moveend listeners that rebuild the picture
+    (`isRideMove`) skip it (sixty full redraws a second); the view sender is
+    a debounce with a 2 s ceiling; the clock is reset on each hello; a replay
+    is re-requested on hello; the Stack keeps `relocking` angles across a
+    re-entry; the hook stands down when its selection goes;
+    `serverOrBrowser` retries a failed import; a `webglcontextlost` on the
+    map canvas ends the ride and Stack and shows a reload notice (MapLibre
+    otherwise throws every frame with no way out).
+  - UX: the palette is modal (Tab trapped, opener refocused,
+    `aria-activedescendant`, an empty state); `focusInto(panel)` after a key
+    opens a panel; Escape closes the track list; the timeline handle has
+    slider values and Home/End/PageUp/PageDown/Shift+arrows; choice rows are
+    real radio groups (roving tabindex, arrows); `h1.brand-name`; canvases
+    `aria-hidden`; console tap targets 44 px; status bar says "Simulated"
+    for simulated traffic and "Simulating the last 30 minutes" while the
+    demo builds its past; phones get a `#sim-chip`; the first hint waits for
+    the first snapshot; the ticker/briefing say "No stories in the last 24
+    hours (newest HHMMZ)" (`NewsStore.newestSeen`) instead of "waiting".
+  - Visual: `.alert-meaning` is sentence case (capitals clipped the one word
+    that mattered); the map credits step up while the timeline, tour banner
+    or hint is up; filter checkboxes are drawn in HUD lines (`appearance:
+    none`); thin scrollbars; per-kind Show button colours; track-list
+    columns 31/24/15/13/15; Phosphor panels 340 px.
+  - Quality: unused constructor deps dropped (StackMode's clock,
+    RegionPanel's layer/store/selection); `log.ts` reads
+    `globalThis.process?.env` (the demo bundles it); `MPS_PER_KNOT` is the
+    one knot; hub tests wait for conditions instead of sleeping.
 - Public server (Nov 2026; the portfolio repo's root `render.yaml`, not
   this repo, is the Render blueprint, `rootDir: projects/watchfloor`).
   Visitors don't multiply upstream use (the server alone polls); what needed
@@ -1405,6 +1480,14 @@ that could have been fetched before they arrived.
   or the observer never installs and reports zero.** Verify with a
   deliberate 120 ms busy loop. The status bar's counts refresh once a
   second, so time page opening from the User Timing entries, not them.
+- **A server with `SATELLITES=off` is not "no upstream"**: the page then
+  fetches the catalogue from CelesTrak itself (`space/serverOrBrowser.ts`),
+  and every fresh browser profile downloads it again, which CelesTrak
+  answers with 403s that count towards its firewall (the Nov 2026 review's
+  UX agent made ~33 such requests before noticing). Headless harnesses must
+  preload `localStorage watchfloor.satellites=false` or stub celestrak.org
+  with `Fetch.enable`/`fulfillRequest` from `.cache/satellites/*.json`
+  (`.cache/checks/demofull.mjs` shows how).
 - Headless Chrome checks: give Chrome a fixed `--user-data-dir` under the
   gitignored `.cache/` on D:, or delete a temporary one when done. Throwaway
   `mkdtemp` profiles in %TEMP% were never cleaned up and reached 136 folders
