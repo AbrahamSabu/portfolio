@@ -6,6 +6,7 @@ import {
   destination,
   distanceM,
   headingDelta,
+  unwrapLine,
   normalizeDeg,
   normalizeLon,
 } from './geo';
@@ -85,5 +86,18 @@ describe('approach', () => {
     expect(a.bearingDeg).toBeCloseTo(90, 0);
     expect(a.tcpaS).toBe(0);
     expect(a.cpaM).toBeCloseTo(a.rangeM, 0);
+  });
+});
+
+describe('unwrapLine', () => {
+  it('takes each step the short way round, so a line over the antimeridian stays short', () => {
+    expect(unwrapLine([[179, 10], [-179, 11], [-178, 12]])).toEqual([[179, 10], [181, 11], [182, 12]]);
+    expect(unwrapLine([[-179, 10], [179, 11]])).toEqual([[-179, 10], [-181, 11]]);
+  });
+
+  it('leaves ordinary lines alone and carries a shift through later points', () => {
+    expect(unwrapLine([[0, 0], [10, 1], [20, 2]])).toEqual([[0, 0], [10, 1], [20, 2]]);
+    expect(unwrapLine([[170, 0], [-170, 0], [-160, 0], [170, 0]])).toEqual([[170, 0], [190, 0], [200, 0], [170, 0]]);
+    expect(unwrapLine([])).toEqual([]);
   });
 });

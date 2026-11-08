@@ -41,6 +41,8 @@ export type Backfill = 'opensky' | 'none';
 export interface SavedPathEntry {
   points: readonly TrailPoint[];
   backfill?: Backfill;
+  /** The altitude at the first point, when known: a path that began near the ground needs no backfill. */
+  firstAltitudeM?: number;
 }
 
 /**
@@ -164,7 +166,13 @@ export class PathHistory {
     const out: Record<string, SavedPathEntry> = {};
     for (const id of ids) {
       const e = this.entries.get(id);
-      if (e && e.data.length > 0) out[id] = { points: this.get(id), ...(e.backfill ? { backfill: e.backfill } : {}) };
+      if (e && e.data.length > 0) {
+        out[id] = {
+          points: this.get(id),
+          ...(e.backfill ? { backfill: e.backfill } : {}),
+          ...(e.firstAltitudeM === undefined ? {} : { firstAltitudeM: e.firstAltitudeM }),
+        };
+      }
     }
     return out;
   }
@@ -177,6 +185,8 @@ export class PathHistory {
       const points = [...s.points].sort((a, b) => a[2] - b[2]).slice(-this.rules[track.domain].maxPoints);
       const entry: Entry = { domain: track.domain, data: points.flatMap((p) => [round(p[0]), round(p[1]), p[2]]) };
       if (s.backfill) entry.backfill = s.backfill;
+      // Older pictures carry no altitude: a restored path then looks first seen aloft, as before.
+      if (s.firstAltitudeM !== undefined) entry.firstAltitudeM = s.firstAltitudeM;
       this.entries.set(track.id, entry);
     }
   }

@@ -377,6 +377,9 @@ export function parseServerMessage(raw: string): ServerMessage | null {
   if (typeof m.serverTime !== 'number') return null;
   switch (m.type) {
     case 'hello':
+      // Trusted past the version: it comes from our own server, and nothing in it reaches the DOM
+      // unchecked. News, hazards, findings and room messages below are checked field by field
+      // because they carry text from outside.
       return typeof m.protocol === 'number' ? (m as unknown as HelloMessage) : null;
     case 'room':
     case 'room-presence':

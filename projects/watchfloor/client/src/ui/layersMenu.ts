@@ -172,6 +172,16 @@ export class LayersPanel {
         const b = document.createElement('button');
         b.type = 'button';
         b.setAttribute('role', 'radio');
+        // Arrows move between the group's options and pick as they go, as radios do.
+        b.addEventListener('keydown', (event) => {
+          const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+          if (step === 0) return;
+          event.preventDefault();
+          const i = row.options.findIndex((x) => x.value === row.get());
+          const next = row.options[(i + step + row.options.length) % row.options.length]!;
+          row.set(next.value);
+          buttons.find((x) => x.value === next.value)?.b.focus();
+        });
         if (o.hint) b.title = o.hint;
         if (o.swatch) {
           const chip = document.createElement('span');
@@ -190,7 +200,10 @@ export class LayersPanel {
       });
       const refresh = () => {
         const current = row.get();
-        for (const { b, value } of buttons) b.setAttribute('aria-checked', String(value === current));
+        for (const { b, value } of buttons) {
+          b.setAttribute('aria-checked', String(value === current));
+          b.tabIndex = value === current ? 0 : -1; // one Tab stop per group
+        }
       };
       for (const w of row.watch) w.subscribe(refresh);
       this.refreshers.push(refresh);

@@ -324,6 +324,8 @@ export class FindingsService {
       } else {
         this.rareHeld.set(id, { finding, lastPositiveAt: now });
         this.event('finding-started', finding, now);
+        // Back in the air: not also "seen in the last 24 h" until it lands again.
+        this.rareRecent = this.rareRecent.filter((f) => f.id !== id);
       }
     }
     const before = new Map(this.rareHeld);

@@ -7,8 +7,8 @@
  * - starting:     no successful fetch yet
  * - rate-limited: the provider asked us to wait; `until` is when polling resumes
  * - failing:      recent attempts failed; `detail` says how, `until` is the next retry
- * - standing-aside: healthy, but the current view is wider than it covers
- *                 (adsb.lol only covers about a region)
+ * - standing-aside: healthy, but no browser's view is one it can cover
+ *                 (adsb.lol and adsb.fi each cover about a region at a time)
  * - unconfigured: can't run until set up (no API key); `detail` says what's
  *                 missing. Not an outage, so nothing retries.
  */

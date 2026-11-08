@@ -73,6 +73,10 @@ export class BriefingPanel {
     if (signature === this.signature) return;
     this.signature = signature;
     this.empty.hidden = entries.length > 0;
+    if (entries.length === 0) {
+      const newest = this.news.items[0]?.publishedAt ?? this.news.newestSeen;
+      this.empty.textContent = newest === undefined || newest === null ? 'Waiting for the first news batch.' : `No stories in the last 6 hours (newest ${formatNewsTime(newest)}).`;
+    }
     this.list.replaceChildren(
       ...entries.map(({ story, related }, i) => {
         const item = document.createElement('li');

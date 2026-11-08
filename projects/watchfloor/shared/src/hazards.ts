@@ -5,6 +5,7 @@
  * and wildfires. Facts as the source states them; GDACS's are automatic
  * estimates, and the card says so.
  */
+import { cleanText } from './validate';
 export interface Hazard {
   /** Stable across polls: `usgs:<id>` or `gdacs:<type>:<eventid>`. */
   id: string;
@@ -42,10 +43,10 @@ export function parseHazard(v: unknown): Hazard | null {
   if (!text(h.id, 80) || !text(h.title, 200) || !text(h.url, 500) || !/^https:\/\//i.test(h.url)) return null;
   if (!HAZARD_KINDS.includes(h.kind as HazardKind) || (h.source !== 'usgs' && h.source !== 'gdacs')) return null;
   if (!finite(h.lat) || !finite(h.lon) || Math.abs(h.lat) > 90 || Math.abs(h.lon) > 180 || !finite(h.time)) return null;
-  const hazard: Hazard = { id: h.id, kind: h.kind as HazardKind, source: h.source, title: h.title, lat: h.lat, lon: h.lon, time: h.time, url: h.url };
+  const hazard: Hazard = { id: h.id, kind: h.kind as HazardKind, source: h.source, title: cleanText(h.title), lat: h.lat, lon: h.lon, time: h.time, url: h.url };
   if (finite(h.magnitude) && h.magnitude > -2 && h.magnitude < 11) hazard.magnitude = h.magnitude;
   if (finite(h.depthKm) && h.depthKm > -10 && h.depthKm < 1000) hazard.depthKm = h.depthKm;
   if (ALERTS.includes(h.alert as HazardAlert)) hazard.alert = h.alert as HazardAlert;
-  if (text(h.detail, 200)) hazard.detail = h.detail;
+  if (text(h.detail, 200)) hazard.detail = cleanText(h.detail);
   return hazard;
 }

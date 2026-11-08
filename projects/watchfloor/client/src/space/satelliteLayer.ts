@@ -133,7 +133,6 @@ export class SatelliteLayer implements CustomLayerInterface {
   readonly renderingMode = '2d' as const;
 
   private map: MapLibreMap | null = null;
-  private gl: WebGL2RenderingContext | null = null;
   private readonly programs = new Map<string, Program | null>();
   private vao: WebGLVertexArrayObject | null = null;
   private vaoReady = false;
@@ -175,7 +174,6 @@ export class SatelliteLayer implements CustomLayerInterface {
 
   onAdd(map: MapLibreMap, gl: WebGL2RenderingContext): void {
     this.map = map;
-    this.gl = gl;
     // Created here, but only bound inside render(): MapLibre resets its own GL state after a
     // custom layer renders, not after onAdd, so binding now would leave it misinformed.
     this.buffers = ATTRIBUTES.map(() => gl.createBuffer()!);
@@ -205,7 +203,6 @@ export class SatelliteLayer implements CustomLayerInterface {
     this.vao = null;
     this.vaoReady = false;
     this.map = null;
-    this.gl = null;
     this.last = null;
   }
 

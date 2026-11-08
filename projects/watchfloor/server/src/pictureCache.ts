@@ -51,6 +51,8 @@ export interface SavedPath {
   /** encodeTrail() relative to savedAt. */
   points: TrailTuple;
   backfill?: Backfill;
+  /** Metres at the path's first point, when known (optional, so older files load). */
+  firstAltitudeM?: number;
 }
 
 /**
@@ -128,7 +130,11 @@ export async function pictureOf(
       if (points.length > 0) trails[t.id] = [...points]; // a copy: the store keeps appending
     }
     for (const [id, path] of Object.entries(store.paths.toRecord(piece.map((t) => t.id)))) {
-      paths[id] = { points: encodeTrail(path.points, now), ...(path.backfill ? { backfill: path.backfill } : {}) };
+      paths[id] = {
+        points: encodeTrail(path.points, now),
+        ...(path.backfill ? { backfill: path.backfill } : {}),
+        ...(path.firstAltitudeM === undefined ? {} : { firstAltitudeM: path.firstAltitudeM }),
+      };
     }
     if (shipsOf) Object.assign(ships, shipsOf(piece.filter((t) => t.source === 'ais').map((t) => t.id.slice('ais:'.length))));
   }
@@ -203,10 +209,11 @@ export function loadPicture(file: string): SavedPicture | null {
   const paths: Record<string, SavedPath> = {};
   if (typeof p.paths === 'object' && p.paths !== null) {
     for (const [id, path] of Object.entries(p.paths as Record<string, unknown>)) {
-      const { points, backfill } = (path ?? {}) as Record<string, unknown>;
+      const { points, backfill, firstAltitudeM } = (path ?? {}) as Record<string, unknown>;
       if (!isTrailTuple(points)) continue;
       paths[id] = { points: points as TrailTuple };
       if (backfill === 'opensky' || backfill === 'none') paths[id].backfill = backfill;
+      if (typeof firstAltitudeM === 'number' && Number.isFinite(firstAltitudeM)) paths[id].firstAltitudeM = firstAltitudeM;
     }
   }
   const picture: SavedPicture = { scenario: p.scenario, savedAt, tracks, trails, paths };
@@ -214,9 +221,9 @@ export function loadPicture(file: string): SavedPicture | null {
   return picture;
 }
 
-/** encodeTrail's form: whole numbers, three per point. */
+/** encodeTrail's form: three numbers per point (whole today; a feed stamping fractional ms mustn't drop every trail). */
 function isTrailTuple(v: unknown): v is TrailTuple {
-  return Array.isArray(v) && v.length % 3 === 0 && v.every((n) => Number.isInteger(n));
+  return Array.isArray(v) && v.length % 3 === 0 && v.every((n) => typeof n === 'number' && Number.isFinite(n));
 }
 
 function isTrailPoint(v: unknown): v is TrailPoint {
@@ -233,7 +240,11 @@ export function restorePicture(store: TrackStore, picture: SavedPicture | null, 
     Object.fromEntries(
       Object.entries(picture.paths ?? {}).map(([id, path]) => [
         id,
-        { points: decodeTrail(path.points, picture.savedAt), ...(path.backfill ? { backfill: path.backfill } : {}) },
+        {
+          points: decodeTrail(path.points, picture.savedAt),
+          ...(path.backfill ? { backfill: path.backfill } : {}),
+          ...(path.firstAltitudeM === undefined ? {} : { firstAltitudeM: path.firstAltitudeM }),
+        },
       ]),
     ),
   );

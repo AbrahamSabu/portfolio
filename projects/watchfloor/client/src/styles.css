@@ -163,6 +163,7 @@ button {
   align-items: center;
   gap: 6px;
   height: 28px;
+  white-space: nowrap;
   padding: 0 10px 0 8px;
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -394,7 +395,7 @@ button {
 }
 
 .track-table th:nth-child(1) {
-  width: 34%;
+  width: 31%;
 }
 
 .track-table th:nth-child(2) {
@@ -403,7 +404,7 @@ button {
 
 .track-table th:nth-child(3),
 .track-table th:nth-child(5) {
-  width: 13%;
+  width: 15%;
 }
 
 .track-table th:nth-child(4) {
@@ -577,6 +578,10 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   height: 44px;
   border-radius: 4px;
   background: rgb(9 16 21 / 0.55);
+}
+
+.details-symbol svg[data-domain='sea'] {
+  transform: scale(1.5);
 }
 
 .details-symbol svg {
@@ -769,6 +774,7 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  font-size: var(--text-sm);
   /* Stuck to the panel's foot while the facts scroll: they used to sit below the fold. */
   position: sticky;
   bottom: -18px;
@@ -883,6 +889,11 @@ body[data-list-open] .maplibregl-ctrl-top-left {
 .maplibregl-ctrl-bottom-left,
 .maplibregl-ctrl-bottom-right {
   bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom));
+}
+
+/* The credits step up out of the band the timeline, the tour banner and the first hint use. */
+.app:has(#timeline:not([hidden]), #tour:not([hidden]), .first-hint) .maplibregl-ctrl-bottom-right {
+  bottom: calc(var(--statusbar-h) + var(--ticker-h) + var(--safe-bottom) + 52px);
 }
 
 .maplibregl-ctrl-group {
@@ -1378,9 +1389,28 @@ body[data-list-open] .filter-panel {
   color: var(--ink-muted);
 }
 
+/* Drawn in the display's own lines: the browser's control took the selection accent, which means something else here. */
 .filter-row input {
+  flex: none;
+  width: 16px;
+  height: 16px;
   margin: 0;
-  accent-color: var(--accent);
+  appearance: none;
+  border: 1px solid rgb(var(--hud-rgb) / 0.5);
+  border-radius: 3px;
+  background: var(--surface-solid);
+  cursor: pointer;
+}
+
+.filter-row input:checked {
+  border-color: var(--hud);
+  background: rgb(var(--hud-rgb) / 0.25) no-repeat center / 10px
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 5.5l2.5 2.5 4.5-5' fill='none' stroke='%23a8e6ff' stroke-width='1.8'/%3E%3C/svg%3E");
+}
+
+.filter-row input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .filter-label {
@@ -1714,6 +1744,12 @@ body[data-list-open] .filter-panel {
   font-size: 0.75rem;
   color: var(--ink-muted);
   letter-spacing: 0.06em;
+}
+
+.news-card-head time {
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .news-card-icon {
@@ -2107,6 +2143,15 @@ button.handover-item:hover {
  * the timeline's band). Capped in height; past that the oldest scroll off
  * the top, behind the newest.
  */
+/* While a left panel is open the corner steps right of it: cards used to cover its lowest rows. */
+.app:has(.track-list:not([hidden])) .alerts {
+  left: calc(var(--list-w) + 24px);
+}
+
+.app:has(.layers-panel:not([hidden]), .filter-panel:not([hidden]), .region-panel:not([hidden])) .alerts {
+  left: calc(56px + 272px);
+}
+
 .alerts {
   position: absolute;
   z-index: 4;
@@ -2169,6 +2214,10 @@ button.handover-item:hover {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* The one word that matters ("Unlawful interference"): sentence case fits where capitals clipped. */
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
 }
 
 .alert-since {
@@ -2207,6 +2256,21 @@ button.handover-item:hover {
   position: absolute;
   right: 30px;
   bottom: 6px;
+}
+
+/* Scrollbars as thin lines: the browser's classic bar with arrow buttons looked bolted on. */
+.track-table-wrap,
+.layers-body,
+.rare-body,
+.records-body,
+.key-body,
+.palette-results,
+.handover-list,
+.details,
+.briefing-list,
+.filter-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--hud-rgb) / 0.35) transparent;
 }
 
 .alert-show {
@@ -2320,6 +2384,7 @@ button.handover-item:hover {
 
 .hazard-alert .alert-show {
   border-color: #ffd2a8;
+  color: #ffd2a8;
   background: rgb(255 210 168 / 0.1);
 }
 
@@ -2819,6 +2884,7 @@ fieldset.region-field {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  white-space: nowrap;
   box-shadow: 0 0 12px rgb(240 195 106 / 0.35);
   animation: alert-chip-glow 1.6s ease-in-out infinite;
 }
@@ -3084,6 +3150,18 @@ button.layers-switch .news-switch-track {
   color: var(--ink);
   font: 500 var(--text-lg) / 1.3 var(--font);
   font-variant-numeric: tabular-nums;
+}
+
+.palette-input::placeholder {
+  color: var(--ink-muted);
+  opacity: 1;
+}
+
+.palette-empty {
+  margin: 0;
+  padding: 10px 14px;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
 }
 
 .palette-input:focus-visible {
@@ -3427,4 +3505,51 @@ button.layers-switch .news-switch-track {
 
 .first-hint-out {
   opacity: 0;
+}
+
+/* The brand is the page's h1: styled as before, none of the heading's own box. */
+h1.brand-name {
+  margin: 0;
+  line-height: inherit;
+}
+
+/* Phones hide the scenario label, so simulated traffic is marked by this chip there instead. */
+.sim-chip {
+  display: none;
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 640px) {
+  .sim-chip:not([hidden]) {
+    display: inline-block;
+  }
+}
+
+/* The graphics context was lost: one notice, above everything, with the only way out. */
+.context-lost {
+  position: absolute;
+  z-index: 20;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: min(420px, calc(100% - 32px));
+  padding: 16px 20px;
+  border: 1px solid var(--warn);
+  background: var(--surface-solid);
+  color: var(--ink);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.context-lost p {
+  margin: 0;
 }

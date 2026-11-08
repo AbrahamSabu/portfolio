@@ -10,7 +10,7 @@
     "client"
   ],
   "engines": {
-    "node": ">=20.12"
+    "node": ">=22.12"
   },
   "scripts": {
     "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w @watchfloor/server\" \"npm run dev -w @watchfloor/client\"",

@@ -6,6 +6,23 @@ const SOURCES: ReadonlySet<TrackSource> = new Set(TRACK_VALUES.source);
 const AFFILIATIONS: ReadonlySet<Affiliation> = new Set(TRACK_VALUES.affiliation);
 const PLATFORMS: ReadonlySet<Platform> = new Set(TRACK_VALUES.platform);
 const PROVIDERS: ReadonlySet<Provider> = new Set(TRACK_VALUES.provider);
+/** Faster than anything tracked here flies (the SR-71 managed ~980 m/s); above it the number is junk. */
+const MAX_SPEED_MPS = 2_000;
+/** Higher than any aircraft; the wire carries altitude as a plain integer. */
+const MAX_ALTITUDE_M = 100_000;
+
+/**
+ * Text from a feed, fit to show: control characters, format characters (bidi
+ * overrides, zero-width joiners: the makings of a spoofed callsign) and line
+ * separators out, and no more than two combining marks on a letter (a dozen
+ * draw as a smear taller than the label). Every sink is textContent, so this
+ * is about what the text looks like, not what it can do.
+ */
+export function cleanText(raw: string): string {
+  return raw
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, '')
+    .replace(/(\p{M}{2})\p{M}+/gu, '$1');
+}
 
 /**
  * Callsigns and ship names as transmitted carry filler: padding punctuation
@@ -14,7 +31,7 @@ const PROVIDERS: ReadonlySet<Provider> = new Set(TRACK_VALUES.provider);
  * with noise. Apostrophes and quotes stay: they're part of real names ('T SMIDTJE).
  */
 export function cleanCallsign(raw: string): string | undefined {
-  const s = raw
+  const s = cleanText(raw)
     .replace(/\s+/g, ' ')
     .replace(/^[\s\-.,:;_*~]+|[\s\-.,:;_*~]+$/g, '')
     .slice(0, 32);
@@ -57,7 +74,8 @@ export function sanitizeTrack(input: unknown): Track | null {
     lat: t.lat,
     lon: t.lon,
     courseDeg: isFiniteNumber(t.courseDeg) ? normalizeDeg(t.courseDeg) : 0,
-    speedMps: isFiniteNumber(t.speedMps) && t.speedMps > 0 ? t.speedMps : 0,
+    // Capped: a junk speed above anything that flies would reach the wire as Infinity -> JSON null.
+    speedMps: isFiniteNumber(t.speedMps) && t.speedMps > 0 ? Math.min(t.speedMps, MAX_SPEED_MPS) : 0,
     observedAt: t.observedAt,
   };
 
@@ -66,7 +84,7 @@ export function sanitizeTrack(input: unknown): Track | null {
     if (callsign) track.callsign = callsign;
   }
   if (PROVIDERS.has(t.provider as Provider)) track.provider = t.provider as Provider;
-  if (track.domain === 'air' && isFiniteNumber(t.altitudeM)) {
+  if (track.domain === 'air' && isFiniteNumber(t.altitudeM) && Math.abs(t.altitudeM) <= MAX_ALTITUDE_M) {
     track.altitudeM = t.altitudeM;
   }
   if (track.domain === 'air' && typeof t.typeCode === 'string' && /^[A-Z0-9]{1,4}$/.test(t.typeCode)) {

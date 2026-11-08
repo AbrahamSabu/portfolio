@@ -1,4 +1,5 @@
 import { deadReckon, distanceM, ruleFor, type Track } from '@watchfloor/shared';
+import { RIDE_MOVE } from './camera';
 import type { LightSpecification, Map as MapLibreMap, ProjectionSpecification, SkySpecification } from 'maplibre-gl';
 import type { PictureFilter } from '../state/pictureFilter';
 import type { SelectedDetails } from '../state/selectedDetails';
@@ -299,7 +300,7 @@ export class RideAlong {
     const now = this.clock.now();
     const estimate = this.estimate(track, now);
     const pose = this.flying ? estimate : this.smoother.next(estimate, track.observedAt, Math.min(dt, 0.25));
-    if (!this.flying) this.map.jumpTo(this.cameraAt(pose));
+    if (!this.flying) this.map.jumpTo(this.cameraAt(pose), RIDE_MOVE);
     this.drawLights(pose, now);
 
     if (time - this.lastHud > 250) {

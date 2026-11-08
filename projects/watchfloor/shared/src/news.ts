@@ -4,6 +4,7 @@
  * reads world news coverage and codes each article's events and places.
  * The headline is the outlet's own words, never a summary.
  */
+import { cleanText } from './validate';
 export interface NewsItem {
   /** Stable across batches and restarts: GDELT's event id. */
   id: string;
@@ -51,12 +52,12 @@ export function parseNewsItem(v: unknown): NewsItem | null {
   if (!finite(n.publishedAt) || !NEWS_KINDS.includes(n.kind as NewsKind)) return null;
   return {
     id: n.id,
-    headline: n.headline,
+    headline: cleanText(n.headline),
     url: n.url,
-    outlet: n.outlet,
+    outlet: cleanText(n.outlet),
     lat: n.lat,
     lon: n.lon,
-    place: n.place,
+    place: cleanText(n.place),
     kind: n.kind as NewsKind,
     publishedAt: n.publishedAt,
     ...(finite(n.importance) && n.importance >= 0 && n.importance <= 1000 ? { importance: Math.round(n.importance) } : {}),

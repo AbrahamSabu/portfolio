@@ -71,7 +71,7 @@ export function encodeTrack(t: Track, serverTime: number): TrackTuple {
     code('affiliation', t.affiliation),
     roundTo(t.lat, COORD_SCALE),
     roundTo(t.lon, COORD_SCALE),
-    roundTo(t.courseDeg, 10),
+    roundTo(t.courseDeg, 10) % 360, // 359.96 rounds to 360.0, which every sanitiser forbids
     roundTo(t.speedMps, 10),
     Math.round(serverTime - t.observedAt),
     t.altitudeM === undefined ? null : Math.round(t.altitudeM),

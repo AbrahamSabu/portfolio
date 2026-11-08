@@ -87,7 +87,8 @@ export class NewsTicker {
     if (stories.length === 0) {
       const waiting = document.createElement('li');
       waiting.className = 'ticker-waiting';
-      waiting.textContent = 'Waiting for the first news from GDELT';
+      // Stories were received but all are over a day old (the static demo between publishes): say so.
+      waiting.textContent = this.news.newestSeen === null ? 'Waiting for the first news from GDELT' : `No stories in the last 24 hours (newest ${formatNewsTime(this.news.newestSeen)})`;
       this.strip.append(waiting);
       return;
     }

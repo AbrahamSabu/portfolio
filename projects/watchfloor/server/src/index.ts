@@ -242,6 +242,7 @@ async function main(): Promise<void> {
       uptimeS: Math.round((Date.now() - startedAt) / 1000),
       tracks: store.size,
       rejectedReports: store.rejected,
+      rejectedBy: store.rejectedReasons,
       clients: hub?.clientCount ?? 0,
       paths: { tracks: store.paths.size, points: store.paths.points, openSkyLookupsLastHour: paths.lookupsLastHour },
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),
@@ -267,6 +268,7 @@ async function main(): Promise<void> {
     path: '/ws',
     addressHeaders: config.visitors.addressHeaders,
     maxPerAddress: config.visitors.maxPerAddress,
+    allowedOrigins: config.visitors.allowedOrigins,
     store,
     tickMs: config.tickMs,
     staleness,
@@ -307,14 +309,22 @@ async function main(): Promise<void> {
       log.info('restored the saved picture', { tracks: restored, shipDetails: ships });
     }
   }
-  const savePictureNow = async () => {
-    if (!config.pictureFile) return;
-    try {
-      const shipsOf = ais ? (mmsis: string[]) => ais!.savedShips(mmsis) : undefined;
-      await savePicture(config.pictureFile, await pictureOf(store, pictureKey, Date.now(), shipsOf));
-    } catch (err) {
-      log.warn('could not save the picture', { error: err instanceof Error ? err.message : String(err) });
-    }
+  // One save at a time (they share a temp file): a shutdown during the periodic
+  // save waits for it instead of starting a second writer on the same path.
+  let saving: Promise<void> | null = null;
+  const savePictureNow = (): Promise<void> => {
+    if (!config.pictureFile) return Promise.resolve();
+    saving ??= (async () => {
+      try {
+        const shipsOf = ais ? (mmsis: string[]) => ais!.savedShips(mmsis) : undefined;
+        await savePicture(config.pictureFile!, await pictureOf(store, pictureKey, Date.now(), shipsOf));
+      } catch (err) {
+        log.warn('could not save the picture', { error: err instanceof Error ? err.message : String(err) });
+      } finally {
+        saving = null;
+      }
+    })();
+    return saving;
   };
   const saveTimer = setInterval(() => void savePictureNow(), PICTURE_SAVE_MS);
   saveTimer.unref();

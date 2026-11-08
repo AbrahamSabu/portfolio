@@ -1,4 +1,4 @@
-import type { Platform, ShipDetails } from '@watchfloor/shared';
+import { MPS_PER_KNOT, type Platform, type ShipDetails } from '@watchfloor/shared';
 
 /**
  * Translating AISStream messages into positions and ship identities. Pure, so
@@ -8,7 +8,6 @@ import type { Platform, ShipDetails } from '@watchfloor/shared';
  * "not available" values below are ITU-R M.1371's, which AISStream passes
  * through unchanged. Models: https://github.com/aisstream/ais-message-models
  */
-const KNOTS_TO_MPS = 1852 / 3600;
 
 /** What the stream can send: a control message, an AIS message, or something we don't understand. */
 export type StreamMessage =
@@ -136,7 +135,7 @@ function mapPosition(mmsi: string, msg: Extract<StreamMessage, { kind: 'ais' }>)
     lat,
     lon,
     courseDeg: courseDeg ?? 0,
-    speedMps: sog * KNOTS_TO_MPS,
+    speedMps: sog * MPS_PER_KNOT,
     observedAt: fixTime(receivedAt, num(body.Timestamp)),
   };
   const metaName = cleanName(meta.ShipName);

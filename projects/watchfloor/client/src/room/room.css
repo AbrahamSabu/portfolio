@@ -81,6 +81,12 @@
   overflow-wrap: anywhere;
 }
 
+/* A link in the running text breaks before itself, never inside. */
+.room-also code,
+.room-also a {
+  white-space: nowrap;
+}
+
 .room-consoles {
   display: flex;
   flex-direction: column;
@@ -91,10 +97,6 @@
   font-family: var(--font-display);
   font-size: var(--text-md);
   letter-spacing: 0.05em;
-}
-
-.room-consoles-empty {
-  color: var(--ink-muted);
 }
 
 .room-foot {

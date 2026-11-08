@@ -158,6 +158,8 @@ export class RoomHost {
         this.screens = message.screens;
         this.consoles = message.consoles;
         this.markers.set(message.consoles);
+        // A console that left mid-press would otherwise hold the map in a drag for good.
+        if (this.pointer.holder !== null && !message.consoles.some((c) => c.callsign === this.pointer.holder)) this.pointer.reset();
         break;
       case 'room-control':
         if (this.inRoom) this.act(message.from, message.action);
@@ -170,10 +172,13 @@ export class RoomHost {
         if (was === 'open' || was === 'screen') {
           this.say(message.reason === 'not-found' ? 'The ops room closed while this screen was away' : 'The ops room has closed');
         }
-        this.state = { kind: 'ended', reason: message.reason, as };
+        // The code is kept: a screen turned away (full, busy) can still go to the console page for the same room.
+        const code = 'code' in this.state ? this.state.code : undefined;
+        this.state = { kind: 'ended', reason: message.reason, as, ...(code ? { code } : {}) };
         this.screens = [];
         this.consoles = [];
         this.markers.set([]);
+        this.pointer.reset();
         // A screen joined by link has no dialog up yet: show it why.
         if (was === 'joining') this.dialog.show();
         break;
@@ -343,7 +348,8 @@ export class RoomHost {
   private becomeController(): void {
     writeRole('control');
     const s = this.state;
-    location.assign(s.kind === 'screen' ? joinUrl(location.origin, s.code) : `${location.origin}/console.html`);
+    const code = s.kind === 'screen' || s.kind === 'joining' || s.kind === 'ended' ? s.code : undefined;
+    location.assign(code ? joinUrl(location.origin, code) : `${location.origin}/console.html`);
   }
 
   private takeCamera(): void {

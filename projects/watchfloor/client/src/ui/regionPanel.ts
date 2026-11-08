@@ -32,9 +32,9 @@ export class RegionPanel {
     private readonly regions: RegionStore,
     private readonly watch: RegionWatch,
     private readonly draw: RegionDraw,
-    private readonly layer: RegionLayer,
-    private readonly store: TrackStore,
-    private readonly selection: Selection,
+    layer: RegionLayer,
+    store: TrackStore,
+    selection: Selection,
   ) {
     this.form = root.querySelector('[data-form]')!;
     this.list = root.querySelector('[data-list]')!;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanCallsign, sanitizeTrack } from './validate';
+import { cleanCallsign, cleanText, sanitizeTrack } from './validate';
 
 const good = {
   id: 'adsb:4ca7b3',
@@ -86,5 +86,20 @@ describe('cleanCallsign', () => {
   it('drops placeholders that carry no name', () => {
     for (const junk of ['00000000', ',', '-', ' . ', '***']) expect(cleanCallsign(junk)).toBeUndefined();
     expect(cleanCallsign('0 P')).toBe('0 P'); // short, but it has a letter
+  });
+});
+
+describe('cleanText', () => {
+  it('drops bidi overrides, zero-width joiners and control characters: the makings of a spoofed callsign', () => {
+    expect(cleanCallsign('ABC‮DEF')).toBe('ABCDEF');
+    expect(cleanCallsign('RYR​123')).toBe('RYR123');
+    expect(cleanCallsign('BAW⁠‍1')).toBe('BAW1');
+    expect(cleanCallsign('ABCD')).toBe('ABCD');
+    expect(cleanText('line break')).toBe('linebreak');
+  });
+
+  it('keeps at most two combining marks on a letter, so a label can never be a tall smear', () => {
+    expect(cleanText('e' + '́'.repeat(31))).toBe('é́');
+    expect(cleanText('café é')).toBe('café é'); // ordinary accents stay
   });
 });

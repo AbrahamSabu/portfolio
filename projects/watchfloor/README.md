@@ -2,7 +2,7 @@
 
 A real-time **common operating picture (COP)**: live air and sea tracks on a tactical map, drawn as vehicle shapes or as NATO-standard MIL-STD-2525 symbols.
 
-**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, a dozen rare aircraft among them for the rare-sightings watcher to find (BelugaXLs between Airbus factories, Dreamlifters, An-124s, C-5s, a B-52, a NATO AWACS, a Global Hawk), with the day's real political news from [GDELT](https://www.gdeltproject.org/) on top, real earthquakes and disasters from [USGS](https://earthquake.usgs.gov/) and [GDACS](https://www.gdacs.org/), and the real satellites overhead, computed from [CelesTrak](https://celestrak.org/)'s latest elements; your browser fetches all three itself. Now and then a simulated airliner declares an emergency, the first a minute and a half in, so the squawk alerts have something to show. Try the Stack (E), Ride Along (J, with an aircraft selected), the traffic currents (I), the skins (K) and the sound of the sky (Y): nothing to install, no account. The traffic is simulated and labelled so; the headlines, quakes and disasters are real. What needs the server isn't in the demo: the ops room, airport weather (the weather services refuse browsers), and aircraft photos and registrations (simulated aircraft have none).
+**[Try the demo in your browser →](https://abrahamsabu.github.io/portfolio/demos/watchfloor/)** It runs a simulated world entirely in the page, about 4,000 aircraft and ships on real routes between real airports and along the main shipping lanes, a dozen rare aircraft among them for the rare-sightings watcher to find (BelugaXLs between Airbus factories, Dreamlifters, An-124s, C-5s, a B-52, a NATO AWACS, a Global Hawk), with real political news from [GDELT](https://www.gdeltproject.org/) on top (a snapshot taken when the demo was published; stories over a day old are dropped, so it needs republishing to stay fresh), real earthquakes and disasters from [USGS](https://earthquake.usgs.gov/) and [GDACS](https://www.gdacs.org/), and the real satellites overhead, computed from [CelesTrak](https://celestrak.org/)'s latest elements; your browser fetches the hazards and the satellites itself. Now and then a simulated airliner declares an emergency, the first a minute and a half in, so the squawk alerts have something to show. Try the Stack (E), Ride Along (J, with an aircraft selected), the traffic currents (I), the skins (K) and the sound of the sky (Y): nothing to install, no account. The traffic is simulated and labelled so; the headlines, quakes and disasters are real. What needs the server isn't in the demo: the ops room, airport weather (the weather services refuse browsers), and aircraft photos and registrations (simulated aircraft have none).
 
 ![Watchfloor: the track list, a selected ferry leaving the Solent, and ship and aircraft trails](docs/screenshot.png)
 
@@ -10,7 +10,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 
 ## What it does
 
-- Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, filled in from a second network (adsb.lol) where you're zoomed in, real ships streamed from AISStream, or simulated traffic, and always says which
+- Shows real aircraft from the OpenSky Network, polled within its free daily credit budget, filled in from two more networks (adsb.lol and adsb.fi) where you're zoomed in, real ships streamed from AISStream, or simulated traffic, and always says which
 - Streams a live picture to the browser over WebSockets, sending only what changed each second
 - Draws each contact as a top-down shape of what it is (airliner, business jet, helicopter, drone, tanker, fishing boat...), pointing along its course and roughly to size, or as its MIL-STD-2525C symbol (`S` switches), with a callsign label and a speed leader showing where it's heading, or as a small identity-coloured dot when zoomed out to a continent or the world
 - Moves symbols smoothly between reports using dead reckoning, so tracks glide instead of jumping
@@ -57,7 +57,7 @@ By default Watchfloor opens on the live world: aircraft everywhere from the [Ope
 
 ## Quick start
 
-Requires Node.js 20.12 or newer.
+Requires Node.js 22.12 or newer for the toolchain (Vite, Vitest); the built server itself runs on 20.12 or newer.
 
 ```bash
 npm install
@@ -140,8 +140,9 @@ Other commands:
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | Unit tests (Vitest) |
+| `npm test` | Unit tests (Vitest); `npm run test:watch` reruns them as files change |
 | `npm run typecheck` | Strict TypeScript checks across all packages |
+| `npm run build:demo` | The browser-only demo in `client/dist-demo` (see Publishing the demo) |
 | `npm run aircraft-db` | Download the aircraft database (about 8 MB, into `.cache/`) so aircraft show their real type and model, plus the airline list that names the airline behind a callsign; rerun to refresh |
 
 Keyboard shortcuts:
@@ -149,16 +150,30 @@ Keyboard shortcuts:
 | Key | Action |
 | --- | --- |
 | `L` | Open or close the track list |
-| `/` | Search the track list |
+| `/` | Search tracks, airports, chokepoints and watch areas |
 | `↑` `↓` `Enter` | Move through the list and select a track |
 | `T` | Cycle trails: all tracks, selected only, off |
 | `F` | Open or close the filter |
 | `S` | Switch between vehicle shapes and MIL-STD-2525C symbols |
 | `?` | Open the map key: what colours, symbols, dots, rings and lines mean |
 | `Q` | Ops room: open a room for phones and other screens, or join one as a screen |
-| `Esc` | Close the filter, or clear the selection |
+| `Esc` | Close whatever is open, end a ride, clear the hook, then the selection |
 
 Settings live in `.env` (copy `.env.example`). Aircraft need no key; ships need a free AISStream key (see Live ships). For example, `FEEDS=sim` with `SCENARIO=english-channel` runs the offline simulator (`SCENARIO=world` simulates the whole globe, as the demo does), `SIM_SEED` makes it identical every run, and `VITE_MAP_STYLE_URL=offline` runs without basemap tiles.
+
+### Publishing the demo
+
+The demo is the built client with the server run inside the page, published to the portfolio repo's `demos/watchfloor/` (GitHub Pages). Its news is a snapshot, and the page drops stories over a day old, so refresh it when you publish:
+
+```bash
+npm run demo-news
+```
+
+```bash
+npm run build:demo
+```
+
+Then copy `client/dist-demo/` over `demos/watchfloor/` in the portfolio repo (delete the old folder first: asset names are hashed), pull this repo into `projects/watchfloor` with `git subtree pull`, commit and push. A demo built with `VITE_LIVE_URL=https://...` links its ops room dialog to a live server.
 
 ### Running it in public
 
@@ -258,8 +273,9 @@ client/   MapLibre map, symbology, UI
 
 **Currents from traffic, built the way a wind map is.** The traffic-currents mode (I) needs thousands of particles moving every frame, which as a map layer would make the whole map redraw sixty times a second. So it has its own WebGL canvas over the map, and the map's projection is used once per field rather than once per particle per frame. Every three seconds, in the browser's idle time, each moving track that can be on screen is projected along with a point a few pixels along its course: the difference is its velocity on screen, with the globe's curvature already in it. Those velocities are spread over a coarse screen grid and blurred, and blurred velocity over blurred weight is a kernel-weighted average, while the weight says how much traffic stands behind it. One average per point would cancel a lane used both ways, so each medium keeps eight fields, one per direction band 45° apart (a heading is shared between the two bands either side of it), and air and sea are separate, being thirty times apart in speed. The first version had four bands, and the currents didn't look like the way aircraft fly: averaging headings up to 90° apart blended neighbouring flows and pulled the currents towards east, south, west and north. Measured on 2,734 live aircraft over western Europe, the current nearest each aircraft's heading was 10° off at the median and over 30° for one aircraft in ten; with eight bands, 5° and 13°. The particle budget is per medium, so the extra bands cost a few milliseconds of field building every three seconds and no extra particles. Particles then drift in plain screen space, each frame's step added as light to a texture that keeps fading. The fade is dithered: rounding to nearest leaves faint ghosts stuck in eight bits, and rounding down cuts faint tails short. Measured on the simulated world: 21% of a core with currents on, 10% off, frames steady at 60 fps. A frame governor trims the particles on machines that can't keep up.
 
-**Scale to the whole world by not doing work nobody can see.** Worldwide there are 7,000+ aircraft, against the simulator's 85. Four measures keep the browser smooth, each tested and measured in headless Chrome:
+**Scale to the whole world by not doing work nobody can see.** Worldwide there are 7,000+ aircraft, against the Channel simulator's hundred. Four measures keep the browser smooth, each tested and measured in headless Chrome:
 
+- *Never let the map repaint for nothing.* MapLibre fades symbols in over 300 ms, and while a symbol source's buckets keep changing it repaints every frame until the fade is allowed to begin again. Aircraft are redrawn every 0.3-1 s at regional zooms, so that loop ran at the frame rate for about four data changes a second: over London the map was repainting 24-44 times a second with the main thread 42-47% busy; with the fade turned off it repaints 9 times a second at about 30%, and nobody misses a 300 ms fade on symbols that are redrawn every second anyway.
 - *Redraw only as often as anything can visibly move.* At zoom 2 a pixel is about 20 km, so a jet takes over a minute to cross one. The render interval comes from the zoom: often enough that a 300 m/s jet moves at most half a pixel per frame, between 10 Hz (zoomed in) and 1 Hz (world view).
 - *Draw only what's near the screen.* Every track is still dead-reckoned, but only those in the view plus a margin become map features. Zoomed in, that cut main-thread work from 1,450 to 208 ms per 3 seconds.
 - *Dots below zoom 5.* Thousands of overlapping symbols read as a smear, so a circle layer coloured by identity takes over, and speed leaders aren't computed at all.
@@ -345,11 +361,11 @@ client/   MapLibre map, symbology, UI
 
 - [x] Simulator, WebSocket pipeline, symbology, selection and details
 - [x] Track history trails and a sortable, filterable track list
-- [x] Live aircraft from the OpenSky Network API, filled in from adsb.lol
+- [x] Live aircraft from the OpenSky Network API, filled in from adsb.lol and adsb.fi
 - [x] Live ships from AISStream.io
 - [x] Geofences with entry and exit alerts (watch areas, in the browser)
 - [ ] Operator tagging of affiliation (friend, neutral, unknown and so on)
-- [ ] Recording and a replay timeline
+- [x] A replay timeline (six hours back from the server's paths, thirty minutes projected ahead)
 
 ## Data and credits
 

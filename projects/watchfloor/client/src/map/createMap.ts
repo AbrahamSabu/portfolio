@@ -42,6 +42,13 @@ export function createMap(container: HTMLElement, options: { pixelRatio?: number
     // Low enough to pull back and see the whole globe.
     minZoom: 0.5,
     maxZoom: 16,
+    // No symbol fade. MapLibre marks symbol placement stale whenever a
+    // symbol source's buckets change and repaints every frame until a new
+    // placement is allowed, which it isn't for fadeDuration after the last;
+    // the aircraft source is re-set every 0.3-1 s above zoom 5, so the map
+    // rendered at the frame rate for ~4 data changes a second (measured:
+    // 24-44 renders/s, a third of the zoomed-in main thread; 9/s without).
+    fadeDuration: 0,
     maxPitch: 0,
     dragRotate: false,
     pitchWithRotate: false,

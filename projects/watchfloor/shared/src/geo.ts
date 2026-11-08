@@ -25,6 +25,30 @@ export function normalizeLon(lon: number): number {
 }
 
 /** Signed smallest difference from one heading to another, in (-180, 180]. */
+/**
+ * A line's longitudes made continuous: each step takes the short way round,
+ * so a line over the antimeridian runs 179 → 181 (which the map draws across
+ * the seam) rather than 179 → −179, a line nearly round the world.
+ */
+export function unwrapLine(points: readonly (readonly [number, number])[]): [number, number][] {
+  const out: [number, number][] = [];
+  let shift = 0;
+  let prev: number | undefined;
+  for (const [lon0, lat] of points) {
+    let lon = lon0 + shift;
+    if (prev !== undefined && lon - prev > 180) {
+      shift -= 360;
+      lon -= 360;
+    } else if (prev !== undefined && prev - lon > 180) {
+      shift += 360;
+      lon += 360;
+    }
+    out.push([lon, lat]);
+    prev = lon;
+  }
+  return out;
+}
+
 export function headingDelta(fromDeg: number, toDeg: number): number {
   const d = normalizeDeg(toDeg - fromDeg);
   return d > 180 ? d - 360 : d;
@@ -89,7 +113,7 @@ export function inBBox(p: LatLon, b: BBox): boolean {
 }
 
 // Unit conversions used across the UI and feeds.
-export const MPS_PER_KNOT = 0.514444;
+export const MPS_PER_KNOT = 1852 / 3600; // a knot is exactly 1,852 m an hour
 export const M_PER_FT = 0.3048;
 export const mpsToKnots = (mps: number) => mps / MPS_PER_KNOT;
 export const knotsToMps = (kt: number) => kt * MPS_PER_KNOT;

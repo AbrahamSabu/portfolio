@@ -35,7 +35,7 @@ describe('format', () => {
   });
 
   it('uses knots, and flight levels at altitude', () => {
-    expect(formatSpeed(5.14444)).toBe('10 kn');
+    expect(formatSpeed(10 * (1852 / 3600))).toBe('10 kn'); // ten knots exactly
     expect(formatSpeed(2)).toBe('3.9 kn');
     expect(formatAltitude(10_668)).toBe('FL350');
     expect(formatAltitude(457)).toBe('1,500 ft');

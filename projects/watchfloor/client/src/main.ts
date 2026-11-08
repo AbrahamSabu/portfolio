@@ -106,6 +106,17 @@ function el(id: string): HTMLElement {
   return node;
 }
 
+/**
+ * A panel opened from the keyboard gets the keyboard: its first control (the
+ * list's search box, a menu's first row, the timeline's handle). Opened by
+ * key, every panel used to leave focus on the body, twenty to thirty Tabs
+ * from its controls.
+ */
+function focusInto(panel: HTMLElement): void {
+  const first = panel.querySelector<HTMLElement>('input:not([type="hidden"]), [role="slider"], [role="radio"][tabindex="0"], button:not([hidden]), [tabindex="0"]');
+  first?.focus({ preventScroll: true });
+}
+
 function isTyping(event: KeyboardEvent): boolean {
   const target = event.target;
   return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
@@ -468,7 +479,8 @@ async function main(): Promise<void> {
   tourButton.addEventListener('click', () => (tour.active ? tour.stop() : tour.start()));
   tour.onChange = () => tourButton.setAttribute('aria-pressed', String(tour.active));
   // A first visit's one-time hint; not for a kiosk, or a screen joined to a room (nobody is at its mouse).
-  if (!screensaver && !new URLSearchParams(location.search).has('screen')) showFirstHint(map);
+  // Shown once the first picture is in (the demo's can take ten seconds): a hint to click aircraft on an empty globe helped nobody.
+  let hintArmed = !screensaver && !new URLSearchParams(location.search).has('screen');
 
   // Screensaver mode (?screensaver, for a kiosk window or an idle trigger):
   // opening this URL is the consent the motion rule asks for, so the tour
@@ -534,7 +546,10 @@ async function main(): Promise<void> {
       return;
     }
     reticle.show(pos.lon, pos.lat, id !== previous);
-    if (selection.follow) map.easeTo({ center: [pos.lon, pos.lat], duration: 400 });
+    // Not during a flight: the tour engages follow mode as its flight starts, and this ease
+    // cancelled the flight (MapLibre stops any camera animation first), so follow stops sat
+    // at the previous zoom. Follow's own frame loop recentres once the flight lands.
+    if (selection.follow && !map.isMoving()) map.easeTo({ center: [pos.lon, pos.lat], duration: 400 });
   });
   layer.onFrame(() => {
     const pos = selection.id ? layer.positionOf(selection.id) : undefined;
@@ -596,6 +611,7 @@ async function main(): Promise<void> {
     if (event.key === 'Escape') {
       // Close the filter first if it's open, then an airport or country; a further Escape clears the selection.
       if (palette.open) palette.setOpen(false);
+      else if (list.open) list.setOpen(false);
       else if (filterPanel.open) filterPanel.setOpen(false);
       else if (airportPanel.isOpen) airportPanel.close();
       else if (countryPanel.isOpen) countryPanel.close();
@@ -612,9 +628,18 @@ async function main(): Promise<void> {
     // Single-letter shortcuts must not fire while the operator is typing.
     if (isTyping(event) || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 't' || event.key === 'T') trails.cycle();
-    if (event.key === 'm' || event.key === 'M') layersPanel.setOpen(!layersPanel.open);
-    if (event.key === 'l' || event.key === 'L') list.setOpen(!list.open);
-    if (event.key === 'f' || event.key === 'F') filterControl.toggle();
+    if (event.key === 'm' || event.key === 'M') {
+      layersPanel.setOpen(!layersPanel.open);
+      if (layersPanel.open) focusInto(el('layers-panel'));
+    }
+    if (event.key === 'l' || event.key === 'L') {
+      list.setOpen(!list.open);
+      if (list.open) focusInto(el('track-list'));
+    }
+    if (event.key === 'f' || event.key === 'F') {
+      filterControl.toggle();
+      if (filterPanel.open) focusInto(el('filter-panel'));
+    }
     if (event.key === 's' || event.key === 'S') style.toggle();
     if (event.key === 'n' || event.key === 'N') newsSettings.set({ shown: !newsSettings.shown });
     if (event.key === 'a' || event.key === 'A') airportsShown.toggle();
@@ -627,14 +652,24 @@ async function main(): Promise<void> {
     if (event.key === 'r' || event.key === 'R') radarShown.toggle();
     if (event.key === 'i' || event.key === 'I') currentsShown.toggle();
     if (event.key === 'g' || event.key === 'G') tour.start();
-    if (event.key === 'v' || event.key === 'V') handover.setOpen(!handover.open);
+    if (event.key === 'v' || event.key === 'V') {
+      handover.setOpen(!handover.open);
+      if (handover.open) focusInto(el('handover'));
+    }
     if (event.key === 'u' || event.key === 'U') {
       recordsPanel.setOpen(false);
       rarePanel.setOpen(!rarePanel.open);
+      if (rarePanel.open) focusInto(el('rare-panel'));
     }
-    if (event.key === 'p' || event.key === 'P') recordsPanel.setOpen(!recordsPanel.open);
+    if (event.key === 'p' || event.key === 'P') {
+      recordsPanel.setOpen(!recordsPanel.open);
+      if (recordsPanel.open) focusInto(el('records-panel'));
+    }
     if (event.key === 'q' || event.key === 'Q') room.toggle();
-    if (event.key === 'z' || event.key === 'Z') timeline.setOpen(!timeline.open);
+    if (event.key === 'z' || event.key === 'Z') {
+      timeline.setOpen(!timeline.open);
+      if (timeline.open) focusInto(el('timeline'));
+    }
     if (event.key === 'x' || event.key === 'X') hook.toggle();
     if (event.key === 'e' || event.key === 'E') stack.toggle();
     if (event.key === 'j' || event.key === 'J') ride.toggle();
@@ -704,10 +739,19 @@ async function main(): Promise<void> {
       bbox: viewForServer({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }),
     });
   };
+  // 300 ms after the camera settles, but at most 2 s after it started moving: a ride moves
+  // the camera every frame, and a pure debounce never fired, so the feeds kept polling where
+  // the ride began and a long ride flew out of the polled area.
   let viewTimer: number | undefined;
+  let viewDue = 0;
   map.on('moveend', () => {
+    const now = Date.now();
+    if (viewDue === 0) viewDue = now + 2_000;
     window.clearTimeout(viewTimer);
-    viewTimer = window.setTimeout(sendView, 300);
+    viewTimer = window.setTimeout(() => {
+      viewDue = 0;
+      sendView();
+    }, Math.max(0, Math.min(300, viewDue - now)));
   });
 
   const credits = new DataCredits(map);
@@ -764,6 +808,9 @@ async function main(): Promise<void> {
       clock.update(message.serverTime, receivedAt);
       switch (message.type) {
         case 'hello':
+          // A new server (a restart, a reconnect) may keep a different clock: take its first sample whole.
+          clock.reset();
+          clock.update(message.serverTime, receivedAt);
           store.setStaleness(message.staleness);
           scenarioName.textContent = trafficLabel(message.traffic, message.scenario?.name);
           if (message.scenario && !framed && !userHasMoved()) {
@@ -772,10 +819,14 @@ async function main(): Promise<void> {
           }
           framed = true;
           status.setFeeds(message.feeds);
+          status.setTraffic(message.traffic);
+          // Phones hide the scenario label, so a chip says the traffic is simulated (never present it as live).
+          el('sim-chip').hidden = message.traffic !== 'simulated';
           // A feed that can't run (no API key) shows no data, so it gets no credit.
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
+          timeline.reconnected();
           room.reconnected(message.scenario);
           break;
         case 'room':
@@ -788,6 +839,10 @@ async function main(): Promise<void> {
           const applyStart = performance.now();
           store.applySnapshot(message.tracks, message.trails);
           performance.measure('wf:snapshot-apply', { start: applyStart });
+          if (hintArmed) {
+            hintArmed = false;
+            showFirstHint(map);
+          }
           break;
         }
         case 'delta':
@@ -832,6 +887,29 @@ async function main(): Promise<void> {
   const connection: Link = demo ? new demo.LocalServer(handlers) : new Connection(defaultSocketUrl(), handlers);
 
   const status = new StatusBar(el('statusbar'), map, store, clock, filter, () => connection.retryNow());
+  if (demo) {
+    // The in-page server runs the last 30 minutes before its first picture: "Connecting" would be a lie.
+    status.setTraffic('simulated');
+    scenarioName.textContent = 'World, simulating the last 30 minutes';
+  }
+  // The graphics context can go (a crowded GPU, a long ride loading terrain): MapLibre then throws on
+  // every frame and the 3D modes can't be left. End them, and say the one thing that helps.
+  map.getCanvas().addEventListener('webglcontextlost', () => {
+    ride.stop();
+    stack.leaveNow();
+    const notice = document.createElement('div');
+    notice.className = 'context-lost';
+    notice.setAttribute('role', 'alert');
+    const text = document.createElement('p');
+    text.textContent = 'The graphics stopped (the browser lost its drawing context). Reload the page to carry on.';
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.className = 'alert-show';
+    reload.textContent = 'Reload';
+    reload.addEventListener('click', () => location.reload());
+    notice.append(text, reload);
+    document.querySelector('.app')?.append(notice);
+  });
 
   // A covered or background tab should cost nothing: after a quiet minute
   // hidden, close the socket entirely (no deltas, no reconnect churn, and the

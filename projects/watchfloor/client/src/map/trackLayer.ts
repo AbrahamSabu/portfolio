@@ -1,4 +1,5 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import { isRideMove } from './camera';
 import type { CircleLayerSpecification, ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { deadReckon, destination, ruleFor, type Domain, type LatLon } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
@@ -151,7 +152,9 @@ export class TrackLayer {
     style.subscribe(() => this.forceAll());
     // Crossing the symbol zoom changes whether leaders are computed, and a
     // finished pan or zoom brings new tracks into the drawn area.
-    map.on('moveend', () => this.forceAll());
+    map.on('moveend', (event) => {
+      if (!isRideMove(event)) this.forceAll();
+    });
     requestAnimationFrame(this.loop);
   }
 

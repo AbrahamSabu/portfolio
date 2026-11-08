@@ -272,7 +272,9 @@ export class Rooms {
       return;
     }
     const current = this.members.get(peer);
-    if (current && current.room !== room) this.leave(peer);
+    // A seat or screen of this very room is freed too, or it would outlive every grace period as a
+    // zombie whose peer is the main (presence to a dead peer, a console slot gone for good).
+    if (current && (current.room !== room || current.kind !== 'main')) this.leave(peer);
     // The old connection, if it hasn't been noticed as gone yet, gives the room up.
     if (room.main && room.main !== peer) this.replaced(room.main);
     room.main = peer;
@@ -288,11 +290,16 @@ export class Rooms {
     this.forgetOldWrongCodes(now);
     const address = peer.address ?? '';
     const tried = this.wrongCodes.get(address) ?? [];
-    if (tried.length >= WRONG_CODES_PER_MINUTE || this.allWrongCodes.length >= WRONG_CODES_PER_MINUTE_TOTAL) {
+    const room = this.rooms.get(code);
+    // A member back with its token has proved it belongs: it's seated even
+    // during a busy minute, or a code-masher on the same address (an office
+    // NAT, a proxy) would bounce a reconnecting phone out of its own room.
+    // Both misses still answer busy, so nothing about which codes exist leaks.
+    const rejoining = room !== undefined && token !== undefined && (asScreen ? room.screens.has(token) : room.seats.has(token));
+    if (!rejoining && (tried.length >= WRONG_CODES_PER_MINUTE || this.allWrongCodes.length >= WRONG_CODES_PER_MINUTE_TOTAL)) {
       this.refuse(peer, 'busy');
       return;
     }
-    const room = this.rooms.get(code);
     if (!room) {
       tried.push(now);
       this.wrongCodes.set(address, tried);
@@ -305,6 +312,11 @@ export class Rooms {
       // Already in (a double tap): say so again.
       if (current.kind === 'screen') this.sendScreen(room, current.screen);
       if (current.kind === 'console') this.sendSeat(room, current.seat);
+      return;
+    }
+    if (current?.room === room && current.kind === 'main') {
+      // The room's own main screen: leaving to be seated would close the room on the way. Say what it is again.
+      this.sendMain(room);
       return;
     }
     if (current) this.leave(peer);

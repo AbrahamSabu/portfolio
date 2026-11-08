@@ -78,7 +78,7 @@ export interface Config {
    * connections one address may hold (MAX_CONNECTIONS_PER_ADDRESS, 0 = no
    * limit). `maxRooms`: ops rooms open at once (ROOMS_MAX).
    */
-  visitors: { addressHeaders: string[]; maxPerAddress: number; maxRooms: number };
+  visitors: { addressHeaders: string[]; maxPerAddress: number; maxRooms: number; allowedOrigins: string[] };
 }
 
 export const FEED_NAMES = ['sim', 'opensky', 'adsblol', 'adsbfi', 'ais'] as const;
@@ -113,6 +113,20 @@ export function parseAddressHeaders(raw: string | undefined): string[] {
   const bad = names.find((h) => !/^[a-z0-9-]+$/.test(h));
   if (bad !== undefined) throw new Error(`CLIENT_IP_HEADER must be header names separated by commas (got "${bad}")`);
   return names;
+}
+
+/** ALLOWED_ORIGINS: page origins other than the server's own host that may open a socket, separated by commas. */
+export function parseOrigins(raw: string | undefined): string[] {
+  const origins = (raw ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+  for (const o of origins) {
+    try {
+      const u = new URL(o);
+      if (!/^https?:$/.test(u.protocol) || u.pathname !== '/' || u.search || u.hash) throw new Error('not an origin');
+    } catch {
+      throw new Error(`ALLOWED_ORIGINS must be origins such as https://watchfloor.example.com (got "${o}")`);
+    }
+  }
+  return origins;
 }
 
 /** What the running feeds add up to, for the hello message. */
@@ -308,6 +322,7 @@ export function loadConfig(): Config {
       addressHeaders: parseAddressHeaders(process.env.CLIENT_IP_HEADER),
       maxPerAddress: int('MAX_CONNECTIONS_PER_ADDRESS', 0, 0, 1000),
       maxRooms: int('ROOMS_MAX', 16, 1, 1000),
+      allowedOrigins: parseOrigins(process.env.ALLOWED_ORIGINS),
     },
   };
 }

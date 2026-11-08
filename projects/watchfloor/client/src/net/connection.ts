@@ -3,7 +3,7 @@ import { PROTOCOL_VERSION, parseServerMessage, type ClientMessage, type ServerMe
 export type ConnectionState =
   | { status: 'connecting' }
   | { status: 'open' }
-  | { status: 'waiting'; retryAt: number }
+  | { status: 'waiting'; retryAt: number; refused?: true }
   /** Server speaks a different protocol version; reconnecting won't help. */
   | { status: 'incompatible'; serverProtocol: number };
 
@@ -22,6 +22,8 @@ export interface Link {
 
 const MIN_BACKOFF_MS = 500;
 const MAX_BACKOFF_MS = 10_000;
+/** Turned away (1013, too many connections): a long wait at once, so a refused tab can't hammer the server. */
+const REFUSED_WAIT_MS = 30_000;
 
 /**
  * A WebSocket that keeps itself alive.
@@ -83,7 +85,8 @@ export class Connection implements Link {
     this.ws = ws;
 
     ws.onopen = () => {
-      this.attempt = 0;
+      // The backoff resets on the hello, not here: a server that turns us away does so
+      // after the upgrade, so an open followed by a close must still count as an attempt.
       this.handlers.onState({ status: 'open' });
       this.armWatchdog();
     };
@@ -107,14 +110,18 @@ export class Connection implements Link {
           return;
         }
         this.watchdogMs = Math.max(5000, message.tickMs * 5);
+        this.attempt = 0;
       }
       this.handlers.onMessage(message, receivedAt);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      // Stopped, or already replaced by a newer socket (restarted before this one
+      // finished closing): nothing to reconnect, and the newer socket's watchdog stays.
+      if (this.ws !== ws) return;
       window.clearTimeout(this.watchdogTimer);
-      if (this.ws === ws) this.ws = null;
-      if (!this.stopped) this.scheduleReconnect();
+      this.ws = null;
+      if (!this.stopped) this.scheduleReconnect(event.code === 1013);
     };
 
     // onerror is always followed by onclose, which handles reconnection.
@@ -143,12 +150,12 @@ export class Connection implements Link {
     }, this.watchdogMs);
   }
 
-  private scheduleReconnect(): void {
+  private scheduleReconnect(refused = false): void {
     const base = Math.min(MAX_BACKOFF_MS, MIN_BACKOFF_MS * 2 ** this.attempt);
-    const delay = base / 2 + Math.random() * (base / 2);
+    const delay = refused ? REFUSED_WAIT_MS + Math.random() * 5_000 : base / 2 + Math.random() * (base / 2);
     this.attempt++;
     const retryAt = Date.now() + delay;
-    this.handlers.onState({ status: 'waiting', retryAt });
+    this.handlers.onState({ status: 'waiting', retryAt, ...(refused ? { refused: true } : {}) });
     window.clearTimeout(this.retryTimer);
     this.retryTimer = window.setTimeout(() => this.connect(), delay);
   }

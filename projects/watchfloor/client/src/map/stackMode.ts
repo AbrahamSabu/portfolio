@@ -1,8 +1,8 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { PictureFilter } from '../state/pictureFilter';
+import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
-import type { ServerClock } from '../state/clock';
 import { AltitudeHistory } from './altitudeHistory';
 import { relockCamera, reducedMotion, unlockCamera } from './cameraLock';
 import { Layer3d } from './layer3d';
@@ -48,6 +48,8 @@ export class StackMode {
   private undim: (() => void) | null = null;
   /** The camera's angles before the Stack: given back on leaving. */
   private saved: { bearing: number; pitch: number } | null = null;
+  /** The angles an exit is still levelling back to; a re-entry meanwhile keeps them. */
+  private relocking: { bearing: number; pitch: number } | null = null;
   /** What the last frame drew, for hit-testing. */
   private drawn: StackAircraft[] = [];
   private trailEnds = new Map<string, LiftedPoint>();
@@ -58,7 +60,7 @@ export class StackMode {
   constructor(
     private readonly map: MapLibreMap,
     private readonly store: TrackStore,
-    private readonly clock: ServerClock,
+    clock: ServerClock,
     private readonly tracks: TrackLayer,
     private readonly selection: Selection,
     private readonly filter: PictureFilter,
@@ -121,7 +123,10 @@ export class StackMode {
     if (this.active) return;
     this.beforeEnter();
     this.active = true;
-    this.saved = { bearing: this.map.getBearing(), pitch: this.map.getPitch() };
+    // Re-entered while still levelling out of the last visit: the angles to go back to are
+    // the ones first saved, not the mid-ease ones (which left the map locked rotated).
+    this.saved = this.relocking ?? { bearing: this.map.getBearing(), pitch: this.map.getPitch() };
+    this.relocking = null;
     unlockCamera(this.map, MAX_PITCH);
     this.install();
     this.chip.hidden = false;
@@ -148,10 +153,12 @@ export class StackMode {
     this.chip.hidden = true;
     const { bearing, pitch } = this.saved ?? { bearing: 0, pitch: 0 };
     this.saved = null;
+    this.relocking = { bearing, pitch };
     // Level out where the operator is looking, then lock again: back to
     // exactly the angles the map had, north-up and flat.
     const relock = () => {
       if (this.active) return; // pressed E again while levelling
+      this.relocking = null;
       relockCamera(this.map);
       if (this.map.getBearing() !== bearing || this.map.getPitch() !== pitch) this.map.jumpTo({ bearing, pitch });
     };

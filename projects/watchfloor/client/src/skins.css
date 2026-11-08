@@ -96,6 +96,20 @@
     inset 0 0 26px rgb(51 255 102 / 0.07);
 }
 
+:root[data-skin='phosphor'] .alert-chip,
+:root[data-skin='phosphor'] .layers-choice-group button {
+  letter-spacing: 0.02em;
+}
+
+:root[data-skin='phosphor'] .brand-scenario {
+  font-size: 0.8rem;
+}
+
+/* The wide mono needs more room: "Military symbols" wrapped and hints ran to five lines. */
+:root[data-skin='phosphor'] :is(.layers-panel, .filter-panel) {
+  width: 340px;
+}
+
 :root[data-skin='phosphor'] .brand-name {
   font-family: 'VT323', 'Share Tech Mono', monospace;
   font-size: 1.6rem;
@@ -241,6 +255,10 @@
 
 :root[data-skin='bubbly'] .maplibregl-ctrl-group {
   border-radius: 18px;
+}
+
+:root[data-skin='bubbly'] :is(.layers-key, kbd) {
+  border-radius: 8px;
 }
 
 /* Buttons whose words can wrap to two lines: a pill would pinch them. */

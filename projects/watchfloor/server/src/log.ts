@@ -2,7 +2,8 @@
 type Level = 'debug' | 'info' | 'warn' | 'error';
 
 const order: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
-const threshold = order[(process.env.LOG_LEVEL as Level) ?? 'info'] ?? order.info;
+// globalThis.process: the static demo runs this file in a browser, where there is no process.
+const threshold = order[(globalThis.process?.env?.LOG_LEVEL as Level | undefined) ?? 'info'] ?? order.info;
 
 function write(level: Level, scope: string, msg: string, extra?: Record<string, unknown>) {
   if (order[level] < threshold) return;

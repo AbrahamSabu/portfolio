@@ -31,14 +31,17 @@ interface Squawking {
  * is composed when it happens, from the facts in hand, and the brief is the
  * log read back — so every sentence is traceable and none is invented later.
  */
+/** A hazard gone from the list this long is forgotten; one that leaves and returns sooner isn't logged twice. */
+const HAZARD_FORGET_MS = 48 * 60 * 60_000;
+
 export class BriefService {
   private readonly events: BriefEvent[] = [];
   private readonly startedAt: number;
   private readonly now: () => number;
   private readonly intervalMs: number;
   private readonly squawking = new Map<string, Squawking>();
-  /** Hazards already seen; null until the first list (those predate the log). */
-  private hazardIds: Set<string> | null = null;
+  /** Hazards already seen, by when last listed; null until the first list (those predate the log). */
+  private hazardIds: Map<string, number> | null = null;
   private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(private readonly opts: BriefServiceOptions) {
@@ -104,14 +107,20 @@ export class BriefService {
 
   /** Wired beside the hub's hazard broadcast: logs significant hazards as they appear. */
   onHazards(items: Hazard[]): void {
+    const now = this.now();
     if (this.hazardIds === null) {
-      this.hazardIds = new Set(items.map((h) => h.id));
+      this.hazardIds = new Map(items.map((h) => [h.id, now]));
       return;
     }
-    const now = this.now();
+    // Forget hazards gone from the list for two days: the set otherwise grew for ever (~50 quakes a day).
+    const listed = new Set(items.map((h) => h.id));
+    for (const [id, seenAt] of this.hazardIds) {
+      if (!listed.has(id) && now - seenAt > HAZARD_FORGET_MS) this.hazardIds.delete(id);
+    }
     for (const h of items) {
-      if (this.hazardIds.has(h.id)) continue;
-      this.hazardIds.add(h.id);
+      const seen = this.hazardIds.has(h.id);
+      this.hazardIds.set(h.id, now);
+      if (seen) continue;
       // Sources arrive on their own clocks, so "new to the merged list" isn't
       // "new": a cyclone that began last week joins the list at startup. Only
       // what happened on this watch is an event.

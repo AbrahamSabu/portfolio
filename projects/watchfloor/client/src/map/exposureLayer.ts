@@ -33,6 +33,7 @@ export class ExposureLayer {
   ) {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'exposure';
+    this.canvas.setAttribute('aria-hidden', 'true');
     map.getContainer().append(this.canvas);
     this.ctx = this.canvas.getContext('2d')!;
     // The film moved: start over.

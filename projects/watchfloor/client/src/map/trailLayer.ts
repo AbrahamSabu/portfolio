@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import { isRideMove } from './camera';
 import type { CircleLayerSpecification, GeoJSONSource, LineLayerSpecification, Map as MapLibreMap } from 'maplibre-gl';
-import { DEFAULT_TRAIL_RULES, type Track } from '@watchfloor/shared';
+import { DEFAULT_TRAIL_RULES, type Track, unwrapLine } from '@watchfloor/shared';
 import type { PictureFilter } from '../state/pictureFilter';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
@@ -41,8 +42,8 @@ const PAINT: LineLayerSpecification['paint'] = {
  * A trail is the track's *reported* positions, never dead-reckoned ones, so it
  * shows only where the track was actually seen. It is drawn in two parts:
  *
- * - The trail itself changes only when a report arrives (about once a
- *   second), so it is rebuilt only when the store changes.
+ * - The trail itself changes only when a report arrives, so it is rebuilt
+ *   only when the store changes.
  * - The "head" joins the last report to the symbol, which moves at 10 Hz.
  *   It is one short segment per track, in its own small source, so the
  *   frequent update stays cheap however long the trails get.
@@ -77,7 +78,9 @@ export class TrailLayer {
     filter.subscribe(() => this.renderTrails());
     tracks.onFrame(() => this.renderHeads());
     // Trails are culled to the view, so a finished pan or zoom needs a rebuild.
-    map.on('moveend', () => this.renderTrails());
+    map.on('moveend', (event) => {
+      if (!isRideMove(event)) this.renderTrails();
+    });
   }
 
   get mode(): TrailMode {
@@ -176,7 +179,7 @@ export class TrailLayer {
           });
         }
       } else if (points.length >= 2) {
-        lines.push(line(track, this.selection.id, points.map(([lon, lat]) => [lon, lat])));
+        lines.push(line(track, this.selection.id, unwrapLine(points.map(([lon, lat]) => [lon, lat]))));
       }
     }
     this.map.getSource<GeoJSONSource>(TRAILS_SOURCE)?.setData({ type: 'FeatureCollection', features: lines });
@@ -190,10 +193,10 @@ export class TrailLayer {
       const pos = this.tracks.positionOf(track.id);
       if (!last || !pos) continue;
       features.push(
-        line(track, this.selection.id, [
+        line(track, this.selection.id, unwrapLine([
           [last[0], last[1]],
           [pos.lon, pos.lat],
-        ]),
+        ])),
       );
     }
     this.map.getSource<GeoJSONSource>(HEADS_SOURCE)?.setData({ type: 'FeatureCollection', features });

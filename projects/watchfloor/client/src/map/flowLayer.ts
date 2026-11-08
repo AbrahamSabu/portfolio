@@ -235,6 +235,8 @@ export class FlowLayer {
   private raf = 0;
   private last = 0;
   private job: Job | null = null;
+  /** The job whose fields are being installed band by band (install()). */
+  private installing: Job | null = null;
   /** When the next field is due (rAF time, ms). */
   private due = 0;
   /** A field matches the camera and particles are out. */
@@ -260,6 +262,7 @@ export class FlowLayer {
   ) {
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'flow';
+    this.canvas.setAttribute('aria-hidden', 'true');
     // Right over the map's own canvas, under its markers (tags, reticle, rings): the HUD stays on top.
     map.getCanvasContainer().insertBefore(this.canvas, map.getCanvas().nextSibling);
     this.renderer = new FlowRenderer(this.canvas);
@@ -302,6 +305,7 @@ export class FlowLayer {
     // The map is about to load tiles for the new view: that's not this machine being slow.
     this.governor.hold(HOLD_MS);
     this.job = null;
+    this.installing = null;
     this.settled = false;
     this.due = 0;
     this.anchor = null;
@@ -328,6 +332,7 @@ export class FlowLayer {
     if (this.job) {
       // Half-sampled for the old camera: sample again once it's still.
       this.job = null;
+      this.installing = null;
       this.due = 0;
     }
     if (this.jumping || !this.anchor) return;
@@ -466,6 +471,7 @@ export class FlowLayer {
       job.ms += performance.now() - start;
       if (!done) return this.work(job);
       this.job = null;
+      this.installing = null;
       this.install(job);
       this.due = performance.now() + REFRESH_MS;
     });
@@ -527,21 +533,45 @@ export class FlowLayer {
     if (s.wb > 1e-3) buffers[s.b]!.push(p.x, p.y, vx, vy, s.wb * weight);
   }
 
+  /**
+   * Builds and installs the job's fields, one band per idle slice: all
+   * sixteen at once (each three blurred 20k-cell planes) was a 60-150 ms
+   * stall every refresh (measured), while the sampling before it was sliced.
+   * A field arrives band by band over a few frames, which nobody sees.
+   */
   private install(job: Job): void {
     const size = { width: job.width, height: job.height };
     // Should the camera have slid since sampling began, the field is read that much back.
     const at = this.map.project(job.anchor);
     const offsetX = at.x - job.centre.x;
     const offsetY = at.y - job.centre.y;
-    const fill = (sets: readonly Particles[], buffers: readonly SampleBuffer[], medium: Medium) =>
-      sets.forEach((particles, band) => {
-        const field = buildFlowField(buffers[band]!.data, buffers[band]!.count, { ...medium.field, ...size });
-        // The blur spreads tracks near the rim out into space: currents stay on the globe.
-        if (job.disc) clipToDisc(field, job.disc.x, job.disc.y, job.disc.r);
-        particles.setField(field, offsetX, offsetY);
+    const bands: Array<[Particles, SampleBuffer, Medium]> = [
+      ...this.air.map((p, i): [Particles, SampleBuffer, Medium] => [p, job.air[i]!, AIR]),
+      ...this.sea.map((p, i): [Particles, SampleBuffer, Medium] => [p, job.sea[i]!, SEA]),
+    ];
+    this.installing = job;
+    const next = () =>
+      whenIdle(() => {
+        // A newer sampling job, or the layer going away, drops the rest of this field.
+        if (this.installing !== job || this.job !== null) return;
+        const band = bands.shift();
+        if (band) {
+          const [particles, buffer, medium] = band;
+          const field = buildFlowField(buffer.data, buffer.count, { ...medium.field, ...size });
+          // The blur spreads tracks near the rim out into space: currents stay on the globe.
+          if (job.disc) clipToDisc(field, job.disc.x, job.disc.y, job.disc.r);
+          particles.setField(field, offsetX, offsetY);
+          next();
+          return;
+        }
+        this.installing = null;
+        this.installed(job, at, offsetX, offsetY);
       });
-    fill(this.air, job.air, AIR);
-    fill(this.sea, job.sea, SEA);
+    next();
+  }
+
+  /** The whole field is in: the anchor it was sampled from, the figures the headless checks read, the budget. */
+  private installed(job: Job, at: { x: number; y: number }, offsetX: number, offsetY: number): void {
     this.anchor = job.anchor;
     this.anchorAt = { x: at.x, y: at.y };
     this.anchorZoom = job.zoom;
