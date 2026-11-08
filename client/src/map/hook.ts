@@ -1,6 +1,6 @@
 import type { Feature, LineString } from 'geojson';
 import { Marker, type GeoJSONSource, type Map as MapLibreMap } from 'maplibre-gl';
-import { approach, type Track } from '@watchfloor/shared';
+import { approach, type Track, unwrapLine } from '@watchfloor/shared';
 import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
@@ -54,6 +54,11 @@ export class HookTool {
     store.subscribe(() => {
       if (this.pair && (!store.get(this.pair[0]) || !store.get(this.pair[1]))) this.clear();
     });
+    // Armed with nothing to hook from (the selection cleared, its track gone): stand down,
+    // or every map click would be swallowed until X or Escape.
+    selection.subscribe((id) => {
+      if (id === null && arming) this.clear();
+    });
   }
 
   get armed(): boolean {
@@ -83,7 +88,10 @@ export class HookTool {
   }
 
   private hook(id: string): void {
-    if (!this.selection.id) return;
+    if (!this.selection.id) {
+      this.clear();
+      return;
+    }
     this.pair = [this.selection.id, id];
     arming = false;
     this.map.getCanvas().style.cursor = '';
@@ -118,10 +126,10 @@ export class HookTool {
     const aPos = this.layer.positionOf(aId) ?? a;
     const bPos = this.layer.positionOf(bId) ?? b;
     if (!a || !b || !aPos || !bPos) return;
-    this.setLine([
+    this.setLine(unwrapLine([
       [aPos.lon, aPos.lat],
       [bPos.lon, bPos.lat],
-    ]);
+    ]));
     // Short ranges only, so the flat midpoint is fine.
     const mid: [number, number] = [(aPos.lon + bPos.lon) / 2, (aPos.lat + bPos.lat) / 2];
     if (!this.label) this.label = new Marker({ element: this.el, opacityWhenCovered: '0', offset: [0, -16] }).setLngLat(mid).addTo(this.map);

@@ -1,4 +1,4 @@
-import { deadReckon, type Track } from '@watchfloor/shared';
+import { deadReckon, type Track, unwrapLine } from '@watchfloor/shared';
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { AFFILIATION_LINE_COLOR } from './colors';
@@ -87,7 +87,7 @@ export class GhostLayer {
         });
         threads.push({
           type: 'Feature',
-          geometry: { type: 'LineString', coordinates: [[t.lon, t.lat], [ghost.lon, ghost.lat]] },
+          geometry: { type: 'LineString', coordinates: unwrapLine([[t.lon, t.lat], [ghost.lon, ghost.lat]]) },
           properties: { affiliation: t.affiliation },
         });
       }
