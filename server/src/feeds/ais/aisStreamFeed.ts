@@ -341,6 +341,12 @@ export class AisStreamFeed implements Feed {
     const now = this.now();
     const { opened, confirmedAt } = this;
     this.clearWatchdog();
+    // A resubscribe due on this socket must not fire on the next one: a
+    // second subscription within a second of the reconnect's own gets that
+    // connection closed too, and the backoff doubles for nothing.
+    if (this.resubscribeTimer !== null) this.clearTimer(this.resubscribeTimer);
+    this.resubscribeTimer = null;
+    this.opened = false;
     this.socket = null;
     this.confirmedAt = null;
 
