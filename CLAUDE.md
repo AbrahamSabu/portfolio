@@ -831,7 +831,10 @@ that could have been fetched before they arrived.
     `serverOrBrowser` retries a failed import; a `webglcontextlost` on the
     map canvas ends the ride and Stack and shows a reload notice (MapLibre
     otherwise throws every frame with no way out).
-  - UX: the palette is modal (Tab trapped, opener refocused,
+  - UX: the palette is modal (Tab trapped, opener refocused, Enter's keydown
+    cancelled, since the keypress after it reaches that refocused button and
+    clicks it: a pick from the Tour button restarted the tour, which then
+    selected its own aircraft over the one searched for;
     `aria-activedescendant`, an empty state); `focusInto(panel)` after a key
     opens a panel; Escape closes the track list; the timeline handle has
     slider values and Home/End/PageUp/PageDown/Shift+arrows; choice rows are

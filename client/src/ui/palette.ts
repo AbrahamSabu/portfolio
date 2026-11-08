@@ -77,6 +77,10 @@ export class Palette {
       if (n > 0) this.active = (this.active + (event.key === 'ArrowDown' ? 1 : n - 1)) % n;
       this.render();
     } else if (event.key === 'Enter') {
+      // Cancelled, or the keypress that follows this keydown lands on the opener, which the pick
+      // has just refocused, and Enter on a button clicks it: a search picked from the Tour
+      // button restarted the tour, which then selected its own aircraft over the one searched for.
+      event.preventDefault();
       this.pick(this.active);
     }
   }
