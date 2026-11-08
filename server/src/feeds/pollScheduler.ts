@@ -45,6 +45,8 @@ export class PollScheduler {
   private readonly minEarlyGapMs: number;
   private running = false;
   private timer: unknown = null;
+  /** Bumped by every stop, so a poll in flight when the scheduler is restarted doesn't reschedule beside the new chain. */
+  private generation = 0;
   /** True when a due poll was skipped for lack of viewers and no timer is pending. */
   private isPaused = false;
   /** When the next poll is (or was) due; resuming never polls before this. */
@@ -83,6 +85,7 @@ export class PollScheduler {
 
   stop(): void {
     this.running = false;
+    this.generation++;
     this.isPaused = false;
     if (this.timer !== null) this.opts.clearTimer(this.timer);
     this.timer = null;
@@ -143,8 +146,9 @@ export class PollScheduler {
       return;
     }
     this.lastAttemptAt = this.opts.now();
+    const generation = this.generation;
     const delay = await this.hooks.run();
-    if (!this.running) return;
+    if (!this.running || generation !== this.generation) return;
     this.schedule(delay);
     // What's wanted may have moved while the request was in flight.
     this.maybePollEarly();
