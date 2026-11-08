@@ -119,8 +119,22 @@ export class ReadsbFeed implements Feed {
     return this.plan.length > 0 && (this.watched || this.home.length > 0);
   }
 
+  /**
+   * A viewer is looking at data older than the plan's own cadence allows.
+   * Judged against `intervalFor(plan)`, not the bare poll interval: every
+   * browser view refresh (300 ms after each pan) reaches the scheduler, and
+   * judging by pollMs alone let a six-circle plan be polled every ~12 s
+   * instead of every 48 s, ~30 requests a minute against a 7.5 ceiling —
+   * the regime that got this address refused for hours.
+   */
   private warmDataIsOld(): boolean {
-    return this.watched && this.lastSuccessAt !== null && this.now() - this.lastSuccessAt > this.opts.pollMs;
+    return this.watched && this.lastSuccessAt !== null && this.now() - this.lastSuccessAt > this.intervalFor(this.plan);
+  }
+
+  /** How often this plan may be polled: the poll interval, or longer when the per-circle budget says so. */
+  private intervalFor(plan: readonly Circle[]): number {
+    const interval = this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
+    return Math.max(interval, plan.length * this.service.minMsPerCircle);
   }
 
   start(sink: TrackSink): void {
@@ -200,12 +214,20 @@ export class ReadsbFeed implements Feed {
     const base = this.opts.apiUrl ?? this.service.defaultUrl;
     const results: CircleResult[] = [];
     let next = 0;
-    // A small worker pool: each worker takes the next circle until none are left.
+    // A small worker pool: each worker takes the next circle until none are
+    // left, or until a circle was refused: a 429 means stop asking (adsb.fi
+    // counts 4xx answers towards a temporary ban; adsb.lol refused this
+    // address for hours after bursts), so at most the companion request
+    // already in flight follows one.
+    let refused = false;
     const worker = async () => {
-      while (next < plan.length) {
+      while (next < plan.length && !refused) {
         const circle = plan[next++]!;
         await this.pace();
-        results.push(await this.fetchCircle(base, circle));
+        if (refused) return;
+        const result = await this.fetchCircle(base, circle);
+        results.push(result);
+        if (result.kind === 'throttled') refused = true;
       }
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, plan.length) }, worker));
@@ -226,8 +248,7 @@ export class ReadsbFeed implements Feed {
     this.pausedUntil = null;
     this.lastError = null;
     this.lastSuccessAt = this.now();
-    const interval = this.watched ? this.opts.pollMs : (this.opts.warmPollMs ?? this.opts.pollMs);
-    return Math.max(interval, plan.length * this.service.minMsPerCircle);
+    return this.intervalFor(plan);
   }
 
   /** Wait for this request's slot. The slot is taken before waiting, so concurrent workers queue in turn. */
