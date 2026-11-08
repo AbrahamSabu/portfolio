@@ -1,4 +1,4 @@
-import { metresToFeet, mpsToKnots, type Board, type BoardId, type RecordEntry, type Track } from '@watchfloor/shared';
+import { metresToFeet, MPS_PER_KNOT, mpsToKnots, type Board, type BoardId, type RecordEntry, type Track } from '@watchfloor/shared';
 import { createLogger } from '../log';
 import { AIRCRAFT_TYPES, typeName } from './aircraftTypes';
 
@@ -37,15 +37,14 @@ const MAX_AIR_MPS_BY_PLATFORM: Partial<Record<Track['platform'], number>> = {
   'military-helicopter': 110,
   'light-aircraft': 150,
 };
-const KNOT = 0.514444;
 const MAX_SEA_MPS_BY_PLATFORM: Partial<Record<Track['platform'], number>> = {
-  cargo: 27 * KNOT,
-  tanker: 22 * KNOT,
-  fishing: 20 * KNOT,
-  passenger: 45 * KNOT,
-  leisure: 50 * KNOT,
-  warship: 45 * KNOT,
-  vessel: 50 * KNOT,
+  cargo: 27 * MPS_PER_KNOT,
+  tanker: 22 * MPS_PER_KNOT,
+  fishing: 20 * MPS_PER_KNOT,
+  passenger: 45 * MPS_PER_KNOT,
+  leisure: 50 * MPS_PER_KNOT,
+  warship: 45 * MPS_PER_KNOT,
+  vessel: 50 * MPS_PER_KNOT,
 };
 const MIN_SHIP_LENGTH_M = 20;
 /** An airline's ICAO designator starts its callsign, then a flight number: RYR4XW. */
@@ -112,7 +111,7 @@ export function leaderboards(tracks: readonly Track[], now: number, sources: Rec
   );
   add('north', 'air', 'Farthest north', top(air, (t) => t.lat).map((t) => entry(t, latitude(t.lat), typeOf(t))));
   add('south', 'air', 'Farthest south', top(air, (t) => -t.lat).map((t) => entry(t, latitude(t.lat), typeOf(t))));
-  const moving = sea.filter((t) => t.speedMps >= MIN_SEA_SPEED_MPS && t.speedMps <= (MAX_SEA_MPS_BY_PLATFORM[t.platform] ?? 50 * KNOT));
+  const moving = sea.filter((t) => t.speedMps >= MIN_SEA_SPEED_MPS && t.speedMps <= (MAX_SEA_MPS_BY_PLATFORM[t.platform] ?? 50 * MPS_PER_KNOT));
   add('fastest-ship', 'sea', 'Fastest ships', top(moving, (t) => t.speedMps).map((t) => entry(t, `${knots(t.speedMps)} kn`, `${kmh(t.speedMps)} km/h`)));
   if (sources.shipLengthM) {
     const lengths = new Map<Track, number>();

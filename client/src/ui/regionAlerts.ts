@@ -26,8 +26,8 @@ export class RegionAlerts {
   constructor(
     private readonly root: HTMLElement,
     private readonly regions: RegionStore,
-    private readonly store: TrackStore,
-    private readonly selection: Selection,
+    store: TrackStore,
+    selection: Selection,
     private readonly voice: NewsSettings,
     private readonly ping: () => void = () => {},
   ) {

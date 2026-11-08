@@ -97,7 +97,7 @@ export class RoomDialog {
   private qrFor: string | null = null;
   private typedError: string | null = null;
 
-  constructor(private readonly handlers: RoomDialogHandlers) {
+  constructor(handlers: RoomDialogHandlers) {
     // The map key's dialog frame, header and close button, so the two dialogs match.
     this.dialog.className = 'key-dialog room-dialog';
     this.dialog.setAttribute('aria-labelledby', 'room-title');

@@ -93,10 +93,6 @@
   letter-spacing: 0.05em;
 }
 
-.room-consoles-empty {
-  color: var(--ink-muted);
-}
-
 .room-foot {
   display: flex;
   align-items: center;

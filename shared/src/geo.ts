@@ -113,7 +113,7 @@ export function inBBox(p: LatLon, b: BBox): boolean {
 }
 
 // Unit conversions used across the UI and feeds.
-export const MPS_PER_KNOT = 0.514444;
+export const MPS_PER_KNOT = 1852 / 3600; // a knot is exactly 1,852 m an hour
 export const M_PER_FT = 0.3048;
 export const mpsToKnots = (mps: number) => mps / MPS_PER_KNOT;
 export const knotsToMps = (kt: number) => kt * MPS_PER_KNOT;

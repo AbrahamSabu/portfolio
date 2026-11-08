@@ -1,4 +1,4 @@
-import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
+import type { GeoJSONSource, Map as MapLibreMap, ExpressionSpecification } from 'maplibre-gl';
 import { LOWEST_TRACK_LAYER } from '../map/trackLayer';
 import { splitAtAntimeridian } from './orbit';
 import type { GroundTrack } from './propagate';
@@ -47,7 +47,7 @@ export class GroundTrackLayer {
     const map = this.map;
     if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     const beforeId = map.getLayer(LOWEST_TRACK_LAYER) ? LOWEST_TRACK_LAYER : undefined;
-    const color = ['case', ['get', 'selected'], ACCENT, STEEL] as unknown as string;
+    const color: ExpressionSpecification = ['case', ['get', 'selected'], ACCENT, STEEL];
     if (!map.getLayer(PAST_LAYER)) {
       map.addLayer(
         {
@@ -60,7 +60,7 @@ export class GroundTrackLayer {
             'line-color': color,
             'line-width': 1.2,
             'line-dasharray': [2, 3],
-            'line-opacity': ['case', ['get', 'selected'], 0.55, 0.25] as unknown as number,
+            'line-opacity': ['case', ['get', 'selected'], 0.55, 0.25],
           },
         },
         beforeId,
@@ -76,8 +76,8 @@ export class GroundTrackLayer {
           layout: { 'line-join': 'round', 'line-cap': 'round', visibility: this.visible ? 'visible' : 'none' },
           paint: {
             'line-color': color,
-            'line-width': ['case', ['get', 'selected'], 1.6, 1.1] as unknown as number,
-            'line-opacity': ['case', ['get', 'selected'], 0.85, 0.4] as unknown as number,
+            'line-width': ['case', ['get', 'selected'], 1.6, 1.1],
+            'line-opacity': ['case', ['get', 'selected'], 0.85, 0.4],
           },
         },
         beforeId,

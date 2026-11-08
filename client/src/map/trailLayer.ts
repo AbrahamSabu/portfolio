@@ -42,8 +42,8 @@ const PAINT: LineLayerSpecification['paint'] = {
  * A trail is the track's *reported* positions, never dead-reckoned ones, so it
  * shows only where the track was actually seen. It is drawn in two parts:
  *
- * - The trail itself changes only when a report arrives (about once a
- *   second), so it is rebuilt only when the store changes.
+ * - The trail itself changes only when a report arrives, so it is rebuilt
+ *   only when the store changes.
  * - The "head" joins the last report to the symbol, which moves at 10 Hz.
  *   It is one short segment per track, in its own small source, so the
  *   frequent update stays cheap however long the trails get.

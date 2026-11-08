@@ -1,8 +1,8 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { PictureFilter } from '../state/pictureFilter';
+import type { ServerClock } from '../state/clock';
 import type { Selection } from '../state/selection';
 import type { TrackStore } from '../state/trackStore';
-import type { ServerClock } from '../state/clock';
 import { AltitudeHistory } from './altitudeHistory';
 import { relockCamera, reducedMotion, unlockCamera } from './cameraLock';
 import { Layer3d } from './layer3d';
@@ -60,7 +60,7 @@ export class StackMode {
   constructor(
     private readonly map: MapLibreMap,
     private readonly store: TrackStore,
-    private readonly clock: ServerClock,
+    clock: ServerClock,
     private readonly tracks: TrackLayer,
     private readonly selection: Selection,
     private readonly filter: PictureFilter,

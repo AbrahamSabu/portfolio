@@ -46,7 +46,8 @@ export interface OpenSkyOptions {
 /**
  * Live aircraft from the OpenSky Network REST API.
  *
- * Polls /states/all for the scenario's bounding box. Successful polls upsert
+ * Polls /states/all for the world (the default), the scenario's bounding box
+ * or what browsers are looking at (OPENSKY_AREA). Successful polls upsert
  * airborne aircraft and remove those reported on the ground. Failed polls push
  * nothing, so tracks fade and drop through the normal staleness rules: the
  * picture degrades visibly instead of freezing.

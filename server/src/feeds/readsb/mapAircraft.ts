@@ -1,4 +1,4 @@
-import { makeTrackId, type Provider, type Track } from '@watchfloor/shared';
+import { makeTrackId, MPS_PER_KNOT, type Provider, type Track } from '@watchfloor/shared';
 import { categoryFromCode, platformFor } from '../adsb/category';
 import type { MapOutcome } from '../opensky/mapState';
 
@@ -8,7 +8,6 @@ import type { MapOutcome } from '../opensky/mapState';
  * Field reference: https://github.com/wiedehopf/readsb/blob/dev/README-json.md
  */
 const FEET_TO_M = 0.3048;
-const KNOTS_TO_MPS = 1852 / 3600;
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -48,7 +47,7 @@ export function mapAircraft(ac: unknown, nowMs: number, provider: Provider): Map
     lat,
     lon,
     courseDeg,
-    speedMps: gs * KNOTS_TO_MPS,
+    speedMps: gs * MPS_PER_KNOT,
     observedAt: Math.round(nowMs - age * 1000),
     provider,
   };
