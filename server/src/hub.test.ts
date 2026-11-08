@@ -6,6 +6,19 @@ import { WebSocket } from 'ws';
 import { Hub } from './hub';
 import { TrackStore } from './trackStore';
 
+/**
+ * Waits for a condition rather than sleeping a guessed time: the hub runs on
+ * real timers and sockets, and on a loaded machine a fixed sleep either
+ * fails (too short) or wastes seconds (too long).
+ */
+const until = async (ready: () => boolean, what: string, timeoutMs = 10_000): Promise<void> => {
+  const deadline = Date.now() + timeoutMs;
+  while (!ready()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((r) => setTimeout(r, 10));
+  }
+};
+
 describe('Hub', () => {
   let server: Server | undefined;
   let hub: Hub | undefined;
@@ -161,7 +174,7 @@ describe('Hub', () => {
     const types: string[] = [];
     const client = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     client.on('message', (data) => types.push(JSON.parse(String(data)).type));
-    await new Promise((r) => setTimeout(r, 1500));
+    await until(() => types.filter((t) => t === 'delta').length > 10, 'ten deltas after the snapshot');
     client.close();
 
     // Counting bytes, the first snapshot made the client look slow and each
@@ -186,7 +199,7 @@ describe('Hub', () => {
     hub.start();
     await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
     const { port } = server.address() as AddressInfo;
-    const settle = () => new Promise((r) => setTimeout(r, 200));
+    const lastReport = () => JSON.stringify(reports.at(-1));
     const open = async () => {
       const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
       await new Promise((r) => ws.once('open', r));
@@ -198,18 +211,15 @@ describe('Hub', () => {
     for (let i = 0; i < 10; i++) a.send(JSON.stringify({ type: 'view', bbox: view(i) }));
     a.send('junk');
     a.send(JSON.stringify({ type: 'view', bbox: { south: 5, west: 0, north: 1, east: 1 } })); // inverted: ignored
-    await settle();
+    await until(() => lastReport() === JSON.stringify([view(9)]), "the burst's last view");
     expect(reports.length).toBeLessThanOrEqual(2); // a burst becomes one or two reports, not ten
-    expect(reports.at(-1)).toEqual([view(9)]);
 
     const b = await open();
     b.send(JSON.stringify({ type: 'view', bbox: view(100) }));
-    await settle();
-    expect(reports.at(-1)).toEqual([view(9), view(100)]);
+    await until(() => lastReport() === JSON.stringify([view(9), view(100)]), "the second browser's view");
 
     a.close();
-    await settle();
-    expect(reports.at(-1)).toEqual([view(100)]);
+    await until(() => lastReport() === JSON.stringify([view(100)]), "the first browser's view forgotten");
 
     // A message over the 4 KB limit closes that socket (ws enforces maxPayload).
     const closed = new Promise<number>((r) => b.once('close', (code) => r(code)));
@@ -237,13 +247,17 @@ describe('Hub', () => {
     const messages: Array<{ type: string; feeds?: FeedStatus[] }> = [];
     const client = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     client.on('message', (data) => messages.push(JSON.parse(String(data))));
-    await new Promise((r) => setTimeout(r, 200));
+    await until(() => messages.length > 0, 'the hello');
     expect(messages[0]).toMatchObject({ type: 'hello', feeds });
 
     const before = messages.length;
     feeds = [{ feed: 'opensky', label: 'OpenSky', state: 'rate-limited', until: 123 }];
-    await new Promise((r) => setTimeout(r, 200));
-    const withFeeds = messages.slice(before).filter((m) => m.type === 'delta' && m.feeds);
+    const since = () => messages.slice(before);
+    await until(() => since().some((m) => m.type === 'delta' && m.feeds), 'the delta carrying the change');
+    // Three more ticks: the change rides on one delta only.
+    const seen = since().length;
+    await until(() => since().length >= seen + 3, 'three more deltas');
+    const withFeeds = since().filter((m) => m.type === 'delta' && m.feeds);
     expect(withFeeds).toHaveLength(1);
     expect(withFeeds[0]!.feeds).toEqual(feeds);
     client.close();

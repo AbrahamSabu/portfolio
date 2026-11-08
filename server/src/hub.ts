@@ -67,8 +67,10 @@ interface Client {
   address: string;
   /** How the ops room reaches this browser. */
   peer: RoomPeer;
-  /** When this browser last asked about a track; requests closer together are ignored. */
+  /** When this browser last asked about a track; a request closer than the gap waits for it (the latest one wins). */
   lastTrackRequestAt: number;
+  pendingTrackId: string | null;
+  trackTimer: NodeJS.Timeout | null;
   /** When it last asked for the brief or a replay: both are built to order, so they're rationed harder. */
   lastBriefAt: number;
   lastReplayAt: number;
@@ -208,6 +210,8 @@ export class Hub {
         },
       },
       lastTrackRequestAt: 0,
+      pendingTrackId: null,
+      trackTimer: null,
       lastBriefAt: 0,
       lastReplayAt: 0,
     };
@@ -277,6 +281,7 @@ export class Hub {
   }
 
   private sendSnapshot(client: Client): void {
+    const resync = client.needsResync;
     const snapshot: SnapshotMessage = {
       type: 'snapshot',
       serverTime: Date.now(),
@@ -287,6 +292,13 @@ export class Hub {
     client.needsResync = false;
     // The callback fires once ws has written the message, or on error.
     client.ws.send(encodeServerMessage(snapshot), () => (client.snapshotInFlight = false));
+    // Feed statuses ride only on the tick where they change, which a lagging
+    // client was skipped for: after a resync it gets the current ones, or its
+    // status bar could show a feed as failing hours after it recovered.
+    if (resync) {
+      const feeds = this.opts.feedStatus?.() ?? [];
+      client.ws.send(encodeServerMessage({ type: 'delta', serverTime: snapshot.serverTime, upserts: [], removals: [], feeds }));
+    }
   }
 
   private sendDelta(client: Client, payload: string): void {
@@ -344,6 +356,8 @@ export class Hub {
   /** Safe to call twice (terminate() is followed by a close event): only a real removal notifies. */
   private dropClient(client: Client, reason: string): void {
     if (!this.clients.delete(client)) return;
+    if (client.trackTimer) clearTimeout(client.trackTimer);
+    client.trackTimer = null;
     this.opts.rooms?.drop(client.peer);
     log.info(reason, { address: client.address, clients: this.clients.size });
     if (client.view) this.viewsChanged();
@@ -366,7 +380,23 @@ export class Hub {
     };
     if (message.type === 'track') {
       const now = Date.now();
-      if (now - client.lastTrackRequestAt < TRACK_REQUEST_GAP_MS) return;
+      const wait = TRACK_REQUEST_GAP_MS - (now - client.lastTrackRequestAt);
+      if (wait > 0) {
+        // Inside the gap: keep the latest id and answer it when the gap ends.
+        // The browser sends one request per selection and never retries, so
+        // dropping it lost the path and details of the second of two quick
+        // selections (arrowing down the list). Still one answer per gap.
+        client.pendingTrackId = message.id;
+        client.trackTimer ??= setTimeout(() => {
+          client.trackTimer = null;
+          const id = client.pendingTrackId;
+          client.pendingTrackId = null;
+          if (id === null || client.ws.readyState !== WebSocket.OPEN) return;
+          client.lastTrackRequestAt = Date.now();
+          this.opts.onTrackRequest?.(id, reply);
+        }, wait);
+        return;
+      }
       client.lastTrackRequestAt = now;
       this.opts.onTrackRequest?.(message.id, reply);
       return;
