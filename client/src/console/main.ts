@@ -132,6 +132,8 @@ const connection = new Connection(defaultSocketUrl(), {
     clock.update(message.serverTime, receivedAt);
     switch (message.type) {
       case 'hello':
+        clock.reset(); // a new server may keep a different clock: its first sample is taken whole
+        clock.update(message.serverTime, receivedAt);
         store.setStaleness(message.staleness);
         traffic = trafficLabel(message.traffic, message.scenario?.name);
         // A new socket: rejoin (the token keeps our callsign) and ask again about the open track.

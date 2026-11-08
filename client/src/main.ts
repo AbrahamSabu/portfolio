@@ -534,7 +534,10 @@ async function main(): Promise<void> {
       return;
     }
     reticle.show(pos.lon, pos.lat, id !== previous);
-    if (selection.follow) map.easeTo({ center: [pos.lon, pos.lat], duration: 400 });
+    // Not during a flight: the tour engages follow mode as its flight starts, and this ease
+    // cancelled the flight (MapLibre stops any camera animation first), so follow stops sat
+    // at the previous zoom. Follow's own frame loop recentres once the flight lands.
+    if (selection.follow && !map.isMoving()) map.easeTo({ center: [pos.lon, pos.lat], duration: 400 });
   });
   layer.onFrame(() => {
     const pos = selection.id ? layer.positionOf(selection.id) : undefined;
@@ -704,10 +707,19 @@ async function main(): Promise<void> {
       bbox: viewForServer({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }),
     });
   };
+  // 300 ms after the camera settles, but at most 2 s after it started moving: a ride moves
+  // the camera every frame, and a pure debounce never fired, so the feeds kept polling where
+  // the ride began and a long ride flew out of the polled area.
   let viewTimer: number | undefined;
+  let viewDue = 0;
   map.on('moveend', () => {
+    const now = Date.now();
+    if (viewDue === 0) viewDue = now + 2_000;
     window.clearTimeout(viewTimer);
-    viewTimer = window.setTimeout(sendView, 300);
+    viewTimer = window.setTimeout(() => {
+      viewDue = 0;
+      sendView();
+    }, Math.max(0, Math.min(300, viewDue - now)));
   });
 
   const credits = new DataCredits(map);
@@ -764,6 +776,9 @@ async function main(): Promise<void> {
       clock.update(message.serverTime, receivedAt);
       switch (message.type) {
         case 'hello':
+          // A new server (a restart, a reconnect) may keep a different clock: take its first sample whole.
+          clock.reset();
+          clock.update(message.serverTime, receivedAt);
           store.setStaleness(message.staleness);
           scenarioName.textContent = trafficLabel(message.traffic, message.scenario?.name);
           if (message.scenario && !framed && !userHasMoved()) {
@@ -776,6 +791,7 @@ async function main(): Promise<void> {
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
           if (selection.id) connection.send({ type: 'track', id: selection.id }); // a fresh answer after reconnecting
+          timeline.reconnected();
           room.reconnected(message.scenario);
           break;
         case 'room':

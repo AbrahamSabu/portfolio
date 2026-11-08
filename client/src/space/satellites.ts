@@ -1,4 +1,5 @@
 import { SATELLITE_GROUPS, type SatelliteCatalog, type SatelliteElements, type SatelliteGroup } from '@watchfloor/shared';
+import { isRideMove } from '../map/camera';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { paceScaleNow } from '../map/renderRate';
 import { LOWEST_TRACK_LAYER } from '../map/trackLayer';
@@ -125,7 +126,9 @@ export class Satellites {
     deps.selection.subscribe((id) => {
       if (id !== null) this.selectIndex(null);
     });
-    map.on('moveend', () => this.schedulePass(800));
+    map.on('moveend', (event) => {
+      if (!isRideMove(event)) this.schedulePass(800);
+    });
     window.setInterval(() => this.tick(), 1_000);
     this.applyShown();
   }

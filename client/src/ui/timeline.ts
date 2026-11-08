@@ -101,6 +101,11 @@ export class Timeline {
   }
 
   /** The server's paths arrived: note how much of the picture the replay holds. */
+  /** A fresh connection: a replay asked for while the link was down was never answered. */
+  reconnected(): void {
+    if (this.state.mode === 'replay') this.deps.requestReplay();
+  }
+
   loaded(message: ReplayMessage): void {
     this.trackCount = message.tracks.length;
     if (message.truncated) this.trackCount = -message.tracks.length; // negative marks "capped"

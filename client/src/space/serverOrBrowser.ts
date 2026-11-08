@@ -55,7 +55,10 @@ export class ServerOrBrowserCatalog implements CatalogSource {
     try {
       this.source = await this.browser(this.onCatalog, this.onStatus);
     } catch {
-      // Its code didn't load (offline): the server's client stays, still "loading".
+      // Its code didn't load (offline for a moment): the server's client carries on, and its
+      // next 404 brings us here again.
+      this.switched = false;
+      if (this.running) this.source.start();
       return;
     }
     this.onStatus();

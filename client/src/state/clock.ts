@@ -11,6 +11,11 @@ export class ServerClock {
   private offsetMs = 0;
   private hasSample = false;
 
+  /** A new server (a reconnect, a restart): its clock may differ, so the next sample is taken whole, not decayed into. */
+  reset(): void {
+    this.hasSample = false;
+  }
+
   update(serverTime: number, receivedAt = Date.now()): void {
     const sample = serverTime - receivedAt;
     if (!this.hasSample || sample > this.offsetMs) {

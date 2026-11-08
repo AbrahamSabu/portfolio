@@ -1,4 +1,5 @@
 import type { NewsItem } from '@watchfloor/shared';
+import { isRideMove } from '../map/camera';
 import { Marker, Popup, type Map as MapLibreMap } from 'maplibre-gl';
 import { NEWS_KIND_LABEL, newsIconSvg } from '../map/newsIcons';
 import { facesViewer } from '../map/viewBox';
@@ -88,7 +89,8 @@ export class NewsCards {
       if (!settings.voice) window.speechSynthesis?.cancel();
     });
     // The operator moved the map and the card's story went off screen or round the globe: move on.
-    map.on('moveend', () => {
+    map.on('moveend', (event) => {
+      if (isRideMove(event)) return;
       const shown = this.shownId && this.news.get(this.shownId);
       if (shown && !this.onScreenTest()(shown)) {
         this.pinnedUntil = 0;
