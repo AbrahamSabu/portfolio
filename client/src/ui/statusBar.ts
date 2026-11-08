@@ -18,6 +18,7 @@ export class StatusBar {
   private readonly filteredEl: HTMLElement;
   private readonly cursorEl: HTMLElement;
   private readonly feedEl: HTMLElement;
+  private traffic: 'simulated' | 'live' | 'mixed' = 'live';
   private state: ConnectionState = { status: 'connecting' };
 
   constructor(
@@ -54,6 +55,12 @@ export class StatusBar {
     window.setInterval(() => this.refresh(), 1000);
     filter.subscribe(() => this.refresh());
     this.refresh();
+  }
+
+  /** What the picture is: the link word reads "Simulated" rather than "Live" for simulated traffic. */
+  setTraffic(kind: 'simulated' | 'live' | 'mixed'): void {
+    this.traffic = kind;
+    this.renderLink();
   }
 
   setConnection(state: ConnectionState): void {
@@ -101,10 +108,10 @@ export class StatusBar {
     this.retryButton.hidden = s.status !== 'waiting';
     switch (s.status) {
       case 'connecting':
-        this.linkText.textContent = 'Connecting';
+        this.linkText.textContent = this.traffic === 'simulated' ? 'Simulating the last 30 minutes' : 'Connecting';
         break;
       case 'open':
-        this.linkText.textContent = 'Live';
+        this.linkText.textContent = this.traffic === 'simulated' ? 'Simulated' : 'Live';
         break;
       case 'waiting': {
         const seconds = Math.max(0, Math.ceil((s.retryAt - Date.now()) / 1000));

@@ -479,7 +479,8 @@ async function main(): Promise<void> {
   tourButton.addEventListener('click', () => (tour.active ? tour.stop() : tour.start()));
   tour.onChange = () => tourButton.setAttribute('aria-pressed', String(tour.active));
   // A first visit's one-time hint; not for a kiosk, or a screen joined to a room (nobody is at its mouse).
-  if (!screensaver && !new URLSearchParams(location.search).has('screen')) showFirstHint(map);
+  // Shown once the first picture is in (the demo's can take ten seconds): a hint to click aircraft on an empty globe helped nobody.
+  let hintArmed = !screensaver && !new URLSearchParams(location.search).has('screen');
 
   // Screensaver mode (?screensaver, for a kiosk window or an idle trigger):
   // opening this URL is the consent the motion rule asks for, so the tour
@@ -818,6 +819,9 @@ async function main(): Promise<void> {
           }
           framed = true;
           status.setFeeds(message.feeds);
+          status.setTraffic(message.traffic);
+          // Phones hide the scenario label, so a chip says the traffic is simulated (never present it as live).
+          el('sim-chip').hidden = message.traffic !== 'simulated';
           // A feed that can't run (no API key) shows no data, so it gets no credit.
           credits.set(message.feeds.filter((f) => f.state !== 'unconfigured').map((f) => f.feed));
           sendView(); // on every (re)connect, so the server always knows what we're looking at
@@ -835,6 +839,10 @@ async function main(): Promise<void> {
           const applyStart = performance.now();
           store.applySnapshot(message.tracks, message.trails);
           performance.measure('wf:snapshot-apply', { start: applyStart });
+          if (hintArmed) {
+            hintArmed = false;
+            showFirstHint(map);
+          }
           break;
         }
         case 'delta':
@@ -879,6 +887,29 @@ async function main(): Promise<void> {
   const connection: Link = demo ? new demo.LocalServer(handlers) : new Connection(defaultSocketUrl(), handlers);
 
   const status = new StatusBar(el('statusbar'), map, store, clock, filter, () => connection.retryNow());
+  if (demo) {
+    // The in-page server runs the last 30 minutes before its first picture: "Connecting" would be a lie.
+    status.setTraffic('simulated');
+    scenarioName.textContent = 'World, simulating the last 30 minutes';
+  }
+  // The graphics context can go (a crowded GPU, a long ride loading terrain): MapLibre then throws on
+  // every frame and the 3D modes can't be left. End them, and say the one thing that helps.
+  map.getCanvas().addEventListener('webglcontextlost', () => {
+    ride.stop();
+    stack.leaveNow();
+    const notice = document.createElement('div');
+    notice.className = 'context-lost';
+    notice.setAttribute('role', 'alert');
+    const text = document.createElement('p');
+    text.textContent = 'The graphics stopped (the browser lost its drawing context). Reload the page to carry on.';
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.className = 'alert-show';
+    reload.textContent = 'Reload';
+    reload.addEventListener('click', () => location.reload());
+    notice.append(text, reload);
+    document.querySelector('.app')?.append(notice);
+  });
 
   // A covered or background tab should cost nothing: after a quiet minute
   // hidden, close the socket entirely (no deltas, no reconnect churn, and the

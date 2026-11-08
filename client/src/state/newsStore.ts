@@ -16,8 +16,12 @@ export class NewsStore {
   private readonly byId = new Map<string, NewsItem>();
   private readonly listeners = new Set<Listener>();
 
+  /** The newest story ever received, kept or not: "nothing in the last day" reads differently from "nothing yet". */
+  newestSeen: number | null = null;
+
   apply(message: Pick<NewsMessage, 'items' | 'replace'>, now: number): void {
     const cutoff = now - KEEP_MS;
+    for (const s of message.items) this.newestSeen = Math.max(this.newestSeen ?? 0, s.publishedAt);
     let added: NewsItem[] = [];
     if (message.replace) {
       this.stories = message.items.filter((s) => s.publishedAt >= cutoff);
