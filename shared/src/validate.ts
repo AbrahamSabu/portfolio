@@ -6,6 +6,10 @@ const SOURCES: ReadonlySet<TrackSource> = new Set(TRACK_VALUES.source);
 const AFFILIATIONS: ReadonlySet<Affiliation> = new Set(TRACK_VALUES.affiliation);
 const PLATFORMS: ReadonlySet<Platform> = new Set(TRACK_VALUES.platform);
 const PROVIDERS: ReadonlySet<Provider> = new Set(TRACK_VALUES.provider);
+/** Faster than anything tracked here flies (the SR-71 managed ~980 m/s); above it the number is junk. */
+const MAX_SPEED_MPS = 2_000;
+/** Higher than any aircraft; the wire carries altitude as a plain integer. */
+const MAX_ALTITUDE_M = 100_000;
 
 /**
  * Callsigns and ship names as transmitted carry filler: padding punctuation
@@ -57,7 +61,8 @@ export function sanitizeTrack(input: unknown): Track | null {
     lat: t.lat,
     lon: t.lon,
     courseDeg: isFiniteNumber(t.courseDeg) ? normalizeDeg(t.courseDeg) : 0,
-    speedMps: isFiniteNumber(t.speedMps) && t.speedMps > 0 ? t.speedMps : 0,
+    // Capped: a junk speed above anything that flies would reach the wire as Infinity -> JSON null.
+    speedMps: isFiniteNumber(t.speedMps) && t.speedMps > 0 ? Math.min(t.speedMps, MAX_SPEED_MPS) : 0,
     observedAt: t.observedAt,
   };
 
@@ -66,7 +71,7 @@ export function sanitizeTrack(input: unknown): Track | null {
     if (callsign) track.callsign = callsign;
   }
   if (PROVIDERS.has(t.provider as Provider)) track.provider = t.provider as Provider;
-  if (track.domain === 'air' && isFiniteNumber(t.altitudeM)) {
+  if (track.domain === 'air' && isFiniteNumber(t.altitudeM) && Math.abs(t.altitudeM) <= MAX_ALTITUDE_M) {
     track.altitudeM = t.altitudeM;
   }
   if (track.domain === 'air' && typeof t.typeCode === 'string' && /^[A-Z0-9]{1,4}$/.test(t.typeCode)) {
