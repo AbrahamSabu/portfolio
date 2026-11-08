@@ -63,9 +63,9 @@
         })();
       }
     </script>
-    <script type="module" crossorigin src="./assets/main-LdhiNl3f.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/src-DY9QbTfj.js">
-    <link rel="stylesheet" crossorigin href="./assets/main-lO2njyDQ.css">
+    <script type="module" crossorigin src="./assets/main-CbOwhKNX.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/src-Dn7PxJ9H.js">
+    <link rel="stylesheet" crossorigin href="./assets/main-DVWn6UmR.css">
   </head>
   <body>
     <div class="boot" id="boot" aria-hidden="true">
@@ -99,8 +99,9 @@
             <span>Tracks</span>
           </button>
           <div class="brand">
-            <span class="brand-name">Watchfloor</span>
+            <h1 class="brand-name">Watchfloor</h1>
             <span class="brand-scenario" id="scenario-name">Connecting to server</span>
+            <span class="sim-chip" id="sim-chip" title="Simulated traffic" hidden>SIM</span>
           </div>
         </div>
         <div class="topbar-end">
@@ -172,7 +173,7 @@
             type="search"
             data-search
             placeholder="Search callsign or type"
-            aria-label="Search by callsign or track id (/)"
+            aria-label="Search by callsign or track id"
             autocomplete="off"
             spellcheck="false"
           />
@@ -260,7 +261,7 @@
       </section>
 
       <div class="palette-backdrop" id="palette" hidden>
-        <div class="palette" role="dialog" aria-label="Search">
+        <div class="palette" role="dialog" aria-modal="true" aria-label="Search">
           <input
             class="palette-input"
             type="text"
@@ -273,6 +274,7 @@
             spellcheck="false"
           />
           <ul class="palette-results" id="palette-results" data-results role="listbox" aria-label="Search results"></ul>
+          <p class="palette-empty" data-empty role="status" hidden></p>
         </div>
       </div>
 
@@ -407,12 +409,12 @@
         </p>
 
         <figure class="details-photo" data-photo>
-          <a class="details-photo-link" data-photo-link target="_blank" hidden>
+          <a class="details-photo-link" data-photo-link target="_blank" rel="noopener" hidden>
             <img data-photo-img alt="" decoding="async" />
           </a>
           <div class="details-drawing" data-drawing aria-hidden="true"></div>
           <figcaption class="details-credit" data-photo-credit hidden>
-            Photo: <a data-photo-credit-link target="_blank"></a> / <span data-photo-source></span>
+            Photo: <a data-photo-credit-link target="_blank" rel="noopener"></a> / <span data-photo-source></span>
           </figcaption>
         </figure>
         <p class="details-note" data-private-note hidden>
@@ -503,10 +505,10 @@
           <button class="button" type="button" data-follow aria-pressed="false">Follow on map</button>
         </div>
         <p class="details-credit" data-airline-credit hidden>
-          Airline names from <a href="https://openflights.org/data.php" target="_blank">OpenFlights</a> (ODbL).
+          Airline names from <a href="https://openflights.org/data.php" target="_blank" rel="noopener">OpenFlights</a> (ODbL).
         </p>
         <p class="details-credit" data-wikidata-credit hidden>
-          Class, operator and year from <a href="https://www.wikidata.org" target="_blank">Wikidata</a>.
+          Class, operator and year from <a href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>.
         </p>
       </aside>
 
