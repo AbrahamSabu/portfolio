@@ -242,6 +242,7 @@ async function main(): Promise<void> {
       uptimeS: Math.round((Date.now() - startedAt) / 1000),
       tracks: store.size,
       rejectedReports: store.rejected,
+      rejectedBy: store.rejectedReasons,
       clients: hub?.clientCount ?? 0,
       paths: { tracks: store.paths.size, points: store.paths.points, openSkyLookupsLastHour: paths.lookupsLastHour },
       feeds: Object.fromEntries(feeds.map((f) => [f.name, f.health?.() ?? {}])),

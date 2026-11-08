@@ -38,6 +38,8 @@ export class TrackStore {
   /** Hours of thinned history per track, sent only to a browser that selects it. */
   readonly paths: PathHistory;
   private rejectedCount = 0;
+  /** Why reports were rejected, for /healthz: a provider whose clock runs ahead shows up here, not as an empty map. */
+  private readonly rejectedBy = { invalid: 0, future: 0, tooOld: 0 };
 
   /**
    * @param identify fills in what a report doesn't say about itself (the
@@ -62,6 +64,11 @@ export class TrackStore {
     return this.rejectedCount;
   }
 
+  /** Rejections by reason (invalid, stamped > 30 s in the future, too old to show). */
+  get rejectedReasons(): Readonly<{ invalid: number; future: number; tooOld: number }> {
+    return this.rejectedBy;
+  }
+
   get(id: string): Track | undefined {
     return this.tracks.get(id);
   }
@@ -71,15 +78,20 @@ export class TrackStore {
     const track = sanitizeTrack(report);
     if (!track) {
       this.rejectedCount++;
+      this.rejectedBy.invalid++;
       return false;
     }
     this.identify?.(track);
     if (track.observedAt > now + MAX_FUTURE_MS) {
       this.rejectedCount++;
+      this.rejectedBy.future++;
       return false;
     }
     // Too old to be worth showing at all.
-    if (now - track.observedAt > ruleFor(track, this.staleness).dropAfterMs) return false;
+    if (now - track.observedAt > ruleFor(track, this.staleness).dropAfterMs) {
+      this.rejectedBy.tooOld++;
+      return false;
+    }
 
     // Reports can arrive out of order (network, feed batching). Never go backwards.
     const existing = this.tracks.get(track.id);
