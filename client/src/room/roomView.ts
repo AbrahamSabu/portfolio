@@ -19,7 +19,7 @@ export type RoomState =
   | { kind: 'open'; code: string; key: string; origins: string[] }
   | { kind: 'joining'; code: string }
   | { kind: 'screen'; code: string; name: ScreenName; token: string }
-  | { kind: 'ended'; reason: RoomClosedReason; as: 'main' | 'screen' };
+  | { kind: 'ended'; reason: RoomClosedReason; as: 'main' | 'screen'; code?: string };
 
 /** What the dialog shows, worked out from the state alone so it can be tested. */
 export interface RoomView {

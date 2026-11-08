@@ -20,6 +20,7 @@ export class RemotePointer {
   private y = -1;
   /** Where a press went down: moves drag it until the release. */
   private pressed: Element | null = null;
+  private pressedBy: string | null = null;
   private idleTimer: number | undefined;
 
   constructor() {
@@ -60,17 +61,35 @@ export class RemotePointer {
   press(who: string, down: boolean): void {
     this.show(who);
     if (down) {
+      // A press while another console still holds one releases that first: never two drags at once.
+      this.release();
       const target = this.under();
       if (!target) return;
       this.pressed = target;
+      this.pressedBy = who;
       this.fire(target, 'pointerdown', 1);
       this.fire(target, 'mousedown', 1);
-    } else if (this.pressed) {
-      const target = this.pressed;
-      this.pressed = null;
-      this.fire(target, 'pointerup', 0);
-      this.fire(target, 'mouseup', 0);
-    }
+    } else this.release();
+  }
+
+  /** The console holding a press, or null: the host lets go for one that left the room. */
+  get holder(): string | null {
+    return this.pressedBy;
+  }
+
+  /** The room ended, or the pressing console left: let go of any drag and hide. */
+  reset(): void {
+    this.release();
+    this.hide();
+  }
+
+  private release(): void {
+    const target = this.pressed;
+    if (!target) return;
+    this.pressed = null;
+    this.pressedBy = null;
+    this.fire(target, 'pointerup', 0);
+    this.fire(target, 'mouseup', 0);
   }
 
   /** What a click here would reach, or null where the pointer may not click. */

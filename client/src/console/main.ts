@@ -163,10 +163,12 @@ const connection = new Connection(defaultSocketUrl(), {
         screens = message.screens;
         labels = new Map([...labels, ...screenLabels(screens)]);
         // Two-way: what's picked on the steered screen (by its pointer, or at the screen) opens here.
-        const selected = targetStatus()?.selected;
-        if (selected !== seenSelected) {
-          seenSelected = selected;
-          if (selected && selected !== opened && store.get(selected)) openTrack(selected);
+        // Only while that screen is present: away, its selection reads as nothing, and its return
+        // would otherwise re-open a card this phone had closed.
+        const status = targetStatus();
+        if (status && status.selected !== seenSelected) {
+          seenSelected = status.selected;
+          if (status.selected && status.selected !== opened && store.get(status.selected)) openTrack(status.selected);
         }
         break;
       }
@@ -208,12 +210,16 @@ function leaveRoom(reason: RoomClosedReason | null): void {
 }
 
 function openTrack(id: string): void {
+  const wasOpen = opened !== null;
   opened = id;
   details = undefined;
   connection.send({ type: 'track', id });
   connection.send({ type: 'room-look', id });
-  // The phone's own Back button closes the details, as it would any page.
-  history.pushState({ console: 'details' }, '');
+  // The phone's own Back button closes the details, as it would any page: one
+  // entry for the card, however many tracks it moves through (the pointer
+  // clicking five aircraft on the screen used to need six Backs).
+  if (wasOpen) history.replaceState({ console: 'details' }, '');
+  else history.pushState({ console: 'details' }, '');
   render();
   window.scrollTo(0, 0);
 }
