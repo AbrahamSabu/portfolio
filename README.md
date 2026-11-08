@@ -275,6 +275,7 @@ client/   MapLibre map, symbology, UI
 
 **Scale to the whole world by not doing work nobody can see.** Worldwide there are 7,000+ aircraft, against the Channel simulator's hundred. Four measures keep the browser smooth, each tested and measured in headless Chrome:
 
+- *Never let the map repaint for nothing.* MapLibre fades symbols in over 300 ms, and while a symbol source's buckets keep changing it repaints every frame until the fade is allowed to begin again. Aircraft are redrawn every 0.3-1 s at regional zooms, so that loop ran at the frame rate for about four data changes a second: over London the map was repainting 24-44 times a second with the main thread 42-47% busy; with the fade turned off it repaints 9 times a second at about 30%, and nobody misses a 300 ms fade on symbols that are redrawn every second anyway.
 - *Redraw only as often as anything can visibly move.* At zoom 2 a pixel is about 20 km, so a jet takes over a minute to cross one. The render interval comes from the zoom: often enough that a 300 m/s jet moves at most half a pixel per frame, between 10 Hz (zoomed in) and 1 Hz (world view).
 - *Draw only what's near the screen.* Every track is still dead-reckoned, but only those in the view plus a margin become map features. Zoomed in, that cut main-thread work from 1,450 to 208 ms per 3 seconds.
 - *Dots below zoom 5.* Thousands of overlapping symbols read as a smear, so a circle layer coloured by identity takes over, and speed leaders aren't computed at all.

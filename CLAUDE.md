@@ -763,6 +763,29 @@ that could have been fetched before they arrived.
   a user agent per device; dispatch PointerEvents on `#pad` to drive it.
 - Review pass (Nov 2026; eight audits in parallel subagents plus a
   measured performance pass; findings in `.cache/checks/audit-merged/`):
+  - **`fadeDuration: 0` on the map (createMap.ts) is load-bearing.** MapLibre
+    marks symbol placement stale whenever a symbol source's buckets change
+    and repaints every frame until a new placement is allowed, which
+    `stillRecent()` forbids for `fadeDuration` (300 ms) after the last; the
+    aircraft source is re-set every 0.3-1 s between zoom 5 and ~9.7, so the
+    map rendered at the frame rate for ~4 data changes a second. Measured
+    (sim world, 1440x900, headless d3d11, which caps at 30 fps zoomed in):
+    London z8 24-44 renders/s and main thread 42-47% with the fade, 9/s and
+    ~30% without; Heathrow at the 10 km scale (10 Hz redraws, so the map
+    was busy anyway) 51-57% -> 45-46% over three 10 s windows. Below zoom 5
+    only dot layers are in range, so the globe and z4 idle at 8% and 12%
+    with no long tasks. Cosmetic cost: symbols and basemap labels pop in
+    rather than fade. The currents' `install()` builds its sixteen band
+    fields one per idle slice (`installing`; all at once was a 60-150 ms
+    stall every 3 s refresh). Figures from the pass, taken before the fade
+    fix: tour 54%, Stack at z8 92% (MapLibre's tile culling and bigger
+    setData on the tilted globe: the padded view box reaches the horizon;
+    open), ride 98% and 11-14 fps (terrain-bound in MapLibre:
+    `_getTerrainCoordsForRegularTile` 13% inclusive, 158 tile requests in
+    45 s; the picture no longer rebuilds per frame). Server (sim world): RSS
+    plateaus ~400 MB at 20 min at 6.7% of a core; hub ticks median 1,006 ms,
+    p95 <= 1,057 ms. Live world (~34k tracks): snapshot parse 82 ms, apply
+    18 ms, first tracks 1.84 s after navigation; idle 6-8%.
   - Hub: the encoded snapshot is reused within a tick (`snapshotCache`;
     encoding a world picture takes hundreds of ms, and a reload storm pinned
     the loop); one address may open `CONNECT_BURST` (6) connections per
