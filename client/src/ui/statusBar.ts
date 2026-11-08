@@ -108,7 +108,9 @@ export class StatusBar {
         break;
       case 'waiting': {
         const seconds = Math.max(0, Math.ceil((s.retryAt - Date.now()) / 1000));
-        this.linkText.textContent = `Connection lost, retrying in ${seconds} s`;
+        this.linkText.textContent = s.refused
+          ? `Turned away: too many connections from this address, retrying in ${seconds} s`
+          : `Connection lost, retrying in ${seconds} s`;
         break;
       }
       case 'incompatible':
