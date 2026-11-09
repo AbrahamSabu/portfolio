@@ -837,6 +837,13 @@ that could have been fetched before they arrived.
     selected its own aircraft over the one searched for; a close button in
     the field's corner for mouse and touch, `tabindex=-1` so the input stays
     the modal's only Tab stop, and closing from it refocuses the opener too;
+    an X at the far right of the top bar closes Watchfloor itself
+    (`ui/closeButton.ts`): `window.close()` works where the window has one
+    history entry, which is how the screensaver's Edge kiosk starts (it has no
+    window controls; before this the way out was Alt+F4); in a tab that
+    navigated there the browser refuses silently, so after 300 ms a note says
+    Ctrl+W / ⌘W; hidden below 640 px (no phone lets a page close its tab, and
+    the X pushed the brand into the Rare chip);
     `aria-activedescendant`, an empty state); `focusInto(panel)` after a key
     opens a panel; Escape closes the track list; the timeline handle has
     slider values and Home/End/PageUp/PageDown/Shift+arrows; choice rows are

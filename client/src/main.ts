@@ -88,6 +88,7 @@ import { StatusBar } from './ui/statusBar';
 import { TrackList } from './ui/trackList';
 import { loadSkin, saveSkin, SKIN_LOOKS, SkinSetting } from './state/skins';
 import { wearSkin } from './ui/wearSkin';
+import { mountCloseButton } from './ui/closeButton';
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
@@ -257,6 +258,7 @@ async function main(): Promise<void> {
     const airport = airports.airportAt(point);
     return airport && describeAirport(airport, countryName);
   });
+  mountCloseButton(el('close-app') as HTMLButtonElement, el('close-note'));
   const keyDialog = new KeyDialog(el('key-dialog') as HTMLDialogElement, el('key-toggle') as HTMLButtonElement, style);
   const details = new SelectedDetails();
   new DetailsPanel(el('details'), store, clock, layer, selection, style, path, details, () => pathLayer.fit());
