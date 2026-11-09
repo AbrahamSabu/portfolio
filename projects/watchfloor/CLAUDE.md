@@ -573,7 +573,12 @@ that could have been fetched before they arrived.
   server's feeds wake when a page connects, so its first reports
   "discover" aircraft that were flying all along). On phones (< 640px)
   the news rotation never pops cards (tapped ones still open), the top
-  bar goes icon-only (hud.css "phones"), and the map credits start folded:
+  bar goes icon-only (hud.css "phones"; between phone and desktop, hud.css
+  "laptops and tablets" steps it down at 1120 and 900 px, the briefing
+  button leaves below 720 and Leaderboard below 420, since the brand can't
+  shrink and used to run over the buttons from ~1100 px down; checked
+  collision-free 360-1440 px with `.cache/checks/barcheck.mjs`, 320 px
+  still overlaps), and the map credits start folded:
   MapLibre auto-opens compact credits the first time they have text (often
   on a resize after load), unless the box already has `maplibregl-compact`,
   so createMap adds it at creation. **Traffic as light**: below zoom 5 each
@@ -834,7 +839,16 @@ that could have been fetched before they arrived.
   - UX: the palette is modal (Tab trapped, opener refocused, Enter's keydown
     cancelled, since the keypress after it reaches that refocused button and
     clicks it: a pick from the Tour button restarted the tour, which then
-    selected its own aircraft over the one searched for;
+    selected its own aircraft over the one searched for; a close button in
+    the field's corner for mouse and touch, `tabindex=-1` so the input stays
+    the modal's only Tab stop, and closing from it refocuses the opener too;
+    an X at the far right of the top bar closes Watchfloor itself
+    (`ui/closeButton.ts`): `window.close()` works where the window has one
+    history entry, which is how the screensaver's Edge kiosk starts (it has no
+    window controls; before this the way out was Alt+F4); in a tab that
+    navigated there the browser refuses silently, so after 300 ms a note says
+    Ctrl+W / ⌘W; hidden below 640 px (no phone lets a page close its tab, and
+    the X pushed the brand into the Rare chip);
     `aria-activedescendant`, an empty state); `focusInto(panel)` after a key
     opens a panel; Escape closes the track list; the timeline handle has
     slider values and Home/End/PageUp/PageDown/Shift+arrows; choice rows are

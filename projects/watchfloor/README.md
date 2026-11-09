@@ -82,7 +82,7 @@ After `npm run build`, `scripts\install-screensaver.cmd` installs it for the
 current user, no admin needed: a dedicated server starts at logon (port
 8088, its own picture cache, so it never collides with `npm run dev` on
 8080), and a Task Scheduler idle trigger opens a full-screen Edge kiosk on
-the tour after ten quiet minutes — Esc leaves it.
+the tour after ten quiet minutes — Esc or the X at the top right leaves it.
 `scripts\watchfloor-screensaver.cmd` opens the kiosk by hand, and
 `scripts\uninstall-screensaver.cmd` removes the lot. The server runs with
 no window (nothing to close by accident), restarts itself if it ever

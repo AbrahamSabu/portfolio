@@ -937,6 +937,25 @@ body[data-list-open] .maplibregl-ctrl-top-left {
   padding: 0;
 }
 
+/* The X that closes Watchfloor; its note says how when the browser won't let the page close itself. */
+.close-wrap {
+  position: relative;
+  display: flex;
+}
+
+.close-note {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  background: var(--surface-solid);
+  color: var(--ink);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 /*
  * News on or off, as a switch with a word on it: the bare diamond it
  * replaced wasn't recognised as a toggle. The thumb slides right and
