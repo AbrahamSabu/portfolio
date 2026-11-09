@@ -573,7 +573,12 @@ that could have been fetched before they arrived.
   server's feeds wake when a page connects, so its first reports
   "discover" aircraft that were flying all along). On phones (< 640px)
   the news rotation never pops cards (tapped ones still open), the top
-  bar goes icon-only (hud.css "phones"), and the map credits start folded:
+  bar goes icon-only (hud.css "phones"; between phone and desktop, hud.css
+  "laptops and tablets" steps it down at 1120 and 900 px, the briefing
+  button leaves below 720 and Leaderboard below 420, since the brand can't
+  shrink and used to run over the buttons from ~1100 px down; checked
+  collision-free 360-1440 px with `.cache/checks/barcheck.mjs`, 320 px
+  still overlaps), and the map credits start folded:
   MapLibre auto-opens compact credits the first time they have text (often
   on a resize after load), unless the box already has `maplibregl-compact`,
   so createMap adds it at creation. **Traffic as light**: below zoom 5 each

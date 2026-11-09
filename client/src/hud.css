@@ -492,6 +492,52 @@
   box-shadow: 0 0 10px var(--hud-glow), inset 0 0 6px rgb(var(--hud-rgb) / 0.12);
 }
 
+/* --------------------------------------------------- laptops and tablets */
+
+/*
+ * Between phone and desktop the bar used to keep every label: below about
+ * 1100px the left group (which may shrink) was squeezed under the brand,
+ * which can't, and WATCHFLOOR ran over the Tour, Rare and Leaderboard
+ * buttons. Two steps instead: the labelled buttons go icon-only (their titles
+ * still name them), then the phone's tighter spacing, smaller
+ * brand and clock, and a label-less News switch.
+ */
+@media (max-width: 1120px) {
+  .brand-scenario,
+  #list-toggle > span,
+  .rare-chip > span:not(.rare-count),
+  .records-chip > span {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    gap: 10px;
+  }
+
+  .topbar-start,
+  .topbar-end {
+    gap: 8px;
+  }
+
+  .news-switch-label,
+  .dtg-ring {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+
+  .dtg {
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+  }
+}
+
 /* ------------------------------------------------------------------ phones */
 
 /*
@@ -523,6 +569,10 @@
     display: none;
   }
 
+  .brand {
+    gap: 6px;
+  }
+
   .brand-name {
     font-size: 0.95rem;
     letter-spacing: 0.12em;
@@ -535,8 +585,25 @@
   }
 }
 
-/* The narrowest phones: the briefing button steps out too (Layers → Briefing still opens it). */
-@media (max-width: 400px) {
+/* Narrow phones: the Leaderboard button steps out (Layers → Leaderboard and P still open it;
+   Rare stays, its count is how new finds get noticed), and under 380px the brand tightens.
+   With the SIM chip (simulated traffic: the demo) the bar was 22-52px short. */
+@media (max-width: 420px) {
+  .records-chip {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-name {
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Small windows and phones: the briefing button steps out too (Layers → Briefing and B still
+   open it). Below 720px the bar was 16px short with it, and a phone's SIM chip (simulated
+   traffic: the demo) ran into the Rare button. */
+@media (max-width: 720px) {
   #briefing-toggle {
     display: none;
   }
