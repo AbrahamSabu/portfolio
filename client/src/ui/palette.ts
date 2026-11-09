@@ -36,6 +36,8 @@ export class Palette {
     root.addEventListener('pointerdown', (event) => {
       if (event.target === root) this.setOpen(false);
     });
+    // Out of the Tab order: the input stays the only stop, and Escape does the same from the keyboard.
+    root.querySelector('[data-close]')?.addEventListener('click', () => this.setOpen(false));
     this.input.addEventListener('input', () => this.search());
     this.input.addEventListener('keydown', (event) => this.onKey(event));
     this.list.addEventListener('click', (event) => {
@@ -58,7 +60,8 @@ export class Palette {
       this.input.focus();
     } else {
       // Back where the operator was (a button, the map): focus used to land on the body.
-      if (this.opener?.isConnected && document.activeElement === this.input) this.opener.focus();
+      // Anywhere inside, not just the input: clicking the close button moves focus onto it.
+      if (this.opener?.isConnected && this.root.contains(document.activeElement)) this.opener.focus();
       this.opener = null;
     }
   }

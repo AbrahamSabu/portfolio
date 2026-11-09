@@ -3137,14 +3137,22 @@ button.layers-switch .news-switch-track {
 }
 
 .palette {
+  position: relative;
   width: min(540px, 100%);
   padding: 10px;
   border: 1px solid var(--rule);
 }
 
+/* Top-right corner, centred on the search field, which leaves room for it. */
+.palette-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
 .palette-input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 44px 10px 12px;
   border: 1px solid var(--rule);
   background: var(--surface-solid);
   color: var(--ink);
