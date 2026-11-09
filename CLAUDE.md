@@ -834,7 +834,9 @@ that could have been fetched before they arrived.
   - UX: the palette is modal (Tab trapped, opener refocused, Enter's keydown
     cancelled, since the keypress after it reaches that refocused button and
     clicks it: a pick from the Tour button restarted the tour, which then
-    selected its own aircraft over the one searched for;
+    selected its own aircraft over the one searched for; a close button in
+    the field's corner for mouse and touch, `tabindex=-1` so the input stays
+    the modal's only Tab stop, and closing from it refocuses the opener too;
     `aria-activedescendant`, an empty state); `focusInto(panel)` after a key
     opens a panel; Escape closes the track list; the timeline handle has
     slider values and Home/End/PageUp/PageDown/Shift+arrows; choice rows are
